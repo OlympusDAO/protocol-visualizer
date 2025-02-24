@@ -3,46 +3,6 @@ import { actionExecutedEvent, contract, contractEvent } from 'ponder:schema';
 import { ModuleAbi } from '../abis/Module';
 import { decodeAbiParameters, parseAbiParameters } from 'viem';
 
-// /**
-//  * Handles policy state updates based on action execution
-//  */
-// async function handlePolicyStateUpdate(
-//   action: string,
-//   target: string,
-//   timestamp: number,
-//   Policy: any
-// ) {
-//   const isActivation = action.startsWith("executeAction");
-//   await Policy.upsert({
-//     id: target,
-//     create: {
-//       isActive: isActivation,
-//       lastUpdated: timestamp,
-//     },
-//     update: {
-//       isActive: isActivation,
-//       lastUpdated: timestamp,
-//     },
-//   });
-// }
-
-// /**
-//  * Records the action execution event
-//  */
-// async function recordActionExecution(
-//   event: any,
-//   ActionExecuted: any
-// ) {
-//   await ActionExecuted.create({
-//     id: event.log.id,
-//     action: event.args.action_.toString(),
-//     target: event.args.target_.toLowerCase(),
-//     timestamp: Number(event.block.timestamp),
-//     blockNumber: Number(event.block.number),
-//     transactionHash: event.transaction.hash,
-//   });
-// }
-
 const parseAction = (
   action: number
 ):
@@ -105,21 +65,28 @@ const parseKeycode = async (
   context: Context
 ): Promise<string | null> => {
   if (action > 1) {
+    console.debug(`Skipping keycode for non-module action: ${action}`);
     return null;
   }
 
   // Get the keycode from the module
   let keycodeResult;
   try {
+    console.debug(`Reading KEYCODE from module at ${target}`);
     keycodeResult = await context.client.readContract({
       abi: ModuleAbi,
       address: target,
       functionName: 'KEYCODE',
+      args: [],
     });
   } catch (error) {
     console.error(`Failed to read KEYCODE from module at ${target}:`, error);
     return 'unknown';
   }
+
+  console.debug(
+    `Decoding KEYCODE from module at ${target} with value ${keycodeResult}`
+  );
 
   // Decode from bytes5 to string
   const keycode = decodeAbiParameters(
@@ -129,6 +96,8 @@ const parseKeycode = async (
   if (keycode.length !== 1) {
     throw new Error(`Unable to decode keycode for value ${keycodeResult}`);
   }
+
+  console.debug(`Decoded KEYCODE from module at ${target}: ${keycode[0]}`);
 
   return keycode[0];
 };
@@ -152,6 +121,7 @@ ponder.on('Kernel:ActionExecuted', async ({ event, context }) => {
     timestamp: BigInt(timestamp),
     blockNumber: BigInt(event.block.number),
   });
+  console.log('Recorded action executed event');
 
   // Record the contract history
   await context.db.insert(contractEvent).values({
@@ -166,6 +136,7 @@ ponder.on('Kernel:ActionExecuted', async ({ event, context }) => {
     timestamp: BigInt(timestamp),
     blockNumber: BigInt(event.block.number),
   });
+  console.log('Recorded contract event');
 
   // Update the contract state
   await context.db
@@ -182,9 +153,11 @@ ponder.on('Kernel:ActionExecuted', async ({ event, context }) => {
     .onConflictDoUpdate({
       isEnabled: parseIsEnabled(action),
     });
+  console.log('Updated contract');
 });
 
 // TODO:
 // - Role events
 // - Handle kernel executor
 // - Handle migrate kernel
+// - Bootstrap initial Kernel contract

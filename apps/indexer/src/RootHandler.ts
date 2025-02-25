@@ -1,7 +1,13 @@
 import { Context, ponder } from "ponder:registry";
-import { actionExecutedEvent, contract, contractEvent } from "ponder:schema";
+import {
+  actionExecutedEvent,
+  contract,
+  contractEvent,
+  PolicyPermission,
+} from "ponder:schema";
 import { ModuleAbi } from "../abis/Module";
-import { decodeAbiParameters, fromHex, parseAbiParameters } from "viem";
+import { fromHex } from "viem";
+import { PolicyAbi } from "../abis/Policy";
 
 const parseAction = (
   action: number
@@ -63,7 +69,7 @@ const parseIsEnabled = (action: number): boolean => {
   }
 };
 
-const parseKeycode = async (
+const parseModuleKeycode = async (
   action: number,
   target: `0x${string}`,
   context: Context
@@ -93,6 +99,42 @@ const parseKeycode = async (
   return keycode;
 };
 
+const parsePolicyPermissions = async (
+  action: number,
+  target: `0x${string}`,
+  context: Context
+): Promise<PolicyPermission[] | null> => {
+  if (action !== 2 && action !== 3) {
+    console.debug(
+      `Skipping policy permissions for non-policy action: ${action}`
+    );
+    return null;
+  }
+
+  // Get the permissions from the policy
+  const permissionsResult = await context.client.readContract({
+    abi: PolicyAbi,
+    address: target,
+    functionName: "requestPermissions",
+    args: [],
+  });
+
+  const policyPermissions: PolicyPermission[] = [];
+  for (let i = 0; i < permissionsResult.length; i++) {
+    const currentResult = permissionsResult[i];
+    if (!currentResult) {
+      continue;
+    }
+
+    const keycode = fromHex(currentResult.keycode, "string");
+    policyPermissions.push({ keycode, function: currentResult.funcSelector });
+
+    // TODO Add lookup of function selector hash
+  }
+
+  return policyPermissions;
+};
+
 ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
   const action = event.args.action_;
   const target = event.args.target_;
@@ -104,29 +146,36 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
 
   // Record the action event
   await context.db.insert(actionExecutedEvent).values({
+    // Primary keys
     chainId: context.network.chainId,
     transactionHash: event.transaction.hash,
     logIndex: event.log.logIndex,
-    action: parseAction(action),
-    target: target,
+    // Timestamp
     timestamp: BigInt(timestamp),
     blockNumber: BigInt(event.block.number),
+    // Other data
+    action: parseAction(action),
+    target: target,
   });
   console.log("Recorded action executed event");
 
   // Record the contract history
   if (parseContractType(action) !== "kernel") {
     await context.db.insert(contractEvent).values({
+      // Primary keys
       chainId: context.network.chainId,
       transactionHash: event.transaction.hash,
       logIndex: event.log.logIndex,
+      // Timestamp
+      timestamp: BigInt(timestamp),
+      blockNumber: BigInt(event.block.number),
+      // Other data
       address: target,
       action: parseAction(action),
       type: parseContractType(action),
       isEnabled: parseIsEnabled(action),
-      moduleKeycode: await parseKeycode(action, target, context),
-      timestamp: BigInt(timestamp),
-      blockNumber: BigInt(event.block.number),
+      moduleKeycode: await parseModuleKeycode(action, target, context),
+      policyPermissions: await parsePolicyPermissions(action, target, context),
     });
     console.log("Recorded contract event");
   }
@@ -135,16 +184,24 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
   if (parseContractType(action) !== "kernel") {
     await context.db
       .insert(contract)
-    .values({
-      chainId: context.network.chainId,
-      address: target,
-      type: parseContractType(action),
-      isEnabled: parseIsEnabled(action),
-      moduleKeycode: await parseKeycode(action, target, context),
-      timestamp: BigInt(timestamp),
-      blockNumber: BigInt(event.block.number),
-    })
-    .onConflictDoUpdate({
+      .values({
+        // Primary keys
+        chainId: context.network.chainId,
+        address: target,
+        // Timestamp
+        lastUpdatedTimestamp: BigInt(timestamp),
+        lastUpdatedBlockNumber: BigInt(event.block.number),
+        // Other data
+        type: parseContractType(action),
+        isEnabled: parseIsEnabled(action),
+        moduleKeycode: await parseModuleKeycode(action, target, context),
+        policyPermissions: await parsePolicyPermissions(
+          action,
+          target,
+          context
+        ),
+      })
+      .onConflictDoUpdate({
         isEnabled: parseIsEnabled(action),
       });
     console.log("Updated contract");
@@ -156,4 +213,3 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
 // - Handle kernel executor
 // - Handle migrate kernel
 // - Bootstrap initial Kernel contract
-// - Record policy permissions

@@ -15,6 +15,11 @@ export const actionType = onchainEnum("actionType", [
   "migrateKernel",
 ]);
 
+export type PolicyPermission = {
+  keycode: string;
+  function: string;
+};
+
 /**
  * Latest state of a contract on a chain.
  */
@@ -24,10 +29,14 @@ export const contract = onchainTable(
     // Primary keys
     chainId: t.integer().notNull(),
     address: t.hex().notNull(),
+    // Timestamp
+    lastUpdatedTimestamp: t.bigint().notNull(),
+    lastUpdatedBlockNumber: t.bigint().notNull(),
     // Other data
     type: contractType().notNull(),
     isEnabled: t.boolean().notNull(),
-    keycode: t.text(), // Modules only
+    moduleKeycode: t.text(), // Modules only
+    policyPermissions: t.json().$type<PolicyPermission>().array(), // Policies only
   }),
   (table) => ({
     pk: primaryKey({ columns: [table.chainId, table.address] }),
@@ -44,14 +53,16 @@ export const contractEvent = onchainTable(
     chainId: t.integer().notNull(),
     transactionHash: t.hex().notNull(),
     logIndex: t.integer().notNull(), // Ensures a unique id if there are multiple operations on the same contract in the same transaction
+    // Timestamp
+    timestamp: t.bigint().notNull(),
+    blockNumber: t.bigint().notNull(),
     // Other data
     address: t.hex().notNull(),
     action: actionType().notNull(),
     type: contractType().notNull(),
     isEnabled: t.boolean().notNull(),
-    moduleKeycode: t.text(),
-    timestamp: t.bigint().notNull(),
-    blockNumber: t.bigint().notNull(),
+    moduleKeycode: t.text(), // Modules only
+    policyPermissions: t.json().$type<PolicyPermission>().array(), // Policies only
   }),
   (table) => ({
     pk: primaryKey({
@@ -78,11 +89,12 @@ export const actionExecutedEvent = onchainTable(
     chainId: t.integer().notNull(),
     transactionHash: t.hex().notNull(),
     logIndex: t.integer().notNull(), // Ensures a unique id if there are multiple operations on the same contract in the same transaction
+    // Timestamp
+    timestamp: t.bigint().notNull(),
+    blockNumber: t.bigint().notNull(),
     // Other data
     action: actionType().notNull(),
     target: t.hex().notNull(),
-    timestamp: t.bigint().notNull(),
-    blockNumber: t.bigint().notNull(),
   }),
   (table) => ({
     pk: primaryKey({

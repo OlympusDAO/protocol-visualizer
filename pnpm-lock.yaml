@@ -41,6 +41,9 @@ importers:
       '@ponder/client':
         specifier: ^0.9.22
         version: 0.9.22(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(better-sqlite3@9.6.0)(kysely@0.26.3)(pg@8.13.3)(typescript@5.7.3)
+      '@ponder/react':
+        specifier: ^0.9.22
+        version: 0.9.22(@ponder/client@0.9.22(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(better-sqlite3@9.6.0)(kysely@0.26.3)(pg@8.13.3)(typescript@5.7.3))(@tanstack/react-query@5.66.9(react@19.0.0))(react@19.0.0)(typescript@5.7.3)
       '@tanstack/react-query':
         specifier: ^5.66.9
         version: 5.66.9(react@19.0.0)
@@ -777,6 +780,17 @@ packages:
   '@ponder/client@0.9.22':
     resolution: {integrity: sha512-iD3ERv72NzPCxLFep+s6PaUNkBDyTUOgpGB8F1v4sXvTEx3Cytc5SrzHNPEXxrUHmkTubNIVEEOf+KCcv+j9IQ==}
     peerDependencies:
+      typescript: '>=5.0.4'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@ponder/react@0.9.22':
+    resolution: {integrity: sha512-SCdiWSKmOqPwzXNX65pNxG6UAeAtnNhrwkRL3/HAp6UefhRl4kaDrprVMxljMP1y1ZMwNAlgXFb8E9rGMtdKmw==}
+    peerDependencies:
+      '@ponder/client': '>=0.9.22'
+      '@tanstack/react-query': '>=5.0.0'
+      react: '>=18'
       typescript: '>=5.0.4'
     peerDependenciesMeta:
       typescript:
@@ -4020,6 +4034,15 @@ snapshots:
       - prisma
       - sql.js
       - sqlite3
+
+  '@ponder/react@0.9.22(@ponder/client@0.9.22(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(better-sqlite3@9.6.0)(kysely@0.26.3)(pg@8.13.3)(typescript@5.7.3))(@tanstack/react-query@5.66.9(react@19.0.0))(react@19.0.0)(typescript@5.7.3)':
+    dependencies:
+      '@ponder/client': 0.9.22(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(better-sqlite3@9.6.0)(kysely@0.26.3)(pg@8.13.3)(typescript@5.7.3)
+      '@tanstack/react-query': 5.66.9(react@19.0.0)
+      react: 19.0.0
+      superjson: 2.2.2
+    optionalDependencies:
+      typescript: 5.7.3
 
   '@ponder/utils@0.2.3(typescript@5.7.3)(viem@2.23.5(typescript@5.7.3))':
     dependencies:

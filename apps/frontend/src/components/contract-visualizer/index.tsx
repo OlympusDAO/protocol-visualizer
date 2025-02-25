@@ -10,17 +10,17 @@ import ReactFlow, {
   useNodesState,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { useQuery } from '@tanstack/react-query';
-import { Contract, getContracts } from '@/services/contracts';
+import { usePonderQuery } from '@ponder/react';
+import { schema } from '@/lib/ponder';
+import { Contract } from '@/services/contracts';
 
 export function ContractVisualizer() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  const { data: contracts, isLoading } = useQuery({
-    queryKey: ['contracts'],
-    queryFn: getContracts,
-  });
+  const { data: contracts, isLoading } = usePonderQuery({
+    queryFn: (db) => db.select().from(schema.contract),
+  })
 
   const createNodeFromContract = useCallback((contract: Contract, position: { x: number; y: number }) => {
     return {

@@ -1,25 +1,25 @@
-import { onchainEnum, onchainTable, primaryKey, relations } from 'ponder';
+import { onchainEnum, onchainTable, primaryKey, relations } from "ponder";
 
-export const contractType = onchainEnum('contractType', [
-  'kernel',
-  'module',
-  'policy',
+export const contractType = onchainEnum("contractType", [
+  "kernel",
+  "module",
+  "policy",
 ]);
 
-export const actionType = onchainEnum('actionType', [
-  'installModule',
-  'upgradeModule',
-  'activatePolicy',
-  'deactivatePolicy',
-  'changeExecutor',
-  'migrateKernel',
+export const actionType = onchainEnum("actionType", [
+  "installModule",
+  "upgradeModule",
+  "activatePolicy",
+  "deactivatePolicy",
+  "changeExecutor",
+  "migrateKernel",
 ]);
 
 /**
  * Latest state of a contract on a chain.
  */
 export const contract = onchainTable(
-  'contract',
+  "contract",
   (t) => ({
     // Primary keys
     chainId: t.integer().notNull(),
@@ -38,7 +38,7 @@ export const contract = onchainTable(
  * Events that occurred on a contract.
  */
 export const contractEvent = onchainTable(
-  'contractEvent',
+  "contractEvent",
   (t) => ({
     // Primary keys
     chainId: t.integer().notNull(),
@@ -72,7 +72,7 @@ export const contractEventRelations = relations(contractEvent, ({ one }) => ({
 }));
 
 export const actionExecutedEvent = onchainTable(
-  'actionExecutedEvent',
+  "actionExecutedEvent",
   (t) => ({
     // Primary keys
     chainId: t.integer().notNull(),

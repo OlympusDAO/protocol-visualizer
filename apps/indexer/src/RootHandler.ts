@@ -1,46 +1,46 @@
-import { Context, ponder } from 'ponder:registry';
-import { actionExecutedEvent, contract, contractEvent } from 'ponder:schema';
-import { ModuleAbi } from '../abis/Module';
-import { decodeAbiParameters, parseAbiParameters } from 'viem';
+import { Context, ponder } from "ponder:registry";
+import { actionExecutedEvent, contract, contractEvent } from "ponder:schema";
+import { ModuleAbi } from "../abis/Module";
+import { decodeAbiParameters, parseAbiParameters } from "viem";
 
 const parseAction = (
   action: number
 ):
-  | 'installModule'
-  | 'upgradeModule'
-  | 'activatePolicy'
-  | 'deactivatePolicy'
-  | 'changeExecutor'
-  | 'migrateKernel' => {
+  | "installModule"
+  | "upgradeModule"
+  | "activatePolicy"
+  | "deactivatePolicy"
+  | "changeExecutor"
+  | "migrateKernel" => {
   switch (action) {
     case 0:
-      return 'installModule';
+      return "installModule";
     case 1:
-      return 'upgradeModule';
+      return "upgradeModule";
     case 2:
-      return 'activatePolicy';
+      return "activatePolicy";
     case 3:
-      return 'deactivatePolicy';
+      return "deactivatePolicy";
     case 4:
-      return 'changeExecutor';
+      return "changeExecutor";
     case 5:
-      return 'migrateKernel';
+      return "migrateKernel";
     default:
       throw new Error(`Unknown Kernel action: ${action}`);
   }
 };
 
-const parseContractType = (action: number): 'kernel' | 'module' | 'policy' => {
+const parseContractType = (action: number): "kernel" | "module" | "policy" => {
   switch (action) {
     case 0:
     case 1:
-      return 'module';
+      return "module";
     case 2:
     case 3:
-      return 'policy';
+      return "policy";
     case 4:
     case 5:
-      return 'kernel';
+      return "kernel";
     default:
       throw new Error(`Unknown/unsupported Kernel action: ${action}`);
   }
@@ -76,12 +76,12 @@ const parseKeycode = async (
     keycodeResult = await context.client.readContract({
       abi: ModuleAbi,
       address: target,
-      functionName: 'KEYCODE',
+      functionName: "KEYCODE",
       args: [],
     });
   } catch (error) {
     console.error(`Failed to read KEYCODE from module at ${target}:`, error);
-    return 'unknown';
+    return "unknown";
   }
 
   console.debug(
@@ -90,7 +90,7 @@ const parseKeycode = async (
 
   // Decode from bytes5 to string
   const keycode = decodeAbiParameters(
-    parseAbiParameters('bytes5'),
+    parseAbiParameters("bytes5"),
     keycodeResult
   );
   if (keycode.length !== 1) {
@@ -102,7 +102,7 @@ const parseKeycode = async (
   return keycode[0];
 };
 
-ponder.on('Kernel:ActionExecuted', async ({ event, context }) => {
+ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
   const action = event.args.action_;
   const target = event.args.target_;
   const timestamp = Number(event.block.timestamp);
@@ -121,7 +121,7 @@ ponder.on('Kernel:ActionExecuted', async ({ event, context }) => {
     timestamp: BigInt(timestamp),
     blockNumber: BigInt(event.block.number),
   });
-  console.log('Recorded action executed event');
+  console.log("Recorded action executed event");
 
   // Record the contract history
   await context.db.insert(contractEvent).values({
@@ -136,7 +136,7 @@ ponder.on('Kernel:ActionExecuted', async ({ event, context }) => {
     timestamp: BigInt(timestamp),
     blockNumber: BigInt(event.block.number),
   });
-  console.log('Recorded contract event');
+  console.log("Recorded contract event");
 
   // Update the contract state
   await context.db
@@ -153,7 +153,7 @@ ponder.on('Kernel:ActionExecuted', async ({ event, context }) => {
     .onConflictDoUpdate({
       isEnabled: parseIsEnabled(action),
     });
-  console.log('Updated contract');
+  console.log("Updated contract");
 });
 
 // TODO:

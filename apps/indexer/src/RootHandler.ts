@@ -1,7 +1,7 @@
 import { Context, ponder } from "ponder:registry";
 import { actionExecutedEvent, contract, contractEvent } from "ponder:schema";
 import { ModuleAbi } from "../abis/Module";
-import { decodeAbiParameters, parseAbiParameters } from "viem";
+import { decodeAbiParameters, fromHex, parseAbiParameters } from "viem";
 
 const parseAction = (
   action: number
@@ -42,7 +42,9 @@ const parseContractType = (action: number): "kernel" | "module" | "policy" => {
     case 5:
       return "kernel";
     default:
-      throw new Error(`Unknown/unsupported Kernel action: ${action}`);
+      throw new Error(
+        `parseContractType: Unknown/unsupported Kernel action: ${action}`
+      );
   }
 };
 
@@ -55,7 +57,9 @@ const parseIsEnabled = (action: number): boolean => {
     case 3:
       return false;
     default:
-      throw new Error(`Unknown/unsupported Kernel action: ${action}`);
+      throw new Error(
+        `parseIsEnabled: Unknown/unsupported Kernel action: ${action}`
+      );
   }
 };
 
@@ -72,7 +76,6 @@ const parseKeycode = async (
   // Get the keycode from the module
   let keycodeResult;
   try {
-    console.debug(`Reading KEYCODE from module at ${target}`);
     keycodeResult = await context.client.readContract({
       abi: ModuleAbi,
       address: target,
@@ -84,22 +87,10 @@ const parseKeycode = async (
     return "unknown";
   }
 
-  console.debug(
-    `Decoding KEYCODE from module at ${target} with value ${keycodeResult}`
-  );
-
   // Decode from bytes5 to string
-  const keycode = decodeAbiParameters(
-    parseAbiParameters("bytes5"),
-    keycodeResult
-  );
-  if (keycode.length !== 1) {
-    throw new Error(`Unable to decode keycode for value ${keycodeResult}`);
-  }
-
-  console.debug(`Decoded KEYCODE from module at ${target}: ${keycode[0]}`);
-
-  return keycode[0];
+  const keycode = fromHex(keycodeResult, "string");
+  console.log(`Keycode for ${target}: ${keycode}`);
+  return keycode;
 };
 
 ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
@@ -124,36 +115,40 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
   console.log("Recorded action executed event");
 
   // Record the contract history
-  await context.db.insert(contractEvent).values({
-    chainId: context.network.chainId,
-    transactionHash: event.transaction.hash,
-    logIndex: event.log.logIndex,
-    address: target,
-    action: parseAction(action),
-    type: parseContractType(action),
-    isEnabled: parseIsEnabled(action),
-    keycode: await parseKeycode(action, target, context),
-    timestamp: BigInt(timestamp),
-    blockNumber: BigInt(event.block.number),
-  });
-  console.log("Recorded contract event");
+  if (parseContractType(action) !== "kernel") {
+    await context.db.insert(contractEvent).values({
+      chainId: context.network.chainId,
+      transactionHash: event.transaction.hash,
+      logIndex: event.log.logIndex,
+      address: target,
+      action: parseAction(action),
+      type: parseContractType(action),
+      isEnabled: parseIsEnabled(action),
+      moduleKeycode: await parseKeycode(action, target, context),
+      timestamp: BigInt(timestamp),
+      blockNumber: BigInt(event.block.number),
+    });
+    console.log("Recorded contract event");
+  }
 
   // Update the contract state
-  await context.db
-    .insert(contract)
+  if (parseContractType(action) !== "kernel") {
+    await context.db
+      .insert(contract)
     .values({
       chainId: context.network.chainId,
       address: target,
       type: parseContractType(action),
       isEnabled: parseIsEnabled(action),
-      keycode: await parseKeycode(action, target, context),
+      moduleKeycode: await parseKeycode(action, target, context),
       timestamp: BigInt(timestamp),
       blockNumber: BigInt(event.block.number),
     })
     .onConflictDoUpdate({
-      isEnabled: parseIsEnabled(action),
-    });
-  console.log("Updated contract");
+        isEnabled: parseIsEnabled(action),
+      });
+    console.log("Updated contract");
+  }
 });
 
 // TODO:
@@ -161,3 +156,4 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
 // - Handle kernel executor
 // - Handle migrate kernel
 // - Bootstrap initial Kernel contract
+// - Record policy permissions

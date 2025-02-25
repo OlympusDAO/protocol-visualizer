@@ -71,10 +71,17 @@ export const contractEvent = onchainTable(
   })
 );
 
-export const contractRelations = relations(contract, ({ many }) => ({
+// 1 contract -> many contract events
+// 1 kernel -> 1 kernel executor
+export const contractRelations = relations(contract, ({ one, many }) => ({
   events: many(contractEvent),
+  kernelExecutor: one(kernelExecutor, {
+    fields: [contract.chainId, contract.address],
+    references: [kernelExecutor.chainId, kernelExecutor.kernel],
+  }),
 }));
 
+// 1 contract event -> 1 contract
 export const contractEventRelations = relations(contractEvent, ({ one }) => ({
   contract: one(contract, {
     fields: [contractEvent.chainId, contractEvent.address],
@@ -82,11 +89,79 @@ export const contractEventRelations = relations(contractEvent, ({ one }) => ({
   }),
 }));
 
+export const kernelExecutor = onchainTable(
+  "kernelExecutor",
+  (t) => ({
+    // Primary keys
+    chainId: t.integer().notNull(),
+    kernel: t.hex().notNull(),
+    // Timestamp
+    lastUpdatedTimestamp: t.bigint().notNull(),
+    lastUpdatedBlockNumber: t.bigint().notNull(),
+    // Other data
+    executor: t.hex().notNull(),
+  }),
+  (table) => ({
+    pk: primaryKey({ columns: [table.chainId, table.kernel] }),
+  })
+);
+
+export const kernelExecutorEvent = onchainTable(
+  "kernelExecutorEvent",
+  (t) => ({
+    // Primary keys
+    chainId: t.integer().notNull(),
+    kernel: t.hex().notNull(),
+    transactionHash: t.hex().notNull(),
+    logIndex: t.integer().notNull(), // Ensures a unique id if there are multiple operations on the same contract in the same transaction
+    // Timestamp
+    timestamp: t.bigint().notNull(),
+    blockNumber: t.bigint().notNull(),
+    // Other data
+    executor: t.hex().notNull(),
+  }),
+  (table) => ({
+    pk: primaryKey({
+      columns: [
+        table.chainId,
+        table.kernel,
+        table.transactionHash,
+        table.logIndex,
+      ],
+    }),
+  })
+);
+
+// 1 kernel executor -> 1 kernel
+// 1 kernel executor -> many kernel executor events
+export const kernelExecutorRelations = relations(
+  kernelExecutor,
+  ({ one, many }) => ({
+    kernel: one(contract, {
+      fields: [kernelExecutor.chainId, kernelExecutor.kernel],
+      references: [contract.chainId, contract.address],
+    }),
+    events: many(kernelExecutorEvent),
+  })
+);
+
+// 1 kernel executor event -> 1 kernel executor
+export const kernelExecutorEventRelations = relations(
+  kernelExecutorEvent,
+  ({ one }) => ({
+    kernelExecutor: one(kernelExecutor, {
+      fields: [kernelExecutorEvent.chainId, kernelExecutorEvent.kernel],
+      references: [kernelExecutor.chainId, kernelExecutor.kernel],
+    }),
+  })
+);
+
 export const actionExecutedEvent = onchainTable(
   "actionExecutedEvent",
   (t) => ({
     // Primary keys
     chainId: t.integer().notNull(),
+    kernel: t.hex().notNull(),
     transactionHash: t.hex().notNull(),
     logIndex: t.integer().notNull(), // Ensures a unique id if there are multiple operations on the same contract in the same transaction
     // Timestamp
@@ -98,11 +173,20 @@ export const actionExecutedEvent = onchainTable(
   }),
   (table) => ({
     pk: primaryKey({
-      columns: [table.chainId, table.transactionHash, table.logIndex],
+      columns: [
+        table.chainId,
+        table.kernel,
+        table.transactionHash,
+        table.logIndex,
+      ],
     }),
   })
 );
 
+// 1 action executed event -> 1 contract event
+// 1 action executed event -> 1 contract
+// 1 action executed event -> 1 kernel executor event
+// 1 action executed event -> 1 kernel executor
 export const actionExecutedEventRelations = relations(
   actionExecutedEvent,
   ({ one }) => ({
@@ -121,6 +205,24 @@ export const actionExecutedEventRelations = relations(
     contract: one(contract, {
       fields: [actionExecutedEvent.chainId, actionExecutedEvent.target],
       references: [contract.chainId, contract.address],
+    }),
+    kernelExecutorEvent: one(kernelExecutorEvent, {
+      fields: [
+        actionExecutedEvent.chainId,
+        actionExecutedEvent.kernel,
+        actionExecutedEvent.transactionHash,
+        actionExecutedEvent.logIndex,
+      ],
+      references: [
+        kernelExecutorEvent.chainId,
+        kernelExecutorEvent.kernel,
+        kernelExecutorEvent.transactionHash,
+        kernelExecutorEvent.logIndex,
+      ],
+    }),
+    kernelExecutor: one(kernelExecutor, {
+      fields: [actionExecutedEvent.chainId, actionExecutedEvent.kernel],
+      references: [kernelExecutor.chainId, kernelExecutor.kernel],
     }),
   })
 );

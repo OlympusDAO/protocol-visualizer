@@ -3,11 +3,14 @@ import {
   actionExecutedEvent,
   contract,
   contractEvent,
+  kernelExecutor,
+  kernelExecutorEvent,
   PolicyPermission,
 } from "ponder:schema";
 import { ModuleAbi } from "../abis/Module";
 import { fromHex } from "viem";
 import { PolicyAbi } from "../abis/Policy";
+import { KernelAbi } from "../abis/Kernel";
 
 const parseAction = (
   action: number
@@ -135,10 +138,27 @@ const parsePolicyPermissions = async (
   return policyPermissions;
 };
 
+const getKernelExecutor = async (
+  kernelAddress: `0x${string}`,
+  context: Context
+): Promise<`0x${string}`> => {
+  const kernelExecutor = await context.client.readContract({
+    abi: KernelAbi,
+    address: kernelAddress,
+    functionName: "executor",
+    args: [],
+  });
+
+  return kernelExecutor;
+};
+
 ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
-  const action = event.args.action_;
+  const kernelAddress = event.log.address;
+  const actionInt = event.args.action_;
   const target = event.args.target_;
   const timestamp = Number(event.block.timestamp);
+  const action = parseAction(actionInt);
+  const contractType = parseContractType(actionInt);
 
   console.log(
     `Processing action ${action} on target ${target} at block ${event.block.number}`
@@ -148,19 +168,20 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
   await context.db.insert(actionExecutedEvent).values({
     // Primary keys
     chainId: context.network.chainId,
+    kernel: kernelAddress,
     transactionHash: event.transaction.hash,
     logIndex: event.log.logIndex,
     // Timestamp
     timestamp: BigInt(timestamp),
     blockNumber: BigInt(event.block.number),
     // Other data
-    action: parseAction(action),
+    action: action,
     target: target,
   });
   console.log("Recorded action executed event");
 
   // Record the contract history
-  if (parseContractType(action) !== "kernel") {
+  if (contractType !== "kernel") {
     await context.db.insert(contractEvent).values({
       // Primary keys
       chainId: context.network.chainId,
@@ -171,17 +192,23 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
       blockNumber: BigInt(event.block.number),
       // Other data
       address: target,
-      action: parseAction(action),
-      type: parseContractType(action),
-      isEnabled: parseIsEnabled(action),
-      moduleKeycode: await parseModuleKeycode(action, target, context),
-      policyPermissions: await parsePolicyPermissions(action, target, context),
+      action: action,
+      type: contractType,
+      isEnabled: parseIsEnabled(actionInt),
+      moduleKeycode: await parseModuleKeycode(actionInt, target, context),
+      policyPermissions: await parsePolicyPermissions(
+        actionInt,
+        target,
+        context
+      ),
     });
     console.log("Recorded contract event");
   }
 
   // Update the contract state
-  if (parseContractType(action) !== "kernel") {
+  if (contractType !== "kernel") {
+    const isEnabled = parseIsEnabled(actionInt);
+
     await context.db
       .insert(contract)
       .values({
@@ -192,24 +219,149 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
         lastUpdatedTimestamp: BigInt(timestamp),
         lastUpdatedBlockNumber: BigInt(event.block.number),
         // Other data
-        type: parseContractType(action),
-        isEnabled: parseIsEnabled(action),
-        moduleKeycode: await parseModuleKeycode(action, target, context),
+        type: contractType,
+        isEnabled: isEnabled,
+        moduleKeycode: await parseModuleKeycode(actionInt, target, context),
         policyPermissions: await parsePolicyPermissions(
-          action,
+          actionInt,
           target,
           context
         ),
       })
       .onConflictDoUpdate({
-        isEnabled: parseIsEnabled(action),
+        isEnabled: isEnabled,
       });
     console.log("Updated contract");
   }
+
+  // Handle the kernel executor
+  if (action === "changeExecutor") {
+    // Get the new executor
+    const kernelAddress = event.log.address;
+    const executor = await getKernelExecutor(kernelAddress, context);
+
+    // Update the kernel executor
+    await context.db
+      .update(kernelExecutor, {
+        chainId: context.network.chainId,
+        kernel: kernelAddress,
+      })
+      .set({
+        executor: executor,
+        lastUpdatedTimestamp: BigInt(timestamp),
+        lastUpdatedBlockNumber: BigInt(event.block.number),
+      });
+
+    // Record the kernel executor event
+    await context.db.insert(kernelExecutorEvent).values({
+      // Primary keys
+      chainId: context.network.chainId,
+      kernel: kernelAddress,
+      transactionHash: event.transaction.hash,
+      logIndex: event.log.logIndex,
+      // Timestamp
+      timestamp: BigInt(timestamp),
+      blockNumber: BigInt(event.block.number),
+      // Other data
+      executor: executor,
+    });
+    console.log("Recorded kernel executor event");
+  }
+});
+
+ponder.on("Kernel:setup", async ({ context }) => {
+  // Insert records for the Kernel contract
+  // Transaction: https://etherscan.io/tx/0xda3facf1f77124cdf4bddff8fa09221354ad663ec2f8b03dcc4657086ebf5e72
+
+  const transactionHash =
+    "0xda3facf1f77124cdf4bddff8fa09221354ad663ec2f8b03dcc4657086ebf5e72";
+  const kernelAddress = "0x2286d7f9639e8158FaD1169e76d1FbC38247f54b";
+  const kernelBlockNumber = 15998125;
+  const kernelTimestamp = 1668790475;
+
+  // Get the initial executor
+  const initialExecutor = await getKernelExecutor(kernelAddress, context);
+
+  console.log(`Inserting records for initial Kernel contract`);
+
+  // Record the action event
+  await context.db.insert(actionExecutedEvent).values({
+    // Primary keys
+    chainId: context.network.chainId,
+    kernel: kernelAddress,
+    transactionHash: transactionHash,
+    logIndex: 0,
+    // Timestamp
+    timestamp: BigInt(kernelTimestamp),
+    blockNumber: BigInt(kernelBlockNumber),
+    // Other data
+    action: "migrateKernel",
+    target: kernelAddress,
+  });
+  console.log("Recorded action executed event");
+
+  // Record the contract history
+  await context.db.insert(contractEvent).values({
+    // Primary keys
+    chainId: context.network.chainId,
+    transactionHash: transactionHash,
+    logIndex: 0,
+    // Timestamp
+    timestamp: BigInt(kernelTimestamp),
+    blockNumber: BigInt(kernelBlockNumber),
+    // Other data
+    address: kernelAddress,
+    action: "migrateKernel",
+    type: "kernel",
+    isEnabled: true,
+  });
+  console.log("Recorded contract event");
+
+  // Update the contract state
+  await context.db.insert(contract).values({
+    // Primary keys
+    chainId: context.network.chainId,
+    address: kernelAddress,
+    // Timestamp
+    lastUpdatedTimestamp: BigInt(kernelTimestamp),
+    lastUpdatedBlockNumber: BigInt(kernelBlockNumber),
+    // Other data
+    type: "kernel",
+    isEnabled: true,
+    moduleKeycode: null,
+    policyPermissions: null,
+  });
+  console.log("Updated contract");
+
+  // Record the kernel executor
+  await context.db.insert(kernelExecutor).values({
+    // Primary keys
+    chainId: context.network.chainId,
+    kernel: kernelAddress,
+    // Timestamp
+    lastUpdatedTimestamp: BigInt(kernelTimestamp),
+    lastUpdatedBlockNumber: BigInt(kernelBlockNumber),
+    // Other data
+    executor: initialExecutor,
+  });
+  console.log("Recorded kernel executor");
+
+  // Record the kernel executor event
+  await context.db.insert(kernelExecutorEvent).values({
+    // Primary keys
+    chainId: context.network.chainId,
+    kernel: kernelAddress,
+    transactionHash: transactionHash,
+    logIndex: 0,
+    // Timestamp
+    timestamp: BigInt(kernelTimestamp),
+    blockNumber: BigInt(kernelBlockNumber),
+    // Other data
+    executor: initialExecutor,
+  });
+  console.log("Recorded kernel executor event");
 });
 
 // TODO:
 // - Role events
-// - Handle kernel executor
 // - Handle migrate kernel
-// - Bootstrap initial Kernel contract

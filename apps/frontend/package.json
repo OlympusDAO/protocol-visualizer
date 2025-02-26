@@ -10,8 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@ponder/client": "^0.9.22",
-    "@ponder/react": "^0.9.22",
+    "@ponder/client": "^0.9.23",
+    "@ponder/react": "^0.9.23",
     "@tanstack/react-query": "^5.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

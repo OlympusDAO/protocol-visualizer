@@ -226,3 +226,107 @@ export const actionExecutedEventRelations = relations(
     }),
   })
 );
+
+// Event related to granting/revoking a role
+export const roleEvent = onchainTable(
+  "roleEvent",
+  (t) => ({
+    // Primary keys
+    chainId: t.integer().notNull(),
+    role: t.text().notNull(),
+    transactionHash: t.hex().notNull(),
+    logIndex: t.integer().notNull(), // Ensures a unique id if there are multiple operations on the same contract in the same transaction
+    // Timestamp
+    timestamp: t.bigint().notNull(),
+    blockNumber: t.bigint().notNull(),
+    // Other data
+    assignee: t.hex().notNull(),
+    isGranted: t.boolean().notNull(),
+  }),
+  (table) => ({
+    pk: primaryKey({
+      columns: [
+        table.chainId,
+        table.role,
+        table.transactionHash,
+        table.logIndex,
+      ],
+    }),
+  })
+);
+
+// A role
+export const role = onchainTable(
+  "role",
+  (t) => ({
+    // Primary keys
+    chainId: t.integer().notNull(),
+    role: t.text().notNull(),
+  }),
+  (table) => ({
+    pk: primaryKey({ columns: [table.chainId, table.role] }),
+  })
+);
+
+// An assignment of a role to an account
+export const roleAssignment = onchainTable(
+  "roleAssignment",
+  (t) => ({
+    // Primary keys
+    chainId: t.integer().notNull(),
+    role: t.text().notNull(),
+    assignee: t.hex().notNull(),
+    // Timestamp
+    lastUpdatedTimestamp: t.bigint().notNull(),
+    lastUpdatedBlockNumber: t.bigint().notNull(),
+    // Other data
+    isGranted: t.boolean().notNull(),
+  }),
+  (table) => ({
+    pk: primaryKey({ columns: [table.chainId, table.role, table.assignee] }),
+  })
+);
+
+// 1 role -> many role assignments
+export const roleToAssignmentsRelations = relations(role, ({ many }) => ({
+  assignments: many(roleAssignment),
+}));
+
+// 1 role assignment -> 1 role
+export const roleAssignmentToRoleRelations = relations(
+  roleAssignment,
+  ({ one }) => ({
+    role: one(role, {
+      fields: [roleAssignment.chainId, roleAssignment.role],
+      references: [role.chainId, role.role],
+    }),
+  })
+);
+
+// 1 role -> many role events
+export const roleToEventsRelations = relations(role, ({ many }) => ({
+  events: many(roleEvent),
+}));
+
+// 1 role event -> 1 role
+export const roleEventToRoleRelations = relations(roleEvent, ({ one }) => ({
+  role: one(role, {
+    fields: [roleEvent.chainId, roleEvent.role],
+    references: [role.chainId, role.role],
+  }),
+}));
+
+// 1 role assignment -> 1 role event
+export const roleAssignmentToRoleEventRelations = relations(
+  roleAssignment,
+  ({ one }) => ({
+    roleEvent: one(roleEvent, {
+      fields: [
+        roleAssignment.chainId,
+        roleAssignment.role,
+        roleAssignment.assignee,
+      ],
+      references: [roleEvent.chainId, roleEvent.role, roleEvent.assignee],
+    }),
+  })
+);

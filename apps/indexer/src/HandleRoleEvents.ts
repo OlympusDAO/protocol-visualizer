@@ -1,6 +1,11 @@
 import { Context, ponder } from "ponder:registry";
 import { fromHex } from "viem";
 import { roleAssignment, roleEvent, role as roleTable } from "../ponder.schema";
+import { getContractName } from "./ContractNames";
+
+const getAssigneeName = (assignee: `0x${string}`) => {
+  return getContractName(assignee);
+};
 
 ponder.on("ROLES:RoleGranted", async ({ event, context }) => {
   const role = fromHex(event.args.role_, "string").replace(/\0/g, "");
@@ -22,6 +27,7 @@ ponder.on("ROLES:RoleGranted", async ({ event, context }) => {
     blockNumber: BigInt(blockNumber),
     // Other data
     assignee: assignee,
+    assigneeName: getAssigneeName(assignee),
     isGranted: true,
   });
 
@@ -33,6 +39,7 @@ ponder.on("ROLES:RoleGranted", async ({ event, context }) => {
       chainId: context.network.chainId,
       role: role,
       assignee: assignee,
+      assigneeName: getAssigneeName(assignee),
       // Timestamp
       lastUpdatedTimestamp: BigInt(timestamp),
       lastUpdatedBlockNumber: BigInt(blockNumber),
@@ -74,6 +81,7 @@ ponder.on("ROLES:RoleRevoked", async ({ event, context }) => {
     blockNumber: BigInt(blockNumber),
     // Other data
     assignee: assignee,
+    assigneeName: getAssigneeName(assignee),
     isGranted: false,
   });
 

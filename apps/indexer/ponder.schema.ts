@@ -241,6 +241,7 @@ export const roleEvent = onchainTable(
     blockNumber: t.bigint().notNull(),
     // Other data
     assignee: t.hex().notNull(),
+    assigneeName: t.text().notNull(),
     isGranted: t.boolean().notNull(),
   }),
   (table) => ({
@@ -276,6 +277,7 @@ export const roleAssignment = onchainTable(
     chainId: t.integer().notNull(),
     role: t.text().notNull(),
     assignee: t.hex().notNull(),
+    assigneeName: t.text().notNull(),
     // Timestamp
     lastUpdatedTimestamp: t.bigint().notNull(),
     lastUpdatedBlockNumber: t.bigint().notNull(),

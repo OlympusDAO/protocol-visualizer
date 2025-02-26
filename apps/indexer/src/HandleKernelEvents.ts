@@ -97,7 +97,7 @@ const parseContractName = async (
   }
 
   // Decode from bytes5 to string
-  const keycode = fromHex(keycodeResult, "string");
+  const keycode = fromHex(keycodeResult, "string").replace(/\0/g, "");
   console.log(`Keycode for ${target}: ${keycode}`);
   return keycode;
 };

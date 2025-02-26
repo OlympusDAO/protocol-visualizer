@@ -6,6 +6,7 @@ import ReactFlow, {
   Node,
   useEdgesState,
   useNodesState,
+  NodeTypes,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { usePonderQuery } from "@ponder/react";
@@ -20,6 +21,13 @@ const shortenAddress = (address: string) => {
 
 const getEtherscanLink = (address: string) => {
   return `https://etherscan.io/address/${address}`;
+};
+
+// Node types configuration
+const nodeTypes: NodeTypes = {
+  group: () => (
+    <div style={{ background: 'transparent' }} />
+  ),
 };
 
 // TODOs
@@ -104,8 +112,8 @@ export function ContractVisualizer() {
     // Position calculation
     const centerX = 800;
     const centerY = 400;
-    const verticalSpacing = 180; // Reduced from 250 for more compact rows
-    const horizontalSpacing = 180; // Reduced from 220 for more compact columns
+    const verticalSpacing = 180;
+    const horizontalSpacing = 180;
 
     const newNodes: Node[] = [];
 
@@ -119,28 +127,74 @@ export function ContractVisualizer() {
       );
     }
 
-    // Add modules in a horizontal line at the bottom
+    // Add modules section
     const totalModuleWidth = moduleContracts.length * horizontalSpacing;
     const moduleStartX = centerX - totalModuleWidth / 2 + horizontalSpacing / 2;
+    const moduleY = centerY + verticalSpacing;
 
-    moduleContracts.forEach((contract, index) => {
-      newNodes.push(
-        createNodeFromContract(contract, {
-          x: moduleStartX + index * horizontalSpacing,
-          y: centerY + verticalSpacing,
-        })
-      );
+    // Create a group node for modules
+    const padding = 40;
+    const groupWidth = Math.max(totalModuleWidth + padding * 2, 200);
+    const groupHeight = 160;
+
+    // Add the modules label node
+    newNodes.push({
+      id: 'modules-label',
+      position: {
+        x: moduleStartX - padding,
+        y: moduleY - padding - 30,
+      },
+      data: {
+        label: (
+          <div className="font-bold text-lg text-gray-700">
+            Modules
+          </div>
+        ),
+      },
+      style: {
+        width: 'auto',
+        background: 'transparent',
+        border: 'none',
+      },
     });
 
-    // Group policies by similar names
+    // Add the group background
+    newNodes.push({
+      id: 'modules-group',
+      position: {
+        x: moduleStartX - padding,
+        y: moduleY - padding,
+      },
+      style: {
+        width: groupWidth,
+        height: groupHeight,
+        backgroundColor: 'rgba(240, 245, 255, 0.5)',
+        border: '2px dashed #666',
+        borderRadius: '12px',
+        zIndex: -1,
+      },
+      data: { label: '' },
+    });
+
+    // Add module nodes
+    moduleContracts.forEach((contract, index) => {
+      newNodes.push({
+        ...createNodeFromContract(contract, {
+          x: moduleStartX + index * horizontalSpacing,
+          y: moduleY,
+        }),
+        zIndex: 1,
+      });
+    });
+
+    // Add policy nodes
     const groupPolicies = (policies: Contract[]) => {
       const groups: { [key: string]: Contract[] } = {};
 
       policies.forEach(policy => {
-        // Extract base name by removing version numbers and common suffixes
         const baseName = policy.name
-          .replace(/[vV]?\d+(\.\d+)*$/, '') // Remove version numbers at the end
-          .replace(/[-_]?v\d+(\.\d+)*/, '') // Remove version numbers with v prefix
+          .replace(/[vV]?\d+(\.\d+)*$/, '')
+          .replace(/[-_]?v\d+(\.\d+)*/, '')
           .trim();
 
         if (!groups[baseName]) {
@@ -153,20 +207,15 @@ export function ContractVisualizer() {
     };
 
     const policyGroups = groupPolicies(policyContracts);
-    const maxNodesPerRow = Math.floor(1600 / horizontalSpacing);
 
     policyGroups.forEach((group, groupIndex) => {
       const row = Math.floor(groupIndex / 4);
       const groupPositionInRow = groupIndex % 4;
-
-      // Calculate group center position
       const groupCenterX = centerX - 450 + (groupPositionInRow * 300);
       const groupY = centerY - verticalSpacing * (2 + row);
 
-      // Position policies within group vertically
       group.forEach((contract, indexInGroup) => {
-        // Stack policies vertically within their group
-        const verticalOffset = indexInGroup * 80; // Consistent vertical spacing between related policies
+        const verticalOffset = indexInGroup * 80;
         newNodes.push(
           createNodeFromContract(contract, {
             x: groupCenterX,
@@ -204,6 +253,7 @@ export function ContractVisualizer() {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        nodeTypes={nodeTypes}
         fitView
       >
         <Background />

@@ -1,4 +1,4 @@
-import { ContractVisualizer } from './components/contract-visualizer';
+import { ContractVisualizer } from "./components/contract-visualizer";
 
 function App() {
   return (

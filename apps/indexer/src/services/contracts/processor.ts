@@ -72,6 +72,7 @@ export class ContractProcessor {
 
     // Process each function
     for (const item of abi) {
+      console.log("item", JSON.stringify(item, null, 2));
       if (item.type !== "function") continue;
 
       try {
@@ -79,6 +80,8 @@ export class ContractProcessor {
         const signature = this.getFunctionSignature(item);
         const selector = getFunctionSelector(signature);
         // const functionRoles = this.matchFunctionRoles(item, roles);
+        console.log("signature", signature);
+        console.log("selector", selector);
 
         functionSelectors[selector] = {
           name: item.name,

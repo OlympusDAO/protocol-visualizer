@@ -116,14 +116,17 @@ const parseContractName = async (
 const parsePolicyPermissions = async (
   action: number,
   target: `0x${string}`,
+  contractName: string,
   context: Context
 ): Promise<PolicyPermission[] | null> => {
   if (action !== 2 && action !== 3) {
     console.debug(
-      `Skipping policy permissions for non-policy action: ${action}`
+      `Skipping policy permissions for non-policy action ${action} on ${contractName}`
     );
     return null;
   }
+
+  console.log(`Parsing policy permissions for ${contractName}`);
 
   // Get the permissions from the policy
   const permissionsResult = await context.client.readContract({
@@ -148,6 +151,13 @@ const parsePolicyPermissions = async (
 
     // Get roles associated with this function selector
     const functionDetails = processedData.functionSelectors[funcSelector];
+    // TODO why are some selectors not being found?
+    if (!functionDetails) {
+      console.warn(
+        `No function details found for selector ${funcSelector} on contract ${contractName}`
+      );
+      continue;
+    }
 
     policyPermissions.push({
       keycode,
@@ -179,7 +189,9 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
   const timestamp = Number(event.block.timestamp);
   const action = parseAction(actionInt);
   const contractType = parseContractType(actionInt);
+  const contractName = await parseContractName(actionInt, target, context);
 
+  console.log("\n\n****");
   console.log(
     `Processing action ${action} on target ${target} at block ${event.block.number}`
   );
@@ -212,13 +224,14 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
       blockNumber: BigInt(event.block.number),
       // Other data
       address: target,
-      name: await parseContractName(actionInt, target, context),
+      name: contractName,
       action: action,
       type: contractType,
       isEnabled: parseIsEnabled(actionInt),
       policyPermissions: await parsePolicyPermissions(
         actionInt,
         target,
+        contractName,
         context
       ),
     });
@@ -239,12 +252,13 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
         lastUpdatedTimestamp: BigInt(timestamp),
         lastUpdatedBlockNumber: BigInt(event.block.number),
         // Other data
-        name: await parseContractName(actionInt, target, context),
+        name: contractName,
         type: contractType,
         isEnabled: isEnabled,
         policyPermissions: await parsePolicyPermissions(
           actionInt,
           target,
+          contractName,
           context
         ),
       })

@@ -23,6 +23,24 @@ const getEtherscanLink = (address: string) => {
   return `https://etherscan.io/address/${address}`;
 };
 
+// Policy category mapping
+const POLICY_CATEGORIES: Record<string, string> = {
+  'Clearinghouse': 'Lending',
+  'LoanConsolidator': 'Lending',
+  'YieldRepurchase': 'Supply/Demand',
+  'Emission': 'Supply/Demand',
+  'Bond': 'Supply/Demand',
+  'BLVault': 'BLV',
+};
+
+// Get category for a policy name
+const getPolicyCategory = (policyName: string): string => {
+  const matchingCategory = Object.entries(POLICY_CATEGORIES).find(([key]) =>
+    policyName.includes(key)
+  );
+  return matchingCategory ? matchingCategory[1] : 'Other';
+};
+
 // Node types configuration
 const nodeTypes: NodeTypes = {
   group: () => (
@@ -114,6 +132,11 @@ export function ContractVisualizer() {
     const centerY = 400;
     const verticalSpacing = 180;
     const horizontalSpacing = 180;
+    const nodeWidth = 200; // Width of a single node
+    const nodeHeight = 100; // Approximate height of a node
+    const nodePadding = 20; // Padding between nodes
+    const innerPadding = 40; // Padding inside groups
+    const padding = 40; // Padding for group backgrounds
 
     const newNodes: Node[] = [];
 
@@ -127,15 +150,10 @@ export function ContractVisualizer() {
       );
     }
 
-    // Add modules section
+    // Add modules section at the bottom
     const totalModuleWidth = moduleContracts.length * horizontalSpacing;
     const moduleStartX = centerX - totalModuleWidth / 2 + horizontalSpacing / 2;
-    const moduleY = centerY + verticalSpacing;
-
-    // Create a group node for modules
-    const padding = 40;
-    const groupWidth = Math.max(totalModuleWidth + padding * 2, 200);
-    const groupHeight = 160;
+    const moduleY = centerY + verticalSpacing * 2; // Move modules further down
 
     // Add the modules label node
     newNodes.push({
@@ -158,7 +176,10 @@ export function ContractVisualizer() {
       },
     });
 
-    // Add the group background
+    // Add the modules group background
+    const groupWidth = Math.max(totalModuleWidth + padding * 2, 200);
+    const groupHeight = 160;
+
     newNodes.push({
       id: 'modules-group',
       position: {
@@ -187,41 +208,121 @@ export function ContractVisualizer() {
       });
     });
 
-    // Add policy nodes
-    const groupPolicies = (policies: Contract[]) => {
-      const groups: { [key: string]: Contract[] } = {};
+    // Group policies by category
+    const policiesByCategory = policyContracts.reduce((acc, policy) => {
+      const category = getPolicyCategory(policy.name);
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(policy);
+      return acc;
+    }, {} as Record<string, Contract[]>);
 
-      policies.forEach(policy => {
-        const baseName = policy.name
-          .replace(/[vV]?\d+(\.\d+)*$/, '')
-          .replace(/[-_]?v\d+(\.\d+)*/, '')
-          .trim();
+    // Calculate policy category positions
+    const categories = Object.keys(policiesByCategory).sort((a, b) => {
+      // Sort alphabetically but keep "Other" in the sequence
+      return a.localeCompare(b);
+    });
 
-        if (!groups[baseName]) {
-          groups[baseName] = [];
-        }
-        groups[baseName].push(policy);
-      });
-
-      return Object.values(groups);
+    // Layout configuration
+    const maxCategoriesPerRow = 3;
+    const categorySpacing = {
+      horizontal: 450, // Increased for more space between categories
+      vertical: 350,   // Spacing between rows of categories
     };
 
-    const policyGroups = groupPolicies(policyContracts);
+    // Calculate total rows needed for all categories
+    const totalRows = Math.ceil(categories.length / maxCategoriesPerRow);
 
-    policyGroups.forEach((group, groupIndex) => {
-      const row = Math.floor(groupIndex / 4);
-      const groupPositionInRow = groupIndex % 4;
-      const groupCenterX = centerX - 450 + (groupPositionInRow * 300);
-      const groupY = centerY - verticalSpacing * (2 + row);
+    // Start Y position (move up based on number of rows)
+    const startY = centerY - (totalRows * categorySpacing.vertical);
 
-      group.forEach((contract, indexInGroup) => {
-        const verticalOffset = indexInGroup * 80;
-        newNodes.push(
-          createNodeFromContract(contract, {
-            x: groupCenterX,
-            y: groupY + verticalOffset,
-          })
-        );
+    // Add policy nodes by category
+    categories.forEach((category, categoryIndex) => {
+      const policies = policiesByCategory[category];
+
+      // Calculate category position in the grid
+      const row = Math.floor(categoryIndex / maxCategoriesPerRow);
+      const col = categoryIndex % maxCategoriesPerRow;
+
+      const categoryX = centerX + (col - 1) * categorySpacing.horizontal;
+      const categoryY = startY + (row * categorySpacing.vertical);
+
+      // For "Other" category, just add nodes without group visuals
+      if (category === 'Other') {
+        // Add nodes in a grid layout
+        const nodesPerRow = 2;
+        policies.forEach((policy, policyIndex) => {
+          const row = Math.floor(policyIndex / nodesPerRow);
+          const col = policyIndex % nodesPerRow;
+          newNodes.push({
+            ...createNodeFromContract(policy, {
+              x: categoryX - nodeWidth + col * (nodeWidth + nodePadding),
+              y: categoryY + row * (nodeHeight + nodePadding),
+            }),
+            zIndex: 1,
+          });
+        });
+        return;
+      }
+
+      // Add category label
+      newNodes.push({
+        id: `category-${category}`,
+        position: {
+          x: categoryX - nodeWidth / 2,
+          y: categoryY - 40,
+        },
+        data: {
+          label: (
+            <div className="font-bold text-lg text-gray-700">
+              {category}
+            </div>
+          ),
+        },
+        style: {
+          width: 'auto',
+          background: 'transparent',
+          border: 'none',
+        },
+      });
+
+      // Calculate grid layout for nodes within the category
+      const nodesPerRow = 2;
+      const rows = Math.ceil(policies.length / nodesPerRow);
+      const categoryWidth = Math.max(nodesPerRow * (nodeWidth + nodePadding) + innerPadding * 2, 240);
+      const categoryHeight = Math.max(rows * (nodeHeight + nodePadding) + innerPadding * 2, 120);
+
+      // Add category background
+      newNodes.push({
+        id: `category-bg-${category}`,
+        position: {
+          x: categoryX - categoryWidth / 2,
+          y: categoryY,
+        },
+        style: {
+          width: categoryWidth,
+          height: categoryHeight,
+          backgroundColor: 'rgba(245, 240, 255, 0.5)',
+          border: '2px dashed #666',
+          borderRadius: '12px',
+          zIndex: -1,
+        },
+        data: { label: '' },
+      });
+
+      // Add policy nodes in a grid layout
+      policies.forEach((policy, policyIndex) => {
+        const row = Math.floor(policyIndex / nodesPerRow);
+        const col = policyIndex % nodesPerRow;
+
+        newNodes.push({
+          ...createNodeFromContract(policy, {
+            x: categoryX - (categoryWidth / 2) + innerPadding + col * (nodeWidth + nodePadding),
+            y: categoryY + innerPadding + row * (nodeHeight + nodePadding),
+          }),
+          zIndex: 1,
+        });
       });
     });
 

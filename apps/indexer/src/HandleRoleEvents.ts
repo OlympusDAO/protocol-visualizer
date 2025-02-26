@@ -1,4 +1,4 @@
-import { Context, ponder } from "ponder:registry";
+import { ponder } from "ponder:registry";
 import { fromHex } from "viem";
 import { roleAssignment, roleEvent, role as roleTable } from "../ponder.schema";
 import { getContractName } from "./ContractNames";

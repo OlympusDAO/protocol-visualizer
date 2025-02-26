@@ -130,7 +130,7 @@ export function ContractVisualizer() {
     const centerY = 400;
     const verticalSpacing = 180;
     const horizontalSpacing = 180;
-    const nodeWidth = 200; // Width of a single node
+    const nodeWidth = 180; // Slightly reduced node width to ensure better fit
     const nodeHeight = 100; // Approximate height of a node
     const nodePadding = 20; // Padding between nodes
     const innerPadding = 40; // Padding inside groups
@@ -231,9 +231,6 @@ export function ContractVisualizer() {
     // Calculate total rows needed for all categories
     const totalRows = Math.ceil(categories.length / maxCategoriesPerRow);
 
-    // Calculate total width needed and adjust starting position to center everything
-    const totalWidth = categorySpacing.horizontal * (maxCategoriesPerRow - 1); // Space between leftmost and rightmost columns
-
     // Start Y position (move up based on number of rows)
     const startY = centerY - totalRows * categorySpacing.vertical;
 
@@ -249,10 +246,13 @@ export function ContractVisualizer() {
       const nodesPerRow = 2;
       const rows = Math.ceil(policies.length / nodesPerRow);
 
-      // Calculate width based on nodes and consistent padding
+      // Calculate the exact content width needed
       const contentWidth =
-        nodesPerRow * nodeWidth + (nodesPerRow - 1) * nodePadding;
-      const categoryWidth = contentWidth + innerPadding * 2;
+        nodesPerRow * nodeWidth + // Width of all nodes
+        (nodesPerRow - 1) * nodePadding; // Width of padding between nodes
+
+      // Set the category width to be exactly what's needed
+      const categoryWidth = contentWidth + innerPadding * 2; // Add padding on both sides
       const categoryHeight = Math.max(
         rows * (nodeHeight + nodePadding) + innerPadding * 2,
         120
@@ -308,12 +308,12 @@ export function ContractVisualizer() {
         const col = policyIndex % nodesPerRow;
 
         // Calculate x position with equal spacing
-        const xBase = categoryX + innerPadding; // Start after left padding
-        const xSpacing = col * (nodeWidth + nodePadding);
+        const xPosition =
+          categoryX + innerPadding + col * (nodeWidth + nodePadding);
 
         newNodes.push({
           ...createNodeFromContract(policy, {
-            x: xBase + xSpacing,
+            x: xPosition,
             y: categoryY + innerPadding + row * (nodeHeight + nodePadding),
           }),
           zIndex: 1,

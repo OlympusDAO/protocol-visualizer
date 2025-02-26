@@ -12,6 +12,16 @@ import { fromHex } from "viem";
 import { PolicyAbi } from "../abis/Policy";
 import { KernelAbi } from "../abis/Kernel";
 import { getContractName } from "./ContractNames";
+import { ContractProcessor } from "./services/contracts/processor";
+import { EtherscanApi } from "./services/etherscan/api";
+
+// Initialize services
+const etherscanApi = new EtherscanApi({
+  apiKey: process.env.ETHERSCAN_API_KEY!,
+  chainId: 1,
+});
+
+const contractProcessor = new ContractProcessor(etherscanApi);
 
 const parseAction = (
   action: number
@@ -99,6 +109,7 @@ const parseContractName = async (
   // Decode from bytes5 to string
   const keycode = fromHex(keycodeResult, "string").replace(/\0/g, "");
   console.log(`Keycode for ${target}: ${keycode}`);
+
   return keycode;
 };
 
@@ -122,6 +133,9 @@ const parsePolicyPermissions = async (
     args: [],
   });
 
+  // Process the contract to get role information
+  const processedData = await contractProcessor.processContract(target);
+
   const policyPermissions: PolicyPermission[] = [];
   for (let i = 0; i < permissionsResult.length; i++) {
     const currentResult = permissionsResult[i];
@@ -130,9 +144,15 @@ const parsePolicyPermissions = async (
     }
 
     const keycode = fromHex(currentResult.keycode, "string");
-    policyPermissions.push({ keycode, function: currentResult.funcSelector });
+    const funcSelector = currentResult.funcSelector;
 
-    // TODO Add lookup of function selector hash
+    // Get roles associated with this function selector
+    const functionDetails = processedData.functionSelectors[funcSelector];
+
+    policyPermissions.push({
+      keycode,
+      function: functionDetails ? functionDetails.name : funcSelector,
+    });
   }
 
   return policyPermissions;
@@ -364,5 +384,5 @@ ponder.on("Kernel:setup", async ({ context }) => {
 });
 
 // TODO:
-// - Role events
-// - Handle migrate kernel
+// - [ ] Add roles defined in policies
+// - [ ] Handle migrate kernel

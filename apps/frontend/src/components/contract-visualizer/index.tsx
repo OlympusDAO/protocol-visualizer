@@ -151,14 +151,14 @@ export function ContractVisualizer() {
     // Add modules section at the bottom
     const totalModuleWidth = moduleContracts.length * horizontalSpacing;
     const moduleStartX = centerX - totalModuleWidth / 2;
-    const moduleY = centerY + verticalSpacing * 2; // Move modules further down
+    const moduleY = centerY + verticalSpacing; // Move modules further down
 
     // Add the modules label node
     newNodes.push({
       id: "modules-label",
       position: {
-        x: moduleStartX - padding,
-        y: moduleY - padding - 30,
+        x: centerX - 50, // Center the label by offsetting half its approximate width
+        y: moduleY - padding - 40,
       },
       data: {
         label: <div className="font-bold text-lg text-gray-700">Modules</div>,

@@ -22,12 +22,6 @@ const getEtherscanLink = (address: string) => {
   return `https://etherscan.io/address/${address}`;
 };
 
-const getContractName = (contract: Contract) => {
-  if (contract.type === "kernel") return "KERNEL";
-  if (contract.type === "module") return contract.moduleKeycode || "UNKNOWN";
-  return "UNKNOWN";
-};
-
 // TODOs
 // [ ] Display last update, etc on hover over a node
 // [ ] Click on a policy node to show the policy permissions
@@ -53,7 +47,9 @@ export function ContractVisualizer() {
         data: {
           label: (
             <div className="p-2 text-sm">
-              <div className="font-bold mb-2">{getContractName(contract)}</div>
+              <div className="font-bold mb-2 break-words whitespace-pre-wrap max-w-[130px]">
+                {contract.name}
+              </div>
               <a
                 href={getEtherscanLink(contract.address)}
                 target="_blank"

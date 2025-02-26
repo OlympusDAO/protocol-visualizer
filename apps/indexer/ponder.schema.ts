@@ -33,9 +33,9 @@ export const contract = onchainTable(
     lastUpdatedTimestamp: t.bigint().notNull(),
     lastUpdatedBlockNumber: t.bigint().notNull(),
     // Other data
+    name: t.text().notNull(),
     type: contractType().notNull(),
     isEnabled: t.boolean().notNull(),
-    moduleKeycode: t.text(), // Modules only
     policyPermissions: t.json().$type<PolicyPermission>().array(), // Policies only
   }),
   (table) => ({
@@ -58,10 +58,10 @@ export const contractEvent = onchainTable(
     blockNumber: t.bigint().notNull(),
     // Other data
     address: t.hex().notNull(),
+    name: t.text().notNull(),
     action: actionType().notNull(),
     type: contractType().notNull(),
     isEnabled: t.boolean().notNull(),
-    moduleKeycode: t.text(), // Modules only
     policyPermissions: t.json().$type<PolicyPermission>().array(), // Policies only
   }),
   (table) => ({

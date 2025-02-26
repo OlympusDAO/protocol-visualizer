@@ -11,6 +11,7 @@ import { ModuleAbi } from "../abis/Module";
 import { fromHex } from "viem";
 import { PolicyAbi } from "../abis/Policy";
 import { KernelAbi } from "../abis/Kernel";
+import { getContractName } from "./ContractNames";
 
 const parseAction = (
   action: number
@@ -72,14 +73,13 @@ const parseIsEnabled = (action: number): boolean => {
   }
 };
 
-const parseModuleKeycode = async (
+const parseContractName = async (
   action: number,
   target: `0x${string}`,
   context: Context
-): Promise<string | null> => {
+): Promise<string> => {
   if (action > 1) {
-    console.debug(`Skipping keycode for non-module action: ${action}`);
-    return null;
+    return getContractName(target);
   }
 
   // Get the keycode from the module
@@ -93,7 +93,7 @@ const parseModuleKeycode = async (
     });
   } catch (error) {
     console.error(`Failed to read KEYCODE from module at ${target}:`, error);
-    return "unknown";
+    return "UNKNOWN";
   }
 
   // Decode from bytes5 to string
@@ -192,10 +192,10 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
       blockNumber: BigInt(event.block.number),
       // Other data
       address: target,
+      name: await parseContractName(actionInt, target, context),
       action: action,
       type: contractType,
       isEnabled: parseIsEnabled(actionInt),
-      moduleKeycode: await parseModuleKeycode(actionInt, target, context),
       policyPermissions: await parsePolicyPermissions(
         actionInt,
         target,
@@ -219,9 +219,9 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
         lastUpdatedTimestamp: BigInt(timestamp),
         lastUpdatedBlockNumber: BigInt(event.block.number),
         // Other data
+        name: await parseContractName(actionInt, target, context),
         type: contractType,
         isEnabled: isEnabled,
-        moduleKeycode: await parseModuleKeycode(actionInt, target, context),
         policyPermissions: await parsePolicyPermissions(
           actionInt,
           target,
@@ -310,6 +310,7 @@ ponder.on("Kernel:setup", async ({ context }) => {
     timestamp: BigInt(kernelTimestamp),
     blockNumber: BigInt(kernelBlockNumber),
     // Other data
+    name: "Kernel",
     address: kernelAddress,
     action: "migrateKernel",
     type: "kernel",
@@ -326,9 +327,9 @@ ponder.on("Kernel:setup", async ({ context }) => {
     lastUpdatedTimestamp: BigInt(kernelTimestamp),
     lastUpdatedBlockNumber: BigInt(kernelBlockNumber),
     // Other data
+    name: "Kernel",
     type: "kernel",
     isEnabled: true,
-    moduleKeycode: null,
     policyPermissions: null,
   });
   console.log("Updated contract");

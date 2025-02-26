@@ -46,8 +46,8 @@ export function ContractVisualizer() {
         position,
         data: {
           label: (
-            <div className="p-2 text-sm">
-              <div className="font-bold mb-2 break-words whitespace-pre-wrap max-w-[130px]">
+            <div className="p-1 text-sm">
+              <div className="font-bold mb-1 break-words whitespace-pre-wrap max-w-[160px]">
                 {contract.name}
               </div>
               <a
@@ -68,9 +68,9 @@ export function ContractVisualizer() {
           background: contract.isEnabled ? "#fff" : "#f0f0f0",
           border: "1px solid #ccc",
           borderRadius: "8px",
-          padding: "10px",
+          padding: "6px",
           opacity: contract.isEnabled ? 1 : 0.7,
-          minWidth: "150px",
+          minWidth: "180px",
         },
       };
     },
@@ -102,10 +102,10 @@ export function ContractVisualizer() {
     const policyContracts = contracts.filter((c) => c.type === "policy");
 
     // Position calculation
-    const centerX = 500;
+    const centerX = 800;
     const centerY = 400;
-    const verticalSpacing = 250; // Space between rows
-    const horizontalSpacing = 200; // Space between nodes in a row
+    const verticalSpacing = 180; // Reduced from 250 for more compact rows
+    const horizontalSpacing = 180; // Reduced from 220 for more compact columns
 
     const newNodes: Node[] = [];
 
@@ -132,33 +132,52 @@ export function ContractVisualizer() {
       );
     });
 
-    // Add policies in horizontal lines at the top
-    const maxNodesPerRow = Math.floor(1000 / horizontalSpacing); // Limit nodes per row based on screen width
-    const policyRows = Math.ceil(policyContracts.length / maxNodesPerRow);
+    // Group policies by similar names
+    const groupPolicies = (policies: Contract[]) => {
+      const groups: { [key: string]: Contract[] } = {};
 
-    policyContracts.forEach((contract, index) => {
-      const row = Math.floor(index / maxNodesPerRow);
-      const positionInRow = index % maxNodesPerRow;
-      const nodesInThisRow =
-        row === policyRows - 1
-          ? policyContracts.length - row * maxNodesPerRow // Last row might not be full
-          : maxNodesPerRow;
+      policies.forEach(policy => {
+        // Extract base name by removing version numbers and common suffixes
+        const baseName = policy.name
+          .replace(/[vV]?\d+(\.\d+)*$/, '') // Remove version numbers at the end
+          .replace(/[-_]?v\d+(\.\d+)*/, '') // Remove version numbers with v prefix
+          .trim();
 
-      const rowWidth = nodesInThisRow * horizontalSpacing;
-      const rowStartX = centerX - rowWidth / 2 + horizontalSpacing / 2;
+        if (!groups[baseName]) {
+          groups[baseName] = [];
+        }
+        groups[baseName].push(policy);
+      });
 
-      newNodes.push(
-        createNodeFromContract(contract, {
-          x: rowStartX + positionInRow * horizontalSpacing,
-          y: centerY - verticalSpacing * (policyRows - row),
-        })
-      );
+      return Object.values(groups);
+    };
+
+    const policyGroups = groupPolicies(policyContracts);
+    const maxNodesPerRow = Math.floor(1600 / horizontalSpacing);
+
+    policyGroups.forEach((group, groupIndex) => {
+      const row = Math.floor(groupIndex / 4);
+      const groupPositionInRow = groupIndex % 4;
+
+      // Calculate group center position
+      const groupCenterX = centerX - 450 + (groupPositionInRow * 300);
+      const groupY = centerY - verticalSpacing * (2 + row);
+
+      // Position policies within group vertically
+      group.forEach((contract, indexInGroup) => {
+        // Stack policies vertically within their group
+        const verticalOffset = indexInGroup * 80; // Consistent vertical spacing between related policies
+        newNodes.push(
+          createNodeFromContract(contract, {
+            x: groupCenterX,
+            y: groupY + verticalOffset,
+          })
+        );
+      });
     });
 
     // Create edges
-    const newEdges: Edge[] = contracts.flatMap(
-      createEdgesFromPolicyPermissions
-    );
+    const newEdges: Edge[] = contracts.flatMap(createEdgesFromPolicyPermissions);
 
     setNodes(newNodes);
     setEdges(newEdges);

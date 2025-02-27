@@ -20,7 +20,6 @@ import ELK from 'elkjs/lib/elk.bundled.js';
 const elk = new ELK();
 
 // Types
-type Role = typeof schema.role.$inferSelect;
 type RoleAssignment = typeof schema.roleAssignment.$inferSelect;
 
 // Helper functions
@@ -30,24 +29,6 @@ const shortenAddress = (address: string) => {
 
 const getEtherscanLink = (address: string) => {
   return `https://etherscan.io/address/${address}`;
-};
-
-// Policy category mapping
-const POLICY_CATEGORIES: Record<string, string> = {
-  Clearinghouse: "Lending",
-  LoanConsolidator: "Lending",
-  YieldRepurchase: "Supply/Demand",
-  Emission: "Supply/Demand",
-  Bond: "Supply/Demand",
-  BLVault: "BLV",
-};
-
-// Get category for a policy name
-const getPolicyCategory = (policyName: string): string => {
-  const matchingCategory = Object.entries(POLICY_CATEGORIES).find(([key]) =>
-    policyName.includes(key)
-  );
-  return matchingCategory ? matchingCategory[1] : "Other";
 };
 
 // Node color scheme

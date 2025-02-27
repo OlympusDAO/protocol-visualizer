@@ -243,6 +243,7 @@ export function ContractVisualizer() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [hoveredPolicy, setHoveredPolicy] = useState<string | null>(null);
   const [hoveredRole, setHoveredRole] = useState<string | null>(null);
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [layouting, setLayouting] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
@@ -353,7 +354,12 @@ export function ContractVisualizer() {
     sourceHandle: `${source}-source`,
     targetHandle: `${target}-target`,
     type: "smoothstep",
-    style: { stroke: "#9333ea", strokeWidth: 2 },
+    style: {
+      stroke: "#9333ea",
+      strokeWidth: 2,
+      opacity: 0.1,
+      transition: 'opacity 0.2s'
+    },
     animated,
     markerEnd: {
       type: MarkerType.Arrow,
@@ -515,7 +521,13 @@ export function ContractVisualizer() {
       ) : (
         <ReactFlow
           nodes={nodes}
-          edges={edges}
+          edges={edges.map(edge => ({
+            ...edge,
+            style: {
+              ...edge.style,
+              opacity: hoveredNode ? (edge.source === hoveredNode || edge.target === hoveredNode ? 1 : 0.2) : 0.2
+            }
+          }))}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
@@ -528,6 +540,8 @@ export function ContractVisualizer() {
           nodesDraggable={true}
           edgesFocusable={true}
           edgesUpdatable={false}
+          onNodeMouseEnter={(_, node) => setHoveredNode(node.id)}
+          onNodeMouseLeave={() => setHoveredNode(null)}
           onNodeDragStop={(event, node) => {
             // Update the node's position in our state
             const updatedNodes = nodes.map((n) =>

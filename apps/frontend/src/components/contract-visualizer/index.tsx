@@ -73,7 +73,7 @@ const createAssigneeNode = (
       label: (
         <div className="p-1 text-sm relative">
           <Handle
-            id="assignee-target"
+            id={`${id}-target`}
             type="target"
             position={Position.Left}
             style={{
@@ -94,7 +94,7 @@ const createAssigneeNode = (
             {shortenAddress(assignee.assignee)}
           </a>
           <Handle
-            id="assignee-source"
+            id={`${id}-source`}
             type="source"
             position={Position.Right}
             style={{
@@ -347,27 +347,32 @@ export function ContractVisualizer() {
   );
 
   // Memoize the edge creation function
-  const createEdge = useCallback((source: string, target: string, animated: boolean = false) => ({
-    id: `${source}-${target}`,
-    source,
-    target,
-    sourceHandle: `${source}-source`,
-    targetHandle: `${target}-target`,
-    type: "smoothstep",
-    style: {
-      stroke: "#9333ea",
-      strokeWidth: 2,
-      opacity: 0.1,
-      transition: 'opacity 0.2s'
-    },
-    animated,
-    markerEnd: {
-      type: MarkerType.Arrow,
-      color: '#9333ea',
-      width: 20,
-      height: 20
-    }
-  }), []);
+  const createEdge = useCallback((source: string, target: string, animated: boolean = false) => {
+    const sourceIsRole = source.startsWith('role-');
+    const targetIsRole = target.startsWith('role-');
+
+    return {
+      id: `${source}-${target}`,
+      source,
+      target,
+      sourceHandle: sourceIsRole ? 'role-source' : `${source}-source`,
+      targetHandle: targetIsRole ? 'role-target' : `${target}-target`,
+      type: "smoothstep",
+      style: {
+        stroke: "#9333ea",
+        strokeWidth: 2,
+        opacity: 0.1,
+        transition: 'opacity 0.2s'
+      },
+      animated,
+      markerEnd: {
+        type: MarkerType.Arrow,
+        color: '#9333ea',
+        width: 20,
+        height: 20
+      }
+    };
+  }, []);
 
   const setupGraph = useCallback(async () => {
     if (!contracts || !roles || !roleAssignments || layouting) return;
@@ -436,7 +441,7 @@ export function ContractVisualizer() {
 
         if (contractNode) {
           // Add edge to existing contract node
-          newEdges.push(createEdge(assignment.assignee, roleId, true));
+          newEdges.push(createEdge(assignment.assignee, roleId, false));
         } else {
           // Create node for non-contract assignee
           const assigneeId = `assignee-${assignment.assignee}`;
@@ -446,7 +451,7 @@ export function ContractVisualizer() {
           });
 
           // Add edge from role to assignee
-          newEdges.push(createEdge(assigneeId, roleId));
+          newEdges.push(createEdge(assigneeId, roleId, false));
         }
       });
     });

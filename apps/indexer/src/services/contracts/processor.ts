@@ -70,6 +70,8 @@ export class ContractProcessor {
       sourceCode = readFileSync(sourceCodePath, "utf-8");
     } else {
       // Fetch and save source code if it doesn't exist
+      // It's not technically a JSON, due to some weird formatting that hasn't been cleaned up yet, but it's close enough
+      // TODO clean up leading and trailing brackets
       sourceCode = await this.etherscanApi.getContractSourceCode(address);
       writeFileSync(sourceCodePath, sourceCode);
     }
@@ -95,7 +97,7 @@ export class ContractProcessor {
   }
 
   private getSourceCodePath(address: string): string {
-    return path.join(SOURCE_CODE_DIR, `${address}.sol`);
+    return path.join(SOURCE_CODE_DIR, `${address}.json`);
   }
 
   private processAbi(abi: Abi): ProcessedContractData {
@@ -139,6 +141,66 @@ export class ContractProcessor {
     return { roleToFunctions, functionSelectors };
   }
 
+  private findRoleFromModifier(
+    functionDefinition: string,
+    sourceCode: string,
+    functionName: string
+  ): string[] | null {
+    // First try to match constant references
+    const constantMatch = functionDefinition.match(
+      /onlyRole\(([A-Z_][A-Z0-9_]*)\)/
+    );
+    if (constantMatch) {
+      const constantName = constantMatch[1];
+      // Look for constant definition in the form: bytes32 [visibility] constant CONSTANT_NAME = "value"
+      const constantDefinitionRegex = new RegExp(
+        `bytes32\\s+(?:public|private|internal)?\\s+constant\\s+${constantName}\\s*=\\s*\\\\?"([^"]*)\\\\"?`
+      );
+      const constantDefinition = sourceCode.match(constantDefinitionRegex);
+
+      if (constantDefinition && constantDefinition[1]) {
+        console.log(
+          `Found role with constant value ${constantDefinition[1]} for ${functionName}`
+        );
+        return [constantDefinition[1]];
+      }
+    }
+
+    // Check for onlyAdmin, onlyEmergency, onlyAdminOrEmergency
+    const onlyAdminMatch = functionDefinition.match(/onlyAdmin\(\)/);
+    if (onlyAdminMatch) {
+      console.log(`Found role with onlyAdmin for ${functionName}`);
+      return ["admin"];
+    }
+
+    const onlyEmergencyMatch = functionDefinition.match(/onlyEmergency\(\)/);
+    if (onlyEmergencyMatch) {
+      console.log(`Found role with onlyEmergency for ${functionName}`);
+      return ["emergency"];
+    }
+
+    const onlyAdminOrEmergencyMatch = functionDefinition.match(
+      /onlyAdminOrEmergency\(\)/
+    );
+    if (onlyAdminOrEmergencyMatch) {
+      console.log(`Found role with onlyAdminOrEmergency for ${functionName}`);
+      return ["admin", "emergency"];
+    }
+
+    // If no constant found, try direct string values
+    const directStringMatch = functionDefinition.match(
+      /onlyRole\(\\?"([^"]*)\\"?\)/
+    );
+    if (directStringMatch && directStringMatch[1]) {
+      console.log(
+        `Found role with literal value ${directStringMatch[1]} for ${functionName}`
+      );
+      return [directStringMatch[1]];
+    }
+
+    return null;
+  }
+
   private processSourceCode(
     sourceCode: string,
     processedData: ProcessedContractData
@@ -165,27 +227,20 @@ export class ContractProcessor {
         console.warn(`Function ${functionName} not found in source code`);
         continue;
       }
-      // Check if the function uses the onlyRole modifier
-      // TODO handle constants
-      // TODO onlyAdmin, onlyEmergency, onlyAdminOrEmergency
-      const onlyRoleMatch = functionDefinition[0].match(
-        /onlyRole\(\\?"([^"]*)\\"?\)/
+
+      const role = this.findRoleFromModifier(
+        functionDefinition[0],
+        sourceCode,
+        functionName
       );
-      if (!onlyRoleMatch) {
+      if (!role) {
         continue;
       }
 
-      const role = onlyRoleMatch[1];
-      if (!role) {
-        throw new Error(
-          `Expected to find a role in the onlyRole modifier for function ${functionName}`
-        );
-      }
-
-      console.log(`Function ${functionName} has role ${role}`);
+      console.log(`Function ${functionName} has roles ${JSON.stringify(role)}`);
 
       // Add the role to the function details
-      functionDetails.roles.push(role);
+      functionDetails.roles.push(...role);
     }
 
     return processedData;

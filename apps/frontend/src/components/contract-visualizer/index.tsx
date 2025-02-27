@@ -235,7 +235,7 @@ const PolicyTooltip = ({ contract }: { contract: Contract }) => {
 
 // TODOs
 // [X] Display last update, etc on hover over a node
-// [ ] Click on a policy node to show the policy permissions
+// [X] Click on a policy node to show the policy permissions
 // [ ] Click on a module node to show policy permissions that are using that module
 
 export function ContractVisualizer() {
@@ -454,6 +454,18 @@ export function ContractVisualizer() {
           newEdges.push(createEdge(assigneeId, roleId, false));
         }
       });
+
+      // Link roles with policies that use them
+      const policyContracts = contracts.filter(c => c.type === 'policy' && Array.isArray(c.policyFunctions));
+      policyContracts.forEach(policy => {
+        // Check if any function in the policy requires this role
+        const policyFunctions = policy.policyFunctions as Array<{ roles: string[] }>;
+        const hasRole = policyFunctions.some(func => func.roles.includes(role.role));
+        if (hasRole) {
+          // Add edge from role to policy
+          newEdges.push(createEdge(roleId, policy.address, false));
+        }
+      });
     });
 
     // Prepare the graph for ELK layout
@@ -547,7 +559,7 @@ export function ContractVisualizer() {
           edgesUpdatable={false}
           onNodeMouseEnter={(_, node) => setHoveredNode(node.id)}
           onNodeMouseLeave={() => setHoveredNode(null)}
-          onNodeDragStop={(event, node) => {
+          onNodeDragStop={(_event, node) => {
             // Update the node's position in our state
             const updatedNodes = nodes.map((n) =>
               n.id === node.id ? { ...n, position: node.position } : n

@@ -14,7 +14,6 @@ import { KernelAbi } from "../abis/Kernel";
 import { getContractName } from "./ContractNames";
 import { ContractProcessor } from "./services/contracts/processor";
 import { EtherscanApi } from "./services/etherscan/api";
-import { eq } from "ponder";
 import { getLatestContractByName } from "./services/db";
 import { FunctionDetails } from "./services/contracts/types";
 
@@ -160,9 +159,6 @@ const parsePolicyPermissions = async (
     functionName: "requestPermissions",
     args: [],
   });
-
-  // Process the contract to get role information
-  // const processedData = await contractProcessor.processContract(target, targetName);
 
   // Iterate over the permissions
   const policyPermissions: PolicyPermission[] = [];
@@ -457,7 +453,3 @@ ponder.on("Kernel:setup", async ({ context }) => {
   });
   console.log("Recorded kernel executor event");
 });
-
-// TODO:
-// - [ ] Add roles defined in policies
-// - [ ] Handle migrate kernel

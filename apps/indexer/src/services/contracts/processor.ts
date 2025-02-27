@@ -1,15 +1,8 @@
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from "fs";
-import {
-  getFunctionSelector,
-  AbiFunction,
-  AbiParameter,
-  Abi,
-  toFunctionSelector,
-} from "viem";
+import { AbiFunction, AbiParameter, Abi, toFunctionSelector } from "viem";
 import { ContractCache, ProcessedContractData, FunctionDetails } from "./types";
 import { EtherscanApi } from "../etherscan/api";
 import path from "path";
-// import { RoleExtractor } from './role-extractor';
 
 const CACHE_FILE = "./data/contract-cache.json";
 const ABI_DIR = "./data/abis";
@@ -101,9 +94,6 @@ export class ContractProcessor {
   }
 
   private processAbi(abi: Abi): ProcessedContractData {
-    // const roles = this.roleExtractor.extractRoles(abi);
-    // const parsedAbi = parseAbi(abi);
-
     const roleToFunctions: Record<string, string[]> = {};
     const functionSelectors: Record<string, FunctionDetails> = {};
 
@@ -124,14 +114,6 @@ export class ContractProcessor {
           signature,
           roles: [],
         };
-
-        // Build role to functions mapping
-        // functionRoles.forEach(role => {
-        //   if (!roleToFunctions[role]) {
-        //     roleToFunctions[role] = [];
-        //   }
-        //   roleToFunctions[role].push(selector);
-        // });
       } catch (error) {
         console.warn(`Failed to process function ${item.name}:`, error);
         continue;
@@ -255,38 +237,6 @@ export class ContractProcessor {
       .join(",");
     return `${func.name}(${inputs})(${outputs})`;
   }
-
-  // private matchFunctionRoles(
-  //   fragment: AbiFunction,
-  //   roles: RoleDefinition[]
-  // ): string[] {
-  //   const requiredRoles = new Set<string>();
-
-  //   // Check modifiers
-  //   if (fragment.modifiers) {
-  //     for (const modifier of fragment.modifiers) {
-  //       if (modifier.name === 'onlyRole') {
-  //         const roleHash = modifier.arguments?.[0];
-  //         const role = roles.find(r => r.hash === roleHash);
-  //         if (role) {
-  //           requiredRoles.add(role.name);
-  //         }
-  //       }
-  //     }
-  //   }
-
-  //   // Check NatSpec
-  //   const natspec = fragment.notice || fragment.details;
-  //   if (natspec) {
-  //     roles.forEach(role => {
-  //       if (natspec.includes(role.name)) {
-  //         requiredRoles.add(role.name);
-  //       }
-  //     });
-  //   }
-
-  //   return Array.from(requiredRoles);
-  // }
 
   private loadCache(): ContractCache {
     try {

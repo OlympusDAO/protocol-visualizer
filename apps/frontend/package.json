@@ -13,6 +13,7 @@
     "@ponder/client": "^0.9.23",
     "@ponder/react": "^0.9.23",
     "@tanstack/react-query": "^5.0.0",
+    "elkjs": "^0.9.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "reactflow": "^11.10.4",

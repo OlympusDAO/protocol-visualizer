@@ -7,12 +7,17 @@ import ReactFlow, {
   useNodesState,
   NodeTypes,
   Edge,
+  Position,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { usePonderQuery } from "@ponder/react";
 import { schema } from "@/lib/ponder";
 import { Contract } from "@/services/contracts";
 import { eq } from "@ponder/client";
+import ELK from 'elkjs/lib/elk.bundled.js';
+
+// Initialize ELK
+const elk = new ELK();
 
 // Types
 type Role = typeof schema.role.$inferSelect;
@@ -45,25 +50,54 @@ const getPolicyCategory = (policyName: string): string => {
   return matchingCategory ? matchingCategory[1] : "Other";
 };
 
+// Node color scheme
+const NODE_COLORS = {
+  kernel: {
+    background: '#fef3c7', // Amber 100
+    border: '#d97706',     // Amber 600
+    text: '#92400e'        // Amber 800
+  },
+  module: {
+    background: '#dbeafe', // Blue 100
+    border: '#2563eb',     // Blue 600
+    text: '#1e40af'        // Blue 800
+  },
+  policy: {
+    background: '#dcfce7', // Green 100
+    border: '#16a34a',     // Green 600
+    text: '#166534'        // Green 800
+  },
+  role: {
+    background: '#f3e8ff', // Purple 100
+    border: '#9333ea',     // Purple 600
+    text: '#6b21a8'        // Purple 800
+  },
+  assignee: {
+    background: '#fae8ff', // Pink 100
+    border: '#db2777',     // Pink 600
+    text: '#9d174d'        // Pink 800
+  }
+};
+
 // Create a node for a non-contract assignee
 const createAssigneeNode = (
   assignee: RoleAssignment,
-  position: { x: number; y: number }
+  id: string
 ) => {
   return {
-    id: `assignee-${assignee.assignee}`,
-    position,
+    id,
     data: {
       label: (
         <div className="p-1 text-sm">
-          <div className="font-bold mb-1 break-words whitespace-pre-wrap max-w-[160px]">
+          <div className="font-bold mb-1 break-words whitespace-pre-wrap max-w-[160px]" style={{ color: NODE_COLORS.assignee.text }}>
             {assignee.assigneeName === "UNKNOWN" ? "EOA" : assignee.assigneeName}
           </div>
           <a
             href={getEtherscanLink(assignee.assignee)}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs break-all text-blue-500 hover:text-blue-700"
+            className="text-xs break-all hover:opacity-80"
+            style={{ color: NODE_COLORS.assignee.border }}
           >
             {shortenAddress(assignee.assignee)}
           </a>
@@ -71,27 +105,32 @@ const createAssigneeNode = (
       ),
     },
     style: {
-      background: "#fff",
-      border: "1px solid #ccc",
+      background: NODE_COLORS.assignee.background,
+      border: `1px solid ${NODE_COLORS.assignee.border}`,
       borderRadius: "8px",
       padding: "6px",
       minWidth: "180px",
     },
+    targetPosition: Position.Left,
+    sourcePosition: Position.Right,
   };
 };
 
 // Node types configuration
 const nodeTypes: NodeTypes = {
-  group: () => <div style={{ background: "transparent" }} />,
   role: ({ data }) => (
     <div
-      className="bg-purple-50 border border-purple-200 rounded-lg p-4 cursor-pointer hover:bg-purple-100 transition-colors"
+      className="rounded-lg p-4 cursor-pointer transition-colors"
+      style={{
+        background: NODE_COLORS.role.background,
+        border: `1px solid ${NODE_COLORS.role.border}`,
+      }}
       onMouseEnter={() => data.onMouseEnter?.()}
       onMouseLeave={() => data.onMouseLeave?.()}
     >
-      <div className="font-bold text-purple-700 mb-2">{data.label}</div>
+      <div className="font-bold mb-2" style={{ color: NODE_COLORS.role.text }}>{data.label}</div>
       {data.assignees && (
-        <div className="text-xs text-purple-600">
+        <div className="text-xs" style={{ color: NODE_COLORS.role.border }}>
           {data.assignees.length} Active Assignee(s)
         </div>
       )}
@@ -185,6 +224,8 @@ export function ContractVisualizer() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [hoveredPolicy, setHoveredPolicy] = useState<string | null>(null);
   const [hoveredRole, setHoveredRole] = useState<string | null>(null);
+  const [layouting, setLayouting] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
   // Query contracts
   const { data: contracts, isLoading: isLoadingContracts } = usePonderQuery({
@@ -212,313 +253,117 @@ export function ContractVisualizer() {
   });
 
   const createNodeFromContract = useCallback(
-    (contract: Contract, position: { x: number; y: number }) => {
-      const isPolicyType = contract.type === "policy";
+    (contract: Contract, id: string) => {
+      const type = contract.type;
+      const colors = type === 'kernel' ? NODE_COLORS.kernel :
+                    type === 'module' ? NODE_COLORS.module :
+                    NODE_COLORS.policy;
 
       return {
-        id: contract.address,
-        position,
+        id,
         data: {
           label: (
             <div
               className="p-1 text-sm"
               style={{ position: "relative" }}
               onMouseEnter={() =>
-                isPolicyType && setHoveredPolicy(contract.address)
+                type === 'policy' && setHoveredPolicy(contract.address)
               }
-              onMouseLeave={() => isPolicyType && setHoveredPolicy(null)}
+              onMouseLeave={() => type === 'policy' && setHoveredPolicy(null)}
             >
-              <div className="font-bold mb-1 break-words whitespace-pre-wrap max-w-[160px]">
+              <div className="font-bold mb-1 break-words whitespace-pre-wrap max-w-[160px]" style={{ color: colors.text }}>
                 {contract.name}
               </div>
               <a
                 href={getEtherscanLink(contract.address)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs break-all text-blue-500 hover:text-blue-700"
+                className="text-xs break-all hover:opacity-80"
+                style={{ color: colors.border }}
               >
                 {shortenAddress(contract.address)}
               </a>
               {!contract.isEnabled && (
                 <div className="text-xs mt-1 text-red-500">Disabled</div>
               )}
-              {isPolicyType && hoveredPolicy === contract.address && (
+              {type === 'policy' && hoveredPolicy === contract.address && (
                 <PolicyTooltip contract={contract} />
               )}
             </div>
           ),
         },
         style: {
-          background: contract.isEnabled ? "#fff" : "#f0f0f0",
-          border: "1px solid #ccc",
+          background: colors.background,
+          border: `1px solid ${colors.border}`,
           borderRadius: "8px",
           padding: "6px",
           opacity: contract.isEnabled ? 1 : 0.7,
           minWidth: "180px",
           zIndex: hoveredPolicy === contract.address ? 1000 : 1,
         },
+        targetPosition: Position.Left,
+        sourcePosition: Position.Right,
       };
     },
-    [hoveredPolicy, setHoveredPolicy]
+    [hoveredPolicy]
   );
 
-  useEffect(() => {
-    if (!contracts || !roles || !roleAssignments) return;
+  // Memoize the edge creation function
+  const createEdge = useCallback((source: string, target: string, animated: boolean = false) => ({
+    id: `${source}-${target}`,
+    source,
+    target,
+    type: "smoothstep",
+    style: { stroke: "#9333ea", strokeWidth: 2 },
+    animated,
+  }), []);
+
+  const setupGraph = useCallback(async () => {
+    if (!contracts || !roles || !roleAssignments || layouting) return;
+
+    setLayouting(true);
+    const newNodes: Node[] = [];
+    const newEdges: Edge[] = [];
 
     // Group contracts by type
     const kernelContract = contracts.find((c) => c.type === "kernel");
     const moduleContracts = contracts.filter((c) => c.type === "module");
     const policyContracts = contracts.filter((c) => c.type === "policy");
 
-    // Position calculation
-    const centerX = window.innerWidth / 2; // Make it responsive
-    const centerY = 400;
-    const verticalSpacing = 180;
-    const horizontalSpacing = 180;
-    const nodeWidth = 180; // Slightly reduced node width to ensure better fit
-    const nodeHeight = 100; // Approximate height of a node
-    const nodePadding = 20; // Padding between nodes
-    const innerPadding = 40; // Padding inside groups
-    const padding = 40; // Padding for group backgrounds
-
-    const newNodes: Node[] = [];
-    const newEdges: Edge[] = [];
-
-    // Add kernel at center
+    // Add kernel node
     if (kernelContract) {
-      newNodes.push(
-        createNodeFromContract(kernelContract, {
-          x: centerX - 100,
-          y: centerY,
-        })
-      );
+      newNodes.push({
+        ...createNodeFromContract(kernelContract, kernelContract.address),
+        position: { x: 0, y: 0 }
+      });
     }
 
-    // Add modules section at the bottom
-    const totalModuleWidth = moduleContracts.length * horizontalSpacing;
-    const moduleStartX = centerX - totalModuleWidth / 2;
-    const moduleY = centerY + verticalSpacing;
-
-    // Add the modules label node
-    newNodes.push({
-      id: "modules-label",
-      position: {
-        x: centerX - 50,
-        y: moduleY - padding - 40,
-      },
-      data: {
-        label: <div className="font-bold text-lg text-gray-700">Modules</div>,
-      },
-      style: {
-        width: "auto",
-        background: "transparent",
-        border: "none",
-      },
-    });
-
-    // Add the modules group background
-    const groupWidth = Math.max(totalModuleWidth + padding * 2, 200);
-    const groupHeight = 160;
-
-    newNodes.push({
-      id: "modules-group",
-      position: {
-        x: moduleStartX - padding,
-        y: moduleY - padding,
-      },
-      style: {
-        width: groupWidth,
-        height: groupHeight,
-        backgroundColor: "rgba(240, 245, 255, 0.5)",
-        border: "2px dashed #666",
-        borderRadius: "12px",
-        zIndex: -1,
-      },
-      data: { label: "" },
-    });
-
     // Add module nodes
-    moduleContracts.forEach((contract, index) => {
+    moduleContracts.forEach((contract) => {
       newNodes.push({
-        ...createNodeFromContract(contract, {
-          x: moduleStartX + index * horizontalSpacing,
-          y: moduleY,
-        }),
-        zIndex: 1,
+        ...createNodeFromContract(contract, contract.address),
+        position: { x: 0, y: 0 }
       });
     });
 
-    // Group policies by category
-    const policiesByCategory = policyContracts.reduce(
-      (acc, policy) => {
-        const category = getPolicyCategory(policy.name);
-        if (!acc[category]) {
-          acc[category] = [];
-        }
-        acc[category].push(policy);
-        return acc;
-      },
-      {} as Record<string, Contract[]>
-    );
-
-    // Calculate policy category positions
-    const categories = Object.keys(policiesByCategory).sort((a, b) => {
-      return a.localeCompare(b);
-    });
-
-    // Layout configuration
-    const maxCategoriesPerRow = 3;
-    const categorySpacing = {
-      horizontal: 650,
-      vertical: 350,
-    };
-
-    const totalRows = Math.ceil(categories.length / maxCategoriesPerRow);
-    const startY = centerY - totalRows * categorySpacing.vertical;
-
-    // Add policy nodes by category
-    categories.forEach((category, categoryIndex) => {
-      const policies = policiesByCategory[category];
-      const row = Math.floor(categoryIndex / maxCategoriesPerRow);
-      const col = categoryIndex % maxCategoriesPerRow;
-      const nodesPerRow = 2;
-      const rows = Math.ceil(policies.length / nodesPerRow);
-      const contentWidth =
-        nodesPerRow * nodeWidth + (nodesPerRow - 1) * nodePadding;
-      const categoryWidth = contentWidth + innerPadding * 2;
-      const categoryHeight = Math.max(
-        rows * (nodeHeight + nodePadding) + innerPadding * 2,
-        120
-      );
-      const colOffset = col - Math.floor(maxCategoriesPerRow / 2);
-      const categoryX =
-        centerX - categoryWidth / 2 + colOffset * categorySpacing.horizontal;
-      const categoryY = startY + row * categorySpacing.vertical;
-
-      // Add category label
+    // Add policy nodes
+    policyContracts.forEach((policy) => {
       newNodes.push({
-        id: `category-${category}`,
-        position: {
-          x: categoryX + categoryWidth / 2 - 50,
-          y: categoryY - 40,
-        },
-        data: {
-          label: (
-            <div className="font-bold text-lg text-gray-700">{category}</div>
-          ),
-        },
-        style: {
-          width: "100px",
-          textAlign: "center" as const,
-          background: "transparent",
-          border: "none",
-        },
-      });
-
-      // Add category background
-      newNodes.push({
-        id: `category-bg-${category}`,
-        position: {
-          x: categoryX,
-          y: categoryY,
-        },
-        style: {
-          width: categoryWidth,
-          height: categoryHeight,
-          backgroundColor: "rgba(245, 240, 255, 0.5)",
-          border: "2px dashed #666",
-          borderRadius: "12px",
-          zIndex: -1,
-        },
-        data: { label: "" },
-      });
-
-      // Add policy nodes
-      policies.forEach((policy, policyIndex) => {
-        const row = Math.floor(policyIndex / nodesPerRow);
-        const col = policyIndex % nodesPerRow;
-        const xPosition =
-          categoryX + innerPadding + col * (nodeWidth + nodePadding);
-
-        newNodes.push({
-          ...createNodeFromContract(policy, {
-            x: xPosition,
-            y: categoryY + innerPadding + row * (nodeHeight + nodePadding),
-          }),
-          zIndex: 1,
-        });
+        ...createNodeFromContract(policy, policy.address),
+        position: { x: 0, y: 0 }
       });
     });
 
-    // Add roles section on the right
-    const rolesX = centerX + Math.max(totalModuleWidth, groupWidth) / 2 + horizontalSpacing;
-    const rolesY = startY;
-    const rolesPerColumn = 4;
-    const totalRolesHeight = Math.min(roles.length, rolesPerColumn) * (nodeHeight + nodePadding);
-
-    // Add roles label
-    newNodes.push({
-      id: "roles-label",
-      position: {
-        x: rolesX + 50,
-        y: rolesY - padding - 40,
-      },
-      data: {
-        label: <div className="font-bold text-lg text-gray-700">Roles</div>,
-      },
-      style: {
-        width: "auto",
-        background: "transparent",
-        border: "none",
-      },
-    });
-
-    // Add roles group background
-    const rolesGroupWidth = nodeWidth + padding * 2;
-    const totalColumns = Math.ceil(roles.length / rolesPerColumn);
-    const rolesGroupHeight = rolesPerColumn * (nodeHeight + nodePadding) + padding * 2;
-
-    newNodes.push({
-      id: "roles-group",
-      position: {
-        x: rolesX - padding,
-        y: rolesY - padding,
-      },
-      style: {
-        width: rolesGroupWidth * totalColumns + padding * 2,
-        height: rolesGroupHeight,
-        backgroundColor: "rgba(250, 240, 255, 0.5)",
-        border: "2px dashed #666",
-        borderRadius: "12px",
-        zIndex: -1,
-      },
-      data: { label: "" },
-      type: "group",
-    });
-
-    // Group role assignments by role
-    const roleAssignmentsByRole = roleAssignments.reduce((acc, assignment) => {
-      if (!acc[assignment.role]) {
-        acc[assignment.role] = [];
-      }
-      acc[assignment.role].push(assignment);
-      return acc;
-    }, {} as Record<string, RoleAssignment[]>);
-
-    // Add role nodes and their assignees
-    roles.forEach((role, index) => {
-      const column = Math.floor(index / rolesPerColumn);
-      const rowInColumn = index % rolesPerColumn;
-      const xPosition = rolesX + column * (nodeWidth + horizontalSpacing);
-      const yPosition = rolesY + rowInColumn * (nodeHeight + nodePadding);
-
-      const roleAssignmentsList = roleAssignmentsByRole[role.role] || [];
+    // Process roles and assignees
+    roles.forEach((role) => {
+      const roleId = `role-${role.role}`;
+      const roleAssignmentsList = roleAssignments.filter(a => a.role === role.role);
 
       // Add role node
       newNodes.push({
-        id: `role-${role.role}`,
+        id: roleId,
         type: "role",
-        position: { x: xPosition, y: yPosition },
+        position: { x: 0, y: 0 },
         data: {
           label: role.role,
           assignees: roleAssignmentsList,
@@ -528,68 +373,93 @@ export function ContractVisualizer() {
         style: {
           zIndex: hoveredRole === role.role ? 1000 : 1,
         },
+        targetPosition: Position.Left,
+        sourcePosition: Position.Right,
       });
 
-      if (hoveredRole === role.role) {
-        newNodes.push({
-          id: `role-tooltip-${role.role}`,
-          position: { x: xPosition + nodeWidth + 10, y: yPosition },
-          data: {
-            label: <RoleTooltip role={role.role} assignments={roleAssignmentsList} />,
-          },
-          style: {
-            background: "transparent",
-            border: "none",
-            zIndex: 1001,
-          },
-        });
-      }
-
       // Process assignees
-      roleAssignmentsList.forEach((assignment, assigneeIndex) => {
-        // Check if this assignee is a contract
-        const contractNode = contracts.find(c => c.address.toLowerCase() === assignment.assignee.toLowerCase());
+      roleAssignmentsList.forEach((assignment) => {
+        const contractNode = contracts.find(
+          (c) => c.address.toLowerCase() === assignment.assignee.toLowerCase()
+        );
 
         if (contractNode) {
           // Add edge to existing contract node
-          newEdges.push({
-            id: `${role.role}-${assignment.assignee}`,
-            source: `role-${role.role}`,
-            target: assignment.assignee,
-            type: "smoothstep",
-            style: { stroke: "#9333ea", strokeWidth: 2 },
-            animated: true,
-          });
+          newEdges.push(createEdge(roleId, assignment.assignee, true));
         } else {
           // Create node for non-contract assignee
-          const assigneeStartX = xPosition + nodeWidth + horizontalSpacing;
-          const assigneeY = yPosition + (assigneeIndex * (nodeHeight + nodePadding)) / 2;
-
-          // Add assignee node
-          newNodes.push(
-            createAssigneeNode(assignment, {
-              x: assigneeStartX,
-              y: assigneeY,
-            })
-          );
+          const assigneeId = `assignee-${assignment.assignee}`;
+          newNodes.push({
+            ...createAssigneeNode(assignment, assigneeId),
+            position: { x: 0, y: 0 }
+          });
 
           // Add edge from role to assignee
-          newEdges.push({
-            id: `${role.role}-${assignment.assignee}`,
-            source: `role-${role.role}`,
-            target: `assignee-${assignment.assignee}`,
-            type: "smoothstep",
-            style: { stroke: "#9333ea", strokeWidth: 2 },
-          });
+          newEdges.push(createEdge(roleId, assigneeId));
         }
       });
     });
 
-    setNodes(newNodes);
-    setEdges(newEdges);
-  }, [contracts, roles, roleAssignments, createNodeFromContract, setNodes, setEdges, hoveredRole, hoveredPolicy]);
+    // Prepare the graph for ELK layout
+    const graph = {
+      id: "root",
+      layoutOptions: {
+        "elk.algorithm": "layered",
+        "elk.direction": "RIGHT",
+        "elk.spacing.nodeNode": "30",
+        "elk.layered.spacing.nodeNodeBetweenLayers": "100",
+        "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
+        "elk.layered.nodePlacement.strategy": "SIMPLE",
+        "elk.layered.layering.strategy": "COFFMAN_GRAHAM",
+        "elk.spacing.componentComponent": "50",
+        "elk.padding": "[top=20,left=20,bottom=20,right=20]"
+      },
+      children: newNodes.map((node) => ({
+        id: node.id,
+        width: 180,
+        height: node.type === 'role' ? 80 : 100,
+        ports: [
+          { id: `${node.id}-source`, properties: { side: "east" } },
+          { id: `${node.id}-target`, properties: { side: "west" } },
+        ],
+      })),
+      edges: newEdges.map((edge) => ({
+        id: edge.id,
+        sources: [`${edge.source}-source`],
+        targets: [`${edge.target}-target`],
+      })),
+    };
 
-  if (isLoadingContracts || isLoadingRoles || isLoadingAssignments) {
+    // Calculate layout using ELK
+    const layout = await elk.layout(graph);
+
+    // Apply the layout to nodes
+    const nodesWithLayout = newNodes.map((node) => {
+      const layoutNode = layout.children?.find((n) => n.id === node.id);
+      if (layoutNode) {
+        return {
+          ...node,
+          position: { x: layoutNode.x || 0, y: layoutNode.y || 0 },
+        };
+      }
+      return node;
+    });
+
+    setNodes(nodesWithLayout);
+    setEdges(newEdges);
+    setLayouting(false);
+    setInitialized(true);
+  }, [contracts, roles, roleAssignments, layouting, createNodeFromContract, createEdge, hoveredRole]);
+
+  useEffect(() => {
+    if (!initialized && !layouting && contracts && roles && roleAssignments) {
+      setupGraph();
+    }
+  }, [initialized, layouting, contracts, roles, roleAssignments, setupGraph]);
+
+  const isLoading = isLoadingContracts || isLoadingRoles || isLoadingAssignments || layouting;
+
+  if (isLoading && !initialized) {
     return (
       <div className="w-full h-[800px] flex items-center justify-center">
         Loading...
@@ -599,11 +469,7 @@ export function ContractVisualizer() {
 
   return (
     <div className="w-full h-[800px] border border-gray-200 rounded-lg">
-      {isLoadingContracts ? (
-        <div className="w-full h-full flex items-center justify-center">
-          <div className="text-lg">Loading contracts...</div>
-        </div>
-      ) : contracts?.length === 0 ? (
+      {contracts?.length === 0 ? (
         <div className="w-full h-full flex items-center justify-center">
           <div className="text-lg">No contracts found</div>
         </div>

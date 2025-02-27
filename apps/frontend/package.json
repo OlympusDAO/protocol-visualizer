@@ -14,14 +14,14 @@
     "@ponder/react": "^0.9.23",
     "@tanstack/react-query": "^5.0.0",
     "elkjs": "^0.9.3",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "reactflow": "^11.10.4",
     "tailwindcss": "^3.4.1"
   },
   "devDependencies": {
-    "@types/react": "^18.2.56",
-    "@types/react-dom": "^18.2.19",
+    "@types/react": "18.3.1",
+    "@types/react-dom": "18.3.1",
     "@typescript-eslint/eslint-plugin": "^7.0.2",
     "@typescript-eslint/parser": "^7.0.2",
     "@vitejs/plugin-react": "^4.2.1",

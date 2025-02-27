@@ -14,6 +14,8 @@ import { KernelAbi } from "../abis/Kernel";
 import { getContractName } from "./ContractNames";
 import { ContractProcessor } from "./services/contracts/processor";
 import { EtherscanApi } from "./services/etherscan/api";
+import { eq } from "ponder";
+import { getLatestContractByName } from "./services/db";
 
 // Initialize services
 const etherscanApi = new EtherscanApi({
@@ -116,17 +118,17 @@ const parseContractName = async (
 const parsePolicyPermissions = async (
   action: number,
   target: `0x${string}`,
-  contractName: string,
+  targetName: string,
   context: Context
 ): Promise<PolicyPermission[] | null> => {
   if (action !== 2 && action !== 3) {
     console.debug(
-      `Skipping policy permissions for non-policy action ${action} on ${contractName}`
+      `Skipping policy permissions for non-policy action ${action} on ${targetName}`
     );
     return null;
   }
 
-  console.log(`Parsing policy permissions for ${contractName}`);
+  console.log(`Parsing policy permissions for ${targetName}`);
 
   // Get the permissions from the policy
   const permissionsResult = await context.client.readContract({
@@ -137,8 +139,9 @@ const parsePolicyPermissions = async (
   });
 
   // Process the contract to get role information
-  const processedData = await contractProcessor.processContract(target);
+  // const processedData = await contractProcessor.processContract(target, targetName);
 
+  // Iterate over the permissions
   const policyPermissions: PolicyPermission[] = [];
   for (let i = 0; i < permissionsResult.length; i++) {
     const currentResult = permissionsResult[i];
@@ -146,22 +149,44 @@ const parsePolicyPermissions = async (
       continue;
     }
 
-    const keycode = fromHex(currentResult.keycode, "string");
+    // Each Permission has a keycode and a hashed function selector
+    const moduleKeycode = fromHex(currentResult.keycode, "string");
     const funcSelector = currentResult.funcSelector;
+    console.log(
+      `Looking up keycode ${moduleKeycode} and selector ${funcSelector}`
+    );
 
-    // Get roles associated with this function selector
-    const functionDetails = processedData.functionSelectors[funcSelector];
-    // TODO why are some selectors not being found?
+    // Find the contract for this keycode
+    const moduleContract = await getLatestContractByName(
+      moduleKeycode,
+      context
+    );
+    if (!moduleContract) {
+      throw new Error(`No contract found in DB for keycode ${moduleKeycode}`);
+    }
+
+    console.log(
+      `Found contract at ${moduleContract.address} for module ${moduleKeycode}`
+    );
+
+    // Process the module contract to get function information
+    const moduleProcessedData = await contractProcessor.processContract(
+      moduleContract.address,
+      moduleKeycode
+    );
+
+    // Get the function details for this selector
+    const functionDetails = moduleProcessedData.functionSelectors[funcSelector];
     if (!functionDetails) {
       console.warn(
-        `No function details found for selector ${funcSelector} on contract ${contractName}`
+        `No function details found for keycode ${moduleKeycode} and selector ${funcSelector} on policy ${targetName}`
       );
       continue;
     }
 
     policyPermissions.push({
-      keycode,
-      function: functionDetails ? functionDetails.name : funcSelector,
+      keycode: moduleKeycode,
+      function: functionDetails ? functionDetails.signature : funcSelector,
     });
   }
 
@@ -239,6 +264,7 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
   }
 
   // Update the contract state
+  // With modules, this may lead to multiple contract records being created
   if (contractType !== "kernel") {
     const isEnabled = parseIsEnabled(actionInt);
 

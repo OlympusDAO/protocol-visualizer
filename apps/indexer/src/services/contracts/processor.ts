@@ -1,5 +1,11 @@
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from "fs";
-import { getFunctionSelector, AbiFunction, AbiParameter, Abi } from "viem";
+import {
+  getFunctionSelector,
+  AbiFunction,
+  AbiParameter,
+  Abi,
+  toFunctionSelector,
+} from "viem";
 import { ContractCache, ProcessedContractData, FunctionDetails } from "./types";
 import { EtherscanApi } from "../etherscan/api";
 import path from "path";
@@ -22,14 +28,17 @@ export class ContractProcessor {
     }
   }
 
-  async processContract(address: string): Promise<ProcessedContractData> {
+  async processContract(
+    address: string,
+    name: string
+  ): Promise<ProcessedContractData> {
     // Check cache first
     if (
       this.cache[address] &&
       Date.now() - this.cache[address].lastFetched < CACHE_DURATION &&
       existsSync(this.getAbiPath(address))
     ) {
-      console.log(`CACHE HIT for ${address}`);
+      console.log(`CACHE HIT for ${name}`);
       return this.cache[address].processedData;
     }
 
@@ -46,7 +55,7 @@ export class ContractProcessor {
       writeFileSync(abiPath, JSON.stringify(abi, null, 2));
     }
 
-    console.log(`Processing ABI for ${address}`);
+    console.log(`Processing ABI for ${name}`);
     const processedData = this.processAbi(abi);
 
     // Update cache
@@ -72,16 +81,14 @@ export class ContractProcessor {
 
     // Process each function
     for (const item of abi) {
-      console.log("item", JSON.stringify(item, null, 2));
+      // console.log("item", JSON.stringify(item, null, 2));
       if (item.type !== "function") continue;
 
       try {
         // Get function signature and selector
         const signature = this.getFunctionSignature(item);
-        const selector = getFunctionSelector(signature);
+        const selector = toFunctionSelector(item);
         // const functionRoles = this.matchFunctionRoles(item, roles);
-        console.log("signature", signature);
-        console.log("selector", selector);
 
         functionSelectors[selector] = {
           name: item.name,
@@ -110,7 +117,10 @@ export class ContractProcessor {
     const inputs = func.inputs
       .map((input: AbiParameter) => input.type)
       .join(",");
-    return `${func.name}(${inputs})`;
+    const outputs = func.outputs
+      .map((output: AbiParameter) => output.type)
+      .join(",");
+    return `${func.name}(${inputs})(${outputs})`;
   }
 
   // private matchFunctionRoles(

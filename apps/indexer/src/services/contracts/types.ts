@@ -14,9 +14,21 @@ export interface ProcessedContractData {
 }
 
 export interface FunctionDetails {
+  /**
+   * The function name, without any arguments
+   */
   name: string;
+  /**
+   * The full function signature, e.g. "functionName(uint256,uint256)(address)"
+   */
   selector: string;
+  /**
+   * The hashed function signature, e.g. "0x9459b875"
+   */
   signature: string;
+  /**
+   * The roles that are associated with this function
+   */
   roles: string[];
 }
 

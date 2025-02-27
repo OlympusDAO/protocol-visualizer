@@ -9,6 +9,7 @@ import ReactFlow, {
   Edge,
   Position,
   Handle,
+  MarkerType,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { usePonderQuery } from "@ponder/react";
@@ -290,7 +291,7 @@ export function ContractVisualizer() {
               onMouseLeave={() => type === 'policy' && setHoveredPolicy(null)}
             >
               <Handle
-                id={`${type}-target`}
+                id={`${id}-target`}
                 type="target"
                 position={Position.Left}
                 style={{
@@ -317,7 +318,7 @@ export function ContractVisualizer() {
                 <PolicyTooltip contract={contract} />
               )}
               <Handle
-                id={`${type}-source`}
+                id={`${id}-source`}
                 type="source"
                 position={Position.Right}
                 style={{
@@ -345,27 +346,22 @@ export function ContractVisualizer() {
   );
 
   // Memoize the edge creation function
-  const createEdge = useCallback((source: string, target: string, animated: boolean = false) => {
-    // Determine source and target handle IDs based on node types
-    const sourceType = source.startsWith('role-') ? 'role' :
-                      source.startsWith('assignee-') ? 'assignee' :
-                      source.split('-')[0]; // For contract nodes (kernel/module/policy)
-
-    const targetType = target.startsWith('role-') ? 'role' :
-                      target.startsWith('assignee-') ? 'assignee' :
-                      target.split('-')[0];
-
-    return {
-      id: `${source}-${target}`,
-      source,
-      target,
-      sourceHandle: `${sourceType}-source`,
-      targetHandle: `${targetType}-target`,
-      type: "smoothstep",
-      style: { stroke: "#9333ea", strokeWidth: 2 },
-      animated,
-    };
-  }, []);
+  const createEdge = useCallback((source: string, target: string, animated: boolean = false) => ({
+    id: `${source}-${target}`,
+    source,
+    target,
+    sourceHandle: `${source}-source`,
+    targetHandle: `${target}-target`,
+    type: "smoothstep",
+    style: { stroke: "#9333ea", strokeWidth: 2 },
+    animated,
+    markerEnd: {
+      type: MarkerType.Arrow,
+      color: '#9333ea',
+      width: 20,
+      height: 20
+    }
+  }), []);
 
   const setupGraph = useCallback(async () => {
     if (!contracts || !roles || !roleAssignments || layouting) return;
@@ -434,7 +430,7 @@ export function ContractVisualizer() {
 
         if (contractNode) {
           // Add edge to existing contract node
-          newEdges.push(createEdge(roleId, assignment.assignee, true));
+          newEdges.push(createEdge(assignment.assignee, roleId, true));
         } else {
           // Create node for non-contract assignee
           const assigneeId = `assignee-${assignment.assignee}`;
@@ -444,7 +440,7 @@ export function ContractVisualizer() {
           });
 
           // Add edge from role to assignee
-          newEdges.push(createEdge(roleId, assigneeId));
+          newEdges.push(createEdge(assigneeId, roleId));
         }
       });
     });

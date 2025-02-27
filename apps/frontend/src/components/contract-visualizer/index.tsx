@@ -8,6 +8,7 @@ import ReactFlow, {
   NodeTypes,
   Edge,
   Position,
+  Handle,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { usePonderQuery } from "@ponder/react";
@@ -69,7 +70,16 @@ const createAssigneeNode = (
     id,
     data: {
       label: (
-        <div className="p-1 text-sm">
+        <div className="p-1 text-sm relative">
+          <Handle
+            id="assignee-target"
+            type="target"
+            position={Position.Left}
+            style={{
+              background: NODE_COLORS.assignee.border,
+              border: `1px solid ${NODE_COLORS.assignee.border}`,
+            }}
+          />
           <div className="font-bold mb-1 break-words whitespace-pre-wrap max-w-[160px]" style={{ color: NODE_COLORS.assignee.text }}>
             {assignee.assigneeName === "UNKNOWN" ? "EOA" : assignee.assigneeName}
           </div>
@@ -82,6 +92,15 @@ const createAssigneeNode = (
           >
             {shortenAddress(assignee.assignee)}
           </a>
+          <Handle
+            id="assignee-source"
+            type="source"
+            position={Position.Right}
+            style={{
+              background: NODE_COLORS.assignee.border,
+              border: `1px solid ${NODE_COLORS.assignee.border}`,
+            }}
+          />
         </div>
       ),
     },
@@ -109,12 +128,30 @@ const nodeTypes: NodeTypes = {
       onMouseEnter={() => data.onMouseEnter?.()}
       onMouseLeave={() => data.onMouseLeave?.()}
     >
+      <Handle
+        id="role-target"
+        type="target"
+        position={Position.Left}
+        style={{
+          background: NODE_COLORS.role.border,
+          border: `1px solid ${NODE_COLORS.role.border}`,
+        }}
+      />
       <div className="font-bold mb-2" style={{ color: NODE_COLORS.role.text }}>{data.label}</div>
       {data.assignees && (
         <div className="text-xs" style={{ color: NODE_COLORS.role.border }}>
           {data.assignees.length} Active Assignee(s)
         </div>
       )}
+      <Handle
+        id="role-source"
+        type="source"
+        position={Position.Right}
+        style={{
+          background: NODE_COLORS.role.border,
+          border: `1px solid ${NODE_COLORS.role.border}`,
+        }}
+      />
     </div>
   ),
 };
@@ -245,13 +282,22 @@ export function ContractVisualizer() {
         data: {
           label: (
             <div
-              className="p-1 text-sm"
+              className="p-1 text-sm relative"
               style={{ position: "relative" }}
               onMouseEnter={() =>
                 type === 'policy' && setHoveredPolicy(contract.address)
               }
               onMouseLeave={() => type === 'policy' && setHoveredPolicy(null)}
             >
+              <Handle
+                id={`${type}-target`}
+                type="target"
+                position={Position.Left}
+                style={{
+                  background: colors.border,
+                  border: `1px solid ${colors.border}`,
+                }}
+              />
               <div className="font-bold mb-1 break-words whitespace-pre-wrap max-w-[160px]" style={{ color: colors.text }}>
                 {contract.name}
               </div>
@@ -270,6 +316,15 @@ export function ContractVisualizer() {
               {type === 'policy' && hoveredPolicy === contract.address && (
                 <PolicyTooltip contract={contract} />
               )}
+              <Handle
+                id={`${type}-source`}
+                type="source"
+                position={Position.Right}
+                style={{
+                  background: colors.border,
+                  border: `1px solid ${colors.border}`,
+                }}
+              />
             </div>
           ),
         },
@@ -290,14 +345,27 @@ export function ContractVisualizer() {
   );
 
   // Memoize the edge creation function
-  const createEdge = useCallback((source: string, target: string, animated: boolean = false) => ({
-    id: `${source}-${target}`,
-    source,
-    target,
-    type: "smoothstep",
-    style: { stroke: "#9333ea", strokeWidth: 2 },
-    animated,
-  }), []);
+  const createEdge = useCallback((source: string, target: string, animated: boolean = false) => {
+    // Determine source and target handle IDs based on node types
+    const sourceType = source.startsWith('role-') ? 'role' :
+                      source.startsWith('assignee-') ? 'assignee' :
+                      source.split('-')[0]; // For contract nodes (kernel/module/policy)
+
+    const targetType = target.startsWith('role-') ? 'role' :
+                      target.startsWith('assignee-') ? 'assignee' :
+                      target.split('-')[0];
+
+    return {
+      id: `${source}-${target}`,
+      source,
+      target,
+      sourceHandle: `${sourceType}-source`,
+      targetHandle: `${targetType}-target`,
+      type: "smoothstep",
+      style: { stroke: "#9333ea", strokeWidth: 2 },
+      animated,
+    };
+  }, []);
 
   const setupGraph = useCallback(async () => {
     if (!contracts || !roles || !roleAssignments || layouting) return;

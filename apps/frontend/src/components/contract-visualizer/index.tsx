@@ -404,29 +404,23 @@ export function ContractVisualizer() {
     const graph = {
       id: "root",
       layoutOptions: {
-        "elk.algorithm": "layered",
-        "elk.direction": "RIGHT",
-        "elk.spacing.nodeNode": "30",
-        "elk.layered.spacing.nodeNodeBetweenLayers": "100",
-        "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
-        "elk.layered.nodePlacement.strategy": "SIMPLE",
-        "elk.layered.layering.strategy": "COFFMAN_GRAHAM",
-        "elk.spacing.componentComponent": "50",
-        "elk.padding": "[top=20,left=20,bottom=20,right=20]"
+        "elk.algorithm": "force",
+        "elk.force.iterations": "300",
+        "elk.force.repulsion": "2.0",
+        "elk.force.attraction": "0.1",
+        "elk.spacing.nodeNode": "100",
+        "elk.padding": "[top=50,left=50,bottom=50,right=50]",
+        "elk.randomSeed": "1"
       },
       children: newNodes.map((node) => ({
         id: node.id,
         width: 180,
-        height: node.type === 'role' ? 80 : 100,
-        ports: [
-          { id: `${node.id}-source`, properties: { side: "east" } },
-          { id: `${node.id}-target`, properties: { side: "west" } },
-        ],
+        height: node.type === 'role' ? 80 : 100
       })),
       edges: newEdges.map((edge) => ({
         id: edge.id,
-        sources: [`${edge.source}-source`],
-        targets: [`${edge.target}-target`],
+        sources: [edge.source],
+        targets: [edge.target]
       })),
     };
 
@@ -486,9 +480,16 @@ export function ContractVisualizer() {
           defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
           elementsSelectable={true}
           nodesConnectable={false}
-          nodesDraggable={false}
+          nodesDraggable={true}
           edgesFocusable={true}
           edgesUpdatable={false}
+          onNodeDragStop={(event, node) => {
+            // Update the node's position in our state
+            const updatedNodes = nodes.map((n) =>
+              n.id === node.id ? { ...n, position: node.position } : n
+            );
+            setNodes(updatedNodes);
+          }}
         >
           <Background />
           <Controls />

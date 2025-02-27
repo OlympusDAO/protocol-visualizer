@@ -63,8 +63,6 @@ export class ContractProcessor {
       sourceCode = readFileSync(sourceCodePath, "utf-8");
     } else {
       // Fetch and save source code if it doesn't exist
-      // It's not technically a JSON, due to some weird formatting that hasn't been cleaned up yet, but it's close enough
-      // TODO clean up leading and trailing brackets
       sourceCode = await this.etherscanApi.getContractSourceCode(address);
       writeFileSync(sourceCodePath, sourceCode);
     }

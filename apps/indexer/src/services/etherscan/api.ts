@@ -72,6 +72,14 @@ export class EtherscanApi {
 
     try {
       const sourceCode = response[0]!.SourceCode;
+      // Strip duplicated first and last brackets if they exist
+      const trimmedSourceCode = sourceCode.trim();
+      if (
+        trimmedSourceCode.startsWith("{{") &&
+        trimmedSourceCode.endsWith("}}")
+      ) {
+        return trimmedSourceCode.slice(1, -1);
+      }
       return sourceCode;
     } catch (error) {
       throw new EtherscanApiError(

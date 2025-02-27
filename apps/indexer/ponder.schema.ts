@@ -1,4 +1,5 @@
 import { onchainEnum, onchainTable, primaryKey, relations } from "ponder";
+import { FunctionDetails } from "./src/services/contracts/types";
 
 export const contractType = onchainEnum("contractType", [
   "kernel",
@@ -37,6 +38,7 @@ export const contract = onchainTable(
     type: contractType().notNull(),
     isEnabled: t.boolean().notNull(),
     policyPermissions: t.json().$type<PolicyPermission>().array(), // Policies only
+    policyFunctions: t.json().$type<FunctionDetails>().array(), // Policies only
   }),
   (table) => ({
     pk: primaryKey({ columns: [table.chainId, table.address] }),
@@ -63,6 +65,7 @@ export const contractEvent = onchainTable(
     type: contractType().notNull(),
     isEnabled: t.boolean().notNull(),
     policyPermissions: t.json().$type<PolicyPermission>().array(), // Policies only
+    policyFunctions: t.json().$type<FunctionDetails>().array(), // Policies only
   }),
   (table) => ({
     pk: primaryKey({
@@ -268,6 +271,8 @@ export const role = onchainTable(
     pk: primaryKey({ columns: [table.chainId, table.role] }),
   })
 );
+
+// TODO link role to policy (with matching functions)
 
 // An assignment of a role to an account
 export const roleAssignment = onchainTable(

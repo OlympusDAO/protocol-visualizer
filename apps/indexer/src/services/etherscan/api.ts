@@ -3,6 +3,7 @@ import {
   EtherscanApiConfig,
   EtherscanResponse,
   EtherscanApiError,
+  EtherscanSourceCodeResponse,
 } from "./types";
 
 export class EtherscanApi {
@@ -44,6 +45,37 @@ export class EtherscanApi {
     } catch (error) {
       throw new EtherscanApiError(
         `Failed to parse ABI for contract ${address}`,
+        "PARSE_ERROR",
+        JSON.stringify(error)
+      );
+    }
+  }
+
+  async getContractSourceCode(address: string): Promise<string> {
+    const params = new URLSearchParams({
+      chainid: this.chainId.toString(),
+      module: "contract",
+      action: "getsourcecode",
+      address,
+      apikey: this.apiKey,
+    });
+
+    const response =
+      await this.fetchWithRetry<EtherscanSourceCodeResponse[]>(params);
+
+    if (response.length === 0) {
+      throw new EtherscanApiError(
+        `No source code found for contract ${address}`,
+        "NO_SOURCE_CODE"
+      );
+    }
+
+    try {
+      const sourceCode = response[0]!.SourceCode;
+      return sourceCode;
+    } catch (error) {
+      throw new EtherscanApiError(
+        `Failed to parse source code for contract ${address}`,
         "PARSE_ERROR",
         JSON.stringify(error)
       );

@@ -13,6 +13,23 @@ export interface EtherscanResponse<T> {
   result: T;
 }
 
+export interface EtherscanSourceCodeResponse {
+  SourceCode: string;
+  ABI: string;
+  ContractName: string;
+  CompilerVersion: string;
+  OptimizationUsed: string;
+  Runs: string;
+  ConstructorArguments: string;
+  EVMVersion: string;
+  Library: string;
+  License: string;
+  Proxy: boolean;
+  Implementation: string;
+  SwarmSource: string;
+  SimilarMatch: string;
+}
+
 export class EtherscanApiError extends Error {
   constructor(
     message: string,

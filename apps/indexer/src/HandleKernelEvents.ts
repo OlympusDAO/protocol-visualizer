@@ -16,6 +16,7 @@ import { ContractProcessor } from "./services/contracts/processor";
 import { EtherscanApi } from "./services/etherscan/api";
 import { eq } from "ponder";
 import { getLatestContractByName } from "./services/db";
+import { FunctionDetails } from "./services/contracts/types";
 
 // Initialize services
 const etherscanApi = new EtherscanApi({
@@ -113,6 +114,28 @@ const parseContractName = async (
   console.log(`Keycode for ${target}: ${keycode}`);
 
   return keycode;
+};
+
+const parsePolicyFunctions = async (
+  action: number,
+  policyAddress: `0x${string}`,
+  policyName: string,
+  context: Context
+): Promise<FunctionDetails[] | null> => {
+  if (action !== 2 && action !== 3) {
+    console.debug(
+      `Skipping policy functions for non-policy action ${action} on ${policyName}`
+    );
+    return null;
+  }
+
+  // Process the policy contract
+  const policyFunctions = await contractProcessor.processContract(
+    policyAddress,
+    policyName
+  );
+
+  return Object.values(policyFunctions.functionSelectors);
 };
 
 const parsePolicyPermissions = async (
@@ -259,6 +282,12 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
         contractName,
         context
       ),
+      policyFunctions: await parsePolicyFunctions(
+        actionInt,
+        target,
+        contractName,
+        context
+      ),
     });
     console.log("Recorded contract event");
   }
@@ -282,6 +311,12 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
         type: contractType,
         isEnabled: isEnabled,
         policyPermissions: await parsePolicyPermissions(
+          actionInt,
+          target,
+          contractName,
+          context
+        ),
+        policyFunctions: await parsePolicyFunctions(
           actionInt,
           target,
           contractName,

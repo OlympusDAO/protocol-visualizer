@@ -13,6 +13,7 @@ import path from "path";
 
 const CACHE_FILE = "./data/contract-cache.json";
 const ABI_DIR = "./data/abis";
+const SOURCE_CODE_DIR = "./data/source-code";
 const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 1 week
 
 export class ContractProcessor {
@@ -25,6 +26,10 @@ export class ContractProcessor {
     // Ensure ABI directory exists
     if (!existsSync(ABI_DIR)) {
       mkdirSync(ABI_DIR, { recursive: true });
+    }
+    // Ensure source code directory exists
+    if (!existsSync(SOURCE_CODE_DIR)) {
+      mkdirSync(SOURCE_CODE_DIR, { recursive: true });
     }
   }
 
@@ -58,9 +63,26 @@ export class ContractProcessor {
     console.log(`Processing ABI for ${name}`);
     const processedData = this.processAbi(abi);
 
+    // Check if the source code exists on disk
+    let sourceCode;
+    const sourceCodePath = this.getSourceCodePath(address);
+    if (existsSync(sourceCodePath)) {
+      sourceCode = readFileSync(sourceCodePath, "utf-8");
+    } else {
+      // Fetch and save source code if it doesn't exist
+      sourceCode = await this.etherscanApi.getContractSourceCode(address);
+      writeFileSync(sourceCodePath, sourceCode);
+    }
+
+    console.log(`Processing source code for ${name}`);
+    const processedContractData = this.processSourceCode(
+      sourceCode,
+      processedData
+    );
+
     // Update cache
     this.cache[address] = {
-      processedData,
+      processedData: processedContractData,
       lastFetched: Date.now(),
     };
     this.saveCache();
@@ -70,6 +92,10 @@ export class ContractProcessor {
 
   private getAbiPath(address: string): string {
     return path.join(ABI_DIR, `${address}.json`);
+  }
+
+  private getSourceCodePath(address: string): string {
+    return path.join(SOURCE_CODE_DIR, `${address}.sol`);
   }
 
   private processAbi(abi: Abi): ProcessedContractData {
@@ -111,6 +137,58 @@ export class ContractProcessor {
     }
 
     return { roleToFunctions, functionSelectors };
+  }
+
+  private processSourceCode(
+    sourceCode: string,
+    processedData: ProcessedContractData
+  ): ProcessedContractData {
+    // Iterate over the defined functions
+    for (const functionSignature in processedData.functionSelectors) {
+      const functionDetails =
+        processedData.functionSelectors[functionSignature];
+      if (!functionDetails) {
+        console.warn(
+          `Function ${functionSignature} not found in processed data`
+        );
+        continue;
+      }
+
+      const functionName = functionDetails.name;
+      console.log(`Processing function ${functionName}`);
+
+      // Find the function in the source code, including any modifiers and newlines up to the opening bracket
+      const functionDefinition = sourceCode.match(
+        new RegExp(`function ${functionName}\\s*\\([^{]*\\)\\s*[^{]*{`)
+      );
+      if (!functionDefinition) {
+        console.warn(`Function ${functionName} not found in source code`);
+        continue;
+      }
+      // Check if the function uses the onlyRole modifier
+      // TODO handle constants
+      // TODO onlyAdmin, onlyEmergency, onlyAdminOrEmergency
+      const onlyRoleMatch = functionDefinition[0].match(
+        /onlyRole\(\\?"([^"]*)\\"?\)/
+      );
+      if (!onlyRoleMatch) {
+        continue;
+      }
+
+      const role = onlyRoleMatch[1];
+      if (!role) {
+        throw new Error(
+          `Expected to find a role in the onlyRole modifier for function ${functionName}`
+        );
+      }
+
+      console.log(`Function ${functionName} has role ${role}`);
+
+      // Add the role to the function details
+      functionDetails.roles.push(role);
+    }
+
+    return processedData;
   }
 
   private getFunctionSignature(func: AbiFunction): string {

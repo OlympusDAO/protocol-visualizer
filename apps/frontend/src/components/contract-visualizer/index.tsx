@@ -646,8 +646,8 @@ export function ContractVisualizer() {
       position: connectedNodeIds.includes(node.id)
         ? node.position
         : {
-            x: node.position.x + viewX + 800, // Reduced from 2000
-            y: node.position.y + viewY + 800  // Reduced from 2000
+            x: node.position.x + viewX + 800,
+            y: node.position.y + viewY + 800
           },
       style: {
         ...node.style,
@@ -656,10 +656,20 @@ export function ContractVisualizer() {
       }
     }));
 
+    // Filter edges to only show those connecting selected nodes
+    const relevantEdges = edges.map(edge => ({
+      ...edge,
+      style: {
+        ...edge.style,
+        opacity: connectedNodeIds.includes(edge.source) && connectedNodeIds.includes(edge.target) ? 1 : 0,
+        transition: 'all 0.5s ease-in-out',
+      }
+    }));
+
     // Re-layout the connected nodes to bring them closer
     const { nodes: layoutedNodes } = getLayoutedElements(
       relevantNodes.filter(node => connectedNodeIds.includes(node.id)),
-      edges.filter(edge =>
+      relevantEdges.filter(edge =>
         connectedNodeIds.includes(edge.source) &&
         connectedNodeIds.includes(edge.target)
       ),
@@ -673,6 +683,7 @@ export function ContractVisualizer() {
     });
 
     setNodes(finalNodes);
+    setEdges(relevantEdges);
 
     // Fit view to connected nodes after a short delay to allow transition
     setTimeout(() => {
@@ -1283,22 +1294,7 @@ export function ContractVisualizer() {
         <>
           <ReactFlow
             nodes={nodes}
-            edges={edges.map((edge) => ({
-              ...edge,
-              style: {
-                ...edge.style,
-                opacity: selectedNode
-                  ? (edge.source === selectedNode || edge.target === selectedNode)
-                    ? 1
-                    : 0.1
-                  : hoveredNode
-                    ? (edge.source === hoveredNode || edge.target === hoveredNode)
-                      ? 1
-                      : 0.1
-                    : 0.1,
-                transition: "all 0.5s ease-in-out",
-              },
-            }))}
+            edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             nodeTypes={nodeTypes}

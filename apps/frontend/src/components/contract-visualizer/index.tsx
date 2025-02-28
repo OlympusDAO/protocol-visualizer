@@ -476,24 +476,47 @@ export function ContractVisualizer() {
     const graph = {
       id: "root",
       layoutOptions: {
-        "elk.algorithm": "force",
-        "elk.force.iterations": "300",
-        "elk.force.repulsion": "2.0",
-        "elk.force.attraction": "0.1",
-        "elk.spacing.nodeNode": "100",
-        "elk.padding": "[top=50,left=50,bottom=50,right=50]",
-        "elk.randomSeed": "1"
+        "elk.algorithm": "mrtree",
+        "elk.spacing.nodeNode": "80",
+        "elk.padding": "[top=100,left=100,bottom=100,right=100]",
+        "elk.direction": "DOWN",
+        "elk.spacing.levelLevel": "150",
+        "elk.aspectRatio": "2.0",
+        "elk.spacing.individual": "50",
+        "elk.hierarchyHandling": "INCLUDE_CHILDREN"
       },
-      children: newNodes.map((node) => ({
-        id: node.id,
-        width: 180,
-        height: node.type === 'role' ? 80 : 100
-      })),
+      children: newNodes.map((node) => {
+        const isAssignee = node.id.startsWith('assignee-');
+        const isRole = node.id.startsWith('role-');
+        const isPolicy = policyContracts.some(p => p.address === node.id);
+        const isKernel = node.id === kernelContract?.address;
+        const isModule = moduleContracts.some(m => m.address === node.id);
+
+        // Assign hierarchy level
+        const level = isAssignee ? 0 :
+                     isRole ? 1 :
+                     isPolicy ? 2 :
+                     isKernel ? 3 :
+                     isModule ? 4 : 0;
+
+        return {
+          id: node.id,
+          width: 180,
+          height: node.type === 'role' ? 80 : 100,
+          layoutOptions: {
+            "elk.mrtree.level": level.toString(),
+            "elk.mrtree.levelDistance": "150"
+          }
+        };
+      }),
       edges: newEdges.map((edge) => ({
         id: edge.id,
         sources: [edge.source],
-        targets: [edge.target]
-      })),
+        targets: [edge.target],
+        layoutOptions: {
+          "elk.hierarchical": "true"
+        }
+      }))
     };
 
     // Calculate layout using ELK
@@ -546,16 +569,16 @@ export function ContractVisualizer() {
             ...edge,
             style: {
               ...edge.style,
-              opacity: hoveredNode ? (edge.source === hoveredNode || edge.target === hoveredNode ? 1 : 0.2) : 0.2
+              opacity: hoveredNode ? (edge.source === hoveredNode || edge.target === hoveredNode ? 1 : 0.4) : 0.4
             }
           }))}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
           fitView
-          minZoom={0.1}
-          maxZoom={2}
-          defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
+          minZoom={0.2}
+          maxZoom={1.5}
+          defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
           elementsSelectable={true}
           nodesConnectable={false}
           nodesDraggable={true}

@@ -1201,8 +1201,8 @@ export function ContractVisualizer() {
                       edge.source === selectedNode ||
                       edge.target === selectedNode
                       ? 1
-                      : 0.2
-                    : 0.4,
+                      : 0.1
+                    : 0.1,
                 transition: "opacity 0.3s ease",
               },
             }))}

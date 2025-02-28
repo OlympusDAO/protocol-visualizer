@@ -33,6 +33,12 @@ const getEtherscanLink = (address: string) => {
   return `https://etherscan.io/address/${address}`;
 };
 
+// Extract keycode from module name (e.g., "MINTR" from "MINTR: Minter")
+const extractKeycode = (moduleName: string): string | null => {
+  const match = moduleName.match(/^[A-Z0-9]{1,5}/);
+  return match ? match[0] : null;
+};
+
 // Node color scheme
 const NODE_COLORS = {
   kernel: {
@@ -205,11 +211,6 @@ const PolicyTooltip = ({ contract }: { contract: Contract }) => {
   );
 };
 
-// TODOs
-// [X] Display last update, etc on hover over a node
-// [X] Click on a policy node to show the policy permissions
-// [ ] Click on a module node to show policy permissions that are using that module
-
 export function ContractVisualizer() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -369,9 +370,24 @@ export function ContractVisualizer() {
     const newEdges: Edge[] = [];
 
     // Group contracts by type
-    const kernelContract = contracts.find((c) => c.type === "kernel");
-    const moduleContracts = contracts.filter((c) => c.type === "module");
-    const policyContracts = contracts.filter((c) => c.type === "policy");
+    const kernelContract = contracts.find((c) => c.type === "kernel") as
+      | Contract
+      | undefined;
+    const moduleContracts = contracts.filter(
+      (c) => c.type === "module"
+    ) as Contract[];
+    const policyContracts = contracts.filter(
+      (c) => c.type === "policy"
+    ) as Contract[];
+
+    // Create a mapping of module keycodes to module addresses
+    const moduleKeycodeToAddress = new Map<string, string>();
+    moduleContracts.forEach((module) => {
+      const keycode = extractKeycode(module.name);
+      if (keycode) {
+        moduleKeycodeToAddress.set(keycode, module.address);
+      }
+    });
 
     // Add kernel node
     if (kernelContract) {
@@ -389,12 +405,32 @@ export function ContractVisualizer() {
       });
     });
 
-    // Add policy nodes
+    // Add policy nodes and connect to modules
     policyContracts.forEach((policy) => {
       newNodes.push({
         ...createNodeFromContract(policy, policy.address),
         position: { x: 0, y: 0 },
       });
+
+      // Connect policy to modules it uses
+      if (policy.policyPermissions && Array.isArray(policy.policyPermissions)) {
+        // Get unique keycodes from policy permissions
+        const uniqueKeycodes = Array.from(
+          new Set(
+            (policy.policyPermissions as Array<{ keycode: string }>).map(
+              (p) => p.keycode
+            )
+          )
+        );
+
+        // Create edges from policy to modules
+        uniqueKeycodes.forEach((keycode) => {
+          const moduleAddress = moduleKeycodeToAddress.get(keycode);
+          if (moduleAddress) {
+            newEdges.push(createEdge(policy.address, moduleAddress, false));
+          }
+        });
+      }
     });
 
     // Process roles and assignees
@@ -833,8 +869,30 @@ export function ContractVisualizer() {
 
     const contract = contracts.find(
       (c) => c.address === selectedNode && c.type === "policy"
-    );
+    ) as Contract | undefined;
     if (!contract || !contract.policyPermissions) return null;
+
+    // Create a mapping of module keycodes to module contracts
+    const moduleKeycodeToContract = new Map<string, Contract>();
+    contracts.forEach((c) => {
+      if (c.type === "module") {
+        console.log("c.name", c.name);
+        const keycode = extractKeycode(c.name);
+        console.log("keycode", keycode);
+        if (keycode) {
+          moduleKeycodeToContract.set(keycode, c);
+        }
+      }
+    });
+
+    // Get unique keycodes from policy permissions
+    const uniqueKeycodes = Array.from(
+      new Set(
+        (contract.policyPermissions as Array<{ keycode: string }>).map(
+          (p) => p.keycode
+        )
+      )
+    );
 
     return (
       <div
@@ -873,6 +931,16 @@ export function ContractVisualizer() {
             </button>
           </div>
         </div>
+        <div className="text-xs text-gray-500 mb-3">
+          <a
+            href={getEtherscanLink(contract.address)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:underline"
+          >
+            {contract.address}
+          </a>
+        </div>
         <div className="text-xs text-gray-600 mb-3">
           Last Updated:{" "}
           {new Date(
@@ -880,21 +948,146 @@ export function ContractVisualizer() {
           ).toLocaleString()}
         </div>
         <div className="border-t border-gray-200 my-2 pt-2">
-          <h4 className="font-semibold text-sm mb-2">Modules Used:</h4>
+          <h4 className="font-semibold text-sm mb-2">
+            Modules Used ({uniqueKeycodes.length}):
+          </h4>
           <div className="text-sm max-h-[150px] overflow-y-auto">
-            <ul className="list-disc pl-4">
-              {Array.from(
-                new Set(
-                  (
-                    contract.policyPermissions as Array<{ keycode: string }>
-                  ).map((p) => p.keycode)
-                )
-              ).map((keycode, index) => (
-                <li key={index} className="text-xs mb-1">
-                  <span className="text-blue-600">{keycode}</span>
-                </li>
-              ))}
+            <ul className="list-none">
+              {uniqueKeycodes.map((keycode, index) => {
+                const moduleContract = moduleKeycodeToContract.get(keycode);
+                return (
+                  <li
+                    key={index}
+                    className="mb-2 pb-2 border-b border-gray-100 last:border-b-0"
+                  >
+                    <div className="font-medium text-xs text-blue-700 mb-1">
+                      {moduleContract ? (
+                        <button
+                          className="hover:underline text-left"
+                          onClick={() =>
+                            setSelectedNode(moduleContract.address)
+                          }
+                        >
+                          {moduleContract.name}
+                        </button>
+                      ) : (
+                        <span>{keycode}</span>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Add a tooltip for module nodes
+  const renderModuleTooltip = () => {
+    if (!selectedNode || !selectedNode.startsWith("0x") || !contracts)
+      return null;
+
+    const moduleContract = contracts.find(
+      (c) => c.address === selectedNode && c.type === "module"
+    ) as Contract | undefined;
+    if (!moduleContract) return null;
+
+    // Find all policies that use this module
+    const policiesUsingModule = contracts.filter(
+      (c) =>
+        c.type === "policy" &&
+        c.policyPermissions &&
+        Array.isArray(c.policyPermissions) &&
+        moduleContract.name && // Check if name exists
+        extractKeycode(moduleContract.name) && // Extract keycode from name
+        (c.policyPermissions as Array<{ keycode: string }>).some(
+          (p) => p.keycode === extractKeycode(moduleContract.name)
+        )
+    );
+
+    return (
+      <div
+        className="fixed bg-white shadow-lg rounded-lg p-4 min-w-[350px] max-w-[450px] border border-gray-200"
+        style={{
+          zIndex: 9999,
+          top: "20px",
+          right: "20px",
+        }}
+      >
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-bold text-sm">{moduleContract.name}</h3>
+          <div className="flex items-center">
+            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full mr-2">
+              Module
+            </span>
+            <button
+              onClick={() => setSelectedNode(null)}
+              className="text-gray-500 hover:text-gray-700"
+              aria-label="Close tooltip"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div className="text-xs text-gray-500 mb-2">
+          <a
+            href={getEtherscanLink(moduleContract.address)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:underline"
+          >
+            {moduleContract.address}
+          </a>
+        </div>
+        {extractKeycode(moduleContract.name) && (
+          <div className="text-xs text-blue-600 mb-3">
+            Keycode: {extractKeycode(moduleContract.name)}
+          </div>
+        )}
+        <div className="border-t border-gray-200 my-2 pt-2">
+          <h4 className="font-semibold text-sm mb-2">
+            Policies Using This Module ({policiesUsingModule.length}):
+          </h4>
+          <div className="text-sm max-h-[150px] overflow-y-auto">
+            {policiesUsingModule.length > 0 ? (
+              <ul className="list-disc pl-4">
+                {policiesUsingModule.map((policy, index) => (
+                  <li key={index} className="text-xs mb-1">
+                    <button
+                      className="text-green-600 hover:text-green-800 hover:underline text-left"
+                      onClick={() => setSelectedNode(policy.address)}
+                    >
+                      {policy.name}
+                    </button>
+                    <a
+                      href={getEtherscanLink(policy.address)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-gray-500 hover:underline ml-1"
+                    >
+                      ({shortenAddress(policy.address)})
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-gray-500">No policies use this module</div>
+            )}
           </div>
         </div>
       </div>
@@ -911,23 +1104,30 @@ export function ContractVisualizer() {
 
   return (
     <div className="w-full h-[800px] border border-gray-200 rounded-lg">
-      {contracts?.length === 0 ? (
+      {!contracts || contracts.length === 0 ? (
         <div className="w-full h-full flex items-center justify-center">
           <div className="text-lg">No contracts found</div>
         </div>
       ) : (
         <>
           <ReactFlow
-            nodes={nodes.map(node => ({
+            nodes={nodes.map((node) => ({
               ...node,
               style: {
                 ...node.style,
                 // Highlight selected node with a glow effect and dim others
-                boxShadow: node.id === selectedNode ? '0 0 10px 3px rgba(59, 130, 246, 0.5)' : 'none',
-                opacity: selectedNode ? (node.id === selectedNode ? 1 : 0.4) : node.style?.opacity || 1,
+                boxShadow:
+                  node.id === selectedNode
+                    ? "0 0 10px 3px rgba(59, 130, 246, 0.5)"
+                    : "none",
+                opacity: selectedNode
+                  ? node.id === selectedNode
+                    ? 1
+                    : 0.4
+                  : node.style?.opacity || 1,
                 zIndex: node.id === selectedNode ? 10 : node.style?.zIndex || 1,
-                transition: 'all 0.3s ease'
-              }
+                transition: "all 0.3s ease",
+              },
             }))}
             edges={edges.map((edge) => ({
               ...edge,
@@ -942,7 +1142,7 @@ export function ContractVisualizer() {
                       ? 1
                       : 0.2
                     : 0.4,
-                transition: 'opacity 0.3s ease'
+                transition: "opacity 0.3s ease",
               },
             }))}
             onNodesChange={onNodesChange}
@@ -986,9 +1186,15 @@ export function ContractVisualizer() {
             ? renderAssigneeTooltip()
             : selectedNode?.startsWith("role-")
               ? renderRoleTooltip()
-              : selectedNode?.startsWith("0x")
+              : selectedNode?.startsWith("0x") &&
+                  contracts.find((c) => c.address === selectedNode)?.type ===
+                    "policy"
                 ? renderPolicyTooltip()
-                : null}
+                : selectedNode?.startsWith("0x") &&
+                    contracts.find((c) => c.address === selectedNode)?.type ===
+                      "module"
+                  ? renderModuleTooltip()
+                  : null}
         </>
       )}
     </div>

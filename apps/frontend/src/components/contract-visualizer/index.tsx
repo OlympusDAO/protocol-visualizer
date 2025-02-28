@@ -350,6 +350,10 @@ export function ContractVisualizer() {
   const createEdge = useCallback((source: string, target: string, animated: boolean = false) => {
     const sourceIsRole = source.startsWith('role-');
     const targetIsRole = target.startsWith('role-');
+    const targetIsPolicy = target.startsWith('0x') && !source.startsWith('0x');
+
+    // Use green for role -> policy edges, purple for others
+    const edgeColor = targetIsPolicy ? NODE_COLORS.policy.border : NODE_COLORS.role.border;
 
     return {
       id: `${source}-${target}`,
@@ -359,7 +363,7 @@ export function ContractVisualizer() {
       targetHandle: targetIsRole ? 'role-target' : `${target}-target`,
       type: "smoothstep",
       style: {
-        stroke: "#9333ea",
+        stroke: edgeColor,
         strokeWidth: 2,
         opacity: 0.1,
         transition: 'opacity 0.2s'
@@ -367,7 +371,7 @@ export function ContractVisualizer() {
       animated,
       markerEnd: {
         type: MarkerType.Arrow,
-        color: '#9333ea',
+        color: edgeColor,
         width: 20,
         height: 20
       }

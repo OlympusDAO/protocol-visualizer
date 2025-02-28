@@ -119,7 +119,7 @@ const parsePolicyFunctions = async (
   action: number,
   policyAddress: `0x${string}`,
   policyName: string,
-  context: Context
+  _context: Context
 ): Promise<FunctionDetails[] | null> => {
   if (action !== 2 && action !== 3) {
     console.debug(

@@ -22,6 +22,18 @@ import dagre from "dagre";
 // Types
 type RoleAssignment = typeof schema.roleAssignment.$inferSelect;
 
+interface NodeData {
+  label: React.ReactNode;
+  assignees?: RoleAssignment[];
+  policiesCount?: number;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+  assigneeAddress?: string;
+  modulesUsedCount?: number;
+}
+
+type CustomNode = Node<NodeData>;
+
 // Helper functions
 const shortenAddress = (address: string) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -126,7 +138,7 @@ const createAssigneeNode = (assignee: RoleAssignment, id: string) => {
 
 // Node types configuration
 const nodeTypes: NodeTypes = {
-  role: ({ data }) => (
+  role: ({ data }: { data: NodeData }) => (
     <div
       className="rounded-lg p-4 cursor-pointer transition-colors"
       style={{
@@ -269,15 +281,17 @@ const getLayoutedElements = (
 };
 
 export function ContractVisualizer() {
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<NodeData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [hoveredPolicy, setHoveredPolicy] = useState<string | null>(null);
   const [hoveredRole, setHoveredRole] = useState<string | null>(null);
-  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [layouting, setLayouting] = useState(false);
   const [initialized, setInitialized] = useState(false);
-  const [originalLayout, setOriginalLayout] = useState<{ nodes: Node[]; edges: Edge[] } | null>(null);
+  const [originalLayout, setOriginalLayout] = useState<{
+    nodes: CustomNode[];
+    edges: Edge[];
+  } | null>(null);
 
   // Add ref for ReactFlow instance
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
@@ -449,11 +463,11 @@ export function ContractVisualizer() {
     []
   );
 
-  const setupGraph = useCallback(async () => {
+  const setupGraph = useCallback(() => {
     if (!contracts || !roles || !roleAssignments || layouting) return;
 
     setLayouting(true);
-    const newNodes: Node[] = [];
+    const newNodes: CustomNode[] = [];
     const newEdges: Edge[] = [];
 
     // Group contracts by type
@@ -618,17 +632,20 @@ export function ContractVisualizer() {
   ]);
 
   // Add function to get connected nodes
-  const getConnectedNodes = useCallback((nodeId: string) => {
-    const connectedNodeIds = new Set<string>([nodeId]);
+  const getConnectedNodes = useCallback(
+    (nodeId: string) => {
+      const connectedNodeIds = new Set<string>([nodeId]);
 
-    // Add directly connected nodes through edges
-    edges.forEach(edge => {
-      if (edge.source === nodeId) connectedNodeIds.add(edge.target);
-      if (edge.target === nodeId) connectedNodeIds.add(edge.source);
-    });
+      // Add directly connected nodes through edges
+      edges.forEach((edge) => {
+        if (edge.source === nodeId) connectedNodeIds.add(edge.target);
+        if (edge.target === nodeId) connectedNodeIds.add(edge.source);
+      });
 
-    return Array.from(connectedNodeIds);
-  }, [edges]);
+      return Array.from(connectedNodeIds);
+    },
+    [edges]
+  );
 
   // Add effect to handle node selection and layout
   useEffect(() => {
@@ -640,45 +657,50 @@ export function ContractVisualizer() {
     const { x: viewX, y: viewY } = reactFlowInstance.current.getViewport();
 
     // Create a subgraph of connected nodes
-    const relevantNodes = nodes.map(node => ({
+    const relevantNodes = nodes.map((node) => ({
       ...node,
       // Move unconnected nodes just outside the view
       position: connectedNodeIds.includes(node.id)
         ? node.position
         : {
             x: node.position.x + viewX + 800,
-            y: node.position.y + viewY + 800
+            y: node.position.y + viewY + 800,
           },
       style: {
         ...node.style,
         opacity: connectedNodeIds.includes(node.id) ? 1 : 0.2,
-        transition: 'all 0.5s ease-in-out',
-      }
+        transition: "all 0.5s ease-in-out",
+      },
     }));
 
     // Filter edges to only show those connecting selected nodes
-    const relevantEdges = edges.map(edge => ({
+    const relevantEdges = edges.map((edge) => ({
       ...edge,
       style: {
         ...edge.style,
-        opacity: connectedNodeIds.includes(edge.source) && connectedNodeIds.includes(edge.target) ? 1 : 0,
-        transition: 'all 0.5s ease-in-out',
-      }
+        opacity:
+          connectedNodeIds.includes(edge.source) &&
+          connectedNodeIds.includes(edge.target)
+            ? 1
+            : 0,
+        transition: "all 0.5s ease-in-out",
+      },
     }));
 
     // Re-layout the connected nodes to bring them closer
     const { nodes: layoutedNodes } = getLayoutedElements(
-      relevantNodes.filter(node => connectedNodeIds.includes(node.id)),
-      relevantEdges.filter(edge =>
-        connectedNodeIds.includes(edge.source) &&
-        connectedNodeIds.includes(edge.target)
+      relevantNodes.filter((node) => connectedNodeIds.includes(node.id)),
+      relevantEdges.filter(
+        (edge) =>
+          connectedNodeIds.includes(edge.source) &&
+          connectedNodeIds.includes(edge.target)
       ),
       "TB"
     );
 
     // Combine the layouts
-    const finalNodes = relevantNodes.map(node => {
-      const layoutedNode = layoutedNodes.find(n => n.id === node.id);
+    const finalNodes = relevantNodes.map((node) => {
+      const layoutedNode = layoutedNodes.find((n) => n.id === node.id);
       return layoutedNode || node;
     });
 
@@ -691,7 +713,9 @@ export function ContractVisualizer() {
         reactFlowInstance.current.fitView({
           padding: 0.2,
           duration: 0,
-          nodes: finalNodes.filter(node => connectedNodeIds.includes(node.id))
+          nodes: finalNodes.filter((node) =>
+            connectedNodeIds.includes(node.id)
+          ),
         });
       }
     }, 10);
@@ -699,25 +723,29 @@ export function ContractVisualizer() {
 
   // Modify effect to reset layout when deselecting
   useEffect(() => {
-    if (!selectedNode && originalLayout && initialized && reactFlowInstance.current) {
-      const restoredNodes = originalLayout.nodes.map(node => ({
+    if (
+      !selectedNode &&
+      originalLayout &&
+      initialized &&
+      reactFlowInstance.current
+    ) {
+      const restoredNodes = originalLayout.nodes.map((node) => ({
         ...node,
         style: {
           ...node.style,
           opacity: 1,
-          transition: 'all 0.5s ease-in-out',
-        }
+          transition: "all 0.5s ease-in-out",
+        },
       }));
 
       setNodes(restoredNodes);
       setEdges(originalLayout.edges);
 
-      // Fit view to all nodes after a short delay
-      setTimeout(() => {
+      void setTimeout(() => {
         if (reactFlowInstance.current) {
           reactFlowInstance.current.fitView({
             padding: 0.2,
-            duration: 800
+            duration: 800,
           });
         }
       }, 50);
@@ -733,7 +761,9 @@ export function ContractVisualizer() {
 
   // Fix type for handleNodeClick
   const handleNodeClick = useCallback((_: unknown, node: Node) => {
-    setSelectedNode(prevSelected => prevSelected === node.id ? null : node.id);
+    setSelectedNode((prevSelected) =>
+      prevSelected === node.id ? null : node.id
+    );
   }, []);
 
   const isLoading =
@@ -762,10 +792,11 @@ export function ContractVisualizer() {
       .filter((a) => a.assignee.toLowerCase() === assigneeAddress.toLowerCase())
       .map((a) => a.role);
 
-    // Get assignee name
+    // Get assignee name from the node data label
     const assigneeName =
-      selectedNodeData.label?.props?.children?.[1]?.props?.children ||
-      "Unknown";
+      typeof selectedNodeData.label === "string"
+        ? selectedNodeData.label
+        : "Unknown";
 
     return (
       <div
@@ -1310,12 +1341,6 @@ export function ContractVisualizer() {
             nodesDraggable={true}
             edgesFocusable={true}
             edgesUpdatable={false}
-            onNodeMouseEnter={(_, node) => {
-              setHoveredNode(node.id);
-            }}
-            onNodeMouseLeave={() => {
-              setHoveredNode(null);
-            }}
             onNodeClick={handleNodeClick}
             onNodeDragStop={(_event, node) => {
               const updatedNodes = nodes.map((n) =>

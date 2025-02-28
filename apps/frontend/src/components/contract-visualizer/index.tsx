@@ -16,10 +16,7 @@ import { usePonderQuery } from "@ponder/react";
 import { schema } from "@/lib/ponder";
 import { Contract } from "@/services/contracts";
 import { eq } from "@ponder/client";
-import ELK from "elkjs/lib/elk.bundled.js";
-
-// Initialize ELK
-const elk = new ELK();
+import dagre from "dagre";
 
 // Types
 type RoleAssignment = typeof schema.roleAssignment.$inferSelect;
@@ -218,6 +215,58 @@ const PolicyTooltip = ({ contract }: { contract: Contract }) => {
   );
 };
 
+// Add dagre layout function
+const getLayoutedElements = (
+  nodes: Node[],
+  edges: Edge[],
+  direction = "TB"
+) => {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+
+  const nodeWidth = 180;
+  const nodeHeight = 100;
+
+  // Set graph direction and spacing
+  dagreGraph.setGraph({
+    rankdir: direction,
+    nodesep: 80,
+    ranksep: 150,
+    marginx: 100,
+    marginy: 100,
+  });
+
+  // Add nodes to dagre graph
+  nodes.forEach((node) => {
+    dagreGraph.setNode(node.id, {
+      width: nodeWidth,
+      height: node.type === "role" ? 80 : nodeHeight,
+    });
+  });
+
+  // Add edges to dagre graph
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  // Calculate layout
+  dagre.layout(dagreGraph);
+
+  // Get positioned nodes
+  const layoutedNodes = nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    return {
+      ...node,
+      position: {
+        x: nodeWithPosition.x - nodeWidth / 2,
+        y: nodeWithPosition.y - (node.type === "role" ? 40 : nodeHeight / 2),
+      },
+    };
+  });
+
+  return { nodes: layoutedNodes, edges };
+};
+
 export function ContractVisualizer() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -263,7 +312,11 @@ export function ContractVisualizer() {
 
       // Calculate modules used count for policies
       let modulesUsedCount = 0;
-      if (type === "policy" && contract.policyPermissions && Array.isArray(contract.policyPermissions)) {
+      if (
+        type === "policy" &&
+        contract.policyPermissions &&
+        Array.isArray(contract.policyPermissions)
+      ) {
         // Get unique keycodes from policy permissions
         const uniqueKeycodes = new Set(
           (contract.policyPermissions as Array<{ keycode: string }>).map(
@@ -313,8 +366,12 @@ export function ContractVisualizer() {
                 <div className="text-xs mt-1 text-red-500">Disabled</div>
               )}
               {type === "policy" && modulesUsedCount > 0 && (
-                <div className="text-xs mt-1" style={{ color: NODE_COLORS.module.border }}>
-                  {modulesUsedCount} Module{modulesUsedCount !== 1 ? 's' : ''} Used
+                <div
+                  className="text-xs mt-1"
+                  style={{ color: NODE_COLORS.module.border }}
+                >
+                  {modulesUsedCount} Module{modulesUsedCount !== 1 ? "s" : ""}{" "}
+                  Used
                 </div>
               )}
               {type === "policy" && hoveredPolicy === contract.address && (
@@ -439,7 +496,6 @@ export function ContractVisualizer() {
 
       // Connect policy to modules it uses
       if (policy.policyPermissions && Array.isArray(policy.policyPermissions)) {
-        // Get unique keycodes from policy permissions
         const uniqueKeycodes = Array.from(
           new Set(
             (policy.policyPermissions as Array<{ keycode: string }>).map(
@@ -448,7 +504,6 @@ export function ContractVisualizer() {
           )
         );
 
-        // Create edges from policy to modules
         uniqueKeycodes.forEach((keycode) => {
           const moduleAddress = moduleKeycodeToAddress.get(keycode);
           if (moduleAddress) {
@@ -521,7 +576,6 @@ export function ContractVisualizer() {
         (c) => c.type === "policy" && Array.isArray(c.policyFunctions)
       );
       policyContracts.forEach((policy) => {
-        // Check if any function in the policy requires this role
         const policyFunctions = policy.policyFunctions as Array<{
           roles: string[];
         }>;
@@ -529,82 +583,20 @@ export function ContractVisualizer() {
           func.roles.includes(role.role)
         );
         if (hasRole) {
-          // Add edge from role to policy
           newEdges.push(createEdge(roleId, policy.address, false));
         }
       });
     });
 
-    // Prepare the graph for ELK layout
-    const graph = {
-      id: "root",
-      layoutOptions: {
-        "elk.algorithm": "mrtree",
-        "elk.spacing.nodeNode": "80",
-        "elk.padding": "[top=100,left=100,bottom=100,right=100]",
-        "elk.direction": "DOWN",
-        "elk.spacing.levelLevel": "150",
-        "elk.aspectRatio": "2.0",
-        "elk.spacing.individual": "50",
-        "elk.hierarchyHandling": "INCLUDE_CHILDREN",
-      },
-      children: newNodes.map((node) => {
-        const isAssignee = node.id.startsWith("assignee-");
-        const isRole = node.id.startsWith("role-");
-        const isPolicy = policyContracts.some((p) => p.address === node.id);
-        const isKernel = node.id === kernelContract?.address;
-        const isModule = moduleContracts.some((m) => m.address === node.id);
+    // Apply dagre layout
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+      newNodes,
+      newEdges,
+      "TB"
+    );
 
-        // Assign hierarchy level
-        const level = isAssignee
-          ? 0
-          : isRole
-            ? 1
-            : isPolicy
-              ? 2
-              : isKernel
-                ? 3
-                : isModule
-                  ? 4
-                  : 0;
-
-        return {
-          id: node.id,
-          width: 180,
-          height: node.type === "role" ? 80 : 100,
-          layoutOptions: {
-            "elk.mrtree.level": level.toString(),
-            "elk.mrtree.levelDistance": "150",
-          },
-        };
-      }),
-      edges: newEdges.map((edge) => ({
-        id: edge.id,
-        sources: [edge.source],
-        targets: [edge.target],
-        layoutOptions: {
-          "elk.hierarchical": "true",
-        },
-      })),
-    };
-
-    // Calculate layout using ELK
-    const layout = await elk.layout(graph);
-
-    // Apply the layout to nodes
-    const nodesWithLayout = newNodes.map((node) => {
-      const layoutNode = layout.children?.find((n) => n.id === node.id);
-      if (layoutNode) {
-        return {
-          ...node,
-          position: { x: layoutNode.x || 0, y: layoutNode.y || 0 },
-        };
-      }
-      return node;
-    });
-
-    setNodes(nodesWithLayout);
-    setEdges(newEdges);
+    setNodes(layoutedNodes);
+    setEdges(layoutedEdges);
     setLayouting(false);
     setInitialized(true);
   }, [
@@ -921,11 +913,15 @@ export function ContractVisualizer() {
 
     // Group policy permissions by keycode
     const permissionsByKeycode = new Map<string, Array<{ function: string }>>();
-    (contract.policyPermissions as Array<{ keycode: string; function: string }>).forEach((permission) => {
+    (
+      contract.policyPermissions as Array<{ keycode: string; function: string }>
+    ).forEach((permission) => {
       if (!permissionsByKeycode.has(permission.keycode)) {
         permissionsByKeycode.set(permission.keycode, []);
       }
-      permissionsByKeycode.get(permission.keycode)?.push({ function: permission.function });
+      permissionsByKeycode
+        .get(permission.keycode)
+        ?.push({ function: permission.function });
     });
 
     // Get unique keycodes from policy permissions
@@ -1001,7 +997,9 @@ export function ContractVisualizer() {
                         {moduleContract ? (
                           <button
                             className="hover:underline text-left"
-                            onClick={() => setSelectedNode(moduleContract.address)}
+                            onClick={() =>
+                              setSelectedNode(moduleContract.address)
+                            }
                           >
                             {moduleContract.name}
                           </button>
@@ -1025,7 +1023,9 @@ export function ContractVisualizer() {
                     </div>
                     {moduleFunctions.length > 0 && (
                       <div className="mt-1">
-                        <div className="text-xs text-gray-600 mb-1">Functions:</div>
+                        <div className="text-xs text-gray-600 mb-1">
+                          Functions:
+                        </div>
                         <ul className="list-disc pl-4">
                           {moduleFunctions.map((func, idx) => (
                             <li key={idx} className="text-xs text-blue-600">

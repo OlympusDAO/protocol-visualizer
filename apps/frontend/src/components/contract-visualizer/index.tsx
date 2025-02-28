@@ -918,7 +918,17 @@ export function ContractVisualizer() {
       ) : (
         <>
           <ReactFlow
-            nodes={nodes}
+            nodes={nodes.map(node => ({
+              ...node,
+              style: {
+                ...node.style,
+                // Highlight selected node with a glow effect and dim others
+                boxShadow: node.id === selectedNode ? '0 0 10px 3px rgba(59, 130, 246, 0.5)' : 'none',
+                opacity: selectedNode ? (node.id === selectedNode ? 1 : 0.4) : node.style?.opacity || 1,
+                zIndex: node.id === selectedNode ? 10 : node.style?.zIndex || 1,
+                transition: 'all 0.3s ease'
+              }
+            }))}
             edges={edges.map((edge) => ({
               ...edge,
               style: {
@@ -930,8 +940,9 @@ export function ContractVisualizer() {
                       edge.source === selectedNode ||
                       edge.target === selectedNode
                       ? 1
-                      : 0.4
+                      : 0.2
                     : 0.4,
+                transition: 'opacity 0.3s ease'
               },
             }))}
             onNodesChange={onNodesChange}

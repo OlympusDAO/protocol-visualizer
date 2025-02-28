@@ -261,6 +261,18 @@ export function ContractVisualizer() {
             ? NODE_COLORS.module
             : NODE_COLORS.policy;
 
+      // Calculate modules used count for policies
+      let modulesUsedCount = 0;
+      if (type === "policy" && contract.policyPermissions && Array.isArray(contract.policyPermissions)) {
+        // Get unique keycodes from policy permissions
+        const uniqueKeycodes = new Set(
+          (contract.policyPermissions as Array<{ keycode: string }>).map(
+            (p) => p.keycode
+          )
+        );
+        modulesUsedCount = uniqueKeycodes.size;
+      }
+
       return {
         id,
         data: {
@@ -300,6 +312,11 @@ export function ContractVisualizer() {
               {!contract.isEnabled && (
                 <div className="text-xs mt-1 text-red-500">Disabled</div>
               )}
+              {type === "policy" && modulesUsedCount > 0 && (
+                <div className="text-xs mt-1" style={{ color: NODE_COLORS.module.border }}>
+                  {modulesUsedCount} Module{modulesUsedCount !== 1 ? 's' : ''} Used
+                </div>
+              )}
               {type === "policy" && hoveredPolicy === contract.address && (
                 <PolicyTooltip contract={contract} />
               )}
@@ -314,6 +331,7 @@ export function ContractVisualizer() {
               />
             </div>
           ),
+          modulesUsedCount,
         },
         style: {
           background: colors.background,

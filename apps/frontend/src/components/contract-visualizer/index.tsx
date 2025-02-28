@@ -16,7 +16,7 @@ import { usePonderQuery } from "@ponder/react";
 import { schema } from "@/lib/ponder";
 import { Contract } from "@/services/contracts";
 import { eq } from "@ponder/client";
-import ELK from 'elkjs/lib/elk.bundled.js';
+import ELK from "elkjs/lib/elk.bundled.js";
 
 // Initialize ELK
 const elk = new ELK();
@@ -36,37 +36,34 @@ const getEtherscanLink = (address: string) => {
 // Node color scheme
 const NODE_COLORS = {
   kernel: {
-    background: '#fef3c7', // Amber 100
-    border: '#d97706',     // Amber 600
-    text: '#92400e'        // Amber 800
+    background: "#fef3c7", // Amber 100
+    border: "#d97706", // Amber 600
+    text: "#92400e", // Amber 800
   },
   module: {
-    background: '#dbeafe', // Blue 100
-    border: '#2563eb',     // Blue 600
-    text: '#1e40af'        // Blue 800
+    background: "#dbeafe", // Blue 100
+    border: "#2563eb", // Blue 600
+    text: "#1e40af", // Blue 800
   },
   policy: {
-    background: '#dcfce7', // Green 100
-    border: '#16a34a',     // Green 600
-    text: '#166534'        // Green 800
+    background: "#dcfce7", // Green 100
+    border: "#16a34a", // Green 600
+    text: "#166534", // Green 800
   },
   role: {
-    background: '#f3e8ff', // Purple 100
-    border: '#9333ea',     // Purple 600
-    text: '#6b21a8'        // Purple 800
+    background: "#f3e8ff", // Purple 100
+    border: "#9333ea", // Purple 600
+    text: "#6b21a8", // Purple 800
   },
   assignee: {
-    background: '#fae8ff', // Pink 100
-    border: '#db2777',     // Pink 600
-    text: '#9d174d'        // Pink 800
-  }
+    background: "#fae8ff", // Pink 100
+    border: "#db2777", // Pink 600
+    text: "#9d174d", // Pink 800
+  },
 };
 
 // Create a node for a non-contract assignee
-const createAssigneeNode = (
-  assignee: RoleAssignment,
-  id: string
-) => {
+const createAssigneeNode = (assignee: RoleAssignment, id: string) => {
   return {
     id,
     data: {
@@ -81,8 +78,13 @@ const createAssigneeNode = (
               border: `1px solid ${NODE_COLORS.assignee.border}`,
             }}
           />
-          <div className="font-bold mb-1 break-words whitespace-pre-wrap max-w-[160px]" style={{ color: NODE_COLORS.assignee.text }}>
-            {assignee.assigneeName === "UNKNOWN" ? "EOA" : assignee.assigneeName}
+          <div
+            className="font-bold mb-1 break-words whitespace-pre-wrap max-w-[160px]"
+            style={{ color: NODE_COLORS.assignee.text }}
+          >
+            {assignee.assigneeName === "UNKNOWN"
+              ? "EOA"
+              : assignee.assigneeName}
           </div>
           <a
             href={getEtherscanLink(assignee.assignee)}
@@ -104,7 +106,7 @@ const createAssigneeNode = (
           />
         </div>
       ),
-      assigneeAddress: assignee.assignee
+      assigneeAddress: assignee.assignee,
     },
     style: {
       background: NODE_COLORS.assignee.background,
@@ -139,7 +141,9 @@ const nodeTypes: NodeTypes = {
           border: `1px solid ${NODE_COLORS.role.border}`,
         }}
       />
-      <div className="font-bold mb-2" style={{ color: NODE_COLORS.role.text }}>{data.label}</div>
+      <div className="font-bold mb-2" style={{ color: NODE_COLORS.role.text }}>
+        {data.label}
+      </div>
       {data.assignees && (
         <div className="text-xs" style={{ color: NODE_COLORS.role.border }}>
           {data.assignees.length} Active Assignee(s)
@@ -212,6 +216,7 @@ export function ContractVisualizer() {
   const [hoveredPolicy, setHoveredPolicy] = useState<string | null>(null);
   const [hoveredRole, setHoveredRole] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [layouting, setLayouting] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
@@ -226,26 +231,27 @@ export function ContractVisualizer() {
 
   // Query roles and assignments
   const { data: roles, isLoading: isLoadingRoles } = usePonderQuery({
-    queryFn: (db) =>
-      db
-        .select()
-        .from(schema.role),
+    queryFn: (db) => db.select().from(schema.role),
   });
 
-  const { data: roleAssignments, isLoading: isLoadingAssignments } = usePonderQuery({
-    queryFn: (db) =>
-      db
-        .select()
-        .from(schema.roleAssignment)
-        .where(eq(schema.roleAssignment.isGranted, true)),
-  });
+  const { data: roleAssignments, isLoading: isLoadingAssignments } =
+    usePonderQuery({
+      queryFn: (db) =>
+        db
+          .select()
+          .from(schema.roleAssignment)
+          .where(eq(schema.roleAssignment.isGranted, true)),
+    });
 
   const createNodeFromContract = useCallback(
     (contract: Contract, id: string) => {
       const type = contract.type;
-      const colors = type === 'kernel' ? NODE_COLORS.kernel :
-                    type === 'module' ? NODE_COLORS.module :
-                    NODE_COLORS.policy;
+      const colors =
+        type === "kernel"
+          ? NODE_COLORS.kernel
+          : type === "module"
+            ? NODE_COLORS.module
+            : NODE_COLORS.policy;
 
       return {
         id,
@@ -255,9 +261,9 @@ export function ContractVisualizer() {
               className="p-1 text-sm relative"
               style={{ position: "relative" }}
               onMouseEnter={() =>
-                type === 'policy' && setHoveredPolicy(contract.address)
+                type === "policy" && setHoveredPolicy(contract.address)
               }
-              onMouseLeave={() => type === 'policy' && setHoveredPolicy(null)}
+              onMouseLeave={() => type === "policy" && setHoveredPolicy(null)}
             >
               <Handle
                 id={`${id}-target`}
@@ -268,7 +274,10 @@ export function ContractVisualizer() {
                   border: `1px solid ${colors.border}`,
                 }}
               />
-              <div className="font-bold mb-1 break-words whitespace-pre-wrap max-w-[160px]" style={{ color: colors.text }}>
+              <div
+                className="font-bold mb-1 break-words whitespace-pre-wrap max-w-[160px]"
+                style={{ color: colors.text }}
+              >
                 {contract.name}
               </div>
               <a
@@ -283,7 +292,7 @@ export function ContractVisualizer() {
               {!contract.isEnabled && (
                 <div className="text-xs mt-1 text-red-500">Disabled</div>
               )}
-              {type === 'policy' && hoveredPolicy === contract.address && (
+              {type === "policy" && hoveredPolicy === contract.address && (
                 <PolicyTooltip contract={contract} />
               )}
               <Handle
@@ -315,36 +324,42 @@ export function ContractVisualizer() {
   );
 
   // Memoize the edge creation function
-  const createEdge = useCallback((source: string, target: string, animated: boolean = false) => {
-    const sourceIsRole = source.startsWith('role-');
-    const targetIsRole = target.startsWith('role-');
-    const targetIsPolicy = target.startsWith('0x') && !source.startsWith('0x');
+  const createEdge = useCallback(
+    (source: string, target: string, animated: boolean = false) => {
+      const sourceIsRole = source.startsWith("role-");
+      const targetIsRole = target.startsWith("role-");
+      const targetIsPolicy =
+        target.startsWith("0x") && !source.startsWith("0x");
 
-    // Use green for role -> policy edges, purple for others
-    const edgeColor = targetIsPolicy ? NODE_COLORS.policy.border : NODE_COLORS.role.border;
+      // Use green for role -> policy edges, purple for others
+      const edgeColor = targetIsPolicy
+        ? NODE_COLORS.policy.border
+        : NODE_COLORS.role.border;
 
-    return {
-      id: `${source}-${target}`,
-      source,
-      target,
-      sourceHandle: sourceIsRole ? 'role-source' : `${source}-source`,
-      targetHandle: targetIsRole ? 'role-target' : `${target}-target`,
-      type: "smoothstep",
-      style: {
-        stroke: edgeColor,
-        strokeWidth: 2,
-        opacity: 0.1,
-        transition: 'opacity 0.2s'
-      },
-      animated,
-      markerEnd: {
-        type: MarkerType.Arrow,
-        color: edgeColor,
-        width: 20,
-        height: 20
-      }
-    };
-  }, []);
+      return {
+        id: `${source}-${target}`,
+        source,
+        target,
+        sourceHandle: sourceIsRole ? "role-source" : `${source}-source`,
+        targetHandle: targetIsRole ? "role-target" : `${target}-target`,
+        type: "smoothstep",
+        style: {
+          stroke: edgeColor,
+          strokeWidth: 2,
+          opacity: 0.1,
+          transition: "opacity 0.2s",
+        },
+        animated,
+        markerEnd: {
+          type: MarkerType.Arrow,
+          color: edgeColor,
+          width: 20,
+          height: 20,
+        },
+      };
+    },
+    []
+  );
 
   const setupGraph = useCallback(async () => {
     if (!contracts || !roles || !roleAssignments || layouting) return;
@@ -362,7 +377,7 @@ export function ContractVisualizer() {
     if (kernelContract) {
       newNodes.push({
         ...createNodeFromContract(kernelContract, kernelContract.address),
-        position: { x: 0, y: 0 }
+        position: { x: 0, y: 0 },
       });
     }
 
@@ -370,7 +385,7 @@ export function ContractVisualizer() {
     moduleContracts.forEach((contract) => {
       newNodes.push({
         ...createNodeFromContract(contract, contract.address),
-        position: { x: 0, y: 0 }
+        position: { x: 0, y: 0 },
       });
     });
 
@@ -378,14 +393,16 @@ export function ContractVisualizer() {
     policyContracts.forEach((policy) => {
       newNodes.push({
         ...createNodeFromContract(policy, policy.address),
-        position: { x: 0, y: 0 }
+        position: { x: 0, y: 0 },
       });
     });
 
     // Process roles and assignees
     roles.forEach((role) => {
       const roleId = `role-${role.role}`;
-      const roleAssignmentsList = roleAssignments.filter(a => a.role === role.role);
+      const roleAssignmentsList = roleAssignments.filter(
+        (a) => a.role === role.role
+      );
 
       // Add role node
       newNodes.push({
@@ -419,7 +436,7 @@ export function ContractVisualizer() {
           const assigneeId = `assignee-${assignment.assignee}`;
           newNodes.push({
             ...createAssigneeNode(assignment, assigneeId),
-            position: { x: 0, y: 0 }
+            position: { x: 0, y: 0 },
           });
 
           // Add edge from role to assignee
@@ -428,11 +445,17 @@ export function ContractVisualizer() {
       });
 
       // Link roles with policies that use them
-      const policyContracts = contracts.filter(c => c.type === 'policy' && Array.isArray(c.policyFunctions));
-      policyContracts.forEach(policy => {
+      const policyContracts = contracts.filter(
+        (c) => c.type === "policy" && Array.isArray(c.policyFunctions)
+      );
+      policyContracts.forEach((policy) => {
         // Check if any function in the policy requires this role
-        const policyFunctions = policy.policyFunctions as Array<{ roles: string[] }>;
-        const hasRole = policyFunctions.some(func => func.roles.includes(role.role));
+        const policyFunctions = policy.policyFunctions as Array<{
+          roles: string[];
+        }>;
+        const hasRole = policyFunctions.some((func) =>
+          func.roles.includes(role.role)
+        );
         if (hasRole) {
           // Add edge from role to policy
           newEdges.push(createEdge(roleId, policy.address, false));
@@ -451,30 +474,36 @@ export function ContractVisualizer() {
         "elk.spacing.levelLevel": "150",
         "elk.aspectRatio": "2.0",
         "elk.spacing.individual": "50",
-        "elk.hierarchyHandling": "INCLUDE_CHILDREN"
+        "elk.hierarchyHandling": "INCLUDE_CHILDREN",
       },
       children: newNodes.map((node) => {
-        const isAssignee = node.id.startsWith('assignee-');
-        const isRole = node.id.startsWith('role-');
-        const isPolicy = policyContracts.some(p => p.address === node.id);
+        const isAssignee = node.id.startsWith("assignee-");
+        const isRole = node.id.startsWith("role-");
+        const isPolicy = policyContracts.some((p) => p.address === node.id);
         const isKernel = node.id === kernelContract?.address;
-        const isModule = moduleContracts.some(m => m.address === node.id);
+        const isModule = moduleContracts.some((m) => m.address === node.id);
 
         // Assign hierarchy level
-        const level = isAssignee ? 0 :
-                     isRole ? 1 :
-                     isPolicy ? 2 :
-                     isKernel ? 3 :
-                     isModule ? 4 : 0;
+        const level = isAssignee
+          ? 0
+          : isRole
+            ? 1
+            : isPolicy
+              ? 2
+              : isKernel
+                ? 3
+                : isModule
+                  ? 4
+                  : 0;
 
         return {
           id: node.id,
           width: 180,
-          height: node.type === 'role' ? 80 : 100,
+          height: node.type === "role" ? 80 : 100,
           layoutOptions: {
             "elk.mrtree.level": level.toString(),
-            "elk.mrtree.levelDistance": "150"
-          }
+            "elk.mrtree.levelDistance": "150",
+          },
         };
       }),
       edges: newEdges.map((edge) => ({
@@ -482,9 +511,9 @@ export function ContractVisualizer() {
         sources: [edge.source],
         targets: [edge.target],
         layoutOptions: {
-          "elk.hierarchical": "true"
-        }
-      }))
+          "elk.hierarchical": "true",
+        },
+      })),
     };
 
     // Calculate layout using ELK
@@ -506,7 +535,15 @@ export function ContractVisualizer() {
     setEdges(newEdges);
     setLayouting(false);
     setInitialized(true);
-  }, [contracts, roles, roleAssignments, layouting, createNodeFromContract, createEdge, hoveredRole]);
+  }, [
+    contracts,
+    roles,
+    roleAssignments,
+    layouting,
+    createNodeFromContract,
+    createEdge,
+    hoveredRole,
+  ]);
 
   useEffect(() => {
     if (!initialized && !layouting && contracts && roles && roleAssignments) {
@@ -514,39 +551,73 @@ export function ContractVisualizer() {
     }
   }, [initialized, layouting, contracts, roles, roleAssignments, setupGraph]);
 
-  const isLoading = isLoadingContracts || isLoadingRoles || isLoadingAssignments || layouting;
+  const isLoading =
+    isLoadingContracts || isLoadingRoles || isLoadingAssignments || layouting;
 
   // Render tooltip for hovered assignee
   const renderAssigneeTooltip = () => {
-    if (!hoveredNode || !hoveredNode.startsWith('assignee-') || !roleAssignments) return null;
+    if (
+      !selectedNode ||
+      !selectedNode.startsWith("assignee-") ||
+      !roleAssignments
+    )
+      return null;
 
     // Extract assignee address from node ID
-    const assigneeAddress = hoveredNode.replace('assignee-', '');
+    const assigneeAddress = selectedNode.replace("assignee-", "");
 
     // Find the node data
-    const hoveredNodeData = nodes.find(node => node.id === hoveredNode)?.data;
-    if (!hoveredNodeData) return null;
+    const selectedNodeData = nodes.find(
+      (node) => node.id === selectedNode
+    )?.data;
+    if (!selectedNodeData) return null;
 
     // Find all roles for this assignee
     const assignedRoles = roleAssignments
-      .filter(a => a.assignee.toLowerCase() === assigneeAddress.toLowerCase())
-      .map(a => a.role);
+      .filter((a) => a.assignee.toLowerCase() === assigneeAddress.toLowerCase())
+      .map((a) => a.role);
 
     // Get assignee name
-    const assigneeName = hoveredNodeData.label?.props?.children?.[1]?.props?.children || 'Unknown';
+    const assigneeName =
+      selectedNodeData.label?.props?.children?.[1]?.props?.children ||
+      "Unknown";
 
     return (
       <div
         className="fixed bg-white shadow-lg rounded-lg p-4 min-w-[300px] border border-gray-200"
         style={{
           zIndex: 9999,
-          top: '20px',
-          right: '20px',
+          top: "20px",
+          right: "20px",
         }}
       >
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-bold text-sm">{assigneeName}</h3>
-          <span className="text-xs px-2 py-1 bg-pink-100 text-pink-800 rounded-full">Assignee</span>
+          <div className="flex items-center">
+            <span className="text-xs px-2 py-1 bg-pink-100 text-pink-800 rounded-full mr-2">
+              Assignee
+            </span>
+            <button
+              onClick={() => setSelectedNode(null)}
+              className="text-gray-500 hover:text-gray-700"
+              aria-label="Close tooltip"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
         <div className="text-xs text-gray-500 mb-2">
           <a
@@ -565,13 +636,265 @@ export function ContractVisualizer() {
               <ul className="list-disc pl-4">
                 {assignedRoles.map((role, index) => (
                   <li key={index} className="text-xs mb-1">
-                    <span className="text-purple-600">{role}</span>
+                    <button
+                      className="text-purple-600 hover:text-purple-800 hover:underline text-left"
+                      onClick={() => setSelectedNode(`role-${role}`)}
+                    >
+                      {role}
+                    </button>
                   </li>
                 ))}
               </ul>
             ) : (
               <div className="text-gray-500">No roles assigned</div>
             )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Render tooltip for hovered role
+  const renderRoleTooltip = () => {
+    if (
+      !selectedNode ||
+      !selectedNode.startsWith("role-") ||
+      !roleAssignments ||
+      !contracts
+    )
+      return null;
+
+    // Extract role name from node ID
+    const roleName = selectedNode.replace("role-", "");
+
+    // Find all assignees for this role
+    const assignees = roleAssignments
+      .filter((a) => a.role === roleName)
+      .map((a) => ({
+        address: a.assignee,
+        name: a.assigneeName,
+      }));
+
+    // Find all policies that use this role
+    const policiesUsingRole = contracts
+      .filter(
+        (c) =>
+          c.type === "policy" &&
+          Array.isArray(c.policyFunctions) &&
+          (c.policyFunctions as Array<{ roles: string[]; name: string }>).some(
+            (func) => func.roles.includes(roleName)
+          )
+      )
+      .map((policy) => {
+        // Get the specific functions that use this role
+        const functions = (
+          policy.policyFunctions as Array<{ roles: string[]; name: string }>
+        )
+          .filter((func) => func.roles.includes(roleName))
+          .map((func) => func.name);
+
+        return {
+          name: policy.name,
+          address: policy.address,
+          functions,
+        };
+      });
+
+    return (
+      <div
+        className="fixed bg-white shadow-lg rounded-lg p-4 min-w-[350px] max-w-[450px] border border-gray-200"
+        style={{
+          zIndex: 9999,
+          top: "20px",
+          right: "20px",
+        }}
+      >
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-bold text-sm">{roleName}</h3>
+          <div className="flex items-center">
+            <span className="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded-full mr-2">
+              Role
+            </span>
+            <button
+              onClick={() => setSelectedNode(null)}
+              className="text-gray-500 hover:text-gray-700"
+              aria-label="Close tooltip"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Assignees Section */}
+        <div className="border-t border-gray-200 my-2 pt-2">
+          <h4 className="font-semibold text-sm mb-2">
+            Assignees ({assignees.length}):
+          </h4>
+          <div className="text-sm max-h-[120px] overflow-y-auto">
+            {assignees.length > 0 ? (
+              <ul className="list-disc pl-4">
+                {assignees.map((assignee, index) => (
+                  <li key={index} className="text-xs mb-1">
+                    <button
+                      className="text-pink-600 hover:text-pink-800 hover:underline text-left"
+                      onClick={() =>
+                        setSelectedNode(`assignee-${assignee.address}`)
+                      }
+                    >
+                      {assignee.name === "UNKNOWN" ? "EOA" : assignee.name}
+                    </button>
+                    <a
+                      href={getEtherscanLink(assignee.address)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-gray-500 hover:underline ml-1"
+                    >
+                      ({shortenAddress(assignee.address)})
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-gray-500">No assignees</div>
+            )}
+          </div>
+        </div>
+
+        {/* Policies Section */}
+        <div className="border-t border-gray-200 my-2 pt-2">
+          <h4 className="font-semibold text-sm mb-2">
+            Policies ({policiesUsingRole.length}):
+          </h4>
+          <div className="text-sm max-h-[150px] overflow-y-auto">
+            {policiesUsingRole.length > 0 ? (
+              <ul className="list-none">
+                {policiesUsingRole.map((policy, index) => (
+                  <li
+                    key={index}
+                    className="mb-2 pb-2 border-b border-gray-100 last:border-b-0"
+                  >
+                    <div className="font-medium text-xs text-green-700 mb-1">
+                      <button
+                        className="hover:underline text-left"
+                        onClick={() => setSelectedNode(policy.address)}
+                      >
+                        {policy.name}
+                      </button>
+                    </div>
+                    <a
+                      href={getEtherscanLink(policy.address)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-gray-500 hover:underline"
+                    >
+                      {shortenAddress(policy.address)}
+                    </a>
+                    {policy.functions.length > 0 && (
+                      <div className="mt-1">
+                        <div className="text-xs text-gray-600">Functions:</div>
+                        <ul className="list-disc pl-4">
+                          {policy.functions.map((func, idx) => (
+                            <li key={idx} className="text-xs text-blue-600">
+                              {func}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-gray-500">No policies use this role</div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Render tooltip for policy
+  const renderPolicyTooltip = () => {
+    if (!selectedNode || !selectedNode.startsWith("0x") || !contracts)
+      return null;
+
+    const contract = contracts.find(
+      (c) => c.address === selectedNode && c.type === "policy"
+    );
+    if (!contract || !contract.policyPermissions) return null;
+
+    return (
+      <div
+        className="fixed bg-white shadow-lg rounded-lg p-4 min-w-[350px] max-w-[450px] border border-gray-200"
+        style={{
+          zIndex: 9999,
+          top: "20px",
+          right: "20px",
+        }}
+      >
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-bold text-sm">{contract.name}</h3>
+          <div className="flex items-center">
+            <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full mr-2">
+              Policy
+            </span>
+            <button
+              onClick={() => setSelectedNode(null)}
+              className="text-gray-500 hover:text-gray-700"
+              aria-label="Close tooltip"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div className="text-xs text-gray-600 mb-3">
+          Last Updated:{" "}
+          {new Date(
+            Number(contract.lastUpdatedTimestamp) * 1000
+          ).toLocaleString()}
+        </div>
+        <div className="border-t border-gray-200 my-2 pt-2">
+          <h4 className="font-semibold text-sm mb-2">Modules Used:</h4>
+          <div className="text-sm max-h-[150px] overflow-y-auto">
+            <ul className="list-disc pl-4">
+              {Array.from(
+                new Set(
+                  (
+                    contract.policyPermissions as Array<{ keycode: string }>
+                  ).map((p) => p.keycode)
+                )
+              ).map((keycode, index) => (
+                <li key={index} className="text-xs mb-1">
+                  <span className="text-blue-600">{keycode}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </div>
@@ -596,12 +919,20 @@ export function ContractVisualizer() {
         <>
           <ReactFlow
             nodes={nodes}
-            edges={edges.map(edge => ({
+            edges={edges.map((edge) => ({
               ...edge,
               style: {
                 ...edge.style,
-                opacity: hoveredNode ? (edge.source === hoveredNode || edge.target === hoveredNode ? 1 : 0.4) : 0.4
-              }
+                opacity:
+                  hoveredNode || selectedNode
+                    ? edge.source === hoveredNode ||
+                      edge.target === hoveredNode ||
+                      edge.source === selectedNode ||
+                      edge.target === selectedNode
+                      ? 1
+                      : 0.4
+                    : 0.4,
+              },
             }))}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
@@ -621,17 +952,32 @@ export function ContractVisualizer() {
             onNodeMouseLeave={() => {
               setHoveredNode(null);
             }}
+            onNodeClick={(_, node) => {
+              setSelectedNode((prevSelected) =>
+                prevSelected === node.id ? null : node.id
+              );
+            }}
             onNodeDragStop={(_event, node) => {
               const updatedNodes = nodes.map((n) =>
                 n.id === node.id ? { ...n, position: node.position } : n
               );
               setNodes(updatedNodes);
             }}
+            onPaneClick={() => {
+              // Optionally close tooltip when clicking on the background
+              // setSelectedNode(null);
+            }}
           >
             <Background />
             <Controls />
           </ReactFlow>
-          {renderAssigneeTooltip()}
+          {selectedNode?.startsWith("assignee-")
+            ? renderAssigneeTooltip()
+            : selectedNode?.startsWith("role-")
+              ? renderRoleTooltip()
+              : selectedNode?.startsWith("0x")
+                ? renderPolicyTooltip()
+                : null}
         </>
       )}
     </div>

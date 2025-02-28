@@ -104,6 +104,7 @@ const createAssigneeNode = (
           />
         </div>
       ),
+      assigneeAddress: assignee.assignee
     },
     style: {
       background: NODE_COLORS.assignee.background,
@@ -158,39 +159,6 @@ const nodeTypes: NodeTypes = {
 };
 
 // Custom tooltip components
-const RoleTooltip = ({ role, assignments }: { role: string; assignments: RoleAssignment[] }) => {
-  return (
-    <div
-      className="fixed ml-2 bg-white shadow-lg rounded-lg p-4 min-w-[300px] border border-gray-200"
-      style={{
-        zIndex: 9999,
-        left: "calc(100% + 8px)",
-        top: "50%",
-        transform: "translateY(-50%)",
-      }}
-    >
-      <h3 className="font-bold text-sm mb-2">{role}</h3>
-      <div className="text-sm">
-        <div className="font-semibold mb-1">Active Assignees:</div>
-        <ul className="list-disc pl-4">
-          {assignments.map((assignment, index) => (
-            <li key={index} className="text-xs mb-1">
-              <span className="text-purple-600">{assignment.assigneeName}</span>
-              <a
-                href={getEtherscanLink(assignment.assignee)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:text-blue-700 ml-1"
-              >
-                ({shortenAddress(assignment.assignee)})
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-};
 
 // Custom tooltip component
 const PolicyTooltip = ({ contract }: { contract: Contract }) => {
@@ -548,6 +516,68 @@ export function ContractVisualizer() {
 
   const isLoading = isLoadingContracts || isLoadingRoles || isLoadingAssignments || layouting;
 
+  // Render tooltip for hovered assignee
+  const renderAssigneeTooltip = () => {
+    if (!hoveredNode || !hoveredNode.startsWith('assignee-') || !roleAssignments) return null;
+
+    // Extract assignee address from node ID
+    const assigneeAddress = hoveredNode.replace('assignee-', '');
+
+    // Find the node data
+    const hoveredNodeData = nodes.find(node => node.id === hoveredNode)?.data;
+    if (!hoveredNodeData) return null;
+
+    // Find all roles for this assignee
+    const assignedRoles = roleAssignments
+      .filter(a => a.assignee.toLowerCase() === assigneeAddress.toLowerCase())
+      .map(a => a.role);
+
+    // Get assignee name
+    const assigneeName = hoveredNodeData.label?.props?.children?.[1]?.props?.children || 'Unknown';
+
+    return (
+      <div
+        className="fixed bg-white shadow-lg rounded-lg p-4 min-w-[300px] border border-gray-200"
+        style={{
+          zIndex: 9999,
+          top: '20px',
+          right: '20px',
+        }}
+      >
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-bold text-sm">{assigneeName}</h3>
+          <span className="text-xs px-2 py-1 bg-pink-100 text-pink-800 rounded-full">Assignee</span>
+        </div>
+        <div className="text-xs text-gray-500 mb-2">
+          <a
+            href={getEtherscanLink(assigneeAddress)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:underline"
+          >
+            {assigneeAddress}
+          </a>
+        </div>
+        <div className="border-t border-gray-200 my-2 pt-2">
+          <h4 className="font-semibold text-sm mb-2">Assigned Roles:</h4>
+          <div className="text-sm">
+            {assignedRoles.length > 0 ? (
+              <ul className="list-disc pl-4">
+                {assignedRoles.map((role, index) => (
+                  <li key={index} className="text-xs mb-1">
+                    <span className="text-purple-600">{role}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-gray-500">No roles assigned</div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (isLoading && !initialized) {
     return (
       <div className="w-full h-[800px] flex items-center justify-center">
@@ -563,40 +593,46 @@ export function ContractVisualizer() {
           <div className="text-lg">No contracts found</div>
         </div>
       ) : (
-        <ReactFlow
-          nodes={nodes}
-          edges={edges.map(edge => ({
-            ...edge,
-            style: {
-              ...edge.style,
-              opacity: hoveredNode ? (edge.source === hoveredNode || edge.target === hoveredNode ? 1 : 0.4) : 0.4
-            }
-          }))}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          nodeTypes={nodeTypes}
-          fitView
-          minZoom={0.2}
-          maxZoom={1.5}
-          defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
-          elementsSelectable={true}
-          nodesConnectable={false}
-          nodesDraggable={true}
-          edgesFocusable={true}
-          edgesUpdatable={false}
-          onNodeMouseEnter={(_, node) => setHoveredNode(node.id)}
-          onNodeMouseLeave={() => setHoveredNode(null)}
-          onNodeDragStop={(_event, node) => {
-            // Update the node's position in our state
-            const updatedNodes = nodes.map((n) =>
-              n.id === node.id ? { ...n, position: node.position } : n
-            );
-            setNodes(updatedNodes);
-          }}
-        >
-          <Background />
-          <Controls />
-        </ReactFlow>
+        <>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges.map(edge => ({
+              ...edge,
+              style: {
+                ...edge.style,
+                opacity: hoveredNode ? (edge.source === hoveredNode || edge.target === hoveredNode ? 1 : 0.4) : 0.4
+              }
+            }))}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            nodeTypes={nodeTypes}
+            fitView
+            minZoom={0.2}
+            maxZoom={1.5}
+            defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
+            elementsSelectable={true}
+            nodesConnectable={false}
+            nodesDraggable={true}
+            edgesFocusable={true}
+            edgesUpdatable={false}
+            onNodeMouseEnter={(_, node) => {
+              setHoveredNode(node.id);
+            }}
+            onNodeMouseLeave={() => {
+              setHoveredNode(null);
+            }}
+            onNodeDragStop={(_event, node) => {
+              const updatedNodes = nodes.map((n) =>
+                n.id === node.id ? { ...n, position: node.position } : n
+              );
+              setNodes(updatedNodes);
+            }}
+          >
+            <Background />
+            <Controls />
+          </ReactFlow>
+          {renderAssigneeTooltip()}
+        </>
       )}
     </div>
   );

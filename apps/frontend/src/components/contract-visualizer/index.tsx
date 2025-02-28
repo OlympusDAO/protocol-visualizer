@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -10,6 +10,7 @@ import ReactFlow, {
   Position,
   Handle,
   MarkerType,
+  ReactFlowInstance,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { usePonderQuery } from "@ponder/react";
@@ -276,6 +277,10 @@ export function ContractVisualizer() {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [layouting, setLayouting] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [originalLayout, setOriginalLayout] = useState<{ nodes: Node[]; edges: Edge[] } | null>(null);
+
+  // Add ref for ReactFlow instance
+  const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
 
   // Query contracts
   const { data: contracts, isLoading: isLoadingContracts } = usePonderQuery({
@@ -595,6 +600,9 @@ export function ContractVisualizer() {
       "TB"
     );
 
+    // Store the original layout for resetting
+    setOriginalLayout({ nodes: layoutedNodes, edges: layoutedEdges });
+
     setNodes(layoutedNodes);
     setEdges(layoutedEdges);
     setLayouting(false);
@@ -609,11 +617,113 @@ export function ContractVisualizer() {
     hoveredRole,
   ]);
 
+  // Add function to get connected nodes
+  const getConnectedNodes = useCallback((nodeId: string) => {
+    const connectedNodeIds = new Set<string>([nodeId]);
+
+    // Add directly connected nodes through edges
+    edges.forEach(edge => {
+      if (edge.source === nodeId) connectedNodeIds.add(edge.target);
+      if (edge.target === nodeId) connectedNodeIds.add(edge.source);
+    });
+
+    return Array.from(connectedNodeIds);
+  }, [edges]);
+
+  // Add effect to handle node selection and layout
+  useEffect(() => {
+    if (!selectedNode || !originalLayout || !reactFlowInstance.current) return;
+
+    const connectedNodeIds = getConnectedNodes(selectedNode);
+
+    // Calculate the center of the current view
+    const { x: viewX, y: viewY } = reactFlowInstance.current.getViewport();
+
+    // Create a subgraph of connected nodes
+    const relevantNodes = nodes.map(node => ({
+      ...node,
+      // Move unconnected nodes just outside the view
+      position: connectedNodeIds.includes(node.id)
+        ? node.position
+        : {
+            x: node.position.x + viewX + 800, // Reduced from 2000
+            y: node.position.y + viewY + 800  // Reduced from 2000
+          },
+      style: {
+        ...node.style,
+        opacity: connectedNodeIds.includes(node.id) ? 1 : 0.2,
+        transition: 'all 0.5s ease-in-out',
+      }
+    }));
+
+    // Re-layout the connected nodes to bring them closer
+    const { nodes: layoutedNodes } = getLayoutedElements(
+      relevantNodes.filter(node => connectedNodeIds.includes(node.id)),
+      edges.filter(edge =>
+        connectedNodeIds.includes(edge.source) &&
+        connectedNodeIds.includes(edge.target)
+      ),
+      "TB"
+    );
+
+    // Combine the layouts
+    const finalNodes = relevantNodes.map(node => {
+      const layoutedNode = layoutedNodes.find(n => n.id === node.id);
+      return layoutedNode || node;
+    });
+
+    setNodes(finalNodes);
+
+    // Fit view to connected nodes after a short delay to allow transition
+    setTimeout(() => {
+      if (reactFlowInstance.current) {
+        reactFlowInstance.current.fitView({
+          padding: 0.2,
+          duration: 0,
+          nodes: finalNodes.filter(node => connectedNodeIds.includes(node.id))
+        });
+      }
+    }, 10);
+  }, [selectedNode, originalLayout, getConnectedNodes, edges, nodes]);
+
+  // Modify effect to reset layout when deselecting
+  useEffect(() => {
+    if (!selectedNode && originalLayout && initialized && reactFlowInstance.current) {
+      const restoredNodes = originalLayout.nodes.map(node => ({
+        ...node,
+        style: {
+          ...node.style,
+          opacity: 1,
+          transition: 'all 0.5s ease-in-out',
+        }
+      }));
+
+      setNodes(restoredNodes);
+      setEdges(originalLayout.edges);
+
+      // Fit view to all nodes after a short delay
+      setTimeout(() => {
+        if (reactFlowInstance.current) {
+          reactFlowInstance.current.fitView({
+            padding: 0.2,
+            duration: 800
+          });
+        }
+      }, 50);
+    }
+  }, [selectedNode, originalLayout, initialized]);
+
+  // Add initialization effect back
   useEffect(() => {
     if (!initialized && !layouting && contracts && roles && roleAssignments) {
       setupGraph();
     }
   }, [initialized, layouting, contracts, roles, roleAssignments, setupGraph]);
+
+  // Fix type for handleNodeClick
+  const handleNodeClick = useCallback((_: unknown, node: Node) => {
+    setSelectedNode(prevSelected => prevSelected === node.id ? null : node.id);
+  }, []);
 
   const isLoading =
     isLoadingContracts || isLoadingRoles || isLoadingAssignments || layouting;
@@ -1172,38 +1282,21 @@ export function ContractVisualizer() {
       ) : (
         <>
           <ReactFlow
-            nodes={nodes.map((node) => ({
-              ...node,
-              style: {
-                ...node.style,
-                // Highlight selected node with a glow effect and dim others
-                boxShadow:
-                  node.id === selectedNode
-                    ? "0 0 10px 3px rgba(59, 130, 246, 0.5)"
-                    : "none",
-                opacity: selectedNode
-                  ? node.id === selectedNode
-                    ? 1
-                    : 0.4
-                  : node.style?.opacity || 1,
-                zIndex: node.id === selectedNode ? 10 : node.style?.zIndex || 1,
-                transition: "all 0.3s ease",
-              },
-            }))}
+            nodes={nodes}
             edges={edges.map((edge) => ({
               ...edge,
               style: {
                 ...edge.style,
-                opacity:
-                  hoveredNode || selectedNode
-                    ? edge.source === hoveredNode ||
-                      edge.target === hoveredNode ||
-                      edge.source === selectedNode ||
-                      edge.target === selectedNode
+                opacity: selectedNode
+                  ? (edge.source === selectedNode || edge.target === selectedNode)
+                    ? 1
+                    : 0.1
+                  : hoveredNode
+                    ? (edge.source === hoveredNode || edge.target === hoveredNode)
                       ? 1
                       : 0.1
                     : 0.1,
-                transition: "opacity 0.3s ease",
+                transition: "all 0.5s ease-in-out",
               },
             }))}
             onNodesChange={onNodesChange}
@@ -1213,6 +1306,9 @@ export function ContractVisualizer() {
             minZoom={0.2}
             maxZoom={1.5}
             defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
+            onInit={(instance) => {
+              reactFlowInstance.current = instance;
+            }}
             elementsSelectable={true}
             nodesConnectable={false}
             nodesDraggable={true}
@@ -1224,11 +1320,7 @@ export function ContractVisualizer() {
             onNodeMouseLeave={() => {
               setHoveredNode(null);
             }}
-            onNodeClick={(_, node) => {
-              setSelectedNode((prevSelected) =>
-                prevSelected === node.id ? null : node.id
-              );
-            }}
+            onNodeClick={handleNodeClick}
             onNodeDragStop={(_event, node) => {
               const updatedNodes = nodes.map((n) =>
                 n.id === node.id ? { ...n, position: node.position } : n
@@ -1236,8 +1328,7 @@ export function ContractVisualizer() {
               setNodes(updatedNodes);
             }}
             onPaneClick={() => {
-              // Optionally close tooltip when clicking on the background
-              // setSelectedNode(null);
+              setSelectedNode(null);
             }}
           >
             <Background />

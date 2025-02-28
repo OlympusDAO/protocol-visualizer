@@ -4,7 +4,8 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "lint": "eslint --fix \"**/*.{js,mjs,ts,tsx}\" && prettier --write \"**/*.{js,mjs,ts,tsx,md,json}\""
+    "lint": "eslint --fix \"**/*.{js,mjs,ts,tsx}\" && prettier --write \"**/*.{js,mjs,ts,tsx,md,json}\"",
+    "format": "prettier --write \"**/*.{js,mjs,ts,tsx,md,json}\""
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

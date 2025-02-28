@@ -150,11 +150,18 @@ const nodeTypes: NodeTypes = {
       <div className="font-bold mb-2" style={{ color: NODE_COLORS.role.text }}>
         {data.label}
       </div>
-      {data.assignees && (
-        <div className="text-xs" style={{ color: NODE_COLORS.role.border }}>
-          {data.assignees.length} Active Assignee(s)
-        </div>
-      )}
+      <div className="flex flex-col gap-1">
+        {data.assignees && (
+          <div className="text-xs" style={{ color: NODE_COLORS.role.border }}>
+            {data.assignees.length} Active Assignee(s)
+          </div>
+        )}
+        {data.policiesCount !== undefined && (
+          <div className="text-xs" style={{ color: NODE_COLORS.policy.border }}>
+            {data.policiesCount} Policy Usage(s)
+          </div>
+        )}
+      </div>
       <Handle
         id="role-source"
         type="source"
@@ -440,6 +447,16 @@ export function ContractVisualizer() {
         (a) => a.role === role.role
       );
 
+      // Find policies that use this role
+      const policiesUsingRole = contracts.filter(
+        (c) =>
+          c.type === "policy" &&
+          Array.isArray(c.policyFunctions) &&
+          (c.policyFunctions as Array<{ roles: string[]; name: string }>).some(
+            (func) => func.roles.includes(role.role)
+          )
+      );
+
       // Add role node
       newNodes.push({
         id: roleId,
@@ -448,6 +465,7 @@ export function ContractVisualizer() {
         data: {
           label: role.role,
           assignees: roleAssignmentsList,
+          policiesCount: policiesUsingRole.length,
           onMouseEnter: () => setHoveredRole(role.role),
           onMouseLeave: () => setHoveredRole(null),
         },
@@ -876,23 +894,24 @@ export function ContractVisualizer() {
     const moduleKeycodeToContract = new Map<string, Contract>();
     contracts.forEach((c) => {
       if (c.type === "module") {
-        console.log("c.name", c.name);
         const keycode = extractKeycode(c.name);
-        console.log("keycode", keycode);
         if (keycode) {
           moduleKeycodeToContract.set(keycode, c);
         }
       }
     });
 
+    // Group policy permissions by keycode
+    const permissionsByKeycode = new Map<string, Array<{ function: string }>>();
+    (contract.policyPermissions as Array<{ keycode: string; function: string }>).forEach((permission) => {
+      if (!permissionsByKeycode.has(permission.keycode)) {
+        permissionsByKeycode.set(permission.keycode, []);
+      }
+      permissionsByKeycode.get(permission.keycode)?.push({ function: permission.function });
+    });
+
     // Get unique keycodes from policy permissions
-    const uniqueKeycodes = Array.from(
-      new Set(
-        (contract.policyPermissions as Array<{ keycode: string }>).map(
-          (p) => p.keycode
-        )
-      )
-    );
+    const uniqueKeycodes = Array.from(permissionsByKeycode.keys());
 
     return (
       <div
@@ -951,29 +970,53 @@ export function ContractVisualizer() {
           <h4 className="font-semibold text-sm mb-2">
             Modules Used ({uniqueKeycodes.length}):
           </h4>
-          <div className="text-sm max-h-[150px] overflow-y-auto">
-            <ul className="list-none">
+          <div className="text-sm max-h-[250px] overflow-y-auto">
+            <ul className="list-none divide-y divide-gray-100">
               {uniqueKeycodes.map((keycode, index) => {
                 const moduleContract = moduleKeycodeToContract.get(keycode);
+                const moduleFunctions = permissionsByKeycode.get(keycode) || [];
+
                 return (
-                  <li
-                    key={index}
-                    className="mb-2 pb-2 border-b border-gray-100 last:border-b-0"
-                  >
-                    <div className="font-medium text-xs text-blue-700 mb-1">
-                      {moduleContract ? (
-                        <button
-                          className="hover:underline text-left"
-                          onClick={() =>
-                            setSelectedNode(moduleContract.address)
-                          }
+                  <li key={index} className="py-2 first:pt-0 last:pb-0">
+                    <div className="flex items-center mb-1">
+                      <div className="font-medium text-xs text-blue-700">
+                        {moduleContract ? (
+                          <button
+                            className="hover:underline text-left"
+                            onClick={() => setSelectedNode(moduleContract.address)}
+                          >
+                            {moduleContract.name}
+                          </button>
+                        ) : (
+                          <span>{keycode}</span>
+                        )}
+                      </div>
+                      {moduleContract && (
+                        <a
+                          href={getEtherscanLink(moduleContract.address)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-gray-500 hover:underline ml-2"
                         >
-                          {moduleContract.name}
-                        </button>
-                      ) : (
-                        <span>{keycode}</span>
+                          ({shortenAddress(moduleContract.address)})
+                        </a>
                       )}
                     </div>
+                    <div className="text-xs text-blue-600 mb-1">
+                      Keycode: {keycode}
+                    </div>
+                    {moduleFunctions.length > 0 && (
+                      <div className="mt-1">
+                        <div className="text-xs text-gray-600 mb-1">Functions:</div>
+                        <ul className="list-disc pl-4">
+                          {moduleFunctions.map((func, idx) => (
+                            <li key={idx} className="text-xs text-blue-600">
+                              {func.function}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </li>
                 );
               })}

@@ -43,6 +43,14 @@ const getEtherscanLink = (address: string) => {
   return `https://etherscan.io/address/${address}`;
 };
 
+// Helper function to format contract name with version
+const formatContractName = (contract: Contract) => {
+  if (!contract.name) return "Unknown";
+  return contract.version
+    ? `${contract.name} (${contract.version})`
+    : contract.name;
+};
+
 // Extract keycode from module name (e.g., "MINTR" from "MINTR: Minter")
 const extractKeycode = (moduleName: string): string | null => {
   const match = moduleName.match(/^[A-Z0-9]{1,5}/);
@@ -201,7 +209,7 @@ const PolicyTooltip = ({ contract }: { contract: Contract }) => {
         transform: "translateY(-50%)",
       }}
     >
-      <h3 className="font-bold text-sm mb-2">{contract.name}</h3>
+      <h3 className="font-bold text-sm mb-2">{formatContractName(contract)}</h3>
       <div className="text-xs text-gray-600 mb-3">
         Last Updated:{" "}
         {new Date(
@@ -370,7 +378,7 @@ export function ContractVisualizer() {
                 className="font-bold mb-1 break-words whitespace-pre-wrap max-w-[160px]"
                 style={{ color: colors.text }}
               >
-                {contract.name}
+                {formatContractName(contract)}
               </div>
               <a
                 href={getEtherscanLink(contract.address)}
@@ -1089,7 +1097,7 @@ export function ContractVisualizer() {
         }}
       >
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-bold text-sm">{contract.name}</h3>
+          <h3 className="font-bold text-sm">{formatContractName(contract)}</h3>
           <div className="flex items-center">
             <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full mr-2">
               Policy
@@ -1153,7 +1161,7 @@ export function ContractVisualizer() {
                               setSelectedNode(moduleContract.address)
                             }
                           >
-                            {moduleContract.name}
+                            {formatContractName(moduleContract)}
                           </button>
                         ) : (
                           <span>{keycode}</span>
@@ -1230,7 +1238,9 @@ export function ContractVisualizer() {
         }}
       >
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-bold text-sm">{moduleContract.name}</h3>
+          <h3 className="font-bold text-sm">
+            {formatContractName(moduleContract)}
+          </h3>
           <div className="flex items-center">
             <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full mr-2">
               Module

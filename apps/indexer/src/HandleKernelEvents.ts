@@ -11,7 +11,7 @@ import { ModuleAbi } from "../abis/Module";
 import { fromHex } from "viem";
 import { PolicyAbi } from "../abis/Policy";
 import { KernelAbi } from "../abis/Kernel";
-import { getContractName } from "./ContractNames";
+import { getContractName, getContractVersion } from "./ContractNames";
 import { ContractProcessor } from "./services/contracts/processor";
 import { EtherscanApi } from "./services/etherscan/api";
 import { getLatestContractByName } from "./services/db";
@@ -234,6 +234,7 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
   const action = parseAction(actionInt);
   const contractType = parseContractType(actionInt);
   const contractName = await parseContractName(actionInt, target, context);
+  const contractVersion = getContractVersion(target);
 
   console.log("\n\n****");
   console.log(
@@ -269,6 +270,7 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
       // Other data
       address: target,
       name: contractName,
+      version: contractVersion,
       action: action,
       type: contractType,
       isEnabled: parseIsEnabled(actionInt),
@@ -304,6 +306,7 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
         lastUpdatedBlockNumber: BigInt(event.block.number),
         // Other data
         name: contractName,
+        version: contractVersion,
         type: contractType,
         isEnabled: isEnabled,
         policyPermissions: await parsePolicyPermissions(

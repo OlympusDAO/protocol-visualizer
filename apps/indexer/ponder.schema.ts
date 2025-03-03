@@ -35,6 +35,7 @@ export const contract = onchainTable(
     lastUpdatedBlockNumber: t.bigint().notNull(),
     // Other data
     name: t.text().notNull(),
+    version: t.text(),
     type: contractType().notNull(),
     isEnabled: t.boolean().notNull(),
     policyPermissions: t.json().$type<PolicyPermission>().array(), // Policies only
@@ -61,6 +62,7 @@ export const contractEvent = onchainTable(
     // Other data
     address: t.hex().notNull(),
     name: t.text().notNull(),
+    version: t.text(),
     action: actionType().notNull(),
     type: contractType().notNull(),
     isEnabled: t.boolean().notNull(),

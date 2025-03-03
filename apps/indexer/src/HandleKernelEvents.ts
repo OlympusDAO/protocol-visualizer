@@ -16,6 +16,7 @@ import { ContractProcessor } from "./services/contracts/processor";
 import { EtherscanApi } from "./services/etherscan/api";
 import { getLatestContractByName } from "./services/db";
 import { FunctionDetails } from "./services/contracts/types";
+import { desc, eq } from "ponder";
 
 // Initialize services
 const etherscanApi = new EtherscanApi({
@@ -73,9 +74,9 @@ const parseContractType = (action: number): "kernel" | "module" | "policy" => {
 const parseIsEnabled = (action: number): boolean => {
   switch (action) {
     case 0:
+    case 1:
     case 2:
       return true;
-    case 1:
     case 3:
       return false;
     default:
@@ -226,6 +227,27 @@ const getKernelExecutor = async (
   return kernelExecutor;
 };
 
+const getPreviousModule = async (keycode: string, context: Context) => {
+  const previousContract = await context.db.sql
+    .select()
+    .from(contract)
+    .where(eq(contract.name, keycode))
+    .orderBy(desc(contract.lastUpdatedTimestamp))
+    .limit(1);
+
+  if (previousContract.length === 0) {
+    return null;
+  }
+
+  if (previousContract.length > 1) {
+    throw new Error(
+      `Found multiple previous contract records for keycode ${keycode}: ${previousContract.map((c) => c.address).join(", ")}`
+    );
+  }
+
+  return previousContract[0];
+};
+
 ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
   const kernelAddress = event.log.address;
   const actionInt = event.args.action_;
@@ -259,6 +281,37 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
 
   // Record the contract history
   if (contractType !== "kernel") {
+    // For module upgrades, add an event for the previous contract
+    if (action === "upgradeModule") {
+      const previousContract = await getPreviousModule(contractName, context);
+
+      if (!previousContract) {
+        throw new Error(
+          `No previous contract found for keycode ${contractName}`
+        );
+      }
+
+      await context.db.insert(contractEvent).values({
+        // Primary keys
+        chainId: context.network.chainId,
+        transactionHash: event.transaction.hash,
+        logIndex: event.log.logIndex,
+        // Timestamp
+        timestamp: BigInt(timestamp),
+        blockNumber: BigInt(event.block.number),
+        // Other data
+        address: previousContract.address,
+        name: previousContract.name,
+        version: previousContract.version,
+        type: previousContract.type,
+        action: "upgradeModule",
+        isEnabled: false,
+        policyPermissions: previousContract.policyPermissions,
+        policyFunctions: previousContract.policyFunctions,
+      });
+      console.log("Recorded previous contract event");
+    }
+
     await context.db.insert(contractEvent).values({
       // Primary keys
       chainId: context.network.chainId,
@@ -294,6 +347,29 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
   // With modules, this may lead to multiple contract records being created
   if (contractType !== "kernel") {
     const isEnabled = parseIsEnabled(actionInt);
+
+    // If a module is being upgraded, we need to update the previous contract
+    if (action === "upgradeModule") {
+      const previousContract = await getPreviousModule(contractName, context);
+
+      if (!previousContract) {
+        throw new Error(
+          `No previous contract found for keycode ${contractName}`
+        );
+      }
+
+      await context.db
+        .update(contract, {
+          chainId: context.network.chainId,
+          address: previousContract.address,
+        })
+        .set({
+          isEnabled: false,
+          lastUpdatedTimestamp: BigInt(timestamp),
+          lastUpdatedBlockNumber: BigInt(event.block.number),
+        });
+      console.log("Updated previous contract");
+    }
 
     await context.db
       .insert(contract)

@@ -44,3 +44,8 @@ export interface RoleDefinition {
   hash: string;
   description?: string;
 }
+
+/**
+ * Special role name for the admin of the RolesAdmin contract
+ */
+export const ROLE_ROLES_ADMIN = "RolesAdmin";

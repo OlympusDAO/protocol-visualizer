@@ -39,11 +39,11 @@ ponder.on("ROLES:RoleGranted", async ({ event, context }) => {
       chainId: context.network.chainId,
       role: role,
       assignee: assignee,
-      assigneeName: getAssigneeName(assignee),
       // Timestamp
       lastUpdatedTimestamp: BigInt(timestamp),
       lastUpdatedBlockNumber: BigInt(blockNumber),
       // Other data
+      assigneeName: getAssigneeName(assignee),
       isGranted: true,
     })
     .onConflictDoUpdate({
@@ -102,8 +102,3 @@ ponder.on("ROLES:RoleRevoked", async ({ event, context }) => {
 
   // The role would already have been created upon granting the role
 });
-
-// TODOs
-// - [X] Handle role granted
-// - [X] Handle role revoked
-// - [ ] Link roles to policies

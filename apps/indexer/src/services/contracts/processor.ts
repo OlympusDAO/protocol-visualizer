@@ -1,6 +1,11 @@
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from "fs";
 import { AbiFunction, AbiParameter, Abi, toFunctionSelector } from "viem";
-import { ContractCache, ProcessedContractData, FunctionDetails } from "./types";
+import {
+  ContractCache,
+  ProcessedContractData,
+  FunctionDetails,
+  ROLE_ROLES_ADMIN,
+} from "./types";
 import { EtherscanApi } from "../etherscan/api";
 import path from "path";
 
@@ -69,6 +74,7 @@ export class ContractProcessor {
 
     console.log(`Processing source code for ${name}`);
     const processedContractData = this.processSourceCode(
+      name,
       sourceCode,
       processedData
     );
@@ -122,6 +128,7 @@ export class ContractProcessor {
   }
 
   private findRoleFromModifier(
+    name: string,
     functionDefinition: string,
     sourceCode: string,
     functionName: string
@@ -147,20 +154,30 @@ export class ContractProcessor {
     }
 
     // Check for onlyAdmin, onlyEmergency, onlyAdminOrEmergency
-    const onlyAdminMatch = functionDefinition.match(/onlyAdmin\(\)/);
+    const onlyAdminMatch = functionDefinition.match(/onlyAdmin(?:\(\))?/);
     if (onlyAdminMatch) {
+      // If the contract name is RolesAdmin, use the special role name
+      if (name.includes("RolesAdmin")) {
+        console.log(
+          `Found role with onlyAdmin for ${functionName} on RolesAdmin`
+        );
+        return [ROLE_ROLES_ADMIN];
+      }
+
       console.log(`Found role with onlyAdmin for ${functionName}`);
       return ["admin"];
     }
 
-    const onlyEmergencyMatch = functionDefinition.match(/onlyEmergency\(\)/);
+    const onlyEmergencyMatch = functionDefinition.match(
+      /onlyEmergency(?:\(\))?/
+    );
     if (onlyEmergencyMatch) {
       console.log(`Found role with onlyEmergency for ${functionName}`);
       return ["emergency"];
     }
 
     const onlyAdminOrEmergencyMatch = functionDefinition.match(
-      /onlyAdminOrEmergency\(\)/
+      /onlyAdminOrEmergency(?:\(\))?/
     );
     if (onlyAdminOrEmergencyMatch) {
       console.log(`Found role with onlyAdminOrEmergency for ${functionName}`);
@@ -182,6 +199,7 @@ export class ContractProcessor {
   }
 
   private processSourceCode(
+    name: string,
     sourceCode: string,
     processedData: ProcessedContractData
   ): ProcessedContractData {
@@ -209,6 +227,7 @@ export class ContractProcessor {
       }
 
       const role = this.findRoleFromModifier(
+        name,
         functionDefinition[0],
         sourceCode,
         functionName

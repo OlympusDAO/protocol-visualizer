@@ -22,6 +22,10 @@ COPY apps/frontend/ ./apps/frontend/
 
 WORKDIR /app/apps/frontend
 
+# Environment variables
+ARG VITE_PONDER_URL
+ENV VITE_PONDER_URL=$VITE_PONDER_URL
+
 # Build the application
 RUN pnpm run build
 
@@ -33,3 +37,6 @@ COPY --from=builder /app/apps/frontend/dist /srv/
 
 # Copy the Caddyfile
 COPY --from=builder /app/apps/frontend/Caddyfile /etc/caddy/Caddyfile
+
+# Add environment variables to Caddy
+ENV VITE_PONDER_URL=$VITE_PONDER_URL

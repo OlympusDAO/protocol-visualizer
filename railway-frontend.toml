@@ -2,3 +2,7 @@
 builder = "dockerfile"
 dockerfilePath = "Dockerfile-frontend"
 watchPatterns = ["apps/frontend/**", "railway-frontend.toml", "Dockerfile-frontend"]
+
+[deploy]
+healthcheckPath = "/"
+healthcheckTimeout = 10

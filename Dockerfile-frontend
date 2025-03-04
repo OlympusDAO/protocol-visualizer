@@ -10,6 +10,7 @@ WORKDIR /app
 # Copy pnpm files
 COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/frontend/package.json ./apps/frontend/
+COPY apps/indexer/package.json ./apps/indexer/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile

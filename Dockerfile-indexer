@@ -27,4 +27,4 @@ EXPOSE 3000
 
 # Start the application
 WORKDIR /app/apps/indexer
-CMD ["pnpm", "run", "start", "--schema", "$DEPLOYMENT_ID"]
+CMD ["pnpm", "run", "start", "--schema", "$RAILWAY_DEPLOYMENT_ID"]

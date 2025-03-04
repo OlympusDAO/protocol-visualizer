@@ -1,4 +1,4 @@
 [build]
 builder = "dockerfile"
 dockerfilePath = "Dockerfile-frontend"
-watchPatterns = ["apps/frontend/**"]
+watchPatterns = ["apps/frontend/**", "railway-frontend.toml", "Dockerfile-frontend"]

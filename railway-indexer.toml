@@ -1,7 +1,7 @@
 [build]
 builder = "dockerfile"
 dockerfilePath = "Dockerfile-indexer"
-watchPatterns = ["apps/indexer/**"]
+watchPatterns = ["apps/indexer/**", "railway-indexer.toml", "Dockerfile-indexer"]
 
 [deploy]
 healthcheckPath = "/ready"

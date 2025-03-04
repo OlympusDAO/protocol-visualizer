@@ -15,6 +15,8 @@ COPY apps/frontend/package.json ./apps/frontend/
 RUN pnpm install --frozen-lockfile
 
 # Copy source code
+# Indexer needed due to the ponder schema
+COPY apps/indexer/ ./apps/indexer/
 COPY apps/frontend/ ./apps/frontend/
 
 WORKDIR /app/apps/frontend

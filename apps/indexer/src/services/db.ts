@@ -1,4 +1,4 @@
-import { eq, desc } from "ponder";
+import { eq, desc, and } from "ponder";
 import { Context } from "ponder:registry";
 import { contract as contractTable } from "../../ponder.schema";
 
@@ -11,7 +11,12 @@ export const getLatestContractByName = async (
   const contract = await context.db.sql
     .select()
     .from(contractTable)
-    .where(eq(contractTable.name, name))
+    .where(
+      and(
+        eq(contractTable.name, name),
+        eq(contractTable.chainId, context.network.chainId)
+      )
+    )
     .orderBy(desc(contractTable.lastUpdatedTimestamp));
 
   if (contract.length === 0) {

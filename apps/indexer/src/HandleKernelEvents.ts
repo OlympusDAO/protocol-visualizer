@@ -16,7 +16,7 @@ import { ContractProcessor } from "./services/contracts/processor";
 import { EtherscanApi } from "./services/etherscan/api";
 import { getLatestContractByName } from "./services/db";
 import { FunctionDetails } from "./services/contracts/types";
-import { desc, eq } from "ponder";
+import { and, desc, eq } from "ponder";
 
 // Initialize services
 const etherscanApi = new EtherscanApi({
@@ -231,7 +231,12 @@ const getPreviousModule = async (keycode: string, context: Context) => {
   const previousContract = await context.db.sql
     .select()
     .from(contract)
-    .where(eq(contract.name, keycode))
+    .where(
+      and(
+        eq(contract.name, keycode),
+        eq(contract.chainId, context.network.chainId)
+      )
+    )
     .orderBy(desc(contract.lastUpdatedTimestamp))
     .limit(1);
 

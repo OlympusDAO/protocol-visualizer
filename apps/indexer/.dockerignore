@@ -1,0 +1,5 @@
+.ponder
+data
+node_modules
+.env.*
+.cursorrules

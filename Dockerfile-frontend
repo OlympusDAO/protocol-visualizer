@@ -29,4 +29,4 @@ FROM caddy:alpine
 COPY --from=builder /app/apps/frontend/dist /srv/
 
 # Copy the Caddyfile
-COPY --from-builder /app/apps/frontend/Caddyfile /etc/caddy/Caddyfile
+COPY --from=builder /app/apps/frontend/Caddyfile /etc/caddy/Caddyfile

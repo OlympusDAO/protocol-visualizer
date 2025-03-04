@@ -1,11 +1,4 @@
-{
-    env {
-        VITE_PONDER_URL
-    }
-}
+:{$PORT}
 
-:{$PORT} {
-    root * /srv
-    file_server
-}
-
+root * /srv
+file_server

@@ -1,0 +1,7 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile-indexer"
+
+[deploy]
+healthcheckPath = "/ready"
+healthcheckTimeout = 3600

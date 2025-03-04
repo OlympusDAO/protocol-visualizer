@@ -7,15 +7,15 @@ RUN corepack enable && corepack prepare pnpm@9.5 --activate
 # Set working directory
 WORKDIR /app
 
-# Copy root package.json and pnpm workspace files
+# Copy pnpm files
 COPY pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY package.json .
+COPY apps/indexer/package.json ./apps/indexer/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
 # Copy source code
-COPY . .
+COPY apps/indexer/ ./apps/indexer/
 
 # Nothing to build
 
@@ -26,4 +26,4 @@ ENV NODE_ENV=production
 EXPOSE 3000
 
 # Start the application
-CMD ["pnpm run start"]
+CMD ["cd", "apps/indexer", "&&", "pnpm", "run", "start"]

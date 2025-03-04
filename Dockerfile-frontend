@@ -1,0 +1,32 @@
+# Build stage
+FROM node:18-alpine AS builder
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@9.5 --activate
+
+# Set working directory
+WORKDIR /app
+
+# Copy pnpm files
+COPY pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/frontend/package.json ./apps/frontend/
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy source code
+COPY apps/frontend/ ./apps/frontend/
+
+WORKDIR /app/apps/frontend
+
+# Build the application
+RUN pnpm run build
+
+# Production stage
+FROM caddy:alpine
+
+# Copy the built static files to Caddy's serve directory
+COPY --from=builder /app/apps/frontend/dist /srv/
+
+# Copy the Caddyfile
+COPY --from-builder /app/apps/frontend/Caddyfile /etc/caddy/Caddyfile

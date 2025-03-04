@@ -92,7 +92,7 @@ const parseContractName = async (
   context: Context
 ): Promise<string> => {
   if (action > 1) {
-    return getContractName(target);
+    return getContractName(target, context.network.chainId);
   }
 
   // Get the keycode from the module
@@ -261,7 +261,7 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
   const action = parseAction(actionInt);
   const contractType = parseContractType(actionInt);
   const contractName = await parseContractName(actionInt, target, context);
-  const contractVersion = getContractVersion(target);
+  const contractVersion = getContractVersion(target, context.network.chainId);
 
   console.log("\n\n****");
   console.log(

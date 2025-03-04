@@ -61,7 +61,7 @@ ponder.on("RolesAdmin:NewAdminPulled", async ({ event, context }) => {
     blockNumber: BigInt(blockNumber),
     // Other data
     assignee: newAdmin,
-    assigneeName: getContractName(newAdmin),
+    assigneeName: getContractName(newAdmin, context.network.chainId),
     isGranted: true,
   });
 
@@ -75,7 +75,7 @@ ponder.on("RolesAdmin:NewAdminPulled", async ({ event, context }) => {
     lastUpdatedTimestamp: BigInt(timestamp),
     lastUpdatedBlockNumber: BigInt(blockNumber),
     // Other data
-    assigneeName: getContractName(newAdmin),
+    assigneeName: getContractName(newAdmin, context.network.chainId),
     isGranted: true,
   });
 

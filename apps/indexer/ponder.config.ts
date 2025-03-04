@@ -12,21 +12,30 @@ export default createConfig({
   contracts: {
     Kernel: {
       abi: KernelAbi,
-      address: "0x2286d7f9639e8158FaD1169e76d1FbC38247f54b",
-      network: "mainnet",
-      startBlock: 15998125,
+      network: {
+        mainnet: {
+          address: "0x2286d7f9639e8158FaD1169e76d1FbC38247f54b",
+          startBlock: 15998125,
+        },
+      },
     },
     ROLES: {
       abi: OlympusRolesAbi,
-      address: "0x6CAfd730Dc199Df73C16420C4fCAb18E3afbfA59",
-      network: "mainnet",
-      startBlock: 15998132,
+      network: {
+        mainnet: {
+          address: "0x6CAfd730Dc199Df73C16420C4fCAb18E3afbfA59",
+          startBlock: 15998132,
+        },
+      },
     },
     RolesAdmin: {
       abi: RolesAdminAbi,
-      address: "0xb216d714d91eeC4F7120a732c11428857C659eC8",
-      network: "mainnet",
-      startBlock: 15998137,
+      network: {
+        mainnet: {
+          address: "0xb216d714d91eeC4F7120a732c11428857C659eC8",
+          startBlock: 15998137,
+        },
+      },
     },
   },
 });

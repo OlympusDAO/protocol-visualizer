@@ -26,4 +26,5 @@ ENV NODE_ENV=production
 EXPOSE 3000
 
 # Start the application
-CMD ["cd", "apps/indexer", "&&", "pnpm", "run", "start"]
+WORKDIR /app/apps/indexer
+CMD ["pnpm", "run", "start", "--schema", "$DEPLOYMENT_ID"]

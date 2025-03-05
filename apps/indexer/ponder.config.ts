@@ -27,6 +27,10 @@ const berachainKernel = getKernelConstants(ChainId.Berachain);
 const berachainRoles = getRolesConstants(ChainId.Berachain);
 const berachainRolesAdmin = getRolesAdminConstants(ChainId.Berachain);
 
+const optimismKernel = getKernelConstants(ChainId.Optimism);
+const optimismRoles = getRolesConstants(ChainId.Optimism);
+const optimismRolesAdmin = getRolesAdminConstants(ChainId.Optimism);
+
 export default createConfig({
   networks: {
     mainnet: {
@@ -44,6 +48,10 @@ export default createConfig({
     berachain: {
       chainId: ChainId.Berachain,
       transport: http(process.env.PONDER_RPC_URL_80094),
+    },
+    optimism: {
+      chainId: ChainId.Optimism,
+      transport: http(process.env.PONDER_RPC_URL_10),
     },
   },
   contracts: {
@@ -66,6 +74,10 @@ export default createConfig({
           address: berachainKernel.address,
           startBlock: berachainKernel.creationBlockNumber,
         },
+        optimism: {
+          address: optimismKernel.address,
+          startBlock: optimismKernel.creationBlockNumber,
+        },
       },
     },
     ROLES: {
@@ -87,6 +99,10 @@ export default createConfig({
           address: berachainRoles.address,
           startBlock: berachainRoles.creationBlockNumber,
         },
+        optimism: {
+          address: optimismRoles.address,
+          startBlock: optimismRoles.creationBlockNumber,
+        },
       },
     },
     RolesAdmin: {
@@ -107,6 +123,10 @@ export default createConfig({
         berachain: {
           address: berachainRolesAdmin.address,
           startBlock: berachainRolesAdmin.creationBlockNumber,
+        },
+        optimism: {
+          address: optimismRolesAdmin.address,
+          startBlock: optimismRolesAdmin.creationBlockNumber,
         },
       },
     },

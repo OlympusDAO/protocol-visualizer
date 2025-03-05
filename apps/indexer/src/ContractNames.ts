@@ -335,6 +335,28 @@ const contractNames: MultiChainContracts = {
       name: "TreasuryCustodian",
     },
   },
+  [ChainId.Optimism]: {
+    "0x18878Df23e2a36f81e820e4b47b4A40576D3159C": {
+      name: "Kernel",
+    },
+    "0xbC9eE0D911739cBc72cd094ADA26F56E0C49EeAE": {
+      name: "ROLES",
+      version: "1.0",
+    },
+    "0xb1fA0Ac44d399b778B14af0AAF4bCF8af3437ad1": {
+      name: "RolesAdmin",
+    },
+    "0x623164A9Ee2556D524b08f34F1d2389d7B4e1A1C": {
+      name: "MINTR",
+      version: "1.0",
+    },
+    "0x559a14a2219Ae81f9a9f857CF31407de2b07F36c": {
+      name: "DAO MS",
+    },
+    "0x22AE99D07584A2AE1af748De573c83f1B9Cdb4c0": {
+      name: "CrossChainBridge",
+    },
+  },
 };
 
 export const getContractName = (

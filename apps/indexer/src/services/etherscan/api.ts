@@ -14,6 +14,7 @@ const BASE_URLS: Record<number, string> = {
   [ChainId.Arbitrum]: "https://api.arbiscan.io/api",
   [ChainId.Base]: "https://api.basescan.org/api",
   [ChainId.Berachain]: "https://api.berascan.com/api",
+  [ChainId.Optimism]: "https://api-optimistic.etherscan.io/api",
 };
 
 export const getEtherscanApi = (chainId: number) => {

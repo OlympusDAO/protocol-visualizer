@@ -1,7 +1,7 @@
 import { ponder } from "ponder:registry";
 import { role, roleAssignment, roleEvent } from "ponder:schema";
 import { getContractName } from "./ContractNames";
-import { desc, eq } from "ponder";
+import { and, desc, eq } from "ponder";
 import { ROLE_ROLES_ADMIN } from "./services/contracts/types";
 import { RolesAdminAbi } from "../abis/RolesAdmin";
 import { getRolesAdminConstants } from "./constants";
@@ -19,7 +19,12 @@ ponder.on("RolesAdmin:NewAdminPulled", async ({ event, context }) => {
   const existingRoleAssignment = await context.db.sql
     .select()
     .from(roleAssignment)
-    .where(eq(roleAssignment.role, ROLE_ROLES_ADMIN))
+    .where(
+      and(
+        eq(roleAssignment.role, ROLE_ROLES_ADMIN),
+        eq(roleAssignment.chainId, context.network.chainId)
+      )
+    )
     .orderBy(desc(roleAssignment.lastUpdatedTimestamp))
     .limit(1);
   if (existingRoleAssignment.length > 0 && existingRoleAssignment[0]) {

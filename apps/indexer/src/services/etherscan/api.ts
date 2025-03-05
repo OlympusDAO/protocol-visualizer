@@ -6,6 +6,26 @@ import {
   EtherscanSourceCodeResponse,
 } from "./types";
 
+const etherscanApis: Record<number, EtherscanApi> = {};
+
+export const getEtherscanApi = (chainId: number) => {
+  if (!etherscanApis[chainId]) {
+    // Check that the API key is set
+    const apiKey = process.env[`ETHERSCAN_API_KEY_${chainId}`];
+    if (!apiKey) {
+      throw new Error(
+        `Etherscan API key for chain ${chainId} is not set. Set the ETHERSCAN_API_KEY_${chainId} environment variable.`
+      );
+    }
+
+    etherscanApis[chainId] = new EtherscanApi({
+      apiKey,
+      chainId,
+    });
+  }
+  return etherscanApis[chainId];
+};
+
 export class EtherscanApi {
   private baseUrl: string;
   private apiKey: string;

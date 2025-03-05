@@ -4,6 +4,15 @@ import { http } from "viem";
 import { KernelAbi } from "./abis/Kernel";
 import { OlympusRolesAbi } from "./abis/OlympusRoles";
 import { RolesAdminAbi } from "./abis/RolesAdmin";
+import {
+  getKernelConstants,
+  getRolesAdminConstants,
+  getRolesConstants,
+} from "./src/constants";
+
+const mainnetKernel = getKernelConstants(1);
+const mainnetRoles = getRolesConstants(1);
+const mainnetRolesAdmin = getRolesAdminConstants(1);
 
 export default createConfig({
   networks: {
@@ -14,8 +23,8 @@ export default createConfig({
       abi: KernelAbi,
       network: {
         mainnet: {
-          address: "0x2286d7f9639e8158FaD1169e76d1FbC38247f54b",
-          startBlock: 15998125,
+          address: mainnetKernel.address,
+          startBlock: mainnetKernel.creationBlockNumber,
         },
       },
     },
@@ -23,8 +32,8 @@ export default createConfig({
       abi: OlympusRolesAbi,
       network: {
         mainnet: {
-          address: "0x6CAfd730Dc199Df73C16420C4fCAb18E3afbfA59",
-          startBlock: 15998132,
+          address: mainnetRoles.address,
+          startBlock: mainnetRoles.creationBlockNumber,
         },
       },
     },
@@ -32,8 +41,8 @@ export default createConfig({
       abi: RolesAdminAbi,
       network: {
         mainnet: {
-          address: "0xb216d714d91eeC4F7120a732c11428857C659eC8",
-          startBlock: 15998137,
+          address: mainnetRolesAdmin.address,
+          startBlock: mainnetRolesAdmin.creationBlockNumber,
         },
       },
     },

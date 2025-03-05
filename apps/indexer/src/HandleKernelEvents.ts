@@ -13,18 +13,17 @@ import { PolicyAbi } from "../abis/Policy";
 import { KernelAbi } from "../abis/Kernel";
 import { getContractName, getContractVersion } from "./ContractNames";
 import { ContractProcessor } from "./services/contracts/processor";
-import { EtherscanApi } from "./services/etherscan/api";
+import { getEtherscanApi } from "./services/etherscan/api";
 import { getLatestContractByName } from "./services/db";
 import { FunctionDetails } from "./services/contracts/types";
 import { and, desc, eq } from "ponder";
+import { getKernelConstants } from "./constants";
 
 // Initialize services
-const etherscanApi = new EtherscanApi({
-  apiKey: process.env.ETHERSCAN_API_KEY!,
-  chainId: 1,
-});
-
-const contractProcessor = new ContractProcessor(etherscanApi);
+const getContractProcessor = (chainId: number) => {
+  const etherscanApi = getEtherscanApi(chainId);
+  return new ContractProcessor(etherscanApi);
+};
 
 const parseAction = (
   action: number
@@ -120,7 +119,7 @@ const parsePolicyFunctions = async (
   action: number,
   policyAddress: `0x${string}`,
   policyName: string,
-  _context: Context
+  context: Context
 ): Promise<FunctionDetails[] | null> => {
   if (action !== 2 && action !== 3) {
     console.debug(
@@ -130,10 +129,9 @@ const parsePolicyFunctions = async (
   }
 
   // Process the policy contract
-  const policyFunctions = await contractProcessor.processContract(
-    policyAddress,
-    policyName
-  );
+  const policyFunctions = await getContractProcessor(
+    context.network.chainId
+  ).processContract(policyAddress, policyName);
 
   return Object.values(policyFunctions.functionSelectors);
 };
@@ -190,10 +188,9 @@ const parsePolicyPermissions = async (
     );
 
     // Process the module contract to get function information
-    const moduleProcessedData = await contractProcessor.processContract(
-      moduleContract.address,
-      moduleKeycode
-    );
+    const moduleProcessedData = await getContractProcessor(
+      context.network.chainId
+    ).processContract(moduleContract.address, moduleKeycode);
 
     // Get the function details for this selector
     const functionDetails = moduleProcessedData.functionSelectors[funcSelector];
@@ -445,17 +442,11 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
 });
 
 ponder.on("Kernel:setup", async ({ context }) => {
-  // Insert records for the Kernel contract
-  // Transaction: https://etherscan.io/tx/0xda3facf1f77124cdf4bddff8fa09221354ad663ec2f8b03dcc4657086ebf5e72
-
-  const transactionHash =
-    "0xda3facf1f77124cdf4bddff8fa09221354ad663ec2f8b03dcc4657086ebf5e72";
-  const kernelAddress = "0x2286d7f9639e8158FaD1169e76d1FbC38247f54b";
-  const kernelBlockNumber = 15998125;
-  const kernelTimestamp = 1668790475;
+  // Insert initial records for the Kernel contract
+  const constants = getKernelConstants(context.network.chainId);
 
   // Get the initial executor
-  const initialExecutor = await getKernelExecutor(kernelAddress, context);
+  const initialExecutor = await getKernelExecutor(constants.address, context);
 
   console.log(`Inserting records for initial Kernel contract`);
 
@@ -463,15 +454,15 @@ ponder.on("Kernel:setup", async ({ context }) => {
   await context.db.insert(actionExecutedEvent).values({
     // Primary keys
     chainId: context.network.chainId,
-    kernel: kernelAddress,
-    transactionHash: transactionHash,
+    kernel: constants.address,
+    transactionHash: constants.creationTransactionHash,
     logIndex: 0,
     // Timestamp
-    timestamp: BigInt(kernelTimestamp),
-    blockNumber: BigInt(kernelBlockNumber),
+    timestamp: BigInt(constants.creationTimestamp),
+    blockNumber: BigInt(constants.creationBlockNumber),
     // Other data
     action: "migrateKernel",
-    target: kernelAddress,
+    target: constants.address,
   });
   console.log("Recorded action executed event");
 
@@ -479,14 +470,14 @@ ponder.on("Kernel:setup", async ({ context }) => {
   await context.db.insert(contractEvent).values({
     // Primary keys
     chainId: context.network.chainId,
-    transactionHash: transactionHash,
+    transactionHash: constants.creationTransactionHash,
     logIndex: 0,
     // Timestamp
-    timestamp: BigInt(kernelTimestamp),
-    blockNumber: BigInt(kernelBlockNumber),
+    timestamp: BigInt(constants.creationTimestamp),
+    blockNumber: BigInt(constants.creationBlockNumber),
     // Other data
     name: "Kernel",
-    address: kernelAddress,
+    address: constants.address,
     action: "migrateKernel",
     type: "kernel",
     isEnabled: true,
@@ -497,10 +488,10 @@ ponder.on("Kernel:setup", async ({ context }) => {
   await context.db.insert(contract).values({
     // Primary keys
     chainId: context.network.chainId,
-    address: kernelAddress,
+    address: constants.address,
     // Timestamp
-    lastUpdatedTimestamp: BigInt(kernelTimestamp),
-    lastUpdatedBlockNumber: BigInt(kernelBlockNumber),
+    lastUpdatedTimestamp: BigInt(constants.creationTimestamp),
+    lastUpdatedBlockNumber: BigInt(constants.creationBlockNumber),
     // Other data
     name: "Kernel",
     type: "kernel",
@@ -513,10 +504,10 @@ ponder.on("Kernel:setup", async ({ context }) => {
   await context.db.insert(kernelExecutor).values({
     // Primary keys
     chainId: context.network.chainId,
-    kernel: kernelAddress,
+    kernel: constants.address,
     // Timestamp
-    lastUpdatedTimestamp: BigInt(kernelTimestamp),
-    lastUpdatedBlockNumber: BigInt(kernelBlockNumber),
+    lastUpdatedTimestamp: BigInt(constants.creationTimestamp),
+    lastUpdatedBlockNumber: BigInt(constants.creationBlockNumber),
     // Other data
     executor: initialExecutor,
   });
@@ -526,12 +517,12 @@ ponder.on("Kernel:setup", async ({ context }) => {
   await context.db.insert(kernelExecutorEvent).values({
     // Primary keys
     chainId: context.network.chainId,
-    kernel: kernelAddress,
-    transactionHash: transactionHash,
+    kernel: constants.address,
+    transactionHash: constants.creationTransactionHash,
     logIndex: 0,
     // Timestamp
-    timestamp: BigInt(kernelTimestamp),
-    blockNumber: BigInt(kernelBlockNumber),
+    timestamp: BigInt(constants.creationTimestamp),
+    blockNumber: BigInt(constants.creationBlockNumber),
     // Other data
     executor: initialExecutor,
   });

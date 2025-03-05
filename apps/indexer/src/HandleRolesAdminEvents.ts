@@ -3,6 +3,8 @@ import { role, roleAssignment, roleEvent } from "ponder:schema";
 import { getContractName } from "./ContractNames";
 import { desc, eq } from "ponder";
 import { ROLE_ROLES_ADMIN } from "./services/contracts/types";
+import { RolesAdminAbi } from "../abis/RolesAdmin";
+import { getRolesAdminConstants } from "./constants";
 
 ponder.on("RolesAdmin:NewAdminPulled", async ({ event, context }) => {
   const newAdmin = event.args.newAdmin_;
@@ -80,6 +82,60 @@ ponder.on("RolesAdmin:NewAdminPulled", async ({ event, context }) => {
   });
 
   // Record the role (if needed)
+  await context.db
+    .insert(role)
+    .values({
+      // Primary keys
+      chainId: context.network.chainId,
+      role: ROLE_ROLES_ADMIN,
+    })
+    .onConflictDoNothing();
+});
+
+ponder.on("RolesAdmin:setup", async ({ context }) => {
+  // Insert initial records for the RolesAdmin contract
+  const constants = getRolesAdminConstants(context.network.chainId);
+
+  // Get the initial admin
+  const initialAdmin = await context.client.readContract({
+    address: constants.address,
+    abi: RolesAdminAbi,
+    functionName: "admin",
+  });
+
+  console.log(`Recording initial admin for RolesAdmin contract`);
+
+  // Record the role event
+  await context.db.insert(roleEvent).values({
+    // Primary keys
+    chainId: context.network.chainId,
+    role: ROLE_ROLES_ADMIN,
+    transactionHash: constants.creationTransactionHash,
+    logIndex: 0,
+    // Timestamp
+    timestamp: BigInt(constants.creationTimestamp),
+    blockNumber: BigInt(constants.creationBlockNumber),
+    // Other data
+    assignee: initialAdmin,
+    assigneeName: getContractName(initialAdmin, context.network.chainId),
+    isGranted: true,
+  });
+
+  // Record the role assignment
+  await context.db.insert(roleAssignment).values({
+    // Primary keys
+    chainId: context.network.chainId,
+    role: ROLE_ROLES_ADMIN,
+    assignee: initialAdmin,
+    // Timestamp
+    lastUpdatedTimestamp: BigInt(constants.creationTimestamp),
+    lastUpdatedBlockNumber: BigInt(constants.creationBlockNumber),
+    // Other data
+    assigneeName: getContractName(initialAdmin, context.network.chainId),
+    isGranted: true,
+  });
+
+  // Record the role
   await context.db
     .insert(role)
     .values({

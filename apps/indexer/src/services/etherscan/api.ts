@@ -8,6 +8,11 @@ import {
 
 const etherscanApis: Record<number, EtherscanApi> = {};
 
+const BASE_URLS: Record<number, string> = {
+  1: "https://api.etherscan.io/v2/api",
+  42161: "https://api.arbiscan.io/api",
+};
+
 export const getEtherscanApi = (chainId: number) => {
   if (!etherscanApis[chainId]) {
     // Check that the API key is set
@@ -18,8 +23,16 @@ export const getEtherscanApi = (chainId: number) => {
       );
     }
 
+    const baseUrl = BASE_URLS[chainId];
+    if (!baseUrl) {
+      throw new Error(
+        `Etherscan API base URL for chain ${chainId} is not defined.`
+      );
+    }
+
     etherscanApis[chainId] = new EtherscanApi({
       apiKey,
+      baseUrl,
       chainId,
     });
   }

@@ -11,7 +11,9 @@ ponder.on("RolesAdmin:NewAdminPulled", async ({ event, context }) => {
   const timestamp = Number(event.block.timestamp);
   const blockNumber = Number(event.block.number);
 
-  console.log(`Processing new admin pulled event for ${newAdmin}`);
+  console.log(
+    `Chain ${context.network.chainId}: Processing new admin pulled event for ${newAdmin}`
+  );
 
   // Find the existing admin, if applicable
   const existingRoleAssignment = await context.db.sql
@@ -103,7 +105,9 @@ ponder.on("RolesAdmin:setup", async ({ context }) => {
     functionName: "admin",
   });
 
-  console.log(`Recording initial admin for RolesAdmin contract`);
+  console.log(
+    `Chain ${context.network.chainId}: Recording initial admin for RolesAdmin contract`
+  );
 
   // Record the role event
   await context.db.insert(roleEvent).values({

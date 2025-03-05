@@ -15,6 +15,13 @@ const KERNEL_CONSTANTS: Record<number, ChainContractConstants> = {
     creationTimestamp: 1668790475,
     address: "0x2286d7f9639e8158FaD1169e76d1FbC38247f54b",
   },
+  42161: {
+    creationTransactionHash:
+      "0x3f55f2ce3af9f803343c6b3361ccde1cf4853c931c9410ad935586cc3c21519d",
+    creationBlockNumber: 85886527,
+    creationTimestamp: 1682868260,
+    address: "0xeac3eC0CC130f4826715187805d1B50e861F2DaC",
+  },
 };
 
 export const getKernelConstants = (chainId: number) => {
@@ -34,6 +41,13 @@ const ROLES_CONSTANTS: Record<number, ChainContractConstants> = {
     creationTimestamp: 1668789359,
     address: "0x6CAfd730Dc199Df73C16420C4fCAb18E3afbfA59",
   },
+  42161: {
+    creationTransactionHash:
+      "0x87fd19b730e0fc2223b0ead36454ac21ac942abdc3162e0abb65983b6f634043",
+    creationBlockNumber: 85886592,
+    creationTimestamp: 1682868279,
+    address: "0xFF5F09D5efE13A9a424F30EC2e1af89D867834d6",
+  },
 };
 
 export const getRolesConstants = (chainId: number) => {
@@ -52,6 +66,13 @@ const ROLES_ADMIN_CONSTANTS: Record<number, ChainContractConstants> = {
     creationBlockNumber: 15998137,
     creationTimestamp: 1668789419,
     address: "0xb216d714d91eeC4F7120a732c11428857C659eC8",
+  },
+  42161: {
+    creationTransactionHash:
+      "0x266c2c373e058c9f3c9336709f3feade66d62702d7abfc211504da3327cc1e48",
+    creationBlockNumber: 85886660,
+    creationTimestamp: 1682868296,
+    address: "0x69168c08AcF66f002fd02E1B169f38C022c93b70",
   },
 };
 

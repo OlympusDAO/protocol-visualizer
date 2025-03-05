@@ -9,7 +9,9 @@ ponder.on("ROLES:RoleGranted", async ({ event, context }) => {
   const timestamp = Number(event.block.timestamp);
   const blockNumber = Number(event.block.number);
 
-  console.log(`Processing role granted event for ${role} to ${assignee}`);
+  console.log(
+    `Chain ${context.network.chainId}: Processing role granted event for ${role} to ${assignee}`
+  );
 
   // Record the role event
   await context.db.insert(roleEvent).values({
@@ -63,7 +65,9 @@ ponder.on("ROLES:RoleRevoked", async ({ event, context }) => {
   const timestamp = Number(event.block.timestamp);
   const blockNumber = Number(event.block.number);
 
-  console.log(`Processing role revoked event for ${role} from ${assignee}`);
+  console.log(
+    `Chain ${context.network.chainId}: Processing role revoked event for ${role} from ${assignee}`
+  );
 
   // Record the role event
   await context.db.insert(roleEvent).values({

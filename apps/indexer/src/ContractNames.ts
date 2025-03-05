@@ -237,6 +237,39 @@ const contractNames: MultiChainContracts = {
       name: "Operator",
     },
   },
+  42161: {
+    "0xeac3eC0CC130f4826715187805d1B50e861F2DaC": {
+      name: "Kernel",
+    },
+    "0xFF5F09D5efE13A9a424F30EC2e1af89D867834d6": {
+      name: "ROLES",
+      version: "1.0",
+    },
+    "0x69168c08AcF66f002fd02E1B169f38C022c93b70": {
+      name: "RolesAdmin",
+    },
+    "0x56db53e9801a6EA080569261b63925E0f1f3C81A": {
+      name: "TRSRY",
+      version: "1.0",
+    },
+    "0x8f6406eDbFA393e327822D4A08BcF15503570D87": {
+      name: "MINTR",
+      version: "1.0",
+    },
+    "0x868C3ae18Fdea85bBb7a303e379c5B7e23b30F03": {
+      name: "LENDR",
+      version: "1.0",
+    },
+    "0x012BBf0481b97170577745D2167ee14f63E2aD4C": {
+      name: "DAO MS",
+    },
+    "0x20B3834091f038Ce04D8686FAC99CA44A0FB285c": {
+      name: "CrossChainBridge",
+    },
+    "0xA8578c9A73C2b4F75968EC76d6689045ff68B97C": {
+      name: "SiloAMO",
+    },
+  },
 };
 
 export const getContractName = (

@@ -262,7 +262,7 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
 
   console.log("\n\n****");
   console.log(
-    `Processing action ${action} on target ${target} at block ${event.block.number}`
+    `Chain ${context.network.chainId}: Processing action ${action} on target ${target} at block ${event.block.number}`
   );
 
   // Record the action event
@@ -448,7 +448,9 @@ ponder.on("Kernel:setup", async ({ context }) => {
   // Get the initial executor
   const initialExecutor = await getKernelExecutor(constants.address, context);
 
-  console.log(`Inserting records for initial Kernel contract`);
+  console.log(
+    `Chain ${context.network.chainId}: Inserting records for initial Kernel contract`
+  );
 
   // Record the action event
   await context.db.insert(actionExecutedEvent).values({

@@ -4,29 +4,131 @@ import { http } from "viem";
 import { KernelAbi } from "./abis/Kernel";
 import { OlympusRolesAbi } from "./abis/OlympusRoles";
 import { RolesAdminAbi } from "./abis/RolesAdmin";
+import {
+  ChainId,
+  getKernelConstants,
+  getRolesAdminConstants,
+  getRolesConstants,
+} from "./src/constants";
+
+const mainnetKernel = getKernelConstants(ChainId.Mainnet);
+const mainnetRoles = getRolesConstants(ChainId.Mainnet);
+const mainnetRolesAdmin = getRolesAdminConstants(ChainId.Mainnet);
+
+const arbitrumKernel = getKernelConstants(ChainId.Arbitrum);
+const arbitrumRoles = getRolesConstants(ChainId.Arbitrum);
+const arbitrumRolesAdmin = getRolesAdminConstants(ChainId.Arbitrum);
+
+const baseKernel = getKernelConstants(ChainId.Base);
+const baseRoles = getRolesConstants(ChainId.Base);
+const baseRolesAdmin = getRolesAdminConstants(ChainId.Base);
+
+const berachainKernel = getKernelConstants(ChainId.Berachain);
+const berachainRoles = getRolesConstants(ChainId.Berachain);
+const berachainRolesAdmin = getRolesAdminConstants(ChainId.Berachain);
+
+const optimismKernel = getKernelConstants(ChainId.Optimism);
+const optimismRoles = getRolesConstants(ChainId.Optimism);
+const optimismRolesAdmin = getRolesAdminConstants(ChainId.Optimism);
 
 export default createConfig({
   networks: {
-    mainnet: { chainId: 1, transport: http(process.env.PONDER_RPC_URL_1) },
+    mainnet: {
+      chainId: ChainId.Mainnet,
+      transport: http(process.env.PONDER_RPC_URL_1),
+    },
+    arbitrum: {
+      chainId: ChainId.Arbitrum,
+      transport: http(process.env.PONDER_RPC_URL_42161),
+    },
+    base: {
+      chainId: ChainId.Base,
+      transport: http(process.env.PONDER_RPC_URL_8453),
+    },
+    berachain: {
+      chainId: ChainId.Berachain,
+      transport: http(process.env.PONDER_RPC_URL_80094),
+    },
+    optimism: {
+      chainId: ChainId.Optimism,
+      transport: http(process.env.PONDER_RPC_URL_10),
+    },
   },
   contracts: {
     Kernel: {
       abi: KernelAbi,
-      address: "0x2286d7f9639e8158FaD1169e76d1FbC38247f54b",
-      network: "mainnet",
-      startBlock: 15998125,
+      network: {
+        mainnet: {
+          address: mainnetKernel.address,
+          startBlock: mainnetKernel.creationBlockNumber,
+        },
+        arbitrum: {
+          address: arbitrumKernel.address,
+          startBlock: arbitrumKernel.creationBlockNumber,
+        },
+        base: {
+          address: baseKernel.address,
+          startBlock: baseKernel.creationBlockNumber,
+        },
+        berachain: {
+          address: berachainKernel.address,
+          startBlock: berachainKernel.creationBlockNumber,
+        },
+        optimism: {
+          address: optimismKernel.address,
+          startBlock: optimismKernel.creationBlockNumber,
+        },
+      },
     },
     ROLES: {
       abi: OlympusRolesAbi,
-      address: "0x6CAfd730Dc199Df73C16420C4fCAb18E3afbfA59",
-      network: "mainnet",
-      startBlock: 15998132,
+      network: {
+        mainnet: {
+          address: mainnetRoles.address,
+          startBlock: mainnetRoles.creationBlockNumber,
+        },
+        arbitrum: {
+          address: arbitrumRoles.address,
+          startBlock: arbitrumRoles.creationBlockNumber,
+        },
+        base: {
+          address: baseRoles.address,
+          startBlock: baseRoles.creationBlockNumber,
+        },
+        berachain: {
+          address: berachainRoles.address,
+          startBlock: berachainRoles.creationBlockNumber,
+        },
+        optimism: {
+          address: optimismRoles.address,
+          startBlock: optimismRoles.creationBlockNumber,
+        },
+      },
     },
     RolesAdmin: {
       abi: RolesAdminAbi,
-      address: "0xb216d714d91eeC4F7120a732c11428857C659eC8",
-      network: "mainnet",
-      startBlock: 15998137,
+      network: {
+        mainnet: {
+          address: mainnetRolesAdmin.address,
+          startBlock: mainnetRolesAdmin.creationBlockNumber,
+        },
+        arbitrum: {
+          address: arbitrumRolesAdmin.address,
+          startBlock: arbitrumRolesAdmin.creationBlockNumber,
+        },
+        base: {
+          address: baseRolesAdmin.address,
+          startBlock: baseRolesAdmin.creationBlockNumber,
+        },
+        berachain: {
+          address: berachainRolesAdmin.address,
+          startBlock: berachainRolesAdmin.creationBlockNumber,
+        },
+        optimism: {
+          address: optimismRolesAdmin.address,
+          startBlock: optimismRolesAdmin.creationBlockNumber,
+        },
+      },
     },
   },
 });

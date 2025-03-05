@@ -8,6 +8,7 @@ import {
 } from "./types";
 import { EtherscanApi } from "../etherscan/api";
 import path from "path";
+import { ChainId } from "../../constants";
 
 const CACHE_FILE = "./data/contract-cache.json";
 const ABI_DIR = "./data/abis";
@@ -18,16 +19,20 @@ export class ContractProcessor {
   // private roleExtractor: RoleExtractor;
   private cache: ContractCache;
 
-  constructor(private etherscanApi: EtherscanApi) {
+  constructor(
+    private etherscanApi: EtherscanApi,
+    private chainId: ChainId
+  ) {
     // this.roleExtractor = new RoleExtractor();
     this.cache = this.loadCache();
-    // Ensure ABI directory exists
-    if (!existsSync(ABI_DIR)) {
-      mkdirSync(ABI_DIR, { recursive: true });
+    // Ensure chain-specific directories exist
+    const chainAbiDir = this.getChainAbiDir();
+    const chainSourceCodeDir = this.getChainSourceCodeDir();
+    if (!existsSync(chainAbiDir)) {
+      mkdirSync(chainAbiDir, { recursive: true });
     }
-    // Ensure source code directory exists
-    if (!existsSync(SOURCE_CODE_DIR)) {
-      mkdirSync(SOURCE_CODE_DIR, { recursive: true });
+    if (!existsSync(chainSourceCodeDir)) {
+      mkdirSync(chainSourceCodeDir, { recursive: true });
     }
   }
 
@@ -36,13 +41,16 @@ export class ContractProcessor {
     name: string
   ): Promise<ProcessedContractData> {
     // Check cache first
+    const chainCache = this.cache[this.chainId];
+    const contractCache = chainCache?.[address];
     if (
-      this.cache[address] &&
-      Date.now() - this.cache[address].lastFetched < CACHE_DURATION &&
+      chainCache &&
+      contractCache &&
+      Date.now() - contractCache.lastFetched < CACHE_DURATION &&
       existsSync(this.getAbiPath(address))
     ) {
-      console.log(`CACHE HIT for ${name}`);
-      return this.cache[address].processedData;
+      console.log(`CACHE HIT for ${name} on chain ${this.chainId}`);
+      return contractCache.processedData;
     }
 
     let abi: Abi;
@@ -58,7 +66,7 @@ export class ContractProcessor {
       writeFileSync(abiPath, JSON.stringify(abi, null, 2));
     }
 
-    console.log(`Processing ABI for ${name}`);
+    console.log(`Processing ABI for ${name} on chain ${this.chainId}`);
     const processedData = this.processAbi(abi);
 
     // Check if the source code exists on disk
@@ -72,29 +80,43 @@ export class ContractProcessor {
       writeFileSync(sourceCodePath, sourceCode);
     }
 
-    console.log(`Processing source code for ${name}`);
+    console.log(`Processing source code for ${name} on chain ${this.chainId}`);
     const processedContractData = this.processSourceCode(
       name,
       sourceCode,
       processedData
     );
 
+    let currentChainCache = this.cache[this.chainId];
+    if (!currentChainCache) {
+      currentChainCache = {};
+    }
+
     // Update cache
-    this.cache[address] = {
+    currentChainCache[address] = {
       processedData: processedContractData,
       lastFetched: Date.now(),
     };
+    this.cache[this.chainId] = currentChainCache;
     this.saveCache();
 
     return processedData;
   }
 
+  private getChainAbiDir(): string {
+    return path.join(ABI_DIR, this.chainId.toString());
+  }
+
+  private getChainSourceCodeDir(): string {
+    return path.join(SOURCE_CODE_DIR, this.chainId.toString());
+  }
+
   private getAbiPath(address: string): string {
-    return path.join(ABI_DIR, `${address}.json`);
+    return path.join(this.getChainAbiDir(), `${address}.json`);
   }
 
   private getSourceCodePath(address: string): string {
-    return path.join(SOURCE_CODE_DIR, `${address}.json`);
+    return path.join(this.getChainSourceCodeDir(), `${address}.json`);
   }
 
   private processAbi(abi: Abi): ProcessedContractData {

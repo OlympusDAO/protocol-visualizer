@@ -5,6 +5,43 @@ import {
   EtherscanApiError,
   EtherscanSourceCodeResponse,
 } from "./types";
+import { ChainId } from "../../constants";
+
+const etherscanApis: Record<number, EtherscanApi> = {};
+
+const BASE_URLS: Record<number, string> = {
+  [ChainId.Mainnet]: "https://api.etherscan.io/v2/api",
+  [ChainId.Arbitrum]: "https://api.arbiscan.io/api",
+  [ChainId.Base]: "https://api.basescan.org/api",
+  [ChainId.Berachain]: "https://api.berascan.com/api",
+  [ChainId.Optimism]: "https://api-optimistic.etherscan.io/api",
+};
+
+export const getEtherscanApi = (chainId: number) => {
+  if (!etherscanApis[chainId]) {
+    // Check that the API key is set
+    const apiKey = process.env[`ETHERSCAN_API_KEY_${chainId}`];
+    if (!apiKey) {
+      throw new Error(
+        `Etherscan API key for chain ${chainId} is not set. Set the ETHERSCAN_API_KEY_${chainId} environment variable.`
+      );
+    }
+
+    const baseUrl = BASE_URLS[chainId];
+    if (!baseUrl) {
+      throw new Error(
+        `Etherscan API base URL for chain ${chainId} is not defined.`
+      );
+    }
+
+    etherscanApis[chainId] = new EtherscanApi({
+      apiKey,
+      baseUrl,
+      chainId,
+    });
+  }
+  return etherscanApis[chainId];
+};
 
 export class EtherscanApi {
   private baseUrl: string;

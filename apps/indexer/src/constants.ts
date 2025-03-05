@@ -2,6 +2,7 @@ export enum ChainId {
   Mainnet = 1,
   Arbitrum = 42161,
   Base = 8453,
+  Berachain = 80094,
 }
 
 type ChainContractConstants = {
@@ -32,6 +33,13 @@ const KERNEL_CONSTANTS: Record<number, ChainContractConstants> = {
     creationBlockNumber: 13204831,
     creationTimestamp: 1713199009,
     address: "0x18878Df23e2a36f81e820e4b47b4A40576D3159C",
+  },
+  [ChainId.Berachain]: {
+    creationTransactionHash:
+      "0x6b4e1a31a0b528ccb915aaf59e168b70d1952045b1136a510b4b7eb743fd316e",
+    creationBlockNumber: 780016,
+    creationTimestamp: 1738849414,
+    address: "0x623164A9Ee2556D524b08f34F1d2389d7B4e1A1C",
   },
 };
 
@@ -66,6 +74,13 @@ const ROLES_CONSTANTS: Record<number, ChainContractConstants> = {
     creationTimestamp: 1713199025,
     address: "0xbC9eE0D911739cBc72cd094ADA26F56E0C49EeAE",
   },
+  [ChainId.Berachain]: {
+    creationTransactionHash:
+      "0xb779cc9956dae7860fe1029a1990e2ed708a00ba5e86a6cbf6da524f7593d1ac",
+    creationBlockNumber: 780020,
+    creationTimestamp: 1738849422,
+    address: "0x22AE99D07584A2AE1af748De573c83f1B9Cdb4c0",
+  },
 };
 
 export const getRolesConstants = (chainId: number) => {
@@ -98,6 +113,13 @@ const ROLES_ADMIN_CONSTANTS: Record<number, ChainContractConstants> = {
     creationBlockNumber: 13204846,
     creationTimestamp: 1713199039,
     address: "0xb1fA0Ac44d399b778B14af0AAF4bCF8af3437ad1",
+  },
+  [ChainId.Berachain]: {
+    creationTransactionHash:
+      "0xc08d6a98f20fab7b1d5593a7e30b456d38ad9fc1dfea796945a91581ab86f8ab",
+    creationBlockNumber: 780026,
+    creationTimestamp: 1738849434,
+    address: "0xe37D9a2791707BBB858012d219960D5FBD190794",
   },
 };
 

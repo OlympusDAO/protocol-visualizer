@@ -13,6 +13,7 @@ const BASE_URLS: Record<number, string> = {
   [ChainId.Mainnet]: "https://api.etherscan.io/v2/api",
   [ChainId.Arbitrum]: "https://api.arbiscan.io/api",
   [ChainId.Base]: "https://api.basescan.org/api",
+  [ChainId.Berachain]: "https://api.berascan.com/api",
 };
 
 export const getEtherscanApi = (chainId: number) => {

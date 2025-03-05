@@ -23,6 +23,10 @@ const baseKernel = getKernelConstants(ChainId.Base);
 const baseRoles = getRolesConstants(ChainId.Base);
 const baseRolesAdmin = getRolesAdminConstants(ChainId.Base);
 
+const berachainKernel = getKernelConstants(ChainId.Berachain);
+const berachainRoles = getRolesConstants(ChainId.Berachain);
+const berachainRolesAdmin = getRolesAdminConstants(ChainId.Berachain);
+
 export default createConfig({
   networks: {
     mainnet: {
@@ -36,6 +40,10 @@ export default createConfig({
     base: {
       chainId: ChainId.Base,
       transport: http(process.env.PONDER_RPC_URL_8453),
+    },
+    berachain: {
+      chainId: ChainId.Berachain,
+      transport: http(process.env.PONDER_RPC_URL_80094),
     },
   },
   contracts: {
@@ -54,6 +62,10 @@ export default createConfig({
           address: baseKernel.address,
           startBlock: baseKernel.creationBlockNumber,
         },
+        berachain: {
+          address: berachainKernel.address,
+          startBlock: berachainKernel.creationBlockNumber,
+        },
       },
     },
     ROLES: {
@@ -71,6 +83,10 @@ export default createConfig({
           address: baseRoles.address,
           startBlock: baseRoles.creationBlockNumber,
         },
+        berachain: {
+          address: berachainRoles.address,
+          startBlock: berachainRoles.creationBlockNumber,
+        },
       },
     },
     RolesAdmin: {
@@ -87,6 +103,10 @@ export default createConfig({
         base: {
           address: baseRolesAdmin.address,
           startBlock: baseRolesAdmin.creationBlockNumber,
+        },
+        berachain: {
+          address: berachainRolesAdmin.address,
+          startBlock: berachainRolesAdmin.creationBlockNumber,
         },
       },
     },

@@ -299,6 +299,42 @@ const contractNames: MultiChainContracts = {
       version: "1.1",
     },
   },
+  [ChainId.Berachain]: {
+    "0x623164A9Ee2556D524b08f34F1d2389d7B4e1A1C": {
+      name: "Kernel",
+    },
+    "0x22AE99D07584A2AE1af748De573c83f1B9Cdb4c0": {
+      name: "ROLES",
+      version: "1.0",
+    },
+    "0xe37D9a2791707BBB858012d219960D5FBD190794": {
+      name: "RolesAdmin",
+    },
+    "0xbC9eE0D911739cBc72cd094ADA26F56E0C49EeAE": {
+      name: "MINTR",
+      version: "1.0",
+    },
+    "0xb1fA0Ac44d399b778B14af0AAF4bCF8af3437ad1": {
+      name: "TRSRY",
+      version: "1.0",
+    },
+    "0x91494D1BC2286343D51c55E46AE80C9356D099b5": {
+      name: "DAO MS",
+    },
+    "0xa5ea62894027D981D34BB99A04BD36B818b2Aaf0": {
+      name: "Emergency MS",
+    },
+    "0xBA42BE149e5260EbA4B82418A6306f55D532eA47": {
+      name: "CrossChainBridge",
+      version: "1.0",
+    },
+    "0xCA7240A7B439c9D458B47831d38c3d69C1287469": {
+      name: "Emergency",
+    },
+    "0x0D33c811D0fcC711BcB388DFB3a152DE445bE66F": {
+      name: "TreasuryCustodian",
+    },
+  },
 };
 
 export const getContractName = (

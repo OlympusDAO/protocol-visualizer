@@ -5,24 +5,28 @@ import { KernelAbi } from "./abis/Kernel";
 import { OlympusRolesAbi } from "./abis/OlympusRoles";
 import { RolesAdminAbi } from "./abis/RolesAdmin";
 import {
+  ChainId,
   getKernelConstants,
   getRolesAdminConstants,
   getRolesConstants,
 } from "./src/constants";
 
-const mainnetKernel = getKernelConstants(1);
-const mainnetRoles = getRolesConstants(1);
-const mainnetRolesAdmin = getRolesAdminConstants(1);
+const mainnetKernel = getKernelConstants(ChainId.Mainnet);
+const mainnetRoles = getRolesConstants(ChainId.Mainnet);
+const mainnetRolesAdmin = getRolesAdminConstants(ChainId.Mainnet);
 
-const arbitrumKernel = getKernelConstants(42161);
-const arbitrumRoles = getRolesConstants(42161);
-const arbitrumRolesAdmin = getRolesAdminConstants(42161);
+const arbitrumKernel = getKernelConstants(ChainId.Arbitrum);
+const arbitrumRoles = getRolesConstants(ChainId.Arbitrum);
+const arbitrumRolesAdmin = getRolesAdminConstants(ChainId.Arbitrum);
 
 export default createConfig({
   networks: {
-    mainnet: { chainId: 1, transport: http(process.env.PONDER_RPC_URL_1) },
+    mainnet: {
+      chainId: ChainId.Mainnet,
+      transport: http(process.env.PONDER_RPC_URL_1),
+    },
     arbitrum: {
-      chainId: 42161,
+      chainId: ChainId.Arbitrum,
       transport: http(process.env.PONDER_RPC_URL_42161),
     },
   },

@@ -25,6 +25,7 @@ import { ChainId } from "@/lib/constants";
 type RoleAssignment = typeof schema.roleAssignment.$inferSelect;
 
 interface NodeData {
+  name: string;
   label: React.ReactNode;
   assignees?: RoleAssignment[];
   policiesCount?: number;
@@ -99,9 +100,13 @@ const NODE_COLORS = {
 
 // Create a node for a non-contract assignee
 const createAssigneeNode = (assignee: RoleAssignment, id: string) => {
+  const assigneeName =
+    assignee.assigneeName === "UNKNOWN" ? "EOA" : assignee.assigneeName;
+
   return {
     id,
     data: {
+      name: assigneeName,
       label: (
         <div className="p-1 text-sm relative">
           <Handle
@@ -117,9 +122,7 @@ const createAssigneeNode = (assignee: RoleAssignment, id: string) => {
             className="font-bold mb-1 break-words whitespace-pre-wrap max-w-[160px]"
             style={{ color: NODE_COLORS.assignee.text }}
           >
-            {assignee.assigneeName === "UNKNOWN"
-              ? "EOA"
-              : assignee.assigneeName}
+            {assigneeName}
           </div>
           <a
             href={getEtherscanLink(assignee.assignee, ChainId.Mainnet)}
@@ -394,6 +397,7 @@ export function ContractVisualizer() {
       return {
         id,
         data: {
+          name: formatContractName(contract),
           label: (
             <div
               className="p-1 text-sm relative"
@@ -601,6 +605,7 @@ export function ContractVisualizer() {
         type: "role",
         position: { x: 0, y: 0 },
         data: {
+          name: role.role,
           label: role.role,
           assignees: roleAssignmentsList,
           policiesCount: policiesUsingRole.length,
@@ -839,10 +844,7 @@ export function ContractVisualizer() {
       .map((a) => a.role);
 
     // Get assignee name from the node data label
-    const assigneeName =
-      typeof selectedNodeData.label === "string"
-        ? selectedNodeData.label
-        : "Unknown";
+    const assigneeName = selectedNodeData.name;
 
     return (
       <div

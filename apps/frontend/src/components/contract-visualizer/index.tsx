@@ -16,8 +16,10 @@ import "reactflow/dist/style.css";
 import { usePonderQuery } from "@ponder/react";
 import { schema } from "@/lib/ponder";
 import { Contract } from "@/services/contracts";
-import { eq } from "@ponder/client";
+import { eq, and } from "@ponder/client";
 import dagre from "dagre";
+import { ChainSelector } from "../chain-selector";
+import { ChainId } from "@/lib/constants";
 
 // Types
 type RoleAssignment = typeof schema.roleAssignment.$inferSelect;
@@ -39,8 +41,17 @@ const shortenAddress = (address: string) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
-const getEtherscanLink = (address: string) => {
-  return `https://etherscan.io/address/${address}`;
+const getEtherscanLink = (address: string, chainId: number) => {
+  const baseUrls: Record<number, string> = {
+    [ChainId.Mainnet]: "https://etherscan.io",
+    [ChainId.Arbitrum]: "https://arbiscan.io",
+    [ChainId.Base]: "https://basescan.org",
+    [ChainId.Berachain]: "https://berascan.com",
+    [ChainId.Optimism]: "https://optimistic.etherscan.io",
+  };
+
+  const baseUrl = baseUrls[chainId] || baseUrls[ChainId.Mainnet];
+  return `${baseUrl}/address/${address}`;
 };
 
 // Helper function to format contract name with version
@@ -111,7 +122,7 @@ const createAssigneeNode = (assignee: RoleAssignment, id: string) => {
               : assignee.assigneeName}
           </div>
           <a
-            href={getEtherscanLink(assignee.assignee)}
+            href={getEtherscanLink(assignee.assignee, ChainId.Mainnet)}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs break-all hover:opacity-80"
@@ -296,6 +307,9 @@ export function ContractVisualizer() {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [layouting, setLayouting] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [selectedChainId, setSelectedChainId] = useState<number>(
+    ChainId.Mainnet
+  );
   const [originalLayout, setOriginalLayout] = useState<{
     nodes: CustomNode[];
     edges: Edge[];
@@ -304,27 +318,51 @@ export function ContractVisualizer() {
   // Add ref for ReactFlow instance
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
 
-  // Query contracts
+  // Reset initialized state when chain ID changes
+  useEffect(() => {
+    setInitialized(false);
+    setNodes([]);
+    setEdges([]);
+    setOriginalLayout(null);
+    setSelectedNode(null);
+  }, [selectedChainId, setNodes, setEdges]);
+
+  // Query contracts with chain ID filter
   const { data: contracts, isLoading: isLoadingContracts } = usePonderQuery({
     queryFn: (db) =>
       db
         .select()
         .from(schema.contract)
-        .where(eq(schema.contract.isEnabled, true)),
+        .where(
+          and(
+            eq(schema.contract.isEnabled, true),
+            eq(schema.contract.chainId, selectedChainId)
+          )
+        ),
   });
 
-  // Query roles and assignments
+  // Query roles with chain ID filter
   const { data: roles, isLoading: isLoadingRoles } = usePonderQuery({
-    queryFn: (db) => db.select().from(schema.role),
+    queryFn: (db) =>
+      db
+        .select()
+        .from(schema.role)
+        .where(eq(schema.role.chainId, selectedChainId)),
   });
 
+  // Query role assignments with chain ID filter
   const { data: roleAssignments, isLoading: isLoadingAssignments } =
     usePonderQuery({
       queryFn: (db) =>
         db
           .select()
           .from(schema.roleAssignment)
-          .where(eq(schema.roleAssignment.isGranted, true)),
+          .where(
+            and(
+              eq(schema.roleAssignment.isGranted, true),
+              eq(schema.roleAssignment.chainId, selectedChainId)
+            )
+          ),
     });
 
   const createNodeFromContract = useCallback(
@@ -381,7 +419,7 @@ export function ContractVisualizer() {
                 {formatContractName(contract)}
               </div>
               <a
-                href={getEtherscanLink(contract.address)}
+                href={getEtherscanLink(contract.address, selectedChainId)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs break-all hover:opacity-80"
@@ -430,7 +468,7 @@ export function ContractVisualizer() {
         sourcePosition: Position.Right,
       };
     },
-    [hoveredPolicy]
+    [hoveredPolicy, selectedChainId]
   );
 
   // Memoize the edge creation function
@@ -845,7 +883,7 @@ export function ContractVisualizer() {
         </div>
         <div className="text-xs text-gray-500 mb-2">
           <a
-            href={getEtherscanLink(assigneeAddress)}
+            href={getEtherscanLink(assigneeAddress, selectedChainId)}
             target="_blank"
             rel="noopener noreferrer"
             className="hover:underline"
@@ -981,7 +1019,7 @@ export function ContractVisualizer() {
                       {assignee.name === "UNKNOWN" ? "EOA" : assignee.name}
                     </button>
                     <a
-                      href={getEtherscanLink(assignee.address)}
+                      href={getEtherscanLink(assignee.address, selectedChainId)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-gray-500 hover:underline ml-1"
@@ -1019,7 +1057,7 @@ export function ContractVisualizer() {
                       </button>
                     </div>
                     <a
-                      href={getEtherscanLink(policy.address)}
+                      href={getEtherscanLink(policy.address, selectedChainId)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-gray-500 hover:underline"
@@ -1126,7 +1164,7 @@ export function ContractVisualizer() {
         </div>
         <div className="text-xs text-gray-500 mb-3">
           <a
-            href={getEtherscanLink(contract.address)}
+            href={getEtherscanLink(contract.address, selectedChainId)}
             target="_blank"
             rel="noopener noreferrer"
             className="hover:underline"
@@ -1169,7 +1207,10 @@ export function ContractVisualizer() {
                       </div>
                       {moduleContract && (
                         <a
-                          href={getEtherscanLink(moduleContract.address)}
+                          href={getEtherscanLink(
+                            moduleContract.address,
+                            selectedChainId
+                          )}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs text-gray-500 hover:underline ml-2"
@@ -1269,7 +1310,7 @@ export function ContractVisualizer() {
         </div>
         <div className="text-xs text-gray-500 mb-2">
           <a
-            href={getEtherscanLink(moduleContract.address)}
+            href={getEtherscanLink(moduleContract.address, selectedChainId)}
             target="_blank"
             rel="noopener noreferrer"
             className="hover:underline"
@@ -1298,7 +1339,7 @@ export function ContractVisualizer() {
                       {policy.name}
                     </button>
                     <a
-                      href={getEtherscanLink(policy.address)}
+                      href={getEtherscanLink(policy.address, selectedChainId)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-gray-500 hover:underline ml-1"
@@ -1326,60 +1367,66 @@ export function ContractVisualizer() {
   }
 
   return (
-    <div className="w-full h-[800px] border border-gray-200 rounded-lg">
-      {!contracts || contracts.length === 0 ? (
-        <div className="w-full h-full flex items-center justify-center">
-          <div className="text-lg">No contracts found</div>
-        </div>
-      ) : (
-        <>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            nodeTypes={nodeTypes}
-            fitView
-            minZoom={0.2}
-            maxZoom={1.5}
-            defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
-            onInit={(instance) => {
-              reactFlowInstance.current = instance;
-            }}
-            elementsSelectable={true}
-            nodesConnectable={false}
-            nodesDraggable={true}
-            edgesFocusable={true}
-            edgesUpdatable={false}
-            onNodeClick={handleNodeClick}
-            onNodeDragStop={(_event, node) => {
-              const updatedNodes = nodes.map((n) =>
-                n.id === node.id ? { ...n, position: node.position } : n
-              );
-              setNodes(updatedNodes);
-            }}
-            onPaneClick={() => {
-              setSelectedNode(null);
-            }}
-          >
-            <Background />
-            <Controls />
-          </ReactFlow>
-          {selectedNode?.startsWith("assignee-")
-            ? renderAssigneeTooltip()
-            : selectedNode?.startsWith("role-")
-              ? renderRoleTooltip()
-              : selectedNode?.startsWith("0x") &&
-                  contracts.find((c) => c.address === selectedNode)?.type ===
-                    "policy"
-                ? renderPolicyTooltip()
+    <div className="w-full">
+      <ChainSelector
+        selectedChainId={selectedChainId}
+        onChainChange={setSelectedChainId}
+      />
+      <div className="h-[800px] border border-gray-200 rounded-lg">
+        {!contracts || contracts.length === 0 ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="text-lg">No contracts found</div>
+          </div>
+        ) : (
+          <>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              nodeTypes={nodeTypes}
+              fitView
+              minZoom={0.2}
+              maxZoom={1.5}
+              defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
+              onInit={(instance) => {
+                reactFlowInstance.current = instance;
+              }}
+              elementsSelectable={true}
+              nodesConnectable={false}
+              nodesDraggable={true}
+              edgesFocusable={true}
+              edgesUpdatable={false}
+              onNodeClick={handleNodeClick}
+              onNodeDragStop={(_event, node) => {
+                const updatedNodes = nodes.map((n) =>
+                  n.id === node.id ? { ...n, position: node.position } : n
+                );
+                setNodes(updatedNodes);
+              }}
+              onPaneClick={() => {
+                setSelectedNode(null);
+              }}
+            >
+              <Background />
+              <Controls />
+            </ReactFlow>
+            {selectedNode?.startsWith("assignee-")
+              ? renderAssigneeTooltip()
+              : selectedNode?.startsWith("role-")
+                ? renderRoleTooltip()
                 : selectedNode?.startsWith("0x") &&
                     contracts.find((c) => c.address === selectedNode)?.type ===
-                      "module"
-                  ? renderModuleTooltip()
-                  : null}
-        </>
-      )}
+                      "policy"
+                  ? renderPolicyTooltip()
+                  : selectedNode?.startsWith("0x") &&
+                      contracts.find((c) => c.address === selectedNode)
+                        ?.type === "module"
+                    ? renderModuleTooltip()
+                    : null}
+          </>
+        )}
+      </div>
     </div>
   );
 }

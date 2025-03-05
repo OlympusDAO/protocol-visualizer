@@ -19,6 +19,10 @@ const arbitrumKernel = getKernelConstants(ChainId.Arbitrum);
 const arbitrumRoles = getRolesConstants(ChainId.Arbitrum);
 const arbitrumRolesAdmin = getRolesAdminConstants(ChainId.Arbitrum);
 
+const baseKernel = getKernelConstants(ChainId.Base);
+const baseRoles = getRolesConstants(ChainId.Base);
+const baseRolesAdmin = getRolesAdminConstants(ChainId.Base);
+
 export default createConfig({
   networks: {
     mainnet: {
@@ -28,6 +32,10 @@ export default createConfig({
     arbitrum: {
       chainId: ChainId.Arbitrum,
       transport: http(process.env.PONDER_RPC_URL_42161),
+    },
+    base: {
+      chainId: ChainId.Base,
+      transport: http(process.env.PONDER_RPC_URL_8453),
     },
   },
   contracts: {
@@ -42,6 +50,10 @@ export default createConfig({
           address: arbitrumKernel.address,
           startBlock: arbitrumKernel.creationBlockNumber,
         },
+        base: {
+          address: baseKernel.address,
+          startBlock: baseKernel.creationBlockNumber,
+        },
       },
     },
     ROLES: {
@@ -55,6 +67,10 @@ export default createConfig({
           address: arbitrumRoles.address,
           startBlock: arbitrumRoles.creationBlockNumber,
         },
+        base: {
+          address: baseRoles.address,
+          startBlock: baseRoles.creationBlockNumber,
+        },
       },
     },
     RolesAdmin: {
@@ -67,6 +83,10 @@ export default createConfig({
         arbitrum: {
           address: arbitrumRolesAdmin.address,
           startBlock: arbitrumRolesAdmin.creationBlockNumber,
+        },
+        base: {
+          address: baseRolesAdmin.address,
+          startBlock: baseRolesAdmin.creationBlockNumber,
         },
       },
     },

@@ -1,3 +1,5 @@
+import { ChainId } from "./constants";
+
 type ContractDetails = {
   name: string;
   /**
@@ -15,7 +17,7 @@ type MultiChainContracts = {
 };
 
 const contractNames: MultiChainContracts = {
-  1: {
+  [ChainId.Mainnet]: {
     "0x0374c001204eF5e7E4F5362A5A2430CB6c219326": {
       name: "Operator",
       version: "1.3",
@@ -237,7 +239,7 @@ const contractNames: MultiChainContracts = {
       name: "Operator",
     },
   },
-  42161: {
+  [ChainId.Arbitrum]: {
     "0xeac3eC0CC130f4826715187805d1B50e861F2DaC": {
       name: "Kernel",
     },
@@ -268,6 +270,33 @@ const contractNames: MultiChainContracts = {
     },
     "0xA8578c9A73C2b4F75968EC76d6689045ff68B97C": {
       name: "SiloAMO",
+    },
+  },
+  [ChainId.Base]: {
+    "0x18878Df23e2a36f81e820e4b47b4A40576D3159C": {
+      name: "Kernel",
+    },
+    "0xbC9eE0D911739cBc72cd094ADA26F56E0C49EeAE": {
+      name: "ROLES",
+      version: "1.0",
+    },
+    "0xb1fA0Ac44d399b778B14af0AAF4bCF8af3437ad1": {
+      name: "RolesAdmin",
+    },
+    "0x623164A9Ee2556D524b08f34F1d2389d7B4e1A1C": {
+      name: "MINTR",
+      version: "1.0",
+    },
+    "0x18a390bD45bCc92652b9A91AD51Aed7f1c1358f5": {
+      name: "DAO MS",
+    },
+    "0x22ae99d07584a2ae1af748de573c83f1b9cdb4c0": {
+      name: "CrossChainBridge",
+      version: "1.0",
+    },
+    "0x6CA1a916e883c7ce2BFBcF59dc70F2c1EF9dac6e": {
+      name: "CrossChainBridge",
+      version: "1.1",
     },
   },
 };

@@ -5,12 +5,14 @@ import {
   EtherscanApiError,
   EtherscanSourceCodeResponse,
 } from "./types";
+import { ChainId } from "../../constants";
 
 const etherscanApis: Record<number, EtherscanApi> = {};
 
 const BASE_URLS: Record<number, string> = {
-  1: "https://api.etherscan.io/v2/api",
-  42161: "https://api.arbiscan.io/api",
+  [ChainId.Mainnet]: "https://api.etherscan.io/v2/api",
+  [ChainId.Arbitrum]: "https://api.arbiscan.io/api",
+  [ChainId.Base]: "https://api.basescan.org/api",
 };
 
 export const getEtherscanApi = (chainId: number) => {

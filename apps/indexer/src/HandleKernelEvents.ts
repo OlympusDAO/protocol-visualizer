@@ -22,7 +22,7 @@ import { getKernelConstants } from "./constants";
 // Initialize services
 const getContractProcessor = (chainId: number) => {
   const etherscanApi = getEtherscanApi(chainId);
-  return new ContractProcessor(etherscanApi);
+  return new ContractProcessor(etherscanApi, chainId);
 };
 
 const parseAction = (

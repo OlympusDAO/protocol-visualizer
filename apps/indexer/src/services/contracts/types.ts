@@ -33,9 +33,11 @@ export interface FunctionDetails {
 }
 
 export interface ContractCache {
-  [address: string]: {
-    processedData: ProcessedContractData;
-    lastFetched: number;
+  [chainId: number]: {
+    [address: string]: {
+      processedData: ProcessedContractData;
+      lastFetched: number;
+    };
   };
 }
 

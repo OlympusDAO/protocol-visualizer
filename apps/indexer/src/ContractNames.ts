@@ -238,6 +238,37 @@ const contractNames: MultiChainContracts = {
     "0x5f15b91b59ad65d490921016d4134c2301197485": {
       name: "Operator",
     },
+    "0xdb591Ea2e5Db886dA872654D58f6cc584b68e7cC": {
+      name: "CoolerV2",
+    },
+    "0x9ee9f0c2e91E4f6B195B988a9e6e19efcf91e8dc": {
+      name: "CoolerV2LtvOracle",
+    },
+    "0xD58d7406E9CE34c90cf849Fc3eed3764EB3779B0": {
+      name: "CoolerV2TreasuryBorrower",
+    },
+    "0x6593768feBF9C95aC857Fb7Ef244D5738D1C57Fd": {
+      name: "CoolerV2Composites",
+    },
+    "0xE045BD0A0d85E980AA152064C06EAe6B6aE358D2": {
+      name: "CoolerV2Migrator",
+    },
+    "0xC84157C2306238C9330fEa14774a82A53a127A59": {
+      name: "DelegateEscrowFactory",
+    },
+    "0xD3204Ae00d6599Ba6e182c6D640A79d76CdAad74": {
+      name: "DLGTE",
+      version: "1.0",
+    },
+    "0xFbf6383dC3F6010d403Ecdf12DDC1311701D143D": {
+      name: "CCIPCrossChainBridge",
+    },
+    "0xa5588e518CE5ee0e4628C005E4edAbD5e87de3aD": {
+      name: "CCIPLockReleaseTokenPool",
+    },
+    "0x1a5309f208f161a393e8b5a253de8ab894a67188": {
+      name: "Deployer",
+    },
   },
   [ChainId.Arbitrum]: {
     "0xeac3eC0CC130f4826715187805d1B50e861F2DaC": {
@@ -271,6 +302,9 @@ const contractNames: MultiChainContracts = {
     "0xA8578c9A73C2b4F75968EC76d6689045ff68B97C": {
       name: "SiloAMO",
     },
+    "0x1a5309f208f161a393e8b5a253de8ab894a67188": {
+      name: "Deployer",
+    },
   },
   [ChainId.Base]: {
     "0x18878Df23e2a36f81e820e4b47b4A40576D3159C": {
@@ -297,6 +331,9 @@ const contractNames: MultiChainContracts = {
     "0x6CA1a916e883c7ce2BFBcF59dc70F2c1EF9dac6e": {
       name: "CrossChainBridge",
       version: "1.1",
+    },
+    "0x1a5309f208f161a393e8b5a253de8ab894a67188": {
+      name: "Deployer",
     },
   },
   [ChainId.Berachain]: {
@@ -334,6 +371,9 @@ const contractNames: MultiChainContracts = {
     "0x0D33c811D0fcC711BcB388DFB3a152DE445bE66F": {
       name: "TreasuryCustodian",
     },
+    "0x1a5309f208f161a393e8b5a253de8ab894a67188": {
+      name: "Deployer",
+    },
   },
   [ChainId.Optimism]: {
     "0x18878Df23e2a36f81e820e4b47b4A40576D3159C": {
@@ -355,6 +395,9 @@ const contractNames: MultiChainContracts = {
     },
     "0x22AE99D07584A2AE1af748De573c83f1B9Cdb4c0": {
       name: "CrossChainBridge",
+    },
+    "0x1a5309f208f161a393e8b5a253de8ab894a67188": {
+      name: "Deployer",
     },
   },
 };

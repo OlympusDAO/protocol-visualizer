@@ -298,6 +298,7 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
         chainId: context.network.chainId,
         transactionHash: event.transaction.hash,
         logIndex: event.log.logIndex,
+        action: "upgradeModule",
         address: previousContract.address,
         // Timestamp
         timestamp: BigInt(timestamp),
@@ -306,7 +307,6 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
         name: previousContract.name,
         version: previousContract.version,
         type: previousContract.type,
-        action: "upgradeModule",
         isEnabled: false,
         policyPermissions: previousContract.policyPermissions,
         policyFunctions: previousContract.policyFunctions,
@@ -319,6 +319,7 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
       chainId: context.network.chainId,
       transactionHash: event.transaction.hash,
       logIndex: event.log.logIndex,
+      action: action,
       address: target,
       // Timestamp
       timestamp: BigInt(timestamp),
@@ -326,7 +327,6 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
       // Other data
       name: contractName,
       version: contractVersion,
-      action: action,
       type: contractType,
       isEnabled: parseIsEnabled(actionInt),
       policyPermissions: await parsePolicyPermissions(
@@ -474,13 +474,13 @@ ponder.on("Kernel:setup", async ({ context }) => {
     chainId: context.network.chainId,
     transactionHash: constants.creationTransactionHash,
     logIndex: 0,
+    action: "migrateKernel",
+    address: constants.address,
     // Timestamp
     timestamp: BigInt(constants.creationTimestamp),
     blockNumber: BigInt(constants.creationBlockNumber),
     // Other data
     name: "Kernel",
-    address: constants.address,
-    action: "migrateKernel",
     type: "kernel",
     isEnabled: true,
   });

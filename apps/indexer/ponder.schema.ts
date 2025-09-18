@@ -56,6 +56,7 @@ export const contractEvent = onchainTable(
     chainId: t.integer().notNull(),
     transactionHash: t.hex().notNull(),
     logIndex: t.integer().notNull(), // Ensures a unique id if there are multiple operations on the same contract in the same transaction
+    action: actionType().notNull(),
     address: t.hex().notNull(),
     // Timestamp
     timestamp: t.bigint().notNull(),
@@ -63,7 +64,6 @@ export const contractEvent = onchainTable(
     // Other data
     name: t.text().notNull(),
     version: t.text(),
-    action: actionType().notNull(),
     type: contractType().notNull(),
     isEnabled: t.boolean().notNull(),
     policyPermissions: t.json().$type<PolicyPermission>().array(), // Policies only
@@ -75,6 +75,7 @@ export const contractEvent = onchainTable(
         table.chainId,
         table.transactionHash,
         table.logIndex,
+        table.action,
         table.address,
       ],
     }),

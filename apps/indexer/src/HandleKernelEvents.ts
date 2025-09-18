@@ -298,11 +298,11 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
         chainId: context.network.chainId,
         transactionHash: event.transaction.hash,
         logIndex: event.log.logIndex,
+        address: previousContract.address,
         // Timestamp
         timestamp: BigInt(timestamp),
         blockNumber: BigInt(event.block.number),
         // Other data
-        address: previousContract.address,
         name: previousContract.name,
         version: previousContract.version,
         type: previousContract.type,
@@ -319,11 +319,11 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
       chainId: context.network.chainId,
       transactionHash: event.transaction.hash,
       logIndex: event.log.logIndex,
+      address: target,
       // Timestamp
       timestamp: BigInt(timestamp),
       blockNumber: BigInt(event.block.number),
       // Other data
-      address: target,
       name: contractName,
       version: contractVersion,
       action: action,

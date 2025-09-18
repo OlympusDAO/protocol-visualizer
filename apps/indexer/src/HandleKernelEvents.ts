@@ -314,34 +314,37 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
       console.log("Recorded previous contract event");
     }
 
-    await context.db.insert(contractEvent).values({
-      // Primary keys
-      chainId: context.network.chainId,
-      transactionHash: event.transaction.hash,
-      logIndex: event.log.logIndex,
-      action: action,
-      address: target,
-      // Timestamp
-      timestamp: BigInt(timestamp),
-      blockNumber: BigInt(event.block.number),
-      // Other data
-      name: contractName,
-      version: contractVersion,
-      type: contractType,
-      isEnabled: parseIsEnabled(actionInt),
-      policyPermissions: await parsePolicyPermissions(
-        actionInt,
-        target,
-        contractName,
-        context
-      ),
-      policyFunctions: await parsePolicyFunctions(
-        actionInt,
-        target,
-        contractName,
-        context
-      ),
-    });
+    await context.db
+      .insert(contractEvent)
+      .values({
+        // Primary keys
+        chainId: context.network.chainId,
+        transactionHash: event.transaction.hash,
+        logIndex: event.log.logIndex,
+        action: action,
+        address: target,
+        // Timestamp
+        timestamp: BigInt(timestamp),
+        blockNumber: BigInt(event.block.number),
+        // Other data
+        name: contractName,
+        version: contractVersion,
+        type: contractType,
+        isEnabled: parseIsEnabled(actionInt),
+        policyPermissions: await parsePolicyPermissions(
+          actionInt,
+          target,
+          contractName,
+          context
+        ),
+        policyFunctions: await parsePolicyFunctions(
+          actionInt,
+          target,
+          contractName,
+          context
+        ),
+      })
+      .onConflictDoNothing(); // TODO Sometimes the tx is recorded multiple times. Look at why.
     console.log("Recorded contract event");
   }
 

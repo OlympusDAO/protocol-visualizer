@@ -32,6 +32,7 @@ const optimismRoles = getRolesConstants(ChainId.Optimism);
 const optimismRolesAdmin = getRolesAdminConstants(ChainId.Optimism);
 
 export default createConfig({
+  ordering: "multichain",
   networks: {
     mainnet: {
       chainId: ChainId.Mainnet,

@@ -31,9 +31,14 @@ const optimismKernel = getKernelConstants(ChainId.Optimism);
 const optimismRoles = getRolesConstants(ChainId.Optimism);
 const optimismRolesAdmin = getRolesAdminConstants(ChainId.Optimism);
 
+const sepoliaKernel = getKernelConstants(ChainId.Sepolia);
+const sepoliaRoles = getRolesConstants(ChainId.Sepolia);
+const sepoliaRolesAdmin = getRolesAdminConstants(ChainId.Sepolia);
+
 export default createConfig({
   ordering: "multichain",
   networks: {
+    // Production chains
     mainnet: {
       chainId: ChainId.Mainnet,
       transport: http(process.env.PONDER_RPC_URL_1),
@@ -53,6 +58,11 @@ export default createConfig({
     optimism: {
       chainId: ChainId.Optimism,
       transport: http(process.env.PONDER_RPC_URL_10),
+    },
+    // Testnets
+    sepolia: {
+      chainId: ChainId.Sepolia,
+      transport: http(process.env.PONDER_RPC_URL_11155111),
     },
   },
   contracts: {
@@ -79,6 +89,10 @@ export default createConfig({
           address: optimismKernel.address,
           startBlock: optimismKernel.creationBlockNumber,
         },
+        sepolia: {
+          address: sepoliaKernel.address,
+          startBlock: sepoliaKernel.creationBlockNumber,
+        },
       },
     },
     ROLES: {
@@ -104,6 +118,10 @@ export default createConfig({
           address: optimismRoles.address,
           startBlock: optimismRoles.creationBlockNumber,
         },
+        sepolia: {
+          address: sepoliaRoles.address,
+          startBlock: sepoliaRoles.creationBlockNumber,
+        },
       },
     },
     RolesAdmin: {
@@ -128,6 +146,10 @@ export default createConfig({
         optimism: {
           address: optimismRolesAdmin.address,
           startBlock: optimismRolesAdmin.creationBlockNumber,
+        },
+        sepolia: {
+          address: sepoliaRolesAdmin.address,
+          startBlock: sepoliaRolesAdmin.creationBlockNumber,
         },
       },
     },

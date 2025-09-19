@@ -11,6 +11,7 @@ const CHAIN_LABELS: Record<number, string> = {
   [ChainId.Base]: "Base",
   [ChainId.Berachain]: "Berachain",
   [ChainId.Optimism]: "Optimism",
+  [ChainId.Sepolia]: "Sepolia",
 };
 
 export function ChainSelector({

@@ -49,6 +49,7 @@ const getEtherscanLink = (address: string, chainId: number) => {
     [ChainId.Base]: "https://basescan.org",
     [ChainId.Berachain]: "https://berascan.com",
     [ChainId.Optimism]: "https://optimistic.etherscan.io",
+    [ChainId.Sepolia]: "https://sepolia.etherscan.io",
   };
 
   const baseUrl = baseUrls[chainId] || baseUrls[ChainId.Mainnet];

@@ -4,4 +4,5 @@ export enum ChainId {
   Base = 8453,
   Berachain = 80094,
   Optimism = 10,
+  Sepolia = 11155111,
 }

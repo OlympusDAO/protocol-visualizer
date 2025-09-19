@@ -20,11 +20,11 @@ ponder.on("ROLES:RoleGranted", async ({ event, context }) => {
     role: role,
     transactionHash: event.transaction.hash,
     logIndex: event.log.logIndex,
+    assignee: assignee,
     // Timestamp
     timestamp: BigInt(timestamp),
     blockNumber: BigInt(blockNumber),
     // Other data
-    assignee: assignee,
     assigneeName: getContractName(assignee, context.network.chainId),
     isGranted: true,
   });
@@ -76,11 +76,11 @@ ponder.on("ROLES:RoleRevoked", async ({ event, context }) => {
     role: role,
     transactionHash: event.transaction.hash,
     logIndex: event.log.logIndex,
+    assignee: assignee,
     // Timestamp
     timestamp: BigInt(timestamp),
     blockNumber: BigInt(blockNumber),
     // Other data
-    assignee: assignee,
     assigneeName: getContractName(assignee, context.network.chainId),
     isGranted: false,
   });

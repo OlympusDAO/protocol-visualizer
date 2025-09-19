@@ -128,8 +128,6 @@ importers:
         specifier: ^5.2.2
         version: 5.7.3
 
-  packages/tsconfig: {}
-
 packages:
 
   '@adraffy/ens-normalize@1.11.0':

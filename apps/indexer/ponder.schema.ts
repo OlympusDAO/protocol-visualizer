@@ -56,14 +56,14 @@ export const contractEvent = onchainTable(
     chainId: t.integer().notNull(),
     transactionHash: t.hex().notNull(),
     logIndex: t.integer().notNull(), // Ensures a unique id if there are multiple operations on the same contract in the same transaction
+    action: actionType().notNull(),
+    address: t.hex().notNull(),
     // Timestamp
     timestamp: t.bigint().notNull(),
     blockNumber: t.bigint().notNull(),
     // Other data
-    address: t.hex().notNull(),
     name: t.text().notNull(),
     version: t.text(),
-    action: actionType().notNull(),
     type: contractType().notNull(),
     isEnabled: t.boolean().notNull(),
     policyPermissions: t.json().$type<PolicyPermission>().array(), // Policies only
@@ -71,7 +71,13 @@ export const contractEvent = onchainTable(
   }),
   (table) => ({
     pk: primaryKey({
-      columns: [table.chainId, table.transactionHash, table.logIndex],
+      columns: [
+        table.chainId,
+        table.transactionHash,
+        table.logIndex,
+        table.action,
+        table.address,
+      ],
     }),
   })
 );
@@ -241,11 +247,11 @@ export const roleEvent = onchainTable(
     role: t.text().notNull(),
     transactionHash: t.hex().notNull(),
     logIndex: t.integer().notNull(), // Ensures a unique id if there are multiple operations on the same contract in the same transaction
+    assignee: t.hex().notNull(),
     // Timestamp
     timestamp: t.bigint().notNull(),
     blockNumber: t.bigint().notNull(),
     // Other data
-    assignee: t.hex().notNull(),
     assigneeName: t.text().notNull(),
     isGranted: t.boolean().notNull(),
   }),
@@ -256,6 +262,7 @@ export const roleEvent = onchainTable(
         table.role,
         table.transactionHash,
         table.logIndex,
+        table.assignee,
       ],
     }),
   })

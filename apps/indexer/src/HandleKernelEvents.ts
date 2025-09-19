@@ -266,19 +266,22 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
   );
 
   // Record the action event
-  await context.db.insert(actionExecutedEvent).values({
-    // Primary keys
-    chainId: context.network.chainId,
-    kernel: kernelAddress,
-    transactionHash: event.transaction.hash,
-    logIndex: event.log.logIndex,
-    // Timestamp
-    timestamp: BigInt(timestamp),
-    blockNumber: BigInt(event.block.number),
-    // Other data
-    action: action,
-    target: target,
-  });
+  await context.db
+    .insert(actionExecutedEvent)
+    .values({
+      // Primary keys
+      chainId: context.network.chainId,
+      kernel: kernelAddress,
+      transactionHash: event.transaction.hash,
+      logIndex: event.log.logIndex,
+      // Timestamp
+      timestamp: BigInt(timestamp),
+      blockNumber: BigInt(event.block.number),
+      // Other data
+      action: action,
+      target: target,
+    })
+    .onConflictDoNothing(); // TODO Sometimes the tx is recorded multiple times. Look at why.
   console.log("Recorded action executed event");
 
   // Record the contract history
@@ -293,55 +296,61 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
         );
       }
 
-      await context.db.insert(contractEvent).values({
+      await context.db
+        .insert(contractEvent)
+        .values({
+          // Primary keys
+          chainId: context.network.chainId,
+          transactionHash: event.transaction.hash,
+          logIndex: event.log.logIndex,
+          action: "upgradeModule",
+          address: previousContract.address,
+          // Timestamp
+          timestamp: BigInt(timestamp),
+          blockNumber: BigInt(event.block.number),
+          // Other data
+          name: previousContract.name,
+          version: previousContract.version,
+          type: previousContract.type,
+          isEnabled: false,
+          policyPermissions: previousContract.policyPermissions,
+          policyFunctions: previousContract.policyFunctions,
+        })
+        .onConflictDoNothing(); // TODO Sometimes the tx is recorded multiple times. Look at why.
+      console.log("Recorded previous contract event");
+    }
+
+    await context.db
+      .insert(contractEvent)
+      .values({
         // Primary keys
         chainId: context.network.chainId,
         transactionHash: event.transaction.hash,
         logIndex: event.log.logIndex,
+        action: action,
+        address: target,
         // Timestamp
         timestamp: BigInt(timestamp),
         blockNumber: BigInt(event.block.number),
         // Other data
-        address: previousContract.address,
-        name: previousContract.name,
-        version: previousContract.version,
-        type: previousContract.type,
-        action: "upgradeModule",
-        isEnabled: false,
-        policyPermissions: previousContract.policyPermissions,
-        policyFunctions: previousContract.policyFunctions,
-      });
-      console.log("Recorded previous contract event");
-    }
-
-    await context.db.insert(contractEvent).values({
-      // Primary keys
-      chainId: context.network.chainId,
-      transactionHash: event.transaction.hash,
-      logIndex: event.log.logIndex,
-      // Timestamp
-      timestamp: BigInt(timestamp),
-      blockNumber: BigInt(event.block.number),
-      // Other data
-      address: target,
-      name: contractName,
-      version: contractVersion,
-      action: action,
-      type: contractType,
-      isEnabled: parseIsEnabled(actionInt),
-      policyPermissions: await parsePolicyPermissions(
-        actionInt,
-        target,
-        contractName,
-        context
-      ),
-      policyFunctions: await parsePolicyFunctions(
-        actionInt,
-        target,
-        contractName,
-        context
-      ),
-    });
+        name: contractName,
+        version: contractVersion,
+        type: contractType,
+        isEnabled: parseIsEnabled(actionInt),
+        policyPermissions: await parsePolicyPermissions(
+          actionInt,
+          target,
+          contractName,
+          context
+        ),
+        policyFunctions: await parsePolicyFunctions(
+          actionInt,
+          target,
+          contractName,
+          context
+        ),
+      })
+      .onConflictDoNothing(); // TODO Sometimes the tx is recorded multiple times. Look at why.
     console.log("Recorded contract event");
   }
 
@@ -474,13 +483,13 @@ ponder.on("Kernel:setup", async ({ context }) => {
     chainId: context.network.chainId,
     transactionHash: constants.creationTransactionHash,
     logIndex: 0,
+    action: "migrateKernel",
+    address: constants.address,
     // Timestamp
     timestamp: BigInt(constants.creationTimestamp),
     blockNumber: BigInt(constants.creationBlockNumber),
     // Other data
     name: "Kernel",
-    address: constants.address,
-    action: "migrateKernel",
     type: "kernel",
     isEnabled: true,
   });

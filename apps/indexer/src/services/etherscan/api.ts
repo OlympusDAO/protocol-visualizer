@@ -13,10 +13,10 @@ const BASE_URL = "https://api.etherscan.io/v2/api";
 export const getEtherscanApi = (chainId: number) => {
   if (!etherscanApis[chainId]) {
     // Check that the API key is set
-    const apiKey = process.env[`ETHERSCAN_API_KEY_1`];
+    const apiKey = process.env[`ETHERSCAN_API_KEY`];
     if (!apiKey) {
       throw new Error(
-        `Etherscan API key is not set. Set the ETHERSCAN_API_KEY_1 environment variable.`
+        `Etherscan API key is not set. Set the ETHERSCAN_API_KEY environment variable.`
       );
     }
 

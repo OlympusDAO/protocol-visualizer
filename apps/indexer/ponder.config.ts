@@ -1,5 +1,6 @@
 import { createConfig } from "ponder";
-import { webSocket } from "viem";
+import { http, webSocket } from "viem";
+import { rateLimit } from "ponder";
 
 import { KernelAbi } from "./abis/Kernel";
 import { OlympusRolesAbi } from "./abis/OlympusRoles";
@@ -35,34 +36,70 @@ const sepoliaKernel = getKernelConstants(ChainId.Sepolia);
 const sepoliaRoles = getRolesConstants(ChainId.Sepolia);
 const sepoliaRolesAdmin = getRolesAdminConstants(ChainId.Sepolia);
 
+/**
+ * Gets the appropriate viem transport for a given chain ID
+ * - Uses websocket transport if the RPC URL starts with "wss"
+ * - Otherwise uses HTTP transport
+ * - Applies rate limiting to HTTP transport if PONDER_RPC_RPS is set
+ */
+function getTransport(chainId: number) {
+  const envVarName = `PONDER_RPC_URL_${chainId}`;
+  const rpcUrl = process.env[envVarName];
+
+  if (!rpcUrl) {
+    throw new Error(
+      `RPC URL not found for chain ${chainId}. Set ${envVarName} environment variable.`
+    );
+  }
+
+  // Check if URL uses websocket protocol (case-insensitive)
+  const isWebSocket = rpcUrl.toLowerCase().startsWith("wss://") ||
+    rpcUrl.toLowerCase().startsWith("ws://");
+
+  if (isWebSocket) {
+    return webSocket(rpcUrl);
+  }
+
+  // For HTTP transport, check if rate limiting is enabled
+  const rpsEnv = process.env.PONDER_RPC_RPS;
+  const rps = rpsEnv ? Number(rpsEnv) : undefined;
+
+  if (rps !== undefined && !isNaN(rps) && rps > 0) {
+    console.log(`Rate limiting HTTP transport for chain ${chainId} to ${rps} requests per second`);
+    return rateLimit(http(rpcUrl), { requestsPerSecond: rps });
+  }
+
+  return http(rpcUrl);
+}
+
 export default createConfig({
   ordering: "multichain",
   networks: {
     // Production chains
     mainnet: {
       chainId: ChainId.Mainnet,
-      transport: webSocket(process.env.PONDER_RPC_URL_1),
+      transport: getTransport(ChainId.Mainnet),
     },
     arbitrum: {
       chainId: ChainId.Arbitrum,
-      transport: webSocket(process.env.PONDER_RPC_URL_42161),
+      transport: getTransport(ChainId.Arbitrum),
     },
     base: {
       chainId: ChainId.Base,
-      transport: webSocket(process.env.PONDER_RPC_URL_8453),
+      transport: getTransport(ChainId.Base),
     },
     berachain: {
       chainId: ChainId.Berachain,
-      transport: webSocket(process.env.PONDER_RPC_URL_80094),
+      transport: getTransport(ChainId.Berachain),
     },
     optimism: {
       chainId: ChainId.Optimism,
-      transport: webSocket(process.env.PONDER_RPC_URL_10),
+      transport: getTransport(ChainId.Optimism),
     },
     // Testnets
     sepolia: {
       chainId: ChainId.Sepolia,
-      transport: webSocket(process.env.PONDER_RPC_URL_11155111),
+      transport: getTransport(ChainId.Sepolia),
     },
   },
   contracts: {

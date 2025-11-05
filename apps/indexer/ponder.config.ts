@@ -79,7 +79,8 @@ function getRpcTransport(chainId: number, rpcUrl: string, rpcUrlRateLimit?: stri
  * Gets the appropriate viem transport for a given chain ID
  * - Uses websocket transport if the RPC URL starts with "wss"
  * - Otherwise uses HTTP transport
- * - Applies rate limiting to HTTP transport if PONDER_RPC_RPS is set
+ * - Applies rate limiting to HTTP transport if PONDER_RPC_URL_RATE_LIMIT_<chainId> is set
+ * - If PONDER_RPC_URL_FALLBACK_<chainId> is set, provides a fallback transport
  */
 function getTransport(chainId: number): Transport {
   const envVarName = `PONDER_RPC_URL_${chainId}`;

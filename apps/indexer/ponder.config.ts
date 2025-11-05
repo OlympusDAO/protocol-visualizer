@@ -1,6 +1,5 @@
 import { createConfig } from "ponder";
-import { http } from "viem";
-import { rateLimit } from "ponder";
+import { webSocket } from "viem";
 
 import { KernelAbi } from "./abis/Kernel";
 import { OlympusRolesAbi } from "./abis/OlympusRoles";
@@ -36,48 +35,34 @@ const sepoliaKernel = getKernelConstants(ChainId.Sepolia);
 const sepoliaRoles = getRolesConstants(ChainId.Sepolia);
 const sepoliaRolesAdmin = getRolesAdminConstants(ChainId.Sepolia);
 
-const requestsPerSecond = 5;
-
 export default createConfig({
   ordering: "multichain",
   networks: {
     // Production chains
     mainnet: {
       chainId: ChainId.Mainnet,
-      transport: rateLimit(http(process.env.PONDER_RPC_URL_1), {
-        requestsPerSecond,
-      }),
+      transport: webSocket(process.env.PONDER_RPC_URL_1),
     },
     arbitrum: {
       chainId: ChainId.Arbitrum,
-      transport: rateLimit(http(process.env.PONDER_RPC_URL_42161), {
-        requestsPerSecond,
-      }),
+      transport: webSocket(process.env.PONDER_RPC_URL_42161),
     },
     base: {
       chainId: ChainId.Base,
-      transport: rateLimit(http(process.env.PONDER_RPC_URL_8453), {
-        requestsPerSecond,
-      }),
+      transport: webSocket(process.env.PONDER_RPC_URL_8453),
     },
     berachain: {
       chainId: ChainId.Berachain,
-      transport: rateLimit(http(process.env.PONDER_RPC_URL_80094), {
-        requestsPerSecond,
-      }),
+      transport: webSocket(process.env.PONDER_RPC_URL_80094),
     },
     optimism: {
       chainId: ChainId.Optimism,
-      transport: rateLimit(http(process.env.PONDER_RPC_URL_10), {
-        requestsPerSecond,
-      }),
+      transport: webSocket(process.env.PONDER_RPC_URL_10),
     },
     // Testnets
     sepolia: {
       chainId: ChainId.Sepolia,
-      transport: rateLimit(http(process.env.PONDER_RPC_URL_11155111), {
-        requestsPerSecond,
-      }),
+      transport: webSocket(process.env.PONDER_RPC_URL_11155111),
     },
   },
   contracts: {

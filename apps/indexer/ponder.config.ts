@@ -57,6 +57,7 @@ function getTransport(chainId: number) {
     rpcUrl.toLowerCase().startsWith("ws://");
 
   if (isWebSocket) {
+    console.log(`Using websocket transport for chain ${chainId}`);
     return webSocket(rpcUrl);
   }
 
@@ -69,6 +70,7 @@ function getTransport(chainId: number) {
     return rateLimit(http(rpcUrl), { requestsPerSecond: rps });
   }
 
+  console.log(`Using HTTP transport for chain ${chainId}`);
   return http(rpcUrl);
 }
 

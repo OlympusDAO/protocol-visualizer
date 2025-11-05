@@ -1,5 +1,5 @@
 import { createConfig } from "ponder";
-import { http, webSocket } from "viem";
+import { fallback, http, Transport, webSocket } from "viem";
 import { rateLimit } from "ponder";
 
 import { KernelAbi } from "./abis/Kernel";
@@ -36,15 +36,56 @@ const sepoliaKernel = getKernelConstants(ChainId.Sepolia);
 const sepoliaRoles = getRolesConstants(ChainId.Sepolia);
 const sepoliaRolesAdmin = getRolesAdminConstants(ChainId.Sepolia);
 
+function getRateLimit(rpcUrlRateLimit?: string): number | undefined {
+  if (!rpcUrlRateLimit) {
+    return undefined;
+  }
+
+  const rps = Number(rpcUrlRateLimit);
+  if (isNaN(rps) || rps <= 0) {
+    return undefined;
+  }
+
+  return rps;
+}
+
+function getRpcTransport(chainId: number, rpcUrl: string, rpcUrlRateLimit?: string): Transport {
+  // Check if URL uses websocket protocol (case-insensitive)
+  const isWebSocket = rpcUrl.toLowerCase().startsWith("wss://") ||
+    rpcUrl.toLowerCase().startsWith("ws://");
+
+  // Check for rate-limiting
+  const rps = getRateLimit(rpcUrlRateLimit);
+
+  let transport: Transport;
+
+  if (isWebSocket) {
+    console.log(`Using websocket transport for chain ${chainId}`);
+    transport = webSocket(rpcUrl);
+  } else {
+    console.log(`Using HTTP transport for chain ${chainId}`);
+    transport = http(rpcUrl);
+  }
+
+  if (rps) {
+    console.log(`Rate limiting transport for chain ${chainId} to ${rps} requests per second`);
+    transport = rateLimit(transport, { requestsPerSecond: rps });
+  }
+
+  return transport;
+}
+
 /**
  * Gets the appropriate viem transport for a given chain ID
  * - Uses websocket transport if the RPC URL starts with "wss"
  * - Otherwise uses HTTP transport
  * - Applies rate limiting to HTTP transport if PONDER_RPC_RPS is set
  */
-function getTransport(chainId: number) {
+function getTransport(chainId: number): Transport {
   const envVarName = `PONDER_RPC_URL_${chainId}`;
   const rpcUrl = process.env[envVarName];
+  const rpcUrlFallback = process.env[`PONDER_RPC_URL_FALLBACK_${chainId}`];
+  const rpcUrlRateLimit = process.env[`PONDER_RPC_URL_RATE_LIMIT_${chainId}`];
 
   if (!rpcUrl) {
     throw new Error(
@@ -52,26 +93,17 @@ function getTransport(chainId: number) {
     );
   }
 
-  // Check if URL uses websocket protocol (case-insensitive)
-  const isWebSocket = rpcUrl.toLowerCase().startsWith("wss://") ||
-    rpcUrl.toLowerCase().startsWith("ws://");
+  const rpcTransport = getRpcTransport(chainId, rpcUrl, rpcUrlRateLimit);
 
-  if (isWebSocket) {
-    console.log(`Using websocket transport for chain ${chainId}`);
-    return webSocket(rpcUrl);
+  // If no fallback URL is set, return the transport
+  if (!rpcUrlFallback) {
+    return rpcTransport;
   }
 
-  // For HTTP transport, check if rate limiting is enabled
-  const rpsEnv = process.env.PONDER_RPC_RPS;
-  const rps = rpsEnv ? Number(rpsEnv) : undefined;
+  console.log(`Setting up fallback transport for chain ${chainId}`);
+  const rpcTransportFallback = getRpcTransport(chainId, rpcUrlFallback, rpcUrlRateLimit);
 
-  if (rps !== undefined && !isNaN(rps) && rps > 0) {
-    console.log(`Rate limiting HTTP transport for chain ${chainId} to ${rps} requests per second`);
-    return rateLimit(http(rpcUrl), { requestsPerSecond: rps });
-  }
-
-  console.log(`Using HTTP transport for chain ${chainId}`);
-  return http(rpcUrl);
+  return fallback([rpcTransport, rpcTransportFallback]);
 }
 
 export default createConfig({

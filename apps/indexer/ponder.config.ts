@@ -115,10 +115,10 @@ export default createConfig({
       chainId: ChainId.Mainnet,
       transport: getTransport(ChainId.Mainnet),
     },
-    arbitrum: {
-      chainId: ChainId.Arbitrum,
-      transport: getTransport(ChainId.Arbitrum),
-    },
+    // arbitrum: {
+    //   chainId: ChainId.Arbitrum,
+    //   transport: getTransport(ChainId.Arbitrum),
+    // },
     base: {
       chainId: ChainId.Base,
       transport: getTransport(ChainId.Base),
@@ -145,10 +145,10 @@ export default createConfig({
           address: mainnetKernel.address,
           startBlock: mainnetKernel.creationBlockNumber,
         },
-        arbitrum: {
-          address: arbitrumKernel.address,
-          startBlock: arbitrumKernel.creationBlockNumber,
-        },
+        // arbitrum: {
+        //   address: arbitrumKernel.address,
+        //   startBlock: arbitrumKernel.creationBlockNumber,
+        // },
         base: {
           address: baseKernel.address,
           startBlock: baseKernel.creationBlockNumber,
@@ -174,10 +174,10 @@ export default createConfig({
           address: mainnetRoles.address,
           startBlock: mainnetRoles.creationBlockNumber,
         },
-        arbitrum: {
-          address: arbitrumRoles.address,
-          startBlock: arbitrumRoles.creationBlockNumber,
-        },
+        // arbitrum: {
+        //   address: arbitrumRoles.address,
+        //   startBlock: arbitrumRoles.creationBlockNumber,
+        // },
         base: {
           address: baseRoles.address,
           startBlock: baseRoles.creationBlockNumber,
@@ -203,10 +203,10 @@ export default createConfig({
           address: mainnetRolesAdmin.address,
           startBlock: mainnetRolesAdmin.creationBlockNumber,
         },
-        arbitrum: {
-          address: arbitrumRolesAdmin.address,
-          startBlock: arbitrumRolesAdmin.creationBlockNumber,
-        },
+        // arbitrum: {
+        //   address: arbitrumRolesAdmin.address,
+        //   startBlock: arbitrumRolesAdmin.creationBlockNumber,
+        // },
         base: {
           address: baseRolesAdmin.address,
           startBlock: baseRolesAdmin.creationBlockNumber,

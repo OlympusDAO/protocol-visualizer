@@ -135,6 +135,7 @@ const contractNames: MultiChainContracts = {
     },
     "0x986b99579BEc7B990331474b66CcDB94Fa2419F5": {
       name: "ReserveMigrator",
+      version: "1.0",
     },
     "0x9C6220fE829d6FC889cde9b4966D2033C4EfFD48": {
       name: "Heart",
@@ -169,6 +170,7 @@ const contractNames: MultiChainContracts = {
     },
     "0xBA05d48Fb94dC76820EB7ea1B360fd6DfDEabdc5": {
       name: "ContractRegistryAdmin",
+      version: "1.0",
     },
     "0xbb47C3FFf4eF85703907d3ffca30de278b85df3f": {
       name: "Operator",
@@ -180,6 +182,7 @@ const contractNames: MultiChainContracts = {
     },
     "0xC9518AC915e46D707585116451Dc19c164513Ccf": {
       name: "TreasuryCustodian",
+      version: "1.0",
     },
     "0xcaA3d3E653A626e2656d2E799564fE952D39d855": {
       name: "YieldRepurchaseFacility",
@@ -240,21 +243,27 @@ const contractNames: MultiChainContracts = {
     },
     "0xdb591Ea2e5Db886dA872654D58f6cc584b68e7cC": {
       name: "CoolerV2",
+      version: "1.0",
     },
     "0x9ee9f0c2e91E4f6B195B988a9e6e19efcf91e8dc": {
       name: "CoolerV2LtvOracle",
+      version: "1.0",
     },
     "0xD58d7406E9CE34c90cf849Fc3eed3764EB3779B0": {
       name: "CoolerV2TreasuryBorrower",
+      version: "1.0",
     },
     "0x6593768feBF9C95aC857Fb7Ef244D5738D1C57Fd": {
       name: "CoolerV2Composites",
+      version: "1.0",
     },
     "0xE045BD0A0d85E980AA152064C06EAe6B6aE358D2": {
       name: "CoolerV2Migrator",
+      version: "1.0",
     },
     "0xC84157C2306238C9330fEa14774a82A53a127A59": {
       name: "DelegateEscrowFactory",
+      version: "1.0",
     },
     "0xD3204Ae00d6599Ba6e182c6D640A79d76CdAad74": {
       name: "DLGTE",
@@ -262,12 +271,54 @@ const contractNames: MultiChainContracts = {
     },
     "0xFbf6383dC3F6010d403Ecdf12DDC1311701D143D": {
       name: "CCIPCrossChainBridge",
+      version: "1.0",
     },
     "0xa5588e518CE5ee0e4628C005E4edAbD5e87de3aD": {
       name: "CCIPLockReleaseTokenPool",
+      version: "1.0",
     },
     "0x1a5309f208f161a393e8b5a253de8ab894a67188": {
       name: "Deployer",
+    },
+    "0x02331A4c97a4841084dF54d7c0eC04DD3f1A9F1c": {
+      name: "DEPOS",
+      version: "1.0",
+    },
+    "0x9c859Dc91DB65bD7375660341231227336dAa134": {
+      name: "PositionTokenRenderer",
+      version: "1.0",
+    },
+    "0xD98B5b2E4D5d6Cd554115DE19EfB7A9084BEddd1": {
+      name: "ReceiptTokenManager",
+      version: "1.0",
+    },
+    "0xF35193DA8C10e44aF10853Ba5a3a1a6F7529E39a": {
+      name: "ConvertibleDepositAuctioneer",
+      version: "1.0",
+    },
+    "0xEBDe552D851DD6Dfd3D360C596D3F4aF6e5F9678": {
+      name: "ConvertibleDepositFacility",
+      version: "1.0",
+    },
+    "0xcb4E21Eb404d80F3e1dB781aAd9AD6A1217fbbf2": {
+      name: "DepositManager",
+      version: "1.0",
+    },
+    "0x20a3d8510f2e1176E8Db4CeA9883a8287a9029Db": {
+      name: "DepositRedemptionVault",
+      version: "1.0",
+    },
+    "0xA61b846D5D8b757e3d541E0e4F80390E28f0B6Ff": {
+      name: "EmissionManager",
+      version: "1.2",
+    },
+    "0x5824850D8A6E46a473445a5AF214C7EbD46c5ECB": {
+      name: "Heart",
+      version: "1.7",
+    },
+    "0xcA6cd4F0a0033f8C20cF68d6dF277E7001a386f9": {
+      name: "ReserveWrapper",
+      version: "1.0",
     },
   },
   [ChainId.Arbitrum]: {
@@ -452,8 +503,9 @@ const contractNames: MultiChainContracts = {
     "0x8B92A1dea210B7b7516443b52fdf5Dae677e93b0": {
       name: "ReserveMigrator",
     },
-    "0xa386b4f750F493a6c9f33FbBF8702718b785969A": {
+    "0x46a01AE30571855FBB5988eEd9D116aa2A3f2377": {
       name: "ReserveWrapper",
+      version: "1.0",
     },
     "0xf33133E5356B9534e794468dAcD424D11007f1cF": {
       name: "RolesAdmin",
@@ -467,17 +519,29 @@ const contractNames: MultiChainContracts = {
     "0x0db48Fa20894273cF6bB559644d63713E98FE67b": {
       name: "ZeroDistributor",
     },
-    "0x2364bf0A9AA544039bC12130d3Ae167DfFbB93A5": {
+    "0x2C9658b32E59cC4eb5aC90e2A3795C9E7fCaa644": {
       name: "DepositManager",
+      version: "1.0",
     },
-    "0x69b2Be653BAB628116b360818BE75a2d97b45C4a": {
+    "0x93AcaDa86ad23C85e96869D46945fA6FFb7a4036": {
       name: "DepositRedemptionVault",
+      version: "1.0",
     },
-    "0xc14156AF3bF6c11b1c40C8f51f64bA5496870126": {
+    "0x247f1989aDc0F63D07b91Bf645De879b9de06fbB": {
       name: "ConvertibleDepositAuctioneer",
+      version: "1.0",
     },
-    "0x87568265eb6Ea27f37613d242D4192B6f6771269": {
+    "0x0bE69702E83f06A027E6841B614f6946d1265441": {
       name: "ConvertibleDepositFacility",
+      version: "1.0",
+    },
+    "0x1dc2c4E15189a7aa61Eff2b3DD3D5EAe8fA03377": {
+      name: "Heart",
+      version: "1.7",
+    },
+    "0x84785E392BfD02F97A9b84F85d86DEc11933ef81": {
+      name: "EmissionManager",
+      version: "1.2",
     },
   },
 };

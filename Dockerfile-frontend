@@ -2,13 +2,13 @@
 FROM node:18-alpine AS builder
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@9.5 --activate
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 
 # Set working directory
 WORKDIR /app
 
-# Copy pnpm files
-COPY pnpm-lock.yaml pnpm-workspace.yaml ./
+# Copy pnpm files and root package.json (for overrides)
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/frontend/package.json ./apps/frontend/
 COPY apps/indexer/package.json ./apps/indexer/
 

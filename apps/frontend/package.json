@@ -12,7 +12,7 @@
   "dependencies": {
     "@ponder/client": "^0.9.23",
     "@ponder/react": "^0.9.23",
-    "@tanstack/react-query": "^5.0.0",
+    "@tanstack/react-query": "^5.90.17",
     "@types/dagre": "^0.7.52",
     "dagre": "^0.8.5",
     "react": "18.3.1",

@@ -46,8 +46,8 @@ importers:
         specifier: ^0.9.23
         version: 0.9.23(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(better-sqlite3@9.6.0)(kysely@0.26.3)(pg@8.13.3)(typescript@5.7.3)
       '@ponder/react':
-        specifier: ^0.9.23
-        version: 0.9.23(@ponder/client@0.9.23(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(better-sqlite3@9.6.0)(kysely@0.26.3)(pg@8.13.3)(typescript@5.7.3))(@tanstack/react-query@5.66.9(react@18.3.1))(react@18.3.1)(typescript@5.7.3)
+        specifier: ^0.16.1
+        version: 0.16.1(@ponder/client@0.9.23(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(better-sqlite3@9.6.0)(kysely@0.26.3)(pg@8.13.3)(typescript@5.7.3))(@tanstack/react-query@5.66.9(react@18.3.1))(react@18.3.1)(typescript@5.7.3)
       '@tanstack/react-query':
         specifier: ^5.0.0
         version: 5.66.9(react@18.3.1)
@@ -638,10 +638,10 @@ packages:
       typescript:
         optional: true
 
-  '@ponder/react@0.9.23':
-    resolution: {integrity: sha512-ULnitOXcD1PJ4D29oRqFy/Jolw1ukkUiCKjogX02wCA2FTQII/F2K4RLePOi60idclbaRiXF/DdFrugAvT+gWw==}
+  '@ponder/react@0.16.1':
+    resolution: {integrity: sha512-t4h5TFj1gk97YJKGrWNqt3P1J00RpHa9wyU1o71MYg37w+febqMYL5HnHBCmNBEVtNL+Rj+9MxdPCAWLlaYyBg==}
     peerDependencies:
-      '@ponder/client': '>=0.9.23'
+      '@ponder/client': '>=0.16.1'
       '@tanstack/react-query': '>=5.0.0'
       react: '>=18'
       typescript: '>=5.0.4'
@@ -1416,6 +1416,10 @@ packages:
   copy-anything@3.0.5:
     resolution: {integrity: sha512-yCEafptTtb4bk7GLEQoM8KVJpxAfdBJYaXyzQEgQQQgYrZiDp8SJmGKlYza6CYjEDNstAdNdKA3UuoULlEbS6w==}
     engines: {node: '>=12.13'}
+
+  copy-anything@4.0.5:
+    resolution: {integrity: sha512-7Vv6asjS4gMOuILabD3l739tsaxFQmC+a7pLZm02zyvs8p977bL3zEgq3yDk5rn9B0PbYgIv++jmHcuUab4RhA==}
+    engines: {node: '>=18'}
 
   cross-inspect@1.0.1:
     resolution: {integrity: sha512-Pcw1JTvZLSJH83iiGWt6fRcT+BjZlCDRVwYLbUcHzv/CRpB7r0MlSrGbIyQvVSNyGnbt7G4AXuyCiDR3POvZ1A==}
@@ -2289,6 +2293,10 @@ packages:
     resolution: {integrity: sha512-ZhMwEosbFJkA0YhFnNDgTM4ZxDRsS6HqTo7qsZM08fehyRYIYa0yHu5R6mgo1n/8MgaPBXiPimPD77baVFYg+A==}
     engines: {node: '>=12.13'}
 
+  is-what@5.5.0:
+    resolution: {integrity: sha512-oG7cgbmg5kLYae2N5IVd3jm2s+vldjxJzK1pcu9LfpGuQ93MQSzo0okvRna+7y5ifrD+20FE8FvjusyGaz14fw==}
+    engines: {node: '>=18'}
+
   isarray@2.0.5:
     resolution: {integrity: sha512-xHjhDr3cNBK0BzdUJSPXZntQUx/mwMS5Rw4A7lPJ90XGAO6ISP/ePDNuo0vhqOZU+UD5JoodwCAAoZQd3FeAKw==}
 
@@ -3052,6 +3060,10 @@ packages:
 
   superjson@2.2.2:
     resolution: {integrity: sha512-5JRxVqC8I8NuOUjzBbvVJAKNM8qoVuH0O77h4WInc/qC2q5IreqKxYwgkga3PfA22OayK2ikceb/B26dztPl+Q==}
+    engines: {node: '>=16'}
+
+  superjson@2.2.6:
+    resolution: {integrity: sha512-H+ue8Zo4vJmV2nRjpx86P35lzwDT3nItnIsocgumgr0hHMQ+ZGq5vrERg9kJBo5AWGmxZDhzDo+WVIJqkB0cGA==}
     engines: {node: '>=16'}
 
   supports-color@7.2.0:
@@ -3939,12 +3951,12 @@ snapshots:
       - sql.js
       - sqlite3
 
-  '@ponder/react@0.9.23(@ponder/client@0.9.23(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(better-sqlite3@9.6.0)(kysely@0.26.3)(pg@8.13.3)(typescript@5.7.3))(@tanstack/react-query@5.66.9(react@18.3.1))(react@18.3.1)(typescript@5.7.3)':
+  '@ponder/react@0.16.1(@ponder/client@0.9.23(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(better-sqlite3@9.6.0)(kysely@0.26.3)(pg@8.13.3)(typescript@5.7.3))(@tanstack/react-query@5.66.9(react@18.3.1))(react@18.3.1)(typescript@5.7.3)':
     dependencies:
       '@ponder/client': 0.9.23(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(better-sqlite3@9.6.0)(kysely@0.26.3)(pg@8.13.3)(typescript@5.7.3)
       '@tanstack/react-query': 5.66.9(react@18.3.1)
       react: 18.3.1
-      superjson: 2.2.2
+      superjson: 2.2.6
     optionalDependencies:
       typescript: 5.7.3
 
@@ -4899,6 +4911,10 @@ snapshots:
     dependencies:
       is-what: 4.1.16
 
+  copy-anything@4.0.5:
+    dependencies:
+      is-what: 5.5.0
+
   cross-inspect@1.0.1:
     dependencies:
       tslib: 2.8.1
@@ -5845,6 +5861,8 @@ snapshots:
 
   is-what@4.1.16: {}
 
+  is-what@5.5.0: {}
+
   isarray@2.0.5: {}
 
   isexe@2.0.0: {}
@@ -6718,6 +6736,10 @@ snapshots:
   superjson@2.2.2:
     dependencies:
       copy-anything: 3.0.5
+
+  superjson@2.2.6:
+    dependencies:
+      copy-anything: 4.0.5
 
   supports-color@7.2.0:
     dependencies:

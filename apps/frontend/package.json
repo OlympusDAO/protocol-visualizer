@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@ponder/client": "^0.9.23",
-    "@ponder/react": "^0.9.23",
+    "@ponder/react": "^0.16.1",
     "@tanstack/react-query": "^5.0.0",
     "@types/dagre": "^0.7.52",
     "dagre": "^0.8.5",

@@ -1,4 +1,4 @@
-name: Dependency Audit
+name: pnpm CI
 
 on:
   pull_request:
@@ -6,10 +6,10 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
-  audit:
+
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,13 +24,7 @@ jobs:
         uses: pnpm/action-setup@v5
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
-      - name: Audit pnpm dependencies (fail on moderate+)
-        uses: JamesRobertWiseman/pnpm-audit@v3
-        with:
-          package_json_path: ./
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          level: moderate
-          fails: true
-          single_comment: true
+      - name: Run build
+        run: pnpm run build

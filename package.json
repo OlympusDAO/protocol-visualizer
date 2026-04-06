@@ -65,7 +65,7 @@
       "yaml": ">=2.8.3",
       "yaml@>=2.0.0 <2.8.3": ">=2.8.3",
       "eslint-plugin-import>minimatch": "9.0.7",
-      "@eslint/eslintrc>minimatch": "5.1.6",
+       "@eslint/eslintrc>minimatch": "5.1.8",
       "micromatch>picomatch": "4.0.4"
     }
   },

@@ -49,9 +49,14 @@ function getRateLimit(rpcUrlRateLimit?: string): number | undefined {
   return rps;
 }
 
-function getRpcTransport(chainId: number, rpcUrl: string, rpcUrlRateLimit?: string): Transport {
+function getRpcTransport(
+  chainId: number,
+  rpcUrl: string,
+  rpcUrlRateLimit?: string
+): Transport {
   // Check if URL uses websocket protocol (case-insensitive)
-  const isWebSocket = rpcUrl.toLowerCase().startsWith("wss://") ||
+  const isWebSocket =
+    rpcUrl.toLowerCase().startsWith("wss://") ||
     rpcUrl.toLowerCase().startsWith("ws://");
 
   // Check for rate-limiting
@@ -68,7 +73,9 @@ function getRpcTransport(chainId: number, rpcUrl: string, rpcUrlRateLimit?: stri
   }
 
   if (rps) {
-    console.log(`Rate limiting transport for chain ${chainId} to ${rps} requests per second`);
+    console.log(
+      `Rate limiting transport for chain ${chainId} to ${rps} requests per second`
+    );
     transport = rateLimit(transport, { requestsPerSecond: rps });
   }
 
@@ -102,7 +109,11 @@ function getTransport(chainId: number): Transport {
   }
 
   console.log(`Setting up fallback transport for chain ${chainId}`);
-  const rpcTransportFallback = getRpcTransport(chainId, rpcUrlFallback, rpcUrlRateLimit);
+  const rpcTransportFallback = getRpcTransport(
+    chainId,
+    rpcUrlFallback,
+    rpcUrlRateLimit
+  );
 
   return fallback([rpcTransport, rpcTransportFallback]);
 }

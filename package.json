@@ -5,7 +5,7 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint:check": "turbo run lint:check",
-    "lint": "eslint --fix \"**/*.{js,mjs,ts,tsx}\" && prettier --write \"**/*.{js,mjs,ts,tsx,md,json}\"",
+    "lint": "turbo run lint && prettier --write \"**/*.{js,mjs,ts,tsx,md,json}\"",
     "format": "prettier --write \"**/*.{js,mjs,ts,tsx,md,json}\"",
     "preinstall": "npx only-allow pnpm"
   },
@@ -65,7 +65,7 @@
       "yaml": ">=2.8.3",
       "yaml@>=2.0.0 <2.8.3": ">=2.8.3",
       "eslint-plugin-import>minimatch": "9.0.7",
-       "@eslint/eslintrc>minimatch": "5.1.8",
+      "@eslint/eslintrc>minimatch": "5.1.8",
       "micromatch>picomatch": "4.0.4"
     }
   },

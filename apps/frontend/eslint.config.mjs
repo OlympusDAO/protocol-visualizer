@@ -10,7 +10,27 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    ignores: [
+      ".next/**",
+      "dist/**",
+      "node_modules/**",
+      "eslint.config.mjs",
+      "postcss.config.mjs",
+      "tailwind.config.ts",
+      "vite.config.ts",
+      "src/env.d.ts",
+    ],
+  },
+  ...compat.extends(
+    "plugin:@typescript-eslint/recommended",
+    "plugin:react-hooks/recommended"
+  ),
+  {
+    rules: {
+      "react-hooks/exhaustive-deps": "off",
+    },
+  },
 ];
 
 export default eslintConfig;

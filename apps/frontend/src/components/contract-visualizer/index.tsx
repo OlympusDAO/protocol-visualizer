@@ -673,7 +673,10 @@ export function ContractVisualizer() {
     setEdges(layoutedEdges);
     setLayouting(false);
     setInitialized(true);
-  }, [
+  },
+    // setNodes/setEdges are stable React Flow setters; this layout reset only tracks chain changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  [
     contracts,
     roles,
     roleAssignments,
@@ -771,7 +774,10 @@ export function ContractVisualizer() {
         });
       }
     }, 10);
-  }, [selectedNode, originalLayout, getConnectedNodes, edges, nodes]);
+  },
+    // setNodes/setEdges are stable React Flow setters; this selection effect only tracks graph state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  [selectedNode, originalLayout, getConnectedNodes, edges, nodes]);
 
   // Modify effect to reset layout when deselecting
   useEffect(() => {
@@ -802,7 +808,10 @@ export function ContractVisualizer() {
         }
       }, 50);
     }
-  }, [selectedNode, originalLayout, initialized]);
+  },
+    // setNodes/setEdges are stable React Flow setters; this restore effect only tracks selection state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  [selectedNode, originalLayout, initialized]);
 
   // Add initialization effect back
   useEffect(() => {

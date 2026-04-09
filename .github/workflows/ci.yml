@@ -55,3 +55,33 @@ jobs:
 
       - name: Run build
         run: pnpm run build
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: "pnpm"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Verify runtime version alignment
+        run: pnpm run check:runtime-versions
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build indexer Docker image
+        run: pnpm run docker:build:indexer
+
+      - name: Build frontend Docker image
+        run: pnpm run docker:build:frontend

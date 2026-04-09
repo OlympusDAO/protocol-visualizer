@@ -29,3 +29,52 @@ jobs:
 
       - name: Run security audit
         run: pnpm audit --audit-level=high
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build indexer Docker image
+        run: pnpm run docker:build:indexer
+
+      - name: Tag indexer image for scan
+        run: pnpm run docker:tag:scan:indexer
+
+      - name: Build frontend Docker image
+        run: pnpm run docker:build:frontend
+
+      - name: Tag frontend image for scan
+        run: pnpm run docker:tag:scan:frontend
+
+      - name: Scan indexer Dockerfile for misconfigurations
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: Dockerfile-indexer
+          scanners: misconfig
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+
+      - name: Scan frontend Dockerfile for misconfigurations
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: Dockerfile-frontend
+          scanners: misconfig
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+
+      - name: Scan indexer image for vulnerabilities
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: protocol-visualizer/indexer:scan
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+
+      - name: Scan frontend image for vulnerabilities
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: protocol-visualizer/frontend:scan
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: "1"

@@ -30,3 +30,21 @@ Note: WIP
   - Hosted on a Google Compute Engine VM
 - Frontend
   - Hosted on Fleek
+
+## Validation
+
+Run full local validation (including Docker builds):
+
+```bash
+pnpm run validate:local
+```
+
+Run checks individually:
+
+```bash
+pnpm run check:runtime-versions
+pnpm run lint:check
+pnpm run build
+pnpm run docker:build:indexer
+pnpm run docker:build:frontend
+```

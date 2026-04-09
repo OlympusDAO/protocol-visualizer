@@ -11,6 +11,8 @@ const WORKFLOW_FILES = [
   ".github/workflows/security-scan.yml",
 ];
 
+const DOCKERFILES = ["Dockerfile-indexer", "Dockerfile-frontend"];
+
 function readText(relativePath) {
   return readFileSync(path.join(ROOT, relativePath), "utf8");
 }
@@ -105,6 +107,42 @@ for (const workflowPath of WORKFLOW_FILES) {
   if (/\bnode-version\s*:/.test(content)) {
     fail(
       `${workflowPath} should not hardcode node-version; use node-version-file: .nvmrc.`
+    );
+  }
+}
+
+for (const dockerfilePath of DOCKERFILES) {
+  const content = readText(dockerfilePath);
+
+  const nodeImageMatch = content.match(/FROM\s+node:([^\s]+)/i);
+  if (!nodeImageMatch) {
+    fail(`${dockerfilePath} must define a Node.js base image (FROM node:...).`);
+  }
+
+  const dockerNodeMajor = extractMajor(
+    nodeImageMatch[1],
+    `${dockerfilePath} Node.js image tag`
+  );
+
+  if (dockerNodeMajor !== nodeEngineMajor) {
+    fail(
+      `${dockerfilePath} uses Node.js ${nodeImageMatch[1]} but engines.node is ${nodeEngine}.`
+    );
+  }
+
+  const pnpmMatch = content.match(
+    /corepack\s+prepare\s+pnpm@([^\s]+)\s+--activate/i
+  );
+  if (!pnpmMatch) {
+    fail(
+      `${dockerfilePath} must install pnpm using corepack prepare pnpm@<version> --activate.`
+    );
+  }
+
+  const dockerPnpmVersion = pnpmMatch[1].trim();
+  if (dockerPnpmVersion !== packageManagerVersion) {
+    fail(
+      `${dockerfilePath} uses pnpm ${dockerPnpmVersion} but packageManager is ${packageManagerVersion}.`
     );
   }
 }

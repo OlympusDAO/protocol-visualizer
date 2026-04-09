@@ -4,9 +4,14 @@
   "scripts": {
     "build": "turbo run build",
     "check:runtime-versions": "node scripts/verify-runtime-versions.mjs",
+    "docker:build:frontend": "docker build -f Dockerfile-frontend --build-arg VITE_PONDER_URL=https://example.com -t protocol-visualizer/frontend:local .",
+    "docker:build:indexer": "docker build -f Dockerfile-indexer -t protocol-visualizer/indexer:local .",
+    "docker:tag:scan:frontend": "docker tag protocol-visualizer/frontend:local protocol-visualizer/frontend:scan",
+    "docker:tag:scan:indexer": "docker tag protocol-visualizer/indexer:local protocol-visualizer/indexer:scan",
     "dev": "turbo run dev",
     "lint:check": "turbo run lint:check",
     "lint": "turbo run lint && prettier --write \"**/*.{js,mjs,ts,tsx,md,json}\"",
+    "validate:local": "pnpm run check:runtime-versions && pnpm run lint:check && pnpm run build && pnpm run docker:build:indexer && pnpm run docker:build:frontend",
     "format": "prettier --write \"**/*.{js,mjs,ts,tsx,md,json}\"",
     "preinstall": "npx only-allow@1.2.2 pnpm"
   },

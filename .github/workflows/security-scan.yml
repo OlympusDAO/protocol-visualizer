@@ -18,8 +18,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: 'pnpm'
+          node-version-file: .nvmrc
+          cache: "pnpm"
+
+      - name: Verify runtime version alignment
+        run: pnpm run check:runtime-versions
 
       - name: Install dependencies
         run: pnpm install

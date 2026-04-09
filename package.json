@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
+    "check:runtime-versions": "node scripts/verify-runtime-versions.mjs",
     "dev": "turbo run dev",
     "lint:check": "turbo run lint:check",
     "lint": "turbo run lint && prettier --write \"**/*.{js,mjs,ts,tsx,md,json}\"",
@@ -70,6 +71,7 @@
     }
   },
   "engines": {
+    "node": "22.x",
     "pnpm": "10.33.0",
     "npm": "use-pnpm",
     "yarn": "use-pnpm"

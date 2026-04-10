@@ -42,4 +42,6 @@ COPY --from=builder /app/apps/frontend/Caddyfile /etc/caddy/Caddyfile
 ENV VITE_PONDER_URL=$VITE_PONDER_URL
 
 # Use non-root user
-USER caddy
+RUN addgroup -S app && adduser -S app -G app && \
+    chown -R app:app /srv /data /config /etc/caddy
+USER app

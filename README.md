@@ -43,6 +43,7 @@ Run checks individually:
 
 ```bash
 pnpm run check:runtime-versions
+pnpm install --frozen-lockfile
 pnpm run lint:check
 pnpm run build
 pnpm run docker:build:indexer

@@ -1,0 +1,10 @@
+# Temporary ignores for pnpm toolchain bundle in Corepack cache.
+# Source path in image: /root/.cache/node/corepack/v1/pnpm/10.33.0/dist/node_modules/*/package.json
+# Rationale: runtime keeps Corepack/pnpm by design; app dependencies are patched and audited separately.
+# Remove once stable pnpm ships fixes for these transitive toolchain packages.
+# CVE-2026-33671 -> package picomatch, installed version 4.0.3
+# CVE-2026-33672 -> package picomatch, installed version 4.0.3
+# CVE-2026-33750 -> package brace-expansion, installed version 2.0.2
+CVE-2026-33671
+CVE-2026-33672
+CVE-2026-33750

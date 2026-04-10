@@ -17,3 +17,9 @@ If a command fails, stop and report the first failure with actionable context.
 
 - Node version must align across `package.json` (`engines.node`), `.nvmrc`, `.node-version`, GitHub Actions setup, and Dockerfiles.
 - pnpm version must align across `package.json` (`packageManager` and `engines.pnpm`) and Dockerfiles.
+
+## Trivy Ignore Policy
+
+- Do not add new CVEs/packages to `.trivyignore` when a practical remediation exists (package update, base image update, or config change).
+- If no practical remediation exists, ask for explicit user approval before adding to `.trivyignore`.
+- Every `.trivyignore` entry must document the affected package and installed version.

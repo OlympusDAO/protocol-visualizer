@@ -13,9 +13,9 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "hono": "^4.11.4",
-    "ponder": "^0.9.23",
-    "viem": "^2.21.3"
+    "hono": "4.12.12",
+    "ponder": "^0.16.6",
+    "viem": "^2.47.11"
   },
   "devDependencies": {
     "@types/node": "^20.9.0",

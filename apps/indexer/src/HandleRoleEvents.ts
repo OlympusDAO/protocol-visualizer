@@ -10,13 +10,13 @@ ponder.on("ROLES:RoleGranted", async ({ event, context }) => {
   const blockNumber = Number(event.block.number);
 
   console.log(
-    `Chain ${context.network.chainId}: Processing role granted event for ${role} to ${assignee}`
+    `Chain ${context.chain.id}: Processing role granted event for ${role} to ${assignee}`
   );
 
   // Record the role event
   await context.db.insert(roleEvent).values({
     // Primary keys
-    chainId: context.network.chainId,
+    chainId: context.chain.id,
     role: role,
     transactionHash: event.transaction.hash,
     logIndex: event.log.logIndex,
@@ -25,7 +25,7 @@ ponder.on("ROLES:RoleGranted", async ({ event, context }) => {
     timestamp: BigInt(timestamp),
     blockNumber: BigInt(blockNumber),
     // Other data
-    assigneeName: getContractName(assignee, context.network.chainId),
+    assigneeName: getContractName(assignee, context.chain.id),
     isGranted: true,
   });
 
@@ -34,14 +34,14 @@ ponder.on("ROLES:RoleGranted", async ({ event, context }) => {
     .insert(roleAssignment)
     .values({
       // Primary keys
-      chainId: context.network.chainId,
+      chainId: context.chain.id,
       role: role,
       assignee: assignee,
       // Timestamp
       lastUpdatedTimestamp: BigInt(timestamp),
       lastUpdatedBlockNumber: BigInt(blockNumber),
       // Other data
-      assigneeName: getContractName(assignee, context.network.chainId),
+      assigneeName: getContractName(assignee, context.chain.id),
       isGranted: true,
     })
     .onConflictDoUpdate({
@@ -53,7 +53,7 @@ ponder.on("ROLES:RoleGranted", async ({ event, context }) => {
     .insert(roleTable)
     .values({
       // Primary keys
-      chainId: context.network.chainId,
+      chainId: context.chain.id,
       role: role,
     })
     .onConflictDoNothing();
@@ -66,13 +66,13 @@ ponder.on("ROLES:RoleRevoked", async ({ event, context }) => {
   const blockNumber = Number(event.block.number);
 
   console.log(
-    `Chain ${context.network.chainId}: Processing role revoked event for ${role} from ${assignee}`
+    `Chain ${context.chain.id}: Processing role revoked event for ${role} from ${assignee}`
   );
 
   // Record the role event
   await context.db.insert(roleEvent).values({
     // Primary keys
-    chainId: context.network.chainId,
+    chainId: context.chain.id,
     role: role,
     transactionHash: event.transaction.hash,
     logIndex: event.log.logIndex,
@@ -81,14 +81,14 @@ ponder.on("ROLES:RoleRevoked", async ({ event, context }) => {
     timestamp: BigInt(timestamp),
     blockNumber: BigInt(blockNumber),
     // Other data
-    assigneeName: getContractName(assignee, context.network.chainId),
+    assigneeName: getContractName(assignee, context.chain.id),
     isGranted: false,
   });
 
   // Update the role assignment
   await context.db
     .update(roleAssignment, {
-      chainId: context.network.chainId,
+      chainId: context.chain.id,
       role: role,
       assignee: assignee,
     })

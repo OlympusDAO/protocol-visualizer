@@ -1,5 +1,6 @@
 # Build stage
-FROM node:22-alpine AS builder
+# Pinned image: node:24-alpine (Node v24.14.1)
+FROM node:24-alpine@sha256:01743339035a5c3c11a373cd7c83aeab6ed1457b55da6a69e014a95ac4e4700b AS builder
 
 # Apply Alpine security updates
 RUN apk upgrade --no-cache zlib libssl3 libcrypto3
@@ -16,6 +17,10 @@ COPY apps/indexer/package.json ./apps/indexer/
 
 # Install production dependencies
 RUN pnpm install --frozen-lockfile --prod
+
+# npm is not needed at runtime. Keep corepack/pnpm for `pnpm exec` and
+# remove npm to reduce toolchain-only CVE surface in production images.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 # Copy source code
 COPY apps/indexer/ ./apps/indexer/

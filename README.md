@@ -48,3 +48,8 @@ pnpm run build
 pnpm run docker:build:indexer
 pnpm run docker:build:frontend
 ```
+
+## Runtime Image Notes
+
+- The indexer runtime image keeps `pnpm`/Corepack so it can execute `pnpm exec ponder ...` at startup.
+- `npm` is removed from the indexer runtime image because it is not required to run the service and it reduces toolchain-only vulnerability surface in container scans.

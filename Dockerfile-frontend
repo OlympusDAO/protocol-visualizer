@@ -30,18 +30,18 @@ ENV VITE_PONDER_URL=$VITE_PONDER_URL
 RUN pnpm run build
 
 # Production stage
-FROM caddy:alpine
+FROM nginxinc/nginx-unprivileged:alpine
 
-# Copy the built static files to Caddy's serve directory
-COPY --from=builder /app/apps/frontend/dist /srv/
+# Apply Alpine security updates
+USER root
+RUN apk upgrade --no-cache zlib libssl3 libcrypto3
 
-# Copy the Caddyfile
-COPY --from=builder /app/apps/frontend/Caddyfile /etc/caddy/Caddyfile
+# Copy the built static files to Nginx's serve directory
+COPY --from=builder /app/apps/frontend/dist /usr/share/nginx/html
 
-# Add environment variables to Caddy
-ENV VITE_PONDER_URL=$VITE_PONDER_URL
+# Copy Nginx config
+COPY --from=builder /app/apps/frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
-# Use non-root user
-RUN addgroup -S app && adduser -S app -G app && \
-    chown -R app:app /srv /data /config /etc/caddy
-USER app
+EXPOSE 8080
+
+USER 101

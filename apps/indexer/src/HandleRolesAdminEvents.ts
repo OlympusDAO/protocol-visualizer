@@ -10,7 +10,7 @@ ponder.on("RolesAdmin:NewAdminPulled", async ({ event, context }) => {
   const newAdmin = event.args.newAdmin_;
   const timestamp = Number(event.block.timestamp);
   const blockNumber = Number(event.block.number);
-  const CHAIN = `Chain ${context.chain.id}`;
+  const CHAIN = `Chain ${context.network.chainId}`;
 
   console.log(`${CHAIN}: Processing new admin pulled event for ${newAdmin}`);
 
@@ -21,7 +21,7 @@ ponder.on("RolesAdmin:NewAdminPulled", async ({ event, context }) => {
     .where(
       and(
         eq(roleAssignment.role, ROLE_ROLES_ADMIN),
-        eq(roleAssignment.chainId, context.chain.id)
+        eq(roleAssignment.chainId, context.network.chainId)
       )
     )
     .orderBy(desc(roleAssignment.lastUpdatedTimestamp))
@@ -35,7 +35,7 @@ ponder.on("RolesAdmin:NewAdminPulled", async ({ event, context }) => {
     // Record the disabled role event
     await context.db.insert(roleEvent).values({
       // Primary keys
-      chainId: context.chain.id,
+      chainId: context.network.chainId,
       role: ROLE_ROLES_ADMIN,
       transactionHash: event.transaction.hash,
       logIndex: event.log.logIndex,
@@ -51,7 +51,7 @@ ponder.on("RolesAdmin:NewAdminPulled", async ({ event, context }) => {
     // Disable the previous role assignment
     await context.db
       .update(roleAssignment, {
-        chainId: context.chain.id,
+        chainId: context.network.chainId,
         role: ROLE_ROLES_ADMIN,
         assignee: previousAssignee,
       })
@@ -67,7 +67,7 @@ ponder.on("RolesAdmin:NewAdminPulled", async ({ event, context }) => {
   // Record the role event
   await context.db.insert(roleEvent).values({
     // Primary keys
-    chainId: context.chain.id,
+    chainId: context.network.chainId,
     role: ROLE_ROLES_ADMIN,
     transactionHash: event.transaction.hash,
     logIndex: event.log.logIndex,
@@ -76,21 +76,21 @@ ponder.on("RolesAdmin:NewAdminPulled", async ({ event, context }) => {
     timestamp: BigInt(timestamp),
     blockNumber: BigInt(blockNumber),
     // Other data
-    assigneeName: getContractName(newAdmin, context.chain.id),
+    assigneeName: getContractName(newAdmin, context.network.chainId),
     isGranted: true,
   });
 
   // Record the new role assignment
   await context.db.insert(roleAssignment).values({
     // Primary keys
-    chainId: context.chain.id,
+    chainId: context.network.chainId,
     role: ROLE_ROLES_ADMIN,
     assignee: newAdmin,
     // Timestamp
     lastUpdatedTimestamp: BigInt(timestamp),
     lastUpdatedBlockNumber: BigInt(blockNumber),
     // Other data
-    assigneeName: getContractName(newAdmin, context.chain.id),
+    assigneeName: getContractName(newAdmin, context.network.chainId),
     isGranted: true,
   });
 
@@ -99,7 +99,7 @@ ponder.on("RolesAdmin:NewAdminPulled", async ({ event, context }) => {
     .insert(role)
     .values({
       // Primary keys
-      chainId: context.chain.id,
+      chainId: context.network.chainId,
       role: ROLE_ROLES_ADMIN,
     })
     .onConflictDoNothing();
@@ -107,7 +107,7 @@ ponder.on("RolesAdmin:NewAdminPulled", async ({ event, context }) => {
 
 ponder.on("RolesAdmin:setup", async ({ context }) => {
   // Insert initial records for the RolesAdmin contract
-  const constants = getRolesAdminConstants(context.chain.id);
+  const constants = getRolesAdminConstants(context.network.chainId);
 
   // Get the initial admin
   const initialAdmin = await context.client.readContract({
@@ -117,13 +117,13 @@ ponder.on("RolesAdmin:setup", async ({ context }) => {
   });
 
   console.log(
-    `Chain ${context.chain.id}: Recording initial admin for RolesAdmin contract`
+    `Chain ${context.network.chainId}: Recording initial admin for RolesAdmin contract`
   );
 
   // Record the role event
   await context.db.insert(roleEvent).values({
     // Primary keys
-    chainId: context.chain.id,
+    chainId: context.network.chainId,
     role: ROLE_ROLES_ADMIN,
     transactionHash: constants.creationTransactionHash,
     logIndex: 0,
@@ -132,21 +132,21 @@ ponder.on("RolesAdmin:setup", async ({ context }) => {
     timestamp: BigInt(constants.creationTimestamp),
     blockNumber: BigInt(constants.creationBlockNumber),
     // Other data
-    assigneeName: getContractName(initialAdmin, context.chain.id),
+    assigneeName: getContractName(initialAdmin, context.network.chainId),
     isGranted: true,
   });
 
   // Record the role assignment
   await context.db.insert(roleAssignment).values({
     // Primary keys
-    chainId: context.chain.id,
+    chainId: context.network.chainId,
     role: ROLE_ROLES_ADMIN,
     assignee: initialAdmin,
     // Timestamp
     lastUpdatedTimestamp: BigInt(constants.creationTimestamp),
     lastUpdatedBlockNumber: BigInt(constants.creationBlockNumber),
     // Other data
-    assigneeName: getContractName(initialAdmin, context.chain.id),
+    assigneeName: getContractName(initialAdmin, context.network.chainId),
     isGranted: true,
   });
 
@@ -155,7 +155,7 @@ ponder.on("RolesAdmin:setup", async ({ context }) => {
     .insert(role)
     .values({
       // Primary keys
-      chainId: context.chain.id,
+      chainId: context.network.chainId,
       role: ROLE_ROLES_ADMIN,
     })
     .onConflictDoNothing();

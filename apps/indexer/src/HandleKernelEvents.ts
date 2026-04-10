@@ -91,7 +91,7 @@ const parseContractName = async (
   context: Context
 ): Promise<string> => {
   if (action > 1) {
-    return getContractName(target, context.chain.id);
+    return getContractName(target, context.network.chainId);
   }
 
   // Get the keycode from the module
@@ -130,7 +130,7 @@ const parsePolicyFunctions = async (
 
   // Process the policy contract
   const policyFunctions = await getContractProcessor(
-    context.chain.id
+    context.network.chainId
   ).processContract(policyAddress, policyName);
 
   return Object.values(policyFunctions.functionSelectors);
@@ -189,7 +189,7 @@ const parsePolicyPermissions = async (
 
     // Process the module contract to get function information
     const moduleProcessedData = await getContractProcessor(
-      context.chain.id
+      context.network.chainId
     ).processContract(moduleContract.address, moduleKeycode);
 
     // Get the function details for this selector
@@ -231,7 +231,7 @@ const getPreviousModule = async (keycode: string, context: Context) => {
     .where(
       and(
         eq(contract.name, keycode),
-        eq(contract.chainId, context.chain.id)
+        eq(contract.chainId, context.network.chainId)
       )
     )
     .orderBy(desc(contract.lastUpdatedTimestamp))
@@ -258,11 +258,11 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
   const action = parseAction(actionInt);
   const contractType = parseContractType(actionInt);
   const contractName = await parseContractName(actionInt, target, context);
-  const contractVersion = getContractVersion(target, context.chain.id);
+  const contractVersion = getContractVersion(target, context.network.chainId);
 
   console.log("\n\n****");
   console.log(
-    `Chain ${context.chain.id}: Processing action ${action} on target ${target} at block ${event.block.number}`
+    `Chain ${context.network.chainId}: Processing action ${action} on target ${target} at block ${event.block.number}`
   );
 
   // Record the action event
@@ -270,7 +270,7 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
     .insert(actionExecutedEvent)
     .values({
       // Primary keys
-      chainId: context.chain.id,
+      chainId: context.network.chainId,
       kernel: kernelAddress,
       transactionHash: event.transaction.hash,
       logIndex: event.log.logIndex,
@@ -300,7 +300,7 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
         .insert(contractEvent)
         .values({
           // Primary keys
-          chainId: context.chain.id,
+          chainId: context.network.chainId,
           transactionHash: event.transaction.hash,
           logIndex: event.log.logIndex,
           action: "upgradeModule",
@@ -324,7 +324,7 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
       .insert(contractEvent)
       .values({
         // Primary keys
-        chainId: context.chain.id,
+        chainId: context.network.chainId,
         transactionHash: event.transaction.hash,
         logIndex: event.log.logIndex,
         action: action,
@@ -371,7 +371,7 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
 
       await context.db
         .update(contract, {
-          chainId: context.chain.id,
+          chainId: context.network.chainId,
           address: previousContract.address,
         })
         .set({
@@ -386,7 +386,7 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
       .insert(contract)
       .values({
         // Primary keys
-        chainId: context.chain.id,
+        chainId: context.network.chainId,
         address: target,
         // Timestamp
         lastUpdatedTimestamp: BigInt(timestamp),
@@ -424,7 +424,7 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
     // Update the kernel executor
     await context.db
       .update(kernelExecutor, {
-        chainId: context.chain.id,
+        chainId: context.network.chainId,
         kernel: kernelAddress,
       })
       .set({
@@ -436,7 +436,7 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
     // Record the kernel executor event
     await context.db.insert(kernelExecutorEvent).values({
       // Primary keys
-      chainId: context.chain.id,
+      chainId: context.network.chainId,
       kernel: kernelAddress,
       transactionHash: event.transaction.hash,
       logIndex: event.log.logIndex,
@@ -452,19 +452,19 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
 
 ponder.on("Kernel:setup", async ({ context }) => {
   // Insert initial records for the Kernel contract
-  const constants = getKernelConstants(context.chain.id);
+  const constants = getKernelConstants(context.network.chainId);
 
   // Get the initial executor
   const initialExecutor = await getKernelExecutor(constants.address, context);
 
   console.log(
-    `Chain ${context.chain.id}: Inserting records for initial Kernel contract`
+    `Chain ${context.network.chainId}: Inserting records for initial Kernel contract`
   );
 
   // Record the action event
   await context.db.insert(actionExecutedEvent).values({
     // Primary keys
-    chainId: context.chain.id,
+    chainId: context.network.chainId,
     kernel: constants.address,
     transactionHash: constants.creationTransactionHash,
     logIndex: 0,
@@ -480,7 +480,7 @@ ponder.on("Kernel:setup", async ({ context }) => {
   // Record the contract history
   await context.db.insert(contractEvent).values({
     // Primary keys
-    chainId: context.chain.id,
+    chainId: context.network.chainId,
     transactionHash: constants.creationTransactionHash,
     logIndex: 0,
     action: "migrateKernel",
@@ -498,7 +498,7 @@ ponder.on("Kernel:setup", async ({ context }) => {
   // Update the contract state
   await context.db.insert(contract).values({
     // Primary keys
-    chainId: context.chain.id,
+    chainId: context.network.chainId,
     address: constants.address,
     // Timestamp
     lastUpdatedTimestamp: BigInt(constants.creationTimestamp),
@@ -514,7 +514,7 @@ ponder.on("Kernel:setup", async ({ context }) => {
   // Record the kernel executor
   await context.db.insert(kernelExecutor).values({
     // Primary keys
-    chainId: context.chain.id,
+    chainId: context.network.chainId,
     kernel: constants.address,
     // Timestamp
     lastUpdatedTimestamp: BigInt(constants.creationTimestamp),
@@ -527,7 +527,7 @@ ponder.on("Kernel:setup", async ({ context }) => {
   // Record the kernel executor event
   await context.db.insert(kernelExecutorEvent).values({
     // Primary keys
-    chainId: context.chain.id,
+    chainId: context.network.chainId,
     kernel: constants.address,
     transactionHash: constants.creationTransactionHash,
     logIndex: 0,

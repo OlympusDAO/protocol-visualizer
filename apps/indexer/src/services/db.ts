@@ -14,7 +14,7 @@ export const getLatestContractByName = async (
     .where(
       and(
         eq(contractTable.name, name),
-        eq(contractTable.chainId, context.chain.id)
+        eq(contractTable.chainId, context.network.chainId)
       )
     )
     .orderBy(desc(contractTable.lastUpdatedTimestamp));

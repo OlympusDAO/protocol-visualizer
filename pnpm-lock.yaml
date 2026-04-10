@@ -87,11 +87,11 @@ importers:
   apps/frontend:
     dependencies:
       '@ponder/client':
-        specifier: ^0.16.6
-        version: 0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.15)(pg@8.20.0)(typescript@5.7.3)
+        specifier: ^0.9.23
+        version: 0.9.28(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.15)(pg@8.20.0)(typescript@5.7.3)
       '@ponder/react':
-        specifier: ^0.16.6
-        version: 0.16.6(@ponder/client@0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.15)(pg@8.20.0)(typescript@5.7.3))(@tanstack/react-query@5.66.9(react@18.3.1))(react@18.3.1)(typescript@5.7.3)
+        specifier: ^0.9.23
+        version: 0.9.28(@ponder/client@0.9.28(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.15)(pg@8.20.0)(typescript@5.7.3))(@tanstack/react-query@5.66.9(react@18.3.1))(react@18.3.1)(typescript@5.7.3)
       '@tanstack/react-query':
         specifier: ^5.0.0
         version: 5.66.9(react@18.3.1)
@@ -160,10 +160,10 @@ importers:
         specifier: '>=4.12.12'
         version: 4.12.12
       ponder:
-        specifier: ^0.16.6
-        version: 0.16.6(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(better-sqlite3@9.6.0)(esbuild@0.28.0)(hono@4.12.12)(jiti@1.21.7)(lightningcss@1.32.0)(typescript@5.7.3)(viem@2.47.11(typescript@5.7.3))(yaml@2.8.3)
+        specifier: ^0.9.23
+        version: 0.9.28(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(better-sqlite3@9.6.0)(esbuild@0.28.0)(hono@4.12.12)(jiti@1.21.7)(lightningcss@1.32.0)(typescript@5.7.3)(viem@2.47.11(typescript@5.7.3))(yaml@2.8.3)
       viem:
-        specifier: ^2.47.11
+        specifier: ^2.21.3
         version: 2.47.11(typescript@5.7.3)
     devDependencies:
       '@types/node':
@@ -564,18 +564,18 @@ packages:
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
 
-  '@ponder/client@0.16.6':
-    resolution: {integrity: sha512-bpoGzfaFtWtP6DE/HbPaaPGs6KK2DmEM5DJxHMSph1jyh0qqxxOuaEh+2k/mbDyQyjRT3/CmLe9PPuxRpmy2Aw==}
+  '@ponder/client@0.9.28':
+    resolution: {integrity: sha512-8+KZTu/U/ehRv9KUS7i2ixj2PThKmTPwr+8Rg/UBZTNSH3wSN4G4BE3BleGqXuQV8KNsSKTAFsYHye5O2BsUDQ==}
     peerDependencies:
       typescript: '>=5.0.4'
     peerDependenciesMeta:
       typescript:
         optional: true
 
-  '@ponder/react@0.16.6':
-    resolution: {integrity: sha512-8r06PiEBK9BCImhThfBN2PB4zaEiV1M7kqGhee67kp+eaHwNzZYx4louquyr+wVPcaZhX2M9AdfcGrk3s4sD+w==}
+  '@ponder/react@0.9.28':
+    resolution: {integrity: sha512-RgEj1wZ8nutmeqCmibioVWzJs9n6SogEPCP97Uyt1KwoMR/GxVi+CY0dMFEjaj6nO4isXRdPiYL4sEk+erLFKg==}
     peerDependencies:
-      '@ponder/client': '>=0.16.6'
+      '@ponder/client': '>=0.9.28'
       '@tanstack/react-query': '>=5.0.0'
       react: '>=18'
       typescript: '>=5.0.4'
@@ -583,8 +583,8 @@ packages:
       typescript:
         optional: true
 
-  '@ponder/utils@0.2.18':
-    resolution: {integrity: sha512-pWacQuohfKlKO440zC39C1l6AH+Vx18mca0cPkxM0YnrB70px5hEwLKrc3fU4DMu72j4pljy/Mvfm95FBouYjw==}
+  '@ponder/utils@0.2.3':
+    resolution: {integrity: sha512-QdlRXrn48nRM/QxNHRffO3PnIFvUf9qHE+rXSut44r74E4iiq9UrIPMhSMyCbJN68yU4QyTupZ/qpqE5PNAo8A==}
     peerDependencies:
       typescript: '>=5.0.4'
       viem: '>=2'
@@ -1891,7 +1891,7 @@ packages:
     resolution: {integrity: sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==}
     engines: {node: '>=12.0.0'}
     peerDependencies:
-      picomatch: 4.0.4
+      picomatch: '>=4.0.4'
     peerDependenciesMeta:
       picomatch:
         optional: true
@@ -2027,10 +2027,6 @@ packages:
 
   graphql@16.13.2:
     resolution: {integrity: sha512-5bJ+nf/UCpAjHM8i06fl7eLyVC9iuNAjm9qzkiu2ZGhM0VscSvS6WDPfAwkdkBuoXGM9FJSbKl6wylMwP9Ktig==}
-    engines: {node: ^12.22.0 || ^14.16.0 || ^16.0.0 || >=17.0.0}
-
-  graphql@16.8.2:
-    resolution: {integrity: sha512-cvVIBILwuoSyD54U4cF/UXDh5yAobhNV/tPygI4lZhgOIJQE/WLWC4waBRb4I6bDVYb3OVx3lfHbaQOEoUD5sg==}
     engines: {node: ^12.22.0 || ^14.16.0 || ^16.0.0 || >=17.0.0}
 
   has-bigints@1.1.0:
@@ -2648,8 +2644,8 @@ packages:
     resolution: {integrity: sha512-saLsH7WeYYPiD25LDuLRRY/i+6HaPYr6G1OUlN39otzkSTxKnubR9RTxS3/Kk50s1g2JTgFwWQDQyplC5/SHZg==}
     engines: {node: '>= 6'}
 
-  ponder@0.16.6:
-    resolution: {integrity: sha512-y4JusgnLZ9uACTr9pj0DjfPSqlsaSLJ7Gxpe/ByfwR5fHuwoPOoolix+Y+9EPqs0cr1KxrG35aVBCR0kT+LJew==}
+  ponder@0.9.28:
+    resolution: {integrity: sha512-fQDhnshLxZVwKeyXfgtQ4ZqnxNkpypFBSdQim8rnwOy8iMODLOlrQqFVE8NZrX/9vOL9TdqWi1MaMDq7wy4XUA==}
     engines: {node: '>=18.14'}
     hasBin: true
     peerDependencies:
@@ -3391,18 +3387,6 @@ packages:
       utf-8-validate:
         optional: true
 
-  ws@8.20.0:
-    resolution: {integrity: sha512-sAt8BhgNbzCtgGbt2OxmpuryO63ZoDk/sqaB/znQm94T4fCEsy/yV+7CdC1kJhOU9lboAEU7R3kquuycDoibVA==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: '>=5.0.2'
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
-
   xtend@4.0.2:
     resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}
     engines: {node: '>=0.4'}
@@ -3636,48 +3620,48 @@ snapshots:
 
   '@fastify/busboy@3.2.0': {}
 
-  '@graphql-tools/executor@1.5.2(graphql@16.8.2)':
+  '@graphql-tools/executor@1.5.2(graphql@16.13.2)':
     dependencies:
-      '@graphql-tools/utils': 11.0.1(graphql@16.8.2)
-      '@graphql-typed-document-node/core': 3.2.0(graphql@16.8.2)
+      '@graphql-tools/utils': 11.0.1(graphql@16.13.2)
+      '@graphql-typed-document-node/core': 3.2.0(graphql@16.13.2)
       '@repeaterjs/repeater': 3.0.6
       '@whatwg-node/disposablestack': 0.0.6
       '@whatwg-node/promise-helpers': 1.3.2
-      graphql: 16.8.2
+      graphql: 16.13.2
       tslib: 2.8.1
 
-  '@graphql-tools/merge@9.1.8(graphql@16.8.2)':
+  '@graphql-tools/merge@9.1.8(graphql@16.13.2)':
     dependencies:
-      '@graphql-tools/utils': 11.0.1(graphql@16.8.2)
-      graphql: 16.8.2
+      '@graphql-tools/utils': 11.0.1(graphql@16.13.2)
+      graphql: 16.13.2
       tslib: 2.8.1
 
-  '@graphql-tools/schema@10.0.32(graphql@16.8.2)':
+  '@graphql-tools/schema@10.0.32(graphql@16.13.2)':
     dependencies:
-      '@graphql-tools/merge': 9.1.8(graphql@16.8.2)
-      '@graphql-tools/utils': 11.0.1(graphql@16.8.2)
-      graphql: 16.8.2
+      '@graphql-tools/merge': 9.1.8(graphql@16.13.2)
+      '@graphql-tools/utils': 11.0.1(graphql@16.13.2)
+      graphql: 16.13.2
       tslib: 2.8.1
 
-  '@graphql-tools/utils@10.11.0(graphql@16.8.2)':
+  '@graphql-tools/utils@10.11.0(graphql@16.13.2)':
     dependencies:
-      '@graphql-typed-document-node/core': 3.2.0(graphql@16.8.2)
+      '@graphql-typed-document-node/core': 3.2.0(graphql@16.13.2)
       '@whatwg-node/promise-helpers': 1.3.2
       cross-inspect: 1.0.1
-      graphql: 16.8.2
+      graphql: 16.13.2
       tslib: 2.8.1
 
-  '@graphql-tools/utils@11.0.1(graphql@16.8.2)':
+  '@graphql-tools/utils@11.0.1(graphql@16.13.2)':
     dependencies:
-      '@graphql-typed-document-node/core': 3.2.0(graphql@16.8.2)
+      '@graphql-typed-document-node/core': 3.2.0(graphql@16.13.2)
       '@whatwg-node/promise-helpers': 1.3.2
       cross-inspect: 1.0.1
-      graphql: 16.8.2
+      graphql: 16.13.2
       tslib: 2.8.1
 
-  '@graphql-typed-document-node/core@3.2.0(graphql@16.8.2)':
+  '@graphql-typed-document-node/core@3.2.0(graphql@16.13.2)':
     dependencies:
-      graphql: 16.8.2
+      graphql: 16.13.2
 
   '@graphql-yoga/logger@2.0.1':
     dependencies:
@@ -3771,7 +3755,7 @@ snapshots:
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
-  '@ponder/client@0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.15)(pg@8.20.0)(typescript@5.7.3)':
+  '@ponder/client@0.9.28(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.15)(pg@8.20.0)(typescript@5.7.3)':
     dependencies:
       drizzle-orm: 0.45.2(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.15)(pg@8.20.0)
       eventsource: 3.0.7
@@ -3809,16 +3793,16 @@ snapshots:
       - sql.js
       - sqlite3
 
-  '@ponder/react@0.16.6(@ponder/client@0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.15)(pg@8.20.0)(typescript@5.7.3))(@tanstack/react-query@5.66.9(react@18.3.1))(react@18.3.1)(typescript@5.7.3)':
+  '@ponder/react@0.9.28(@ponder/client@0.9.28(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.15)(pg@8.20.0)(typescript@5.7.3))(@tanstack/react-query@5.66.9(react@18.3.1))(react@18.3.1)(typescript@5.7.3)':
     dependencies:
-      '@ponder/client': 0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.15)(pg@8.20.0)(typescript@5.7.3)
+      '@ponder/client': 0.9.28(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.15)(pg@8.20.0)(typescript@5.7.3)
       '@tanstack/react-query': 5.66.9(react@18.3.1)
       react: 18.3.1
       superjson: 2.2.6
     optionalDependencies:
       typescript: 5.7.3
 
-  '@ponder/utils@0.2.18(typescript@5.7.3)(viem@2.47.11(typescript@5.7.3))':
+  '@ponder/utils@0.2.3(typescript@5.7.3)(viem@2.47.11(typescript@5.7.3))':
     dependencies:
       viem: 2.47.11(typescript@5.7.3)
     optionalDependencies:
@@ -5390,25 +5374,23 @@ snapshots:
     dependencies:
       lodash: 4.18.1
 
-  graphql-yoga@5.17.1(graphql@16.8.2):
+  graphql-yoga@5.17.1(graphql@16.13.2):
     dependencies:
       '@envelop/core': 5.5.1
       '@envelop/instrumentation': 1.0.0
-      '@graphql-tools/executor': 1.5.2(graphql@16.8.2)
-      '@graphql-tools/schema': 10.0.32(graphql@16.8.2)
-      '@graphql-tools/utils': 10.11.0(graphql@16.8.2)
+      '@graphql-tools/executor': 1.5.2(graphql@16.13.2)
+      '@graphql-tools/schema': 10.0.32(graphql@16.13.2)
+      '@graphql-tools/utils': 10.11.0(graphql@16.13.2)
       '@graphql-yoga/logger': 2.0.1
       '@graphql-yoga/subscription': 5.0.5
       '@whatwg-node/fetch': 0.10.13
       '@whatwg-node/promise-helpers': 1.3.2
       '@whatwg-node/server': 0.10.18
-      graphql: 16.8.2
+      graphql: 16.13.2
       lru-cache: 10.4.3
       tslib: 2.8.1
 
   graphql@16.13.2: {}
-
-  graphql@16.8.2: {}
 
   has-bigints@1.1.0: {}
 
@@ -5965,7 +5947,7 @@ snapshots:
 
   pirates@4.0.6: {}
 
-  ponder@0.16.6(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(better-sqlite3@9.6.0)(esbuild@0.28.0)(hono@4.12.12)(jiti@1.21.7)(lightningcss@1.32.0)(typescript@5.7.3)(viem@2.47.11(typescript@5.7.3))(yaml@2.8.3):
+  ponder@0.9.28(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(better-sqlite3@9.6.0)(esbuild@0.28.0)(hono@4.12.12)(jiti@1.21.7)(lightningcss@1.32.0)(typescript@5.7.3)(viem@2.47.11(typescript@5.7.3))(yaml@2.8.3):
     dependencies:
       '@babel/code-frame': 7.29.0
       '@commander-js/extra-typings': 12.1.0(commander@12.1.0)
@@ -5974,7 +5956,7 @@ snapshots:
       '@escape.tech/graphql-armor-max-depth': 2.4.2
       '@escape.tech/graphql-armor-max-tokens': 2.5.1
       '@hono/node-server': 1.19.13(hono@4.12.12)
-      '@ponder/utils': 0.2.18(typescript@5.7.3)(viem@2.47.11(typescript@5.7.3))
+      '@ponder/utils': 0.2.3(typescript@5.7.3)(viem@2.47.11(typescript@5.7.3))
       abitype: 0.10.3(typescript@5.7.3)
       ansi-escapes: 7.3.0
       commander: 12.1.0
@@ -5984,8 +5966,8 @@ snapshots:
       dotenv: 16.6.1
       drizzle-orm: 0.45.2(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.15)(pg@8.20.0)
       glob: 10.5.0
-      graphql: 16.8.2
-      graphql-yoga: 5.17.1(graphql@16.8.2)
+      graphql: 16.13.2
+      graphql-yoga: 5.17.1(graphql@16.13.2)
       hono: 4.12.12
       http-terminator: 3.2.0
       kysely: 0.28.15
@@ -6004,7 +5986,6 @@ snapshots:
       vite: 6.4.2(@types/node@24.12.2)(jiti@1.21.7)(lightningcss@1.32.0)(yaml@2.8.3)
       vite-node: 1.0.2(@types/node@24.12.2)(esbuild@0.28.0)(jiti@1.21.7)(yaml@2.8.3)
       vite-tsconfig-paths: 4.3.1(typescript@5.7.3)(vite@6.4.2(@types/node@24.12.2)(jiti@1.21.7)(lightningcss@1.32.0)(yaml@2.8.3))
-      ws: 8.20.0
     optionalDependencies:
       typescript: 5.7.3
     transitivePeerDependencies:
@@ -6027,7 +6008,6 @@ snapshots:
       - '@vitejs/devtools'
       - '@xata.io/client'
       - better-sqlite3
-      - bufferutil
       - bun-types
       - esbuild
       - expo-sqlite
@@ -6049,7 +6029,6 @@ snapshots:
       - supports-color
       - terser
       - tsx
-      - utf-8-validate
       - yaml
       - zod
 
@@ -6901,8 +6880,6 @@ snapshots:
   wrappy@1.0.2: {}
 
   ws@8.18.3: {}
-
-  ws@8.20.0: {}
 
   xtend@4.0.2: {}
 

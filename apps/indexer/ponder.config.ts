@@ -119,39 +119,39 @@ function getTransport(chainId: number): Transport {
 }
 
 export default createConfig({
-  ordering: "omnichain",
-  chains: {
+  ordering: "multichain",
+  networks: {
     // Production chains
     mainnet: {
-      id: ChainId.Mainnet,
-      rpc: getTransport(ChainId.Mainnet),
+      chainId: ChainId.Mainnet,
+      transport: getTransport(ChainId.Mainnet),
     },
     // arbitrum: {
-    //   id: ChainId.Arbitrum,
-    //   rpc: getTransport(ChainId.Arbitrum),
+    //   chainId: ChainId.Arbitrum,
+    //   transport: getTransport(ChainId.Arbitrum),
     // },
     base: {
-      id: ChainId.Base,
-      rpc: getTransport(ChainId.Base),
+      chainId: ChainId.Base,
+      transport: getTransport(ChainId.Base),
     },
     berachain: {
-      id: ChainId.Berachain,
-      rpc: getTransport(ChainId.Berachain),
+      chainId: ChainId.Berachain,
+      transport: getTransport(ChainId.Berachain),
     },
     optimism: {
-      id: ChainId.Optimism,
-      rpc: getTransport(ChainId.Optimism),
+      chainId: ChainId.Optimism,
+      transport: getTransport(ChainId.Optimism),
     },
     // Testnets
     sepolia: {
-      id: ChainId.Sepolia,
-      rpc: getTransport(ChainId.Sepolia),
+      chainId: ChainId.Sepolia,
+      transport: getTransport(ChainId.Sepolia),
     },
   },
   contracts: {
     Kernel: {
       abi: KernelAbi,
-      chain: {
+      network: {
         mainnet: {
           address: mainnetKernel.address,
           startBlock: mainnetKernel.creationBlockNumber,
@@ -180,7 +180,7 @@ export default createConfig({
     },
     ROLES: {
       abi: OlympusRolesAbi,
-      chain: {
+      network: {
         mainnet: {
           address: mainnetRoles.address,
           startBlock: mainnetRoles.creationBlockNumber,
@@ -209,7 +209,7 @@ export default createConfig({
     },
     RolesAdmin: {
       abi: RolesAdminAbi,
-      chain: {
+      network: {
         mainnet: {
           address: mainnetRolesAdmin.address,
           startBlock: mainnetRolesAdmin.creationBlockNumber,

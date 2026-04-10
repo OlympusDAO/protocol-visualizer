@@ -17,6 +17,7 @@ If a command fails, stop and report the first failure with actionable context.
 
 - Node version must align across `package.json` (`engines.node`), `.nvmrc`, `.node-version`, GitHub Actions setup, and Dockerfiles.
 - pnpm version must align across `package.json` (`packageManager` and `engines.pnpm`) and Dockerfiles.
+- `@types/node` should stay consistent across root and workspace packages that declare it.
 
 ## Trivy Ignore Policy
 

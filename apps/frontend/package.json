@@ -11,8 +11,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@ponder/client": "^0.9.23",
-    "@ponder/react": "^0.9.23",
+    "@ponder/client": "^0.15.18",
+    "@ponder/react": "^0.15.18",
     "@tanstack/react-query": "^5.0.0",
     "@types/dagre": "^0.7.52",
     "dagre": "^0.8.5",
@@ -27,13 +27,16 @@
     "@types/react-dom": "18.3.1",
     "@typescript-eslint/eslint-plugin": "^7.0.2",
     "@typescript-eslint/parser": "^7.0.2",
-    "@vitejs/plugin-react": "^4.2.1",
+    "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.4.17",
     "eslint": "^8.57.1",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
     "postcss": "^8.4.35",
     "typescript": "^5.2.2",
-    "vite": "^5.4.17"
+    "vite": "8.0.8"
+  },
+  "engines": {
+    "node": "24.x"
   }
 }

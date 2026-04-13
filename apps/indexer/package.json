@@ -13,17 +13,17 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "hono": "^4.11.4",
-    "ponder": "^0.9.23",
+    "hono": "4.12.12",
+    "ponder": "^0.15.18",
     "viem": "^2.21.3"
   },
   "devDependencies": {
-    "@types/node": "^20.9.0",
+    "@types/node": "^24.0.0",
     "eslint": "^8.57.1",
     "eslint-config-ponder": "^0.9.19",
     "typescript": "^5.2.2"
   },
   "engines": {
-    "node": ">=18.14"
+    "node": "24.x"
   }
 }

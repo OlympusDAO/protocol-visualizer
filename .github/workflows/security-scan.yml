@@ -4,25 +4,81 @@ on:
   pull_request:
   push:
     branches: [master]
+  schedule:
+    - cron: "17 5 * * 1"
 
 jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@b307475762933b98ed359c036b0e51f26b63b74b # v5.0.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
-          node-version: 22
-          cache: 'pnpm'
+          node-version-file: .nvmrc
+          cache: "pnpm"
+
+      - name: Verify runtime version alignment
+        run: pnpm run check:runtime-versions
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Run security audit
         run: pnpm audit --audit-level=high
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Build indexer Docker image
+        run: pnpm run docker:build:indexer
+
+      - name: Tag indexer image for scan
+        run: pnpm run docker:tag:scan:indexer
+
+      - name: Build frontend Docker image
+        run: pnpm run docker:build:frontend
+
+      - name: Tag frontend image for scan
+        run: pnpm run docker:tag:scan:frontend
+
+      - name: Scan indexer Dockerfile for misconfigurations
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          scan-type: config
+          scan-ref: Dockerfile-indexer
+          scanners: misconfig
+          severity: MEDIUM,HIGH,CRITICAL
+          exit-code: "1"
+
+      - name: Scan frontend Dockerfile for misconfigurations
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          scan-type: config
+          scan-ref: Dockerfile-frontend
+          scanners: misconfig
+          severity: MEDIUM,HIGH,CRITICAL
+          exit-code: "1"
+
+      - name: Scan indexer image for vulnerabilities
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: protocol-visualizer/indexer:scan
+          format: table
+          severity: MEDIUM,HIGH,CRITICAL
+          trivyignores: .trivyignore
+          exit-code: "1"
+
+      - name: Scan frontend image for vulnerabilities
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: protocol-visualizer/frontend:scan
+          format: table
+          severity: MEDIUM,HIGH,CRITICAL
+          trivyignores: .trivyignore
+          exit-code: "1"

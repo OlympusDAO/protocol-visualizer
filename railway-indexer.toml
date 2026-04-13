@@ -1,7 +1,14 @@
 [build]
 builder = "dockerfile"
 dockerfilePath = "Dockerfile-indexer"
-watchPatterns = ["apps/indexer/**", "railway-indexer.toml", "Dockerfile-indexer"]
+watchPatterns = [
+  "apps/indexer/**",
+  "package.json",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "railway-indexer.toml",
+  "Dockerfile-indexer",
+]
 
 [deploy]
 healthcheckPath = "/ready"

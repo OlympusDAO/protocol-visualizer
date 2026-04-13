@@ -30,3 +30,27 @@ Note: WIP
   - Hosted on a Google Compute Engine VM
 - Frontend
   - Hosted on Fleek
+
+## Validation
+
+Run full local validation (including Docker builds):
+
+```bash
+pnpm run validate:local
+```
+
+Run checks individually:
+
+```bash
+pnpm run check:runtime-versions
+pnpm install --frozen-lockfile
+pnpm run lint:check
+pnpm run build
+pnpm run docker:build:indexer
+pnpm run docker:build:frontend
+```
+
+## Runtime Image Notes
+
+- The indexer runtime image keeps `pnpm`/Corepack so it can execute `pnpm exec ponder ...` at startup.
+- `npm` is removed from the indexer runtime image because it is not required to run the service and it reduces toolchain-only vulnerability surface in container scans.

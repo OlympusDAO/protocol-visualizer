@@ -34,7 +34,7 @@ FROM nginxinc/nginx-unprivileged:alpine@sha256:601c823234c474696ded03d619e67f1e5
 
 # Apply Alpine security updates
 USER root
-RUN apk upgrade --no-cache zlib libssl3 libcrypto3 libuuid
+RUN apk upgrade --no-cache zlib libssl3 libcrypto3 libuuid libpng
 
 # Copy the built static files to Nginx's serve directory
 COPY --from=builder /app/apps/frontend/dist /usr/share/nginx/html

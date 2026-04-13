@@ -11,6 +11,8 @@ const WORKFLOW_FILES = [
   ".github/workflows/security-scan.yml",
 ];
 
+const BOOTSTRAP_ACTION = ".github/actions/bootstrap/action.yml";
+
 const DOCKERFILES = ["Dockerfile-indexer", "Dockerfile-frontend"];
 
 function readText(relativePath) {
@@ -19,7 +21,7 @@ function readText(relativePath) {
 
 function extractMajor(value, label) {
   const cleaned = value.trim().replace(/^v/, "");
-  const match = cleaned.match(/^(\d+)/);
+  const match = cleaned.match(/(\d+)/);
   if (!match) {
     throw new Error(`Could not extract major version from ${label}: ${value}`);
   }
@@ -98,6 +100,26 @@ if (runtimePnpmVersion !== packageManagerVersion) {
 
 for (const workflowPath of WORKFLOW_FILES) {
   const content = readText(workflowPath);
+  const usesBootstrap = /uses:\s*\.\/\.github\/actions\/bootstrap/.test(
+    content
+  );
+  if (usesBootstrap) {
+    const bootstrapContent = readText(BOOTSTRAP_ACTION);
+    if (!/node-version-file:\s*\.nvmrc/.test(bootstrapContent)) {
+      fail(
+        `${BOOTSTRAP_ACTION} must configure actions/setup-node with node-version-file: .nvmrc.`
+      );
+    }
+
+    if (/\bnode-version\s*:/.test(bootstrapContent)) {
+      fail(
+        `${BOOTSTRAP_ACTION} should not hardcode node-version; use node-version-file: .nvmrc.`
+      );
+    }
+
+    continue;
+  }
+
   if (!/node-version-file:\s*\.nvmrc/.test(content)) {
     fail(
       `${workflowPath} must use actions/setup-node with node-version-file: .nvmrc.`

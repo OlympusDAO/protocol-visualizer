@@ -119,7 +119,7 @@ function getTransport(chainId: number): Transport {
 }
 
 export default createConfig({
-  ordering: "omnichain",
+  ordering: "multichain",
   chains: {
     // Production chains
     mainnet: {

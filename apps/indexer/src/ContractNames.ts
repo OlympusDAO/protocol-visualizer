@@ -241,9 +241,14 @@ const contractNames: MultiChainContracts = {
       version: "1.0",
       type: "policy",
     },
-    "0xd6C4D723fdadCf0D171eF9A2a3Bfa870675b282f": {
+    "0x9ded6a8b099c57bbeb9f81b76400a5a9c63a6880": {
       name: "PRICE",
       version: "1.0",
+      type: "module",
+    },
+    "0xd6C4D723fdadCf0D171eF9A2a3Bfa870675b282f": {
+      name: "PRICE",
+      version: "1.1",
       type: "module",
     },
     "0xda9fedbcaf319ecf8ab11fe874fb1abfc2181766": {

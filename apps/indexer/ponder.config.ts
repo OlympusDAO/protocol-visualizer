@@ -207,8 +207,7 @@ export default createConfig({
         },
       },
       filter: [
-        { event: "ActionExecuted", args: { action_: 2 } },
-        { event: "ActionExecuted", args: { action_: 3 } },
+        { event: "ActionExecuted", args: { action_: [2, 3] } },
       ],
     },
     ROLES: {

@@ -285,6 +285,10 @@ const contractNames: MultiChainContracts = {
       name: "PriceConfig",
       type: "policy",
     },
+    "0x3019ff96bd8308d1b66846b795e0aeefbdf14ba5": {
+      name: "PriceConfig",
+      type: "policy",
+    },
     "0xf7602C0421c283A2fc113172EBDf64C30F21654D": {
       name: "Heart",
       version: "1.6",
@@ -392,6 +396,16 @@ const contractNames: MultiChainContracts = {
       version: "1.0",
       type: "policy",
     },
+    "0x9f08c2603e919a46d6d98289c9ada5250b310558": {
+      name: "Burner",
+      version: "1.0",
+      type: "policy",
+    },
+    "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50": {
+      name: "EmissionManager",
+      version: "1.2",
+      type: "policy",
+    }
   },
   [ChainId.Arbitrum]: {
     // tx: https://arbiscan.io/tx/0x3f55f2ce3af9f803343c6b3361ccde1cf4853c931c9410ad935586cc3c21519d
@@ -693,6 +707,65 @@ const contractNames: MultiChainContracts = {
     "0x84785E392BfD02F97A9b84F85d86DEc11933ef81": {
       name: "EmissionManager",
       version: "1.2",
+      type: "policy",
+    },
+    "0x2364bf0a9aa544039bc12130d3ae167dffbb93a5": {
+      name: "DepositManager",
+      version: "1.0",
+      type: "policy",
+    },
+    "0x5261fba7b50aa22b19b9edf939b771d109de991f": {
+      name: "EmissionManager",
+      version: "1.2",
+      type: "policy",
+    },
+    "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb": {
+      name: "ConvertibleDepositAuctioneer",
+      version: "1.0",
+      type: "policy",
+    },
+    "0x69b2be653bab628116b360818be75a2d97b45c4a": {
+      name: "DepositRedemptionVault",
+      version: "1.0",
+      type: "policy",
+    },
+    "0x87568265eb6ea27f37613d242d4192b6f6771269": {
+      name: "ConvertibleDepositFacility",
+      version: "1.0",
+      type: "policy",
+    },
+    "0xa386b4f750f493a6c9f33fbbf8702718b785969a": {
+      name: "ReserveWrapper",
+      version: "1.0",
+      type: "policy",
+    },
+    "0xa61b846d5d8b757e3d541e0e4f80390e28f0b6ff": {
+      name: "Heart",
+      version: "1.7",
+      type: "policy",
+    },
+    "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50": {
+      name: "ConvertibleDepositFacility",
+      version: "1.0",
+      type: "policy",
+    },
+    "0xc14156af3bf6c11b1c40c8f51f64ba5496870126": {
+      name: "ConvertibleDepositAuctioneer",
+      version: "1.0",
+      type: "policy",
+    },
+    "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678": {
+      name: "DepositManager",
+      version: "1.0",
+      type: "policy",
+    },
+    "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a": {
+      name: "DepositRedemptionVault",
+      version: "1.0",
+      type: "policy",
+    },
+    "0xf6d5d06a4e8e6904e4360108749c177692f59e90": {
+      name: "PriceConfig",
       type: "policy",
     },
   },

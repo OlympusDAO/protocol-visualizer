@@ -310,6 +310,10 @@ ponder.on(
     const contractType = parseContractType(actionInt);
     const contractName = await parseContractName(actionInt, target, context);
     const contractVersion = getContractVersion(target, context.chain.id);
+    const previousContract =
+      action === "upgradeModule"
+        ? await getPreviousModule(contractName, context)
+        : null;
 
     console.log("\n\n****");
     console.log(
@@ -339,8 +343,6 @@ ponder.on(
     if (contractType !== "kernel") {
       // For module upgrades, add an event for the previous contract
       if (action === "upgradeModule") {
-        const previousContract = await getPreviousModule(contractName, context);
-
         if (!previousContract) {
           throw new Error(
             `No previous contract found for keycode ${contractName}`
@@ -402,8 +404,6 @@ ponder.on(
 
       // If a module is being upgraded, we need to update the previous contract
       if (action === "upgradeModule") {
-        const previousContract = await getPreviousModule(contractName, context);
-
         if (!previousContract) {
           throw new Error(
             `No previous contract found for keycode ${contractName}`
@@ -442,6 +442,8 @@ ponder.on(
         })
         .onConflictDoUpdate({
           isEnabled: isEnabled,
+          lastUpdatedTimestamp: BigInt(timestamp),
+          lastUpdatedBlockNumber: BigInt(event.block.number),
         });
       console.log("Updated contract");
     }
@@ -563,6 +565,8 @@ ponder.on("KernelPolicyActions:ActionExecuted", async ({ event, context }) => {
     })
     .onConflictDoUpdate({
       isEnabled: isEnabled,
+      lastUpdatedTimestamp: BigInt(timestamp),
+      lastUpdatedBlockNumber: BigInt(event.block.number),
       policyPermissions: policyPermissions,
       policyFunctions: policyFunctions,
     });

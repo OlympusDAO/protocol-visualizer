@@ -1401,7 +1401,7 @@ export function ContractVisualizer() {
               minZoom={0.2}
               maxZoom={1.5}
               defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
-              onInit={(instance) => {
+              onInit={(instance: ReactFlowInstance<NodeData>) => {
                 reactFlowInstance.current = instance;
               }}
               elementsSelectable={true}
@@ -1410,7 +1410,7 @@ export function ContractVisualizer() {
               edgesFocusable={true}
               edgesUpdatable={false}
               onNodeClick={handleNodeClick}
-              onNodeDragStop={(_event, node) => {
+              onNodeDragStop={(_event: unknown, node: Node<NodeData>) => {
                 const updatedNodes = nodes.map((n) =>
                   n.id === node.id ? { ...n, position: node.position } : n
                 );

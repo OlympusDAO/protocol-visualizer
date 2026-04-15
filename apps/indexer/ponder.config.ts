@@ -119,7 +119,7 @@ function getTransport(chainId: number): Transport {
 }
 
 export default createConfig({
-  ordering: "omnichain",
+  ordering: "multichain",
   chains: {
     // Production chains
     mainnet: {
@@ -149,7 +149,7 @@ export default createConfig({
     },
   },
   contracts: {
-    Kernel: {
+    KernelNonPolicyActions: {
       abi: KernelAbi,
       chain: {
         mainnet: {
@@ -177,6 +177,38 @@ export default createConfig({
           startBlock: sepoliaKernel.creationBlockNumber,
         },
       },
+    },
+    KernelPolicyActions: {
+      abi: KernelAbi,
+      chain: {
+        mainnet: {
+          address: mainnetKernel.address,
+          startBlock: mainnetKernel.creationBlockNumber,
+        },
+        // arbitrum: {
+        //   address: arbitrumKernel.address,
+        //   startBlock: arbitrumKernel.creationBlockNumber,
+        // },
+        base: {
+          address: baseKernel.address,
+          startBlock: baseKernel.creationBlockNumber,
+        },
+        berachain: {
+          address: berachainKernel.address,
+          startBlock: berachainKernel.creationBlockNumber,
+        },
+        optimism: {
+          address: optimismKernel.address,
+          startBlock: optimismKernel.creationBlockNumber,
+        },
+        sepolia: {
+          address: sepoliaKernel.address,
+          startBlock: sepoliaKernel.creationBlockNumber,
+        },
+      },
+      filter: [
+        { event: "ActionExecuted", args: { action_: [2, 3] } },
+      ],
     },
     ROLES: {
       abi: OlympusRolesAbi,

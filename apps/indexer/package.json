@@ -14,16 +14,16 @@
   },
   "dependencies": {
     "hono": "4.12.12",
-    "ponder": "^0.15.18",
+    "ponder": "^0.16.6",
     "viem": "^2.21.3"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "eslint": "^8.57.1",
-    "eslint-config-ponder": "^0.9.19",
+    "eslint-config-ponder": "^0.9.28",
     "typescript": "^5.2.2"
   },
   "engines": {
-    "node": "24.x"
+    "node": ">=24"
   }
 }

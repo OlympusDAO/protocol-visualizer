@@ -1,9 +1,9 @@
-# Build stage
+# Dependency stage
 # Pinned image: node:24-alpine (Node v24.14.1)
-FROM node:24-alpine@sha256:01743339035a5c3c11a373cd7c83aeab6ed1457b55da6a69e014a95ac4e4700b AS builder
+FROM node:24-alpine@sha256:01743339035a5c3c11a373cd7c83aeab6ed1457b55da6a69e014a95ac4e4700b AS deps
 
 # Apply Alpine security updates
-RUN apk upgrade --no-cache zlib libssl3 libcrypto3
+RUN apk upgrade --no-cache musl musl-utils zlib libssl3 libcrypto3
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
@@ -18,14 +18,34 @@ COPY apps/indexer/package.json ./apps/indexer/
 # Install production dependencies
 RUN pnpm install --frozen-lockfile --prod
 
-# npm is not needed at runtime. Keep corepack/pnpm for `pnpm exec` and
-# remove npm to reduce toolchain-only CVE surface in production images.
-RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
-
 # Copy source code
 COPY apps/indexer/ ./apps/indexer/
 
-# Nothing to build
+# Runtime stage
+FROM node:24-alpine@sha256:01743339035a5c3c11a373cd7c83aeab6ed1457b55da6a69e014a95ac4e4700b AS runtime
+
+# Apply Alpine security updates
+RUN apk upgrade --no-cache musl musl-utils zlib libssl3 libcrypto3
+
+# Set working directory
+WORKDIR /app
+
+# Copy runtime dependencies and source from dependency stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/indexer ./apps/indexer
+COPY --from=deps /app/package.json ./package.json
+COPY --from=deps /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+
+# Remove package managers from runtime image to reduce toolchain CVE surface.
+RUN rm -rf \
+    /root/.cache/node/corepack \
+    /usr/local/lib/node_modules/corepack \
+    /usr/local/lib/node_modules/npm \
+    /usr/local/bin/corepack \
+    /usr/local/bin/npm \
+    /usr/local/bin/npx \
+    /usr/local/bin/pnpm \
+    /usr/local/bin/pnpx
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -42,4 +62,4 @@ USER app
 # Known issue: shell-form CMD is required here to expand ${RAILWAY_DEPLOYMENT_ID}
 # into the schema argument. This keeps `sh` as PID 1, so signal propagation is
 # less robust than a pure exec-form entrypoint.
-CMD ["sh", "-c", "pnpm exec ponder start --schema ${RAILWAY_DEPLOYMENT_ID}"]
+CMD ["sh", "-c", "./node_modules/.bin/ponder start --schema ${RAILWAY_DEPLOYMENT_ID}"]

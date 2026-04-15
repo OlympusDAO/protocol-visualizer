@@ -8,16 +8,22 @@ import {
   PolicyPermission,
 } from "ponder:schema";
 import { ModuleAbi } from "../abis/Module";
-import { fromHex } from "viem";
+import { fromHex, stringToHex } from "viem";
 import { PolicyAbi } from "../abis/Policy";
 import { KernelAbi } from "../abis/Kernel";
-import { getContractName, getContractVersion } from "./ContractNames";
+import {
+  getContractName,
+  getContractStartBlock,
+  getContractType,
+  getContractVersion,
+} from "./ContractNames";
 import { ContractProcessor } from "./services/contracts/processor";
 import { getEtherscanApi } from "./services/etherscan/api";
-import { getLatestContractByName } from "./services/db";
 import { FunctionDetails } from "./services/contracts/types";
 import { and, desc, eq } from "ponder";
 import { getKernelConstants } from "./constants";
+
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 
 // Initialize services
 const getContractProcessor = (chainId: number) => {
@@ -119,11 +125,28 @@ const parsePolicyFunctions = async (
   action: number,
   policyAddress: `0x${string}`,
   policyName: string,
+  blockNumber: bigint,
   context: Context
 ): Promise<FunctionDetails[] | null> => {
   if (action !== 2 && action !== 3) {
     console.debug(
       `Skipping policy functions for non-policy action ${action} on ${policyName}`
+    );
+    return null;
+  }
+
+  const contractType = getContractType(policyAddress, context.chain.id);
+  if (contractType !== "policy") {
+    console.debug(
+      `Skipping policy functions for non-policy contract type ${String(contractType)} on ${policyName}`
+    );
+    return null;
+  }
+
+  const startBlock = getContractStartBlock(policyAddress, context.chain.id);
+  if (startBlock !== undefined && blockNumber < BigInt(startBlock)) {
+    console.debug(
+      `Skipping policy functions for ${policyName} at block ${blockNumber} before start block ${startBlock}`
     );
     return null;
   }
@@ -138,13 +161,31 @@ const parsePolicyFunctions = async (
 
 const parsePolicyPermissions = async (
   action: number,
+  kernelAddress: `0x${string}`,
   target: `0x${string}`,
   targetName: string,
+  blockNumber: bigint,
   context: Context
 ): Promise<PolicyPermission[] | null> => {
   if (action !== 2 && action !== 3) {
     console.debug(
       `Skipping policy permissions for non-policy action ${action} on ${targetName}`
+    );
+    return null;
+  }
+
+  const contractType = getContractType(target, context.chain.id);
+  if (contractType !== "policy") {
+    console.debug(
+      `Skipping policy permissions for non-policy contract type ${String(contractType)} on ${targetName}`
+    );
+    return null;
+  }
+
+  const startBlock = getContractStartBlock(target, context.chain.id);
+  if (startBlock !== undefined && blockNumber < BigInt(startBlock)) {
+    console.debug(
+      `Skipping policy permissions for ${targetName} at block ${blockNumber} before start block ${startBlock}`
     );
     return null;
   }
@@ -174,23 +215,28 @@ const parsePolicyPermissions = async (
       `Looking up keycode ${moduleKeycode} and selector ${funcSelector}`
     );
 
-    // Find the contract for this keycode
-    const moduleContract = await getLatestContractByName(
-      moduleKeycode,
-      context
-    );
-    if (!moduleContract) {
-      throw new Error(`No contract found in DB for keycode ${moduleKeycode}`);
+    // Resolve module address from Kernel state at this block.
+    const moduleAddress = await context.client.readContract({
+      abi: KernelAbi,
+      address: kernelAddress,
+      functionName: "getModuleForKeycode",
+      args: [stringToHex(moduleKeycode, { size: 5 })],
+      blockNumber,
+    });
+    if (moduleAddress === ZERO_ADDRESS) {
+      throw new Error(
+        `No module address found in Kernel for keycode ${moduleKeycode} at block ${blockNumber}`
+      );
     }
 
     console.log(
-      `Found contract at ${moduleContract.address} for module ${moduleKeycode}`
+      `Found contract at ${moduleAddress} for module ${moduleKeycode}`
     );
 
     // Process the module contract to get function information
     const moduleProcessedData = await getContractProcessor(
       context.chain.id
-    ).processContract(moduleContract.address, moduleKeycode);
+    ).processContract(moduleAddress, moduleKeycode);
 
     // Get the function details for this selector
     const functionDetails = moduleProcessedData.functionSelectors[funcSelector];
@@ -229,10 +275,7 @@ const getPreviousModule = async (keycode: string, context: Context) => {
     .select()
     .from(contract)
     .where(
-      and(
-        eq(contract.name, keycode),
-        eq(contract.chainId, context.chain.id)
-      )
+      and(eq(contract.name, keycode), eq(contract.chainId, context.chain.id))
     )
     .orderBy(desc(contract.lastUpdatedTimestamp))
     .limit(1);
@@ -250,50 +293,84 @@ const getPreviousModule = async (keycode: string, context: Context) => {
   return previousContract[0];
 };
 
-ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
-  const kernelAddress = event.log.address;
-  const actionInt = event.args.action_;
-  const target = event.args.target_;
-  const timestamp = Number(event.block.timestamp);
-  const action = parseAction(actionInt);
-  const contractType = parseContractType(actionInt);
-  const contractName = await parseContractName(actionInt, target, context);
-  const contractVersion = getContractVersion(target, context.chain.id);
+ponder.on(
+  "KernelNonPolicyActions:ActionExecuted",
+  async ({ event, context }) => {
+    const kernelAddress = event.log.address;
+    const actionInt = event.args.action_;
 
-  console.log("\n\n****");
-  console.log(
-    `Chain ${context.chain.id}: Processing action ${action} on target ${target} at block ${event.block.number}`
-  );
+    // Policy actions are handled by KernelPolicyActions to avoid duplication.
+    if (actionInt === 2 || actionInt === 3) {
+      return;
+    }
 
-  // Record the action event
-  await context.db
-    .insert(actionExecutedEvent)
-    .values({
-      // Primary keys
-      chainId: context.chain.id,
-      kernel: kernelAddress,
-      transactionHash: event.transaction.hash,
-      logIndex: event.log.logIndex,
-      // Timestamp
-      timestamp: BigInt(timestamp),
-      blockNumber: BigInt(event.block.number),
-      // Other data
-      action: action,
-      target: target,
-    })
-    .onConflictDoNothing(); // TODO Sometimes the tx is recorded multiple times. Look at why.
-  console.log("Recorded action executed event");
+    const target = event.args.target_;
+    const timestamp = Number(event.block.timestamp);
+    const action = parseAction(actionInt);
+    const contractType = parseContractType(actionInt);
+    const contractName = await parseContractName(actionInt, target, context);
+    const contractVersion = getContractVersion(target, context.chain.id);
+    const previousContract =
+      action === "upgradeModule"
+        ? await getPreviousModule(contractName, context)
+        : null;
 
-  // Record the contract history
-  if (contractType !== "kernel") {
-    // For module upgrades, add an event for the previous contract
-    if (action === "upgradeModule") {
-      const previousContract = await getPreviousModule(contractName, context);
+    console.log("\n\n****");
+    console.log(
+      `Chain ${context.chain.id}: Processing action ${action} on target ${target} at block ${event.block.number}`
+    );
 
-      if (!previousContract) {
-        throw new Error(
-          `No previous contract found for keycode ${contractName}`
-        );
+    // Record the action event
+    await context.db
+      .insert(actionExecutedEvent)
+      .values({
+        // Primary keys
+        chainId: context.chain.id,
+        kernel: kernelAddress,
+        transactionHash: event.transaction.hash,
+        logIndex: event.log.logIndex,
+        // Timestamp
+        timestamp: BigInt(timestamp),
+        blockNumber: BigInt(event.block.number),
+        // Other data
+        action: action,
+        target: target,
+      })
+      .onConflictDoNothing(); // TODO Sometimes the tx is recorded multiple times. Look at why.
+    console.log("Recorded action executed event");
+
+    // Record the contract history
+    if (contractType !== "kernel") {
+      // For module upgrades, add an event for the previous contract
+      if (action === "upgradeModule") {
+        if (!previousContract) {
+          throw new Error(
+            `No previous contract found for keycode ${contractName}`
+          );
+        }
+
+        await context.db
+          .insert(contractEvent)
+          .values({
+            // Primary keys
+            chainId: context.chain.id,
+            transactionHash: event.transaction.hash,
+            logIndex: event.log.logIndex,
+            action: "upgradeModule",
+            address: previousContract.address,
+            // Timestamp
+            timestamp: BigInt(timestamp),
+            blockNumber: BigInt(event.block.number),
+            // Other data
+            name: previousContract.name,
+            version: previousContract.version,
+            type: previousContract.type,
+            isEnabled: false,
+            policyPermissions: previousContract.policyPermissions,
+            policyFunctions: previousContract.policyFunctions,
+          })
+          .onConflictDoNothing(); // TODO Sometimes the tx is recorded multiple times. Look at why.
+        console.log("Recorded previous contract event");
       }
 
       await context.db
@@ -303,154 +380,199 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
           chainId: context.chain.id,
           transactionHash: event.transaction.hash,
           logIndex: event.log.logIndex,
-          action: "upgradeModule",
-          address: previousContract.address,
+          action: action,
+          address: target,
           // Timestamp
           timestamp: BigInt(timestamp),
           blockNumber: BigInt(event.block.number),
           // Other data
-          name: previousContract.name,
-          version: previousContract.version,
-          type: previousContract.type,
-          isEnabled: false,
-          policyPermissions: previousContract.policyPermissions,
-          policyFunctions: previousContract.policyFunctions,
+          name: contractName,
+          version: contractVersion,
+          type: contractType,
+          isEnabled: parseIsEnabled(actionInt),
+          policyPermissions: null,
+          policyFunctions: null,
         })
         .onConflictDoNothing(); // TODO Sometimes the tx is recorded multiple times. Look at why.
-      console.log("Recorded previous contract event");
+      console.log("Recorded contract event");
     }
 
-    await context.db
-      .insert(contractEvent)
-      .values({
+    // Update the contract state
+    // With modules, this may lead to multiple contract records being created
+    if (contractType !== "kernel") {
+      const isEnabled = parseIsEnabled(actionInt);
+
+      // If a module is being upgraded, we need to update the previous contract
+      if (action === "upgradeModule") {
+        if (!previousContract) {
+          throw new Error(
+            `No previous contract found for keycode ${contractName}`
+          );
+        }
+
+        await context.db
+          .update(contract, {
+            chainId: context.chain.id,
+            address: previousContract.address,
+          })
+          .set({
+            isEnabled: false,
+            lastUpdatedTimestamp: BigInt(timestamp),
+            lastUpdatedBlockNumber: BigInt(event.block.number),
+          });
+        console.log("Updated previous contract");
+      }
+
+      await context.db
+        .insert(contract)
+        .values({
+          // Primary keys
+          chainId: context.chain.id,
+          address: target,
+          // Timestamp
+          lastUpdatedTimestamp: BigInt(timestamp),
+          lastUpdatedBlockNumber: BigInt(event.block.number),
+          // Other data
+          name: contractName,
+          version: contractVersion,
+          type: contractType,
+          isEnabled: isEnabled,
+          policyPermissions: null,
+          policyFunctions: null,
+        })
+        .onConflictDoUpdate({
+          isEnabled: isEnabled,
+          lastUpdatedTimestamp: BigInt(timestamp),
+          lastUpdatedBlockNumber: BigInt(event.block.number),
+        });
+      console.log("Updated contract");
+    }
+
+    // Handle the kernel executor
+    if (action === "changeExecutor") {
+      // Get the new executor
+      const kernelAddress = event.log.address;
+      const executor = await getKernelExecutor(kernelAddress, context);
+
+      // Update the kernel executor
+      await context.db
+        .update(kernelExecutor, {
+          chainId: context.chain.id,
+          kernel: kernelAddress,
+        })
+        .set({
+          executor: executor,
+          lastUpdatedTimestamp: BigInt(timestamp),
+          lastUpdatedBlockNumber: BigInt(event.block.number),
+        });
+
+      // Record the kernel executor event
+      await context.db.insert(kernelExecutorEvent).values({
         // Primary keys
         chainId: context.chain.id,
+        kernel: kernelAddress,
         transactionHash: event.transaction.hash,
         logIndex: event.log.logIndex,
-        action: action,
-        address: target,
         // Timestamp
         timestamp: BigInt(timestamp),
         blockNumber: BigInt(event.block.number),
         // Other data
-        name: contractName,
-        version: contractVersion,
-        type: contractType,
-        isEnabled: parseIsEnabled(actionInt),
-        policyPermissions: await parsePolicyPermissions(
-          actionInt,
-          target,
-          contractName,
-          context
-        ),
-        policyFunctions: await parsePolicyFunctions(
-          actionInt,
-          target,
-          contractName,
-          context
-        ),
-      })
-      .onConflictDoNothing(); // TODO Sometimes the tx is recorded multiple times. Look at why.
-    console.log("Recorded contract event");
-  }
-
-  // Update the contract state
-  // With modules, this may lead to multiple contract records being created
-  if (contractType !== "kernel") {
-    const isEnabled = parseIsEnabled(actionInt);
-
-    // If a module is being upgraded, we need to update the previous contract
-    if (action === "upgradeModule") {
-      const previousContract = await getPreviousModule(contractName, context);
-
-      if (!previousContract) {
-        throw new Error(
-          `No previous contract found for keycode ${contractName}`
-        );
-      }
-
-      await context.db
-        .update(contract, {
-          chainId: context.chain.id,
-          address: previousContract.address,
-        })
-        .set({
-          isEnabled: false,
-          lastUpdatedTimestamp: BigInt(timestamp),
-          lastUpdatedBlockNumber: BigInt(event.block.number),
-        });
-      console.log("Updated previous contract");
-    }
-
-    await context.db
-      .insert(contract)
-      .values({
-        // Primary keys
-        chainId: context.chain.id,
-        address: target,
-        // Timestamp
-        lastUpdatedTimestamp: BigInt(timestamp),
-        lastUpdatedBlockNumber: BigInt(event.block.number),
-        // Other data
-        name: contractName,
-        version: contractVersion,
-        type: contractType,
-        isEnabled: isEnabled,
-        policyPermissions: await parsePolicyPermissions(
-          actionInt,
-          target,
-          contractName,
-          context
-        ),
-        policyFunctions: await parsePolicyFunctions(
-          actionInt,
-          target,
-          contractName,
-          context
-        ),
-      })
-      .onConflictDoUpdate({
-        isEnabled: isEnabled,
-      });
-    console.log("Updated contract");
-  }
-
-  // Handle the kernel executor
-  if (action === "changeExecutor") {
-    // Get the new executor
-    const kernelAddress = event.log.address;
-    const executor = await getKernelExecutor(kernelAddress, context);
-
-    // Update the kernel executor
-    await context.db
-      .update(kernelExecutor, {
-        chainId: context.chain.id,
-        kernel: kernelAddress,
-      })
-      .set({
         executor: executor,
-        lastUpdatedTimestamp: BigInt(timestamp),
-        lastUpdatedBlockNumber: BigInt(event.block.number),
       });
+      console.log("Recorded kernel executor event");
+    }
+  }
+);
 
-    // Record the kernel executor event
-    await context.db.insert(kernelExecutorEvent).values({
-      // Primary keys
+ponder.on("KernelPolicyActions:ActionExecuted", async ({ event, context }) => {
+  const kernelAddress = event.log.address;
+  const actionInt = event.args.action_;
+  const target = event.args.target_;
+  const timestamp = Number(event.block.timestamp);
+  const action = parseAction(actionInt);
+  const contractType = parseContractType(actionInt);
+  const contractName = await parseContractName(actionInt, target, context);
+  const contractVersion = getContractVersion(target, context.chain.id);
+  const isEnabled = parseIsEnabled(actionInt);
+
+  const policyPermissions = await parsePolicyPermissions(
+    actionInt,
+    kernelAddress,
+    target,
+    contractName,
+    event.block.number,
+    context
+  );
+  const policyFunctions = await parsePolicyFunctions(
+    actionInt,
+    target,
+    contractName,
+    event.block.number,
+    context
+  );
+
+  console.log("\n\n****");
+  console.log(
+    `Chain ${context.chain.id}: Processing policy action ${action} on target ${target} at block ${event.block.number}`
+  );
+
+  await context.db
+    .insert(actionExecutedEvent)
+    .values({
       chainId: context.chain.id,
       kernel: kernelAddress,
       transactionHash: event.transaction.hash,
       logIndex: event.log.logIndex,
-      // Timestamp
       timestamp: BigInt(timestamp),
       blockNumber: BigInt(event.block.number),
-      // Other data
-      executor: executor,
+      action: action,
+      target: target,
+    })
+    .onConflictDoNothing();
+
+  await context.db
+    .insert(contractEvent)
+    .values({
+      chainId: context.chain.id,
+      transactionHash: event.transaction.hash,
+      logIndex: event.log.logIndex,
+      action: action,
+      address: target,
+      timestamp: BigInt(timestamp),
+      blockNumber: BigInt(event.block.number),
+      name: contractName,
+      version: contractVersion,
+      type: contractType,
+      isEnabled: isEnabled,
+      policyPermissions: policyPermissions,
+      policyFunctions: policyFunctions,
+    })
+    .onConflictDoNothing();
+
+  await context.db
+    .insert(contract)
+    .values({
+      chainId: context.chain.id,
+      address: target,
+      lastUpdatedTimestamp: BigInt(timestamp),
+      lastUpdatedBlockNumber: BigInt(event.block.number),
+      name: contractName,
+      version: contractVersion,
+      type: contractType,
+      isEnabled: isEnabled,
+      policyPermissions: policyPermissions,
+      policyFunctions: policyFunctions,
+    })
+    .onConflictDoUpdate({
+      isEnabled: isEnabled,
+      lastUpdatedTimestamp: BigInt(timestamp),
+      lastUpdatedBlockNumber: BigInt(event.block.number),
+      policyPermissions: policyPermissions,
+      policyFunctions: policyFunctions,
     });
-    console.log("Recorded kernel executor event");
-  }
 });
 
-ponder.on("Kernel:setup", async ({ context }) => {
+ponder.on("KernelPolicyActions:setup", async ({ context }) => {
   // Insert initial records for the Kernel contract
   const constants = getKernelConstants(context.chain.id);
 

@@ -11,7 +11,12 @@ import { ModuleAbi } from "../abis/Module";
 import { fromHex } from "viem";
 import { PolicyAbi } from "../abis/Policy";
 import { KernelAbi } from "../abis/Kernel";
-import { getContractName, getContractVersion } from "./ContractNames";
+import {
+  getContractName,
+  getContractStartBlock,
+  getContractType,
+  getContractVersion,
+} from "./ContractNames";
 import { ContractProcessor } from "./services/contracts/processor";
 import { getEtherscanApi } from "./services/etherscan/api";
 import { getLatestContractByName } from "./services/db";
@@ -119,11 +124,28 @@ const parsePolicyFunctions = async (
   action: number,
   policyAddress: `0x${string}`,
   policyName: string,
+  blockNumber: bigint,
   context: Context
 ): Promise<FunctionDetails[] | null> => {
   if (action !== 2 && action !== 3) {
     console.debug(
       `Skipping policy functions for non-policy action ${action} on ${policyName}`
+    );
+    return null;
+  }
+
+  const contractType = getContractType(policyAddress, context.chain.id);
+  if (contractType !== "policy") {
+    console.debug(
+      `Skipping policy functions for non-policy contract type ${String(contractType)} on ${policyName}`
+    );
+    return null;
+  }
+
+  const startBlock = getContractStartBlock(policyAddress, context.chain.id);
+  if (startBlock !== undefined && blockNumber < BigInt(startBlock)) {
+    console.debug(
+      `Skipping policy functions for ${policyName} at block ${blockNumber} before start block ${startBlock}`
     );
     return null;
   }
@@ -140,11 +162,28 @@ const parsePolicyPermissions = async (
   action: number,
   target: `0x${string}`,
   targetName: string,
+  blockNumber: bigint,
   context: Context
 ): Promise<PolicyPermission[] | null> => {
   if (action !== 2 && action !== 3) {
     console.debug(
       `Skipping policy permissions for non-policy action ${action} on ${targetName}`
+    );
+    return null;
+  }
+
+  const contractType = getContractType(target, context.chain.id);
+  if (contractType !== "policy") {
+    console.debug(
+      `Skipping policy permissions for non-policy contract type ${String(contractType)} on ${targetName}`
+    );
+    return null;
+  }
+
+  const startBlock = getContractStartBlock(target, context.chain.id);
+  if (startBlock !== undefined && blockNumber < BigInt(startBlock)) {
+    console.debug(
+      `Skipping policy permissions for ${targetName} at block ${blockNumber} before start block ${startBlock}`
     );
     return null;
   }
@@ -229,10 +268,7 @@ const getPreviousModule = async (keycode: string, context: Context) => {
     .select()
     .from(contract)
     .where(
-      and(
-        eq(contract.name, keycode),
-        eq(contract.chainId, context.chain.id)
-      )
+      and(eq(contract.name, keycode), eq(contract.chainId, context.chain.id))
     )
     .orderBy(desc(contract.lastUpdatedTimestamp))
     .limit(1);
@@ -341,12 +377,14 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
           actionInt,
           target,
           contractName,
+          event.block.number,
           context
         ),
         policyFunctions: await parsePolicyFunctions(
           actionInt,
           target,
           contractName,
+          event.block.number,
           context
         ),
       })
@@ -400,12 +438,14 @@ ponder.on("Kernel:ActionExecuted", async ({ event, context }) => {
           actionInt,
           target,
           contractName,
+          event.block.number,
           context
         ),
         policyFunctions: await parsePolicyFunctions(
           actionInt,
           target,
           contractName,
+          event.block.number,
           context
         ),
       })

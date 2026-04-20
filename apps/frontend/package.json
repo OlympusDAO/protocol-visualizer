@@ -14,7 +14,7 @@
     "@ponder/client": "^0.16.6",
     "@ponder/react": "^0.16.6",
     "@tanstack/react-query": "^5.0.0",
-    "@types/dagre": "^0.7.52",
+    "@types/dagre": "^0.7.54",
     "dagre": "^0.8.5",
     "react": "18.3.1",
     "react-dom": "18.3.1",

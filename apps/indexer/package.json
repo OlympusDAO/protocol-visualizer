@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "eslint": "^8.57.1",
+    "eslint": "^10.2.1",
     "eslint-config-ponder": "^0.9.28",
     "typescript": "^5.2.2"
   },

@@ -1,4 +1,9 @@
 minimumReleaseAge: 10080
+minimumReleaseAgeExclude:
+  - "fast-uri"
+  - "hono"
+  - "kysely"
+  - "postcss"
 preferFrozenLockfile: true
 engineStrict: true
 strictDepBuilds: true

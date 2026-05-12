@@ -20,15 +20,8 @@ overrides:
   flatted@<=3.4.1: 3.4.2
   drizzle-orm: 0.45.2
   drizzle-orm@<0.45.2: 0.45.2
-  hono: 4.12.14
-  hono@<4.11.10: 4.12.14
-  hono@<4.11.7: 4.12.14
-  hono@<4.12.4: 4.12.14
-  hono@<4.12.7: 4.12.14
-  hono@<4.12.12: 4.12.14
-  hono@<4.12.14: 4.12.14
-  kysely: 0.28.14
-  kysely@<=0.28.13: 0.28.14
+  hono: '>=4.12.18'
+  kysely: '>=0.28.17'
   kysely@>=0.26.0 <=0.28.11: 0.28.14
   lodash: 4.18.0
   lodash@<=4.17.23: 4.18.0
@@ -51,6 +44,9 @@ overrides:
   eslint-plugin-import>minimatch: 9.0.7
   '@eslint/eslintrc>minimatch': 5.1.8
   micromatch>picomatch: 4.0.4
+  postcss: '>=8.5.10'
+  fast-uri: '>=3.1.2'
+  kysely@>=0.26.0 <0.28.17: '>=0.28.17'
 
 importers:
 
@@ -88,10 +84,10 @@ importers:
     dependencies:
       '@ponder/client':
         specifier: ^0.16.6
-        version: 0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.14)(pg@8.20.0)(typescript@5.7.3)
+        version: 0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.29.0)(pg@8.20.0)(typescript@5.7.3)
       '@ponder/react':
         specifier: ^0.16.6
-        version: 0.16.6(@ponder/client@0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.14)(pg@8.20.0)(typescript@5.7.3))(@tanstack/react-query@5.66.9(react@18.3.1))(react@18.3.1)(typescript@5.7.3)
+        version: 0.16.6(@ponder/client@0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.29.0)(pg@8.20.0)(typescript@5.7.3))(@tanstack/react-query@5.66.9(react@18.3.1))(react@18.3.1)(typescript@5.7.3)
       '@tanstack/react-query':
         specifier: ^5.0.0
         version: 5.66.9(react@18.3.1)
@@ -134,7 +130,7 @@ importers:
         version: 6.0.1(vite@8.0.8(@types/node@25.0.8)(esbuild@0.28.0)(jiti@1.21.7)(yaml@2.8.3))
       autoprefixer:
         specifier: ^10.4.17
-        version: 10.4.20(postcss@8.5.3)
+        version: 10.4.20(postcss@8.5.14)
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
@@ -145,8 +141,8 @@ importers:
         specifier: ^0.4.5
         version: 0.4.19(eslint@8.57.1)
       postcss:
-        specifier: ^8.4.35
-        version: 8.5.3
+        specifier: '>=8.5.10'
+        version: 8.5.14
       typescript:
         specifier: ^5.2.2
         version: 5.7.3
@@ -157,11 +153,11 @@ importers:
   apps/indexer:
     dependencies:
       hono:
-        specifier: 4.12.14
-        version: 4.12.14
+        specifier: '>=4.12.18'
+        version: 4.12.18
       ponder:
         specifier: ^0.16.6
-        version: 0.16.6(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(better-sqlite3@9.6.0)(hono@4.12.14)(jiti@1.21.7)(lightningcss@1.32.0)(typescript@5.7.3)(viem@2.47.11(typescript@5.7.3))(yaml@2.8.3)
+        version: 0.16.6(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(better-sqlite3@9.6.0)(hono@4.12.18)(jiti@1.21.7)(lightningcss@1.32.0)(typescript@5.7.3)(viem@2.47.11(typescript@5.7.3))(yaml@2.8.3)
       viem:
         specifier: ^2.21.3
         version: 2.47.11(typescript@5.7.3)
@@ -486,7 +482,7 @@ packages:
     resolution: {integrity: sha512-TsQLe4i2gvoTtrHje625ngThGBySOgSK3Xo2XRYOdqGN1teR8+I7vchQC46uLJi8OF62YTYA3AhSpumtkhsaKQ==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
-      hono: 4.12.14
+      hono: '>=4.12.18'
 
   '@humanwhocodes/config-array@0.13.0':
     resolution: {integrity: sha512-DZLEEqFWQFiyK6h5YIeynKx7JlvCYWL0cImfSRXZ9l4Sg2efkFGTuFf6vzXjK1cq6IYkU+Eg/JizXw+TD2vRNw==}
@@ -1302,7 +1298,7 @@ packages:
     engines: {node: ^10 || ^12 || >=14}
     hasBin: true
     peerDependencies:
-      postcss: ^8.1.0
+      postcss: '>=8.5.10'
 
   available-typed-arrays@1.0.7:
     resolution: {integrity: sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ==}
@@ -1610,7 +1606,7 @@ packages:
       expo-sqlite: '>=14.0.0'
       gel: '>=2'
       knex: '*'
-      kysely: 0.28.14
+      kysely: '>=0.28.17'
       mysql2: '>=2'
       pg: '>=8'
       postgres: '>=3'
@@ -1893,8 +1889,8 @@ packages:
     resolution: {integrity: sha512-dwsoQlS7h9hMeYUq1W++23NDcBLV4KqONnITDV9DjfS3q1SgDGVrBdvvTLUotWtPSD7asWDV9/CmsZPy8Hf70A==}
     engines: {node: '>=6'}
 
-  fast-uri@3.1.0:
-    resolution: {integrity: sha512-iPeeDKJSWf4IEOasVVrknXpaBV0IApz/gp7S2bb7Z4Lljbl2MGJRqInZiUrQwV16cpzw/D3S5j5Julj/gT52AA==}
+  fast-uri@3.1.2:
+    resolution: {integrity: sha512-rVjf7ArG3LTk+FS6Yw81V1DLuZl1bRbNrev6Tmd/9RaroeeRRJhAt7jg/6YFxbvAQXUCavSoZhPPj6oOx+5KjQ==}
 
   fastq@1.19.0:
     resolution: {integrity: sha512-7SFSRCNjBQIZH/xZR3iy5iQYR8aGBE0h3VG6/cwlbrpdciNYBMotQav8c1XI3HjHH+NikUpP53nPdlZSdWmFzA==}
@@ -2072,8 +2068,8 @@ packages:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
 
-  hono@4.12.14:
-    resolution: {integrity: sha512-am5zfg3yu6sqn5yjKBNqhnTX7Cv+m00ox+7jbaKkrLMRJ4rAdldd1xPd/JzbBWspqaQv6RSTrgFN95EsfhC+7w==}
+  hono@4.12.18:
+    resolution: {integrity: sha512-RWzP96k/yv0PQfyXnWjs6zot20TqfpfsNXhOnev8d1InAxubW93L11/oNUc3tQqn2G0bSdAOBpX+2uDFHV7kdQ==}
     engines: {node: '>=16.9.0'}
 
   http-terminator@3.2.0:
@@ -2284,9 +2280,9 @@ packages:
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
-  kysely@0.28.14:
-    resolution: {integrity: sha512-SU3lgh0rPvq7upc6vvdVrCsSMUG1h3ChvHVOY7wJ2fw4C9QEB7X3d5eyYEyULUX7UQtxZJtZXGuT6U2US72UYA==}
-    engines: {node: '>=20.0.0'}
+  kysely@0.29.0:
+    resolution: {integrity: sha512-LrQfPUeTW7MXbMvT62moEMnpMTuj9TO3lqjCeLKjM975PJ4Alrl/43f2tlDX7xOsNptKgH4LSNGwIbXwEkLg4g==}
+    engines: {node: '>=22.0.0'}
 
   levn@0.4.1:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
@@ -2447,11 +2443,6 @@ packages:
 
   nanoid@3.3.11:
     resolution: {integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==}
-    engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
-    hasBin: true
-
-  nanoid@3.3.8:
-    resolution: {integrity: sha512-WNLf5Sd8oZxOm+TzppcYk8gVOgP+l58xNy58D0nbUnOxOWRWvlcCV4kUF7ltmI6PsrLl/BgKEyS4mqsGChFN0w==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
@@ -2669,7 +2660,7 @@ packages:
     engines: {node: '>=18.14'}
     hasBin: true
     peerDependencies:
-      hono: 4.12.14
+      hono: '>=4.12.18'
       typescript: '>=5.0.4'
       viem: '>=2'
     peerDependenciesMeta:
@@ -2684,19 +2675,19 @@ packages:
     resolution: {integrity: sha512-hpr+J05B2FVYUAXHeK1YyI267J/dDDhMU6B6civm8hSY1jYJnBXxzKDKDswzJmtLHryrjhnDjqqp/49t8FALew==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
-      postcss: ^8.0.0
+      postcss: '>=8.5.10'
 
   postcss-js@4.0.1:
     resolution: {integrity: sha512-dDLF8pEO191hJMtlHFPRa8xsizHaM82MLfNkUHdUtVEV3tgTp5oj+8qbEqYM57SLfc74KSbw//4SeJma2LRVIw==}
     engines: {node: ^12 || ^14 || >= 16}
     peerDependencies:
-      postcss: ^8.4.21
+      postcss: '>=8.5.10'
 
   postcss-load-config@4.0.2:
     resolution: {integrity: sha512-bSVhyJGL00wMVoPUzAVAnbEoWyqRxkjv64tUl427SKnPrENtq6hJwUojroMz2VB+Q1edmi4IfrAPpami5VVgMQ==}
     engines: {node: '>= 14'}
     peerDependencies:
-      postcss: '>=8.0.9'
+      postcss: '>=8.5.10'
       ts-node: '>=9.0.0'
     peerDependenciesMeta:
       postcss:
@@ -2708,7 +2699,7 @@ packages:
     resolution: {integrity: sha512-HQbt28KulC5AJzG+cZtj9kvKB93CFCdLvog1WFLf1D+xmMvPGlBstkpTEZfK5+AN9hfJocyBFCNiqyS48bpgzQ==}
     engines: {node: '>=12.0'}
     peerDependencies:
-      postcss: ^8.2.14
+      postcss: '>=8.5.10'
 
   postcss-selector-parser@6.1.2:
     resolution: {integrity: sha512-Q8qQfPiZ+THO/3ZrOrO0cJJKfpYCagtMUkXbnEfmgUjwXg6z/WBeOyS9APBBPCTSiDV+s4SwQGu8yFsiMRIudg==}
@@ -2717,12 +2708,8 @@ packages:
   postcss-value-parser@4.2.0:
     resolution: {integrity: sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ==}
 
-  postcss@8.5.3:
-    resolution: {integrity: sha512-dle9A3yYxlBSrt8Fu+IpjGT8SY8hN0mlaA6GY8t0P5PjIOZemULz/E2Bnm/2dcUOena75OTNkHI76uZBNUUq3A==}
-    engines: {node: ^10 || ^12 || >=14}
-
-  postcss@8.5.9:
-    resolution: {integrity: sha512-7a70Nsot+EMX9fFU3064K/kdHWZqGVY+BADLyXc8Dfv+mTLLVl6JzJpPaCZ2kQL9gIJvKXSLMHhqdRRjwQeFtw==}
+  postcss@8.5.14:
+    resolution: {integrity: sha512-SoSL4+OSEtR99LHFZQiJLkT59C5B1amGO1NzTwj7TT1qCUgUO6hxOvzkOYxD+vMrXBM3XJIKzokoERdqQq/Zmg==}
     engines: {node: ^10 || ^12 || >=14}
 
   postgres-array@2.0.0:
@@ -3711,9 +3698,9 @@ snapshots:
       '@repeaterjs/repeater': 3.0.6
       tslib: 2.8.1
 
-  '@hono/node-server@1.19.13(hono@4.12.14)':
+  '@hono/node-server@1.19.13(hono@4.12.18)':
     dependencies:
-      hono: 4.12.14
+      hono: 4.12.18
 
   '@humanwhocodes/config-array@0.13.0':
     dependencies:
@@ -3787,9 +3774,9 @@ snapshots:
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
-  '@ponder/client@0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.14)(pg@8.20.0)(typescript@5.7.3)':
+  '@ponder/client@0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.29.0)(pg@8.20.0)(typescript@5.7.3)':
     dependencies:
-      drizzle-orm: 0.45.2(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.14)(pg@8.20.0)
+      drizzle-orm: 0.45.2(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.29.0)(pg@8.20.0)
       eventsource: 3.0.7
       superjson: 2.2.6
     optionalDependencies:
@@ -3825,9 +3812,9 @@ snapshots:
       - sql.js
       - sqlite3
 
-  '@ponder/react@0.16.6(@ponder/client@0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.14)(pg@8.20.0)(typescript@5.7.3))(@tanstack/react-query@5.66.9(react@18.3.1))(react@18.3.1)(typescript@5.7.3)':
+  '@ponder/react@0.16.6(@ponder/client@0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.29.0)(pg@8.20.0)(typescript@5.7.3))(@tanstack/react-query@5.66.9(react@18.3.1))(react@18.3.1)(typescript@5.7.3)':
     dependencies:
-      '@ponder/client': 0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.14)(pg@8.20.0)(typescript@5.7.3)
+      '@ponder/client': 0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.29.0)(pg@8.20.0)(typescript@5.7.3)
       '@tanstack/react-query': 5.66.9(react@18.3.1)
       react: 18.3.1
       superjson: 2.2.6
@@ -4549,7 +4536,7 @@ snapshots:
   ajv@8.18.0:
     dependencies:
       fast-deep-equal: 3.1.3
-      fast-uri: 3.1.0
+      fast-uri: 3.1.2
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
@@ -4639,14 +4626,14 @@ snapshots:
       stubborn-fs: 2.0.0
       when-exit: 2.1.5
 
-  autoprefixer@10.4.20(postcss@8.5.3):
+  autoprefixer@10.4.20(postcss@8.5.14):
     dependencies:
       browserslist: 4.24.4
       caniuse-lite: 1.0.30001700
       fraction.js: 4.3.7
       normalize-range: 0.1.2
       picocolors: 1.1.1
-      postcss: 8.5.3
+      postcss: 8.5.14
       postcss-value-parser: 4.2.0
 
   available-typed-arrays@1.0.7:
@@ -4934,12 +4921,12 @@ snapshots:
 
   dotenv@16.6.1: {}
 
-  drizzle-orm@0.45.2(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.14)(pg@8.20.0):
+  drizzle-orm@0.45.2(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.29.0)(pg@8.20.0):
     optionalDependencies:
       '@electric-sql/pglite': 0.2.13
       '@opentelemetry/api': 1.9.1
       better-sqlite3: 9.6.0
-      kysely: 0.28.14
+      kysely: 0.29.0
       pg: 8.20.0
 
   dunder-proto@1.0.1:
@@ -5266,7 +5253,7 @@ snapshots:
 
   fast-redact@3.5.0: {}
 
-  fast-uri@3.1.0: {}
+  fast-uri@3.1.2: {}
 
   fastq@1.19.0:
     dependencies:
@@ -5461,7 +5448,7 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
-  hono@4.12.14: {}
+  hono@4.12.18: {}
 
   http-terminator@3.2.0:
     dependencies:
@@ -5661,7 +5648,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  kysely@0.28.14: {}
+  kysely@0.29.0: {}
 
   levn@0.4.1:
     dependencies:
@@ -5781,8 +5768,6 @@ snapshots:
       thenify-all: 1.6.0
 
   nanoid@3.3.11: {}
-
-  nanoid@3.3.8: {}
 
   napi-build-utils@2.0.0:
     optional: true
@@ -5996,7 +5981,7 @@ snapshots:
 
   pirates@4.0.6: {}
 
-  ponder@0.16.6(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(better-sqlite3@9.6.0)(hono@4.12.14)(jiti@1.21.7)(lightningcss@1.32.0)(typescript@5.7.3)(viem@2.47.11(typescript@5.7.3))(yaml@2.8.3):
+  ponder@0.16.6(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(better-sqlite3@9.6.0)(hono@4.12.18)(jiti@1.21.7)(lightningcss@1.32.0)(typescript@5.7.3)(viem@2.47.11(typescript@5.7.3))(yaml@2.8.3):
     dependencies:
       '@babel/code-frame': 7.29.0
       '@commander-js/extra-typings': 12.1.0(commander@12.1.0)
@@ -6004,7 +5989,7 @@ snapshots:
       '@escape.tech/graphql-armor-max-aliases': 2.6.2
       '@escape.tech/graphql-armor-max-depth': 2.4.2
       '@escape.tech/graphql-armor-max-tokens': 2.5.1
-      '@hono/node-server': 1.19.13(hono@4.12.14)
+      '@hono/node-server': 1.19.13(hono@4.12.18)
       '@ponder/utils': 0.2.18(typescript@5.7.3)(viem@2.47.11(typescript@5.7.3))
       abitype: 0.10.3(typescript@5.7.3)
       ansi-escapes: 7.3.0
@@ -6013,13 +5998,13 @@ snapshots:
       dataloader: 2.2.3
       detect-package-manager: 3.0.2
       dotenv: 16.6.1
-      drizzle-orm: 0.45.2(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.14)(pg@8.20.0)
+      drizzle-orm: 0.45.2(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.29.0)(pg@8.20.0)
       glob: 10.5.0
       graphql: 16.8.2
       graphql-yoga: 5.17.1(graphql@16.8.2)
-      hono: 4.12.14
+      hono: 4.12.18
       http-terminator: 3.2.0
-      kysely: 0.28.14
+      kysely: 0.29.0
       pg: 8.20.0
       pg-connection-string: 2.12.0
       pg-copy-streams: 6.0.6
@@ -6084,28 +6069,28 @@ snapshots:
 
   possible-typed-array-names@1.1.0: {}
 
-  postcss-import@15.1.0(postcss@8.5.3):
+  postcss-import@15.1.0(postcss@8.5.14):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.14
       postcss-value-parser: 4.2.0
       read-cache: 1.0.0
       resolve: 1.22.10
 
-  postcss-js@4.0.1(postcss@8.5.3):
+  postcss-js@4.0.1(postcss@8.5.14):
     dependencies:
       camelcase-css: 2.0.1
-      postcss: 8.5.3
+      postcss: 8.5.14
 
-  postcss-load-config@4.0.2(postcss@8.5.3):
+  postcss-load-config@4.0.2(postcss@8.5.14):
     dependencies:
       lilconfig: 3.1.3
       yaml: 2.8.3
     optionalDependencies:
-      postcss: 8.5.3
+      postcss: 8.5.14
 
-  postcss-nested@6.2.0(postcss@8.5.3):
+  postcss-nested@6.2.0(postcss@8.5.14):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.14
       postcss-selector-parser: 6.1.2
 
   postcss-selector-parser@6.1.2:
@@ -6115,13 +6100,7 @@ snapshots:
 
   postcss-value-parser@4.2.0: {}
 
-  postcss@8.5.3:
-    dependencies:
-      nanoid: 3.3.8
-      picocolors: 1.1.1
-      source-map-js: 1.2.1
-
-  postcss@8.5.9:
+  postcss@8.5.14:
     dependencies:
       nanoid: 3.3.11
       picocolors: 1.1.1
@@ -6563,11 +6542,11 @@ snapshots:
       normalize-path: 3.0.0
       object-hash: 3.0.0
       picocolors: 1.1.1
-      postcss: 8.5.3
-      postcss-import: 15.1.0(postcss@8.5.3)
-      postcss-js: 4.0.1(postcss@8.5.3)
-      postcss-load-config: 4.0.2(postcss@8.5.3)
-      postcss-nested: 6.2.0(postcss@8.5.3)
+      postcss: 8.5.14
+      postcss-import: 15.1.0(postcss@8.5.14)
+      postcss-js: 4.0.1(postcss@8.5.14)
+      postcss-load-config: 4.0.2(postcss@8.5.14)
+      postcss-nested: 6.2.0(postcss@8.5.14)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.10
       sucrase: 3.35.0
@@ -6827,7 +6806,7 @@ snapshots:
       esbuild: 0.28.0
       fdir: 6.5.0(picomatch@4.0.4)
       picomatch: 4.0.4
-      postcss: 8.5.9
+      postcss: 8.5.14
       rollup: 4.59.0
       tinyglobby: 0.2.16
     optionalDependencies:
@@ -6841,7 +6820,7 @@ snapshots:
     dependencies:
       lightningcss: 1.32.0
       picomatch: 4.0.4
-      postcss: 8.5.9
+      postcss: 8.5.14
       rolldown: 1.0.0-rc.15
       tinyglobby: 0.2.16
     optionalDependencies:

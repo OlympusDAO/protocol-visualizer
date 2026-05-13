@@ -81,9 +81,12 @@ if (runtimeNodeMajor !== nodeEngineMajor) {
 }
 
 const packageManagerVersion = packageManager.slice("pnpm@".length).trim();
-if (packageManagerVersion !== pnpmEngine) {
+const pnpmEngineVersion = pnpmEngine.startsWith(">=")
+  ? pnpmEngine.slice(2).trim()
+  : pnpmEngine.trim();
+if (packageManagerVersion !== pnpmEngineVersion) {
   fail(
-    `packageManager (${packageManagerVersion}) and engines.pnpm (${pnpmEngine}) do not match.`
+    `packageManager (${packageManagerVersion}) must match the minimum engines.pnpm version (${pnpmEngine}).`
   );
 }
 

@@ -6,47 +6,25 @@ settings:
 
 overrides:
   '@hono/node-server': 1.19.13
-  '@hono/node-server@<1.19.13': 1.19.13
   ajv: 6.14.0
-  ajv@<6.14.0: 6.14.0
-  ajv@>=7.0.0-alpha.0 <8.18.0: 8.18.0
   brace-expansion@<1.1.13: 1.1.13
   brace-expansion@>=2.0.0 <2.0.3: 2.0.3
-  esbuild@<=0.24.2: 0.25.0
-  esbuild: 0.28.0
-  esbuild@<0.28.0: 0.28.0
-  flatted: 3.4.2
-  flatted@<3.4.0: 3.4.0
-  flatted@<=3.4.1: 3.4.2
   drizzle-orm: 0.45.2
-  drizzle-orm@<0.45.2: 0.45.2
-  hono: '>=4.12.18'
-  kysely: '>=0.28.17'
-  kysely@>=0.26.0 <=0.28.11: 0.28.14
+  esbuild: 0.28.0
+  fast-uri: ^3.1.2
+  flatted: 3.4.2
+  hono: ^4.12.18
+  kysely: 0.28.17
   lodash: 4.18.0
-  lodash@<=4.17.23: 4.18.0
-  lodash@>=4.0.0 <=4.17.22: 4.17.23
-  lodash@>=4.0.0 <=4.17.23: 4.18.0
-  minimatch: 9.0.7
-  minimatch@<3.1.3: 3.1.3
-  minimatch@<3.1.4: 3.1.4
-  minimatch@>=9.0.0 <9.0.6: 9.0.6
+  minimatch@<3.1.4: 3.1.5
+  minimatch@>=5.0.0 <5.1.8: 5.1.8
   minimatch@>=9.0.0 <9.0.7: 9.0.7
   picomatch: 4.0.4
-  picomatch@<2.3.2: 2.3.2
-  picomatch@>=4.0.0 <4.0.4: 4.0.4
-  rollup: 4.59.0
-  rollup@>=4.0.0 <4.59.0: 4.59.0
   ponder>vite: 6.4.2
+  postcss: ^8.5.10
+  rollup: 4.59.0
   vite@>=5.0.0 <5.4.21: 6.4.2
   yaml: 2.8.3
-  yaml@>=2.0.0 <2.8.3: 2.8.3
-  eslint-plugin-import>minimatch: 9.0.7
-  '@eslint/eslintrc>minimatch': 5.1.8
-  micromatch>picomatch: 4.0.4
-  postcss: '>=8.5.10'
-  fast-uri: '>=3.1.2'
-  kysely@>=0.26.0 <0.28.17: '>=0.28.17'
 
 importers:
 
@@ -84,10 +62,10 @@ importers:
     dependencies:
       '@ponder/client':
         specifier: ^0.16.6
-        version: 0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.29.0)(pg@8.20.0)(typescript@5.7.3)
+        version: 0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.17)(pg@8.20.0)(typescript@5.7.3)
       '@ponder/react':
         specifier: ^0.16.6
-        version: 0.16.6(@ponder/client@0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.29.0)(pg@8.20.0)(typescript@5.7.3))(@tanstack/react-query@5.66.9(react@18.3.1))(react@18.3.1)(typescript@5.7.3)
+        version: 0.16.6(@ponder/client@0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.17)(pg@8.20.0)(typescript@5.7.3))(@tanstack/react-query@5.66.9(react@18.3.1))(react@18.3.1)(typescript@5.7.3)
       '@tanstack/react-query':
         specifier: ^5.0.0
         version: 5.66.9(react@18.3.1)
@@ -141,7 +119,7 @@ importers:
         specifier: ^0.4.5
         version: 0.4.19(eslint@8.57.1)
       postcss:
-        specifier: '>=8.5.10'
+        specifier: ^8.5.10
         version: 8.5.14
       typescript:
         specifier: ^5.2.2
@@ -153,7 +131,7 @@ importers:
   apps/indexer:
     dependencies:
       hono:
-        specifier: '>=4.12.18'
+        specifier: ^4.12.18
         version: 4.12.18
       ponder:
         specifier: ^0.16.6
@@ -482,7 +460,7 @@ packages:
     resolution: {integrity: sha512-TsQLe4i2gvoTtrHje625ngThGBySOgSK3Xo2XRYOdqGN1teR8+I7vchQC46uLJi8OF62YTYA3AhSpumtkhsaKQ==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
-      hono: '>=4.12.18'
+      hono: ^4.12.18
 
   '@humanwhocodes/config-array@0.13.0':
     resolution: {integrity: sha512-DZLEEqFWQFiyK6h5YIeynKx7JlvCYWL0cImfSRXZ9l4Sg2efkFGTuFf6vzXjK1cq6IYkU+Eg/JizXw+TD2vRNw==}
@@ -1210,16 +1188,13 @@ packages:
   ajv-formats@2.1.1:
     resolution: {integrity: sha512-Wx0Kx52hxE7C18hkMEggYlEifqWZtYaRgouJor+WMdPnQyEK13vgEWyVNup7SoeeoLMsr4kf5h6dOW11I15MUA==}
     peerDependencies:
-      ajv: 8.18.0
+      ajv: 6.14.0
     peerDependenciesMeta:
       ajv:
         optional: true
 
   ajv@6.14.0:
     resolution: {integrity: sha512-IWrosm/yrn43eiKqkfkHis7QioDleaXQHdDVPKg0FSwwd/DuvyX79TZnFOnYpB7dcsFAMmtFztZuXPDvSePkFw==}
-
-  ajv@8.18.0:
-    resolution: {integrity: sha512-PlXPeEWMXMZ7sPYOHqmDyCJzcfNrUr3fGNKtezX14ykXOEIvyK81d+qydx89KY5O71FKMPaQ2vBfBFI5NHR63A==}
 
   ansi-escapes@7.3.0:
     resolution: {integrity: sha512-BvU8nYgGQBxcmMuEeUEmNTvrMVjJNSH7RgW24vXexN4Ven6qCvy4TntnvlnwnMLTVlcRQQdbRY8NKnaIoeWDNg==}
@@ -1298,7 +1273,7 @@ packages:
     engines: {node: ^10 || ^12 || >=14}
     hasBin: true
     peerDependencies:
-      postcss: '>=8.5.10'
+      postcss: ^8.5.10
 
   available-typed-arrays@1.0.7:
     resolution: {integrity: sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ==}
@@ -1332,9 +1307,6 @@ packages:
 
   brace-expansion@1.1.13:
     resolution: {integrity: sha512-9ZLprWS6EENmhEOpjCYW2c8VkmOvckIJZfkr7rBW6dObmfgJ/L1GpSYW5Hpo9lDz4D1+n0Ckz8rU7FwHDQiG/w==}
-
-  brace-expansion@2.0.3:
-    resolution: {integrity: sha512-MCV/fYJEbqx68aE58kv2cA/kiky1G8vux3OR6/jbS+jIMe/6fJWa0DTzJU7dqijOWYwHi1t29FlfYI9uytqlpA==}
 
   brace-expansion@5.0.5:
     resolution: {integrity: sha512-VZznLgtwhn+Mact9tfiwx64fA9erHH/MCXEUfB/0bX/6Fz6ny5EGTXYltMocqg4xFAQZtnO3DHWWXi8RiuN7cQ==}
@@ -1606,7 +1578,7 @@ packages:
       expo-sqlite: '>=14.0.0'
       gel: '>=2'
       knex: '*'
-      kysely: '>=0.28.17'
+      kysely: 0.28.17
       mysql2: '>=2'
       pg: '>=8'
       postgres: '>=3'
@@ -1888,9 +1860,6 @@ packages:
   fast-redact@3.5.0:
     resolution: {integrity: sha512-dwsoQlS7h9hMeYUq1W++23NDcBLV4KqONnITDV9DjfS3q1SgDGVrBdvvTLUotWtPSD7asWDV9/CmsZPy8Hf70A==}
     engines: {node: '>=6'}
-
-  fast-uri@3.1.2:
-    resolution: {integrity: sha512-rVjf7ArG3LTk+FS6Yw81V1DLuZl1bRbNrev6Tmd/9RaroeeRRJhAt7jg/6YFxbvAQXUCavSoZhPPj6oOx+5KjQ==}
 
   fastq@1.19.0:
     resolution: {integrity: sha512-7SFSRCNjBQIZH/xZR3iy5iQYR8aGBE0h3VG6/cwlbrpdciNYBMotQav8c1XI3HjHH+NikUpP53nPdlZSdWmFzA==}
@@ -2264,9 +2233,6 @@ packages:
   json-schema-traverse@0.4.1:
     resolution: {integrity: sha512-xbbCH5dCYU5T8LcEhhuh7HJ88HXuW3qsI3Y0zOZFKfZEHcpWiHU/Jxzk629Brsab/mMiHQti9wMP+845RPe3Vg==}
 
-  json-schema-traverse@1.0.0:
-    resolution: {integrity: sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==}
-
   json-schema-typed@8.0.2:
     resolution: {integrity: sha512-fQhoXdcvc3V28x7C7BMs4P5+kNlgUURe2jmUT1T//oBRMDrqy1QPelJimwZGo7Hg9VPV3EQV5Bnq4hbFy2vetA==}
 
@@ -2280,9 +2246,9 @@ packages:
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
-  kysely@0.29.0:
-    resolution: {integrity: sha512-LrQfPUeTW7MXbMvT62moEMnpMTuj9TO3lqjCeLKjM975PJ4Alrl/43f2tlDX7xOsNptKgH4LSNGwIbXwEkLg4g==}
-    engines: {node: '>=22.0.0'}
+  kysely@0.28.17:
+    resolution: {integrity: sha512-nbD8lB9EB3wNdMhOCdx5Li8DxnLbvKByylRLcJ1h+4SkrowVeECAyZlyiKMThF7xFdRz0jSQ2MoJr+wXux2y0Q==}
+    engines: {node: '>=20.0.0'}
 
   levn@0.4.1:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
@@ -2414,12 +2380,8 @@ packages:
     resolution: {integrity: sha512-z0yWI+4FDrrweS8Zmt4Ej5HdJmky15+L2e6Wgn3+iK5fWzb6T3fhNFq2+MeTRb064c6Wr4N/wv0DzQTjNzHNGQ==}
     engines: {node: '>=10'}
 
-  minimatch@3.1.4:
-    resolution: {integrity: sha512-twmL+S8+7yIsE9wsqgzU3E8/LumN3M3QELrBZ20OdmQ9jB2JvW5oZtBEmft84k/Gs5CG9mqtWc6Y9vW+JEzGxw==}
-
-  minimatch@5.1.8:
-    resolution: {integrity: sha512-7RN35vit8DeBclkofOVmBY0eDAZZQd1HzmukRdSyz95CRh8FT54eqnbj0krQr3mrHR6sfRyYkyhwBWjoV5uqlQ==}
-    engines: {node: '>=10'}
+  minimatch@3.1.5:
+    resolution: {integrity: sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w==}
 
   minimatch@9.0.7:
     resolution: {integrity: sha512-MOwgjc8tfrpn5QQEvjijjmDVtMw2oL88ugTevzxQnzRLm6l3fVEF2gzU0kYeYYKD8C66+IdGX6peJ4MyUlUnPg==}
@@ -2629,10 +2591,6 @@ packages:
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
 
-  picomatch@2.3.2:
-    resolution: {integrity: sha512-V7+vQEJ06Z+c5tSye8S+nHUfI51xoXIXjHQ99cQtKUkQqqO1kO/KCJUfZXuB47h/YBlDhah2H3hdUGXn8ie0oA==}
-    engines: {node: '>=8.6'}
-
   picomatch@4.0.4:
     resolution: {integrity: sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A==}
     engines: {node: '>=12'}
@@ -2660,7 +2618,7 @@ packages:
     engines: {node: '>=18.14'}
     hasBin: true
     peerDependencies:
-      hono: '>=4.12.18'
+      hono: ^4.12.18
       typescript: '>=5.0.4'
       viem: '>=2'
     peerDependenciesMeta:
@@ -2675,19 +2633,19 @@ packages:
     resolution: {integrity: sha512-hpr+J05B2FVYUAXHeK1YyI267J/dDDhMU6B6civm8hSY1jYJnBXxzKDKDswzJmtLHryrjhnDjqqp/49t8FALew==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
-      postcss: '>=8.5.10'
+      postcss: ^8.5.10
 
   postcss-js@4.0.1:
     resolution: {integrity: sha512-dDLF8pEO191hJMtlHFPRa8xsizHaM82MLfNkUHdUtVEV3tgTp5oj+8qbEqYM57SLfc74KSbw//4SeJma2LRVIw==}
     engines: {node: ^12 || ^14 || >= 16}
     peerDependencies:
-      postcss: '>=8.5.10'
+      postcss: ^8.5.10
 
   postcss-load-config@4.0.2:
     resolution: {integrity: sha512-bSVhyJGL00wMVoPUzAVAnbEoWyqRxkjv64tUl427SKnPrENtq6hJwUojroMz2VB+Q1edmi4IfrAPpami5VVgMQ==}
     engines: {node: '>= 14'}
     peerDependencies:
-      postcss: '>=8.5.10'
+      postcss: ^8.5.10
       ts-node: '>=9.0.0'
     peerDependenciesMeta:
       postcss:
@@ -2699,7 +2657,7 @@ packages:
     resolution: {integrity: sha512-HQbt28KulC5AJzG+cZtj9kvKB93CFCdLvog1WFLf1D+xmMvPGlBstkpTEZfK5+AN9hfJocyBFCNiqyS48bpgzQ==}
     engines: {node: '>=12.0'}
     peerDependencies:
-      postcss: '>=8.5.10'
+      postcss: ^8.5.10
 
   postcss-selector-parser@6.1.2:
     resolution: {integrity: sha512-Q8qQfPiZ+THO/3ZrOrO0cJJKfpYCagtMUkXbnEfmgUjwXg6z/WBeOyS9APBBPCTSiDV+s4SwQGu8yFsiMRIudg==}
@@ -2812,10 +2770,6 @@ packages:
   regexp.prototype.flags@1.5.4:
     resolution: {integrity: sha512-dYqgNSZbDwkaJ2ceRd9ojCGjBq+mOm9LmtXnAnEGyHhN/5R7iDW2TRw3h+o/jCFxus3P2LfWIIiwowAjANm7IA==}
     engines: {node: '>= 0.4'}
-
-  require-from-string@2.0.2:
-    resolution: {integrity: sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==}
-    engines: {node: '>=0.10.0'}
 
   resolve-from@4.0.0:
     resolution: {integrity: sha512-pb/MYmXstAkysRFx8piNI1tGFNQIFA3vkE3Gq4EuA1dF6gHp/+vgZqsCGJapvy8N3Q+4o7FwvquPJcnZ7RYy4g==}
@@ -3614,7 +3568,7 @@ snapshots:
       ignore: 5.3.2
       import-fresh: 3.3.1
       js-yaml: 4.1.1
-      minimatch: 5.1.8
+      minimatch: 3.1.5
       strip-json-comments: 3.1.1
     transitivePeerDependencies:
       - supports-color
@@ -3628,7 +3582,7 @@ snapshots:
       ignore: 5.3.2
       import-fresh: 3.3.1
       js-yaml: 4.1.1
-      minimatch: 5.1.8
+      minimatch: 3.1.5
       strip-json-comments: 3.1.1
     transitivePeerDependencies:
       - supports-color
@@ -3706,7 +3660,7 @@ snapshots:
     dependencies:
       '@humanwhocodes/object-schema': 2.0.3
       debug: 4.4.0
-      minimatch: 3.1.4
+      minimatch: 3.1.5
     transitivePeerDependencies:
       - supports-color
 
@@ -3774,9 +3728,9 @@ snapshots:
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
-  '@ponder/client@0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.29.0)(pg@8.20.0)(typescript@5.7.3)':
+  '@ponder/client@0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.17)(pg@8.20.0)(typescript@5.7.3)':
     dependencies:
-      drizzle-orm: 0.45.2(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.29.0)(pg@8.20.0)
+      drizzle-orm: 0.45.2(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.17)(pg@8.20.0)
       eventsource: 3.0.7
       superjson: 2.2.6
     optionalDependencies:
@@ -3812,9 +3766,9 @@ snapshots:
       - sql.js
       - sqlite3
 
-  '@ponder/react@0.16.6(@ponder/client@0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.29.0)(pg@8.20.0)(typescript@5.7.3))(@tanstack/react-query@5.66.9(react@18.3.1))(react@18.3.1)(typescript@5.7.3)':
+  '@ponder/react@0.16.6(@ponder/client@0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.17)(pg@8.20.0)(typescript@5.7.3))(@tanstack/react-query@5.66.9(react@18.3.1))(react@18.3.1)(typescript@5.7.3)':
     dependencies:
-      '@ponder/client': 0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.29.0)(pg@8.20.0)(typescript@5.7.3)
+      '@ponder/client': 0.16.6(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.17)(pg@8.20.0)(typescript@5.7.3)
       '@tanstack/react-query': 5.66.9(react@18.3.1)
       react: 18.3.1
       superjson: 2.2.6
@@ -4522,9 +4476,9 @@ snapshots:
 
   acorn@8.16.0: {}
 
-  ajv-formats@2.1.1(ajv@8.18.0):
+  ajv-formats@2.1.1(ajv@6.14.0):
     optionalDependencies:
-      ajv: 8.18.0
+      ajv: 6.14.0
 
   ajv@6.14.0:
     dependencies:
@@ -4532,13 +4486,6 @@ snapshots:
       fast-json-stable-stringify: 2.1.0
       json-schema-traverse: 0.4.1
       uri-js: 4.4.1
-
-  ajv@8.18.0:
-    dependencies:
-      fast-deep-equal: 3.1.3
-      fast-uri: 3.1.2
-      json-schema-traverse: 1.0.0
-      require-from-string: 2.0.2
 
   ansi-escapes@7.3.0:
     dependencies:
@@ -4559,7 +4506,7 @@ snapshots:
   anymatch@3.1.3:
     dependencies:
       normalize-path: 3.0.0
-      picomatch: 2.3.2
+      picomatch: 4.0.4
 
   arg@5.0.2: {}
 
@@ -4673,10 +4620,6 @@ snapshots:
       balanced-match: 1.0.2
       concat-map: 0.0.1
 
-  brace-expansion@2.0.3:
-    dependencies:
-      balanced-match: 1.0.2
-
   brace-expansion@5.0.5:
     dependencies:
       balanced-match: 4.0.4
@@ -4764,8 +4707,8 @@ snapshots:
 
   conf@12.0.0:
     dependencies:
-      ajv: 8.18.0
-      ajv-formats: 2.1.1(ajv@8.18.0)
+      ajv: 6.14.0
+      ajv-formats: 2.1.1(ajv@6.14.0)
       atomically: 2.1.1
       debounce-fn: 5.1.2
       dot-prop: 8.0.2
@@ -4921,12 +4864,12 @@ snapshots:
 
   dotenv@16.6.1: {}
 
-  drizzle-orm@0.45.2(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.29.0)(pg@8.20.0):
+  drizzle-orm@0.45.2(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.17)(pg@8.20.0):
     optionalDependencies:
       '@electric-sql/pglite': 0.2.13
       '@opentelemetry/api': 1.9.1
       better-sqlite3: 9.6.0
-      kysely: 0.29.0
+      kysely: 0.28.17
       pg: 8.20.0
 
   dunder-proto@1.0.1:
@@ -5110,7 +5053,7 @@ snapshots:
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3
-      minimatch: 9.0.7
+      minimatch: 3.1.5
       object.fromentries: 2.0.8
       object.groupby: 1.0.3
       object.values: 1.2.1
@@ -5176,7 +5119,7 @@ snapshots:
       json-stable-stringify-without-jsonify: 1.0.1
       levn: 0.4.1
       lodash.merge: 4.6.2
-      minimatch: 9.0.7
+      minimatch: 3.1.5
       natural-compare: 1.4.0
       optionator: 0.9.4
       strip-ansi: 6.0.1
@@ -5252,8 +5195,6 @@ snapshots:
   fast-printf@1.6.10: {}
 
   fast-redact@3.5.0: {}
-
-  fast-uri@3.1.2: {}
 
   fastq@1.19.0:
     dependencies:
@@ -5372,7 +5313,7 @@ snapshots:
       fs.realpath: 1.0.0
       inflight: 1.0.6
       inherits: 2.0.4
-      minimatch: 3.1.4
+      minimatch: 3.1.5
       once: 1.4.0
       path-is-absolute: 1.0.1
 
@@ -5634,8 +5575,6 @@ snapshots:
 
   json-schema-traverse@0.4.1: {}
 
-  json-schema-traverse@1.0.0: {}
-
   json-schema-typed@8.0.2: {}
 
   json-stable-stringify-without-jsonify@1.0.1: {}
@@ -5648,7 +5587,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  kysely@0.29.0: {}
+  kysely@0.28.17: {}
 
   levn@0.4.1:
     dependencies:
@@ -5740,13 +5679,9 @@ snapshots:
   mimic-response@3.1.0:
     optional: true
 
-  minimatch@3.1.4:
+  minimatch@3.1.5:
     dependencies:
       brace-expansion: 1.1.13
-
-  minimatch@5.1.8:
-    dependencies:
-      brace-expansion: 2.0.3
 
   minimatch@9.0.7:
     dependencies:
@@ -5952,8 +5887,6 @@ snapshots:
 
   picocolors@1.1.1: {}
 
-  picomatch@2.3.2: {}
-
   picomatch@4.0.4: {}
 
   pify@2.3.0: {}
@@ -5998,13 +5931,13 @@ snapshots:
       dataloader: 2.2.3
       detect-package-manager: 3.0.2
       dotenv: 16.6.1
-      drizzle-orm: 0.45.2(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.29.0)(pg@8.20.0)
+      drizzle-orm: 0.45.2(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.1)(better-sqlite3@9.6.0)(kysely@0.28.17)(pg@8.20.0)
       glob: 10.5.0
       graphql: 16.8.2
       graphql-yoga: 5.17.1(graphql@16.8.2)
       hono: 4.12.18
       http-terminator: 3.2.0
-      kysely: 0.29.0
+      kysely: 0.28.17
       pg: 8.20.0
       pg-connection-string: 2.12.0
       pg-copy-streams: 6.0.6
@@ -6210,7 +6143,7 @@ snapshots:
 
   readdirp@3.6.0:
     dependencies:
-      picomatch: 2.3.2
+      picomatch: 4.0.4
 
   real-require@0.2.0: {}
 
@@ -6233,8 +6166,6 @@ snapshots:
       get-proto: 1.0.1
       gopd: 1.2.0
       set-function-name: 2.0.2
-
-  require-from-string@2.0.2: {}
 
   resolve-from@4.0.0: {}
 

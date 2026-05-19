@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import semver from "semver";
 
 const ROOT = process.cwd();
 
@@ -81,9 +82,18 @@ if (runtimeNodeMajor !== nodeEngineMajor) {
 }
 
 const packageManagerVersion = packageManager.slice("pnpm@".length).trim();
-if (packageManagerVersion !== pnpmEngine) {
+const pnpmEngineVersion = pnpmEngine.startsWith(">=")
+  ? pnpmEngine.slice(2).trim()
+  : pnpmEngine.trim();
+if (!semver.valid(pnpmEngineVersion) || !semver.valid(packageManagerVersion)) {
   fail(
-    `packageManager (${packageManagerVersion}) and engines.pnpm (${pnpmEngine}) do not match.`
+    `packageManager (${packageManagerVersion}) and engines.pnpm minimum (${pnpmEngineVersion}) must be valid semver versions.`
+  );
+}
+
+if (!semver.satisfies(packageManagerVersion, pnpmEngine)) {
+  fail(
+    `packageManager (${packageManagerVersion}) must satisfy engines.pnpm (${pnpmEngine}).`
   );
 }
 

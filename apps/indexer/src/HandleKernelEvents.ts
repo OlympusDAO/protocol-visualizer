@@ -19,16 +19,52 @@ import {
 } from "./ContractNames";
 import { ContractProcessor } from "./services/contracts/processor";
 import { getEtherscanApi } from "./services/etherscan/api";
-import { FunctionDetails } from "./services/contracts/types";
+import {
+  FunctionDetails,
+  ProcessedContractData,
+} from "./services/contracts/types";
 import { and, desc, eq } from "ponder";
 import { getKernelConstants } from "./constants";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 
 // Initialize services
+const contractProcessors = new Map<number, ContractProcessor>();
+const processedContracts = new Map<string, Promise<ProcessedContractData>>();
+
 const getContractProcessor = (chainId: number) => {
+  const processor = contractProcessors.get(chainId);
+  if (processor) {
+    return processor;
+  }
+
   const etherscanApi = getEtherscanApi(chainId);
-  return new ContractProcessor(etherscanApi, chainId);
+  const newProcessor = new ContractProcessor(etherscanApi, chainId);
+  contractProcessors.set(chainId, newProcessor);
+
+  return newProcessor;
+};
+
+const getProcessedContract = (
+  chainId: number,
+  address: `0x${string}`,
+  name: string
+): Promise<ProcessedContractData> => {
+  const cacheKey = `${chainId}:${address.toLowerCase()}`;
+  const cached = processedContracts.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const processedContract = getContractProcessor(chainId)
+    .processContract(address, name)
+    .catch((error) => {
+      processedContracts.delete(cacheKey);
+      throw error;
+    });
+  processedContracts.set(cacheKey, processedContract);
+
+  return processedContract;
 };
 
 const parseAction = (
@@ -100,6 +136,11 @@ const parseContractName = async (
     return getContractName(target, context.chain.id);
   }
 
+  const knownName = getContractName(target, context.chain.id);
+  if (knownName !== "UNKNOWN") {
+    return knownName;
+  }
+
   // Get the keycode from the module
   let keycodeResult;
   try {
@@ -152,9 +193,11 @@ const parsePolicyFunctions = async (
   }
 
   // Process the policy contract
-  const policyFunctions = await getContractProcessor(
-    context.chain.id
-  ).processContract(policyAddress, policyName);
+  const policyFunctions = await getProcessedContract(
+    context.chain.id,
+    policyAddress,
+    policyName
+  );
 
   return Object.values(policyFunctions.functionSelectors);
 };
@@ -200,29 +243,50 @@ const parsePolicyPermissions = async (
     args: [],
   });
 
-  // Iterate over the permissions
-  const policyPermissions: PolicyPermission[] = [];
-  for (let i = 0; i < permissionsResult.length; i++) {
-    const currentResult = permissionsResult[i];
-    if (!currentResult) {
-      continue;
-    }
-
-    // Each Permission has a keycode and a hashed function selector
-    const moduleKeycode = fromHex(currentResult.keycode, "string");
-    const funcSelector = currentResult.funcSelector;
+  const permissions = permissionsResult.filter((permission) => !!permission);
+  const moduleLookups = permissions.map((permission) => {
+    const moduleKeycode = fromHex(permission.keycode, "string").replace(
+      /\0/g,
+      ""
+    );
+    const funcSelector = permission.funcSelector;
     console.log(
       `Looking up keycode ${moduleKeycode} and selector ${funcSelector}`
     );
 
-    // Resolve module address from Kernel state at this block.
-    const moduleAddress = await context.client.readContract({
+    return {
       abi: KernelAbi,
       address: kernelAddress,
       functionName: "getModuleForKeycode",
       args: [stringToHex(moduleKeycode, { size: 5 })],
-      blockNumber,
-    });
+    } as const;
+  });
+
+  const moduleAddresses =
+    moduleLookups.length === 0
+      ? []
+      : await context.client.multicall({
+          allowFailure: false,
+          blockNumber,
+          contracts: moduleLookups,
+        });
+
+  // Iterate over the permissions
+  const policyPermissions: PolicyPermission[] = [];
+  for (let i = 0; i < permissions.length; i++) {
+    const currentResult = permissions[i];
+    const moduleAddress = moduleAddresses[i];
+    if (!currentResult || !moduleAddress) {
+      continue;
+    }
+
+    // Each Permission has a keycode and a hashed function selector
+    const moduleKeycode = fromHex(currentResult.keycode, "string").replace(
+      /\0/g,
+      ""
+    );
+    const funcSelector = currentResult.funcSelector;
+
     if (moduleAddress === ZERO_ADDRESS) {
       throw new Error(
         `No module address found in Kernel for keycode ${moduleKeycode} at block ${blockNumber}`
@@ -234,9 +298,11 @@ const parsePolicyPermissions = async (
     );
 
     // Process the module contract to get function information
-    const moduleProcessedData = await getContractProcessor(
-      context.chain.id
-    ).processContract(moduleAddress, moduleKeycode);
+    const moduleProcessedData = await getProcessedContract(
+      context.chain.id,
+      moduleAddress,
+      moduleKeycode
+    );
 
     // Get the function details for this selector
     const functionDetails = moduleProcessedData.functionSelectors[funcSelector];

@@ -13,8 +13,7 @@
     "lint:check": "biome check .",
     "lint": "biome check --write .",
     "validate:local": "pnpm run check:runtime-versions && pnpm install --frozen-lockfile && pnpm run lint:check && pnpm run build && pnpm run docker:build:indexer && pnpm run docker:build:frontend",
-    "format": "biome format --write .",
-    "preinstall": "npx only-allow@1.2.2 pnpm"
+    "format": "biome format --write ."
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.15",
@@ -30,6 +29,7 @@
   "engines": {
     "node": ">=24",
     "pnpm": ">=10.33.0",
+    "bun": "use-pnpm",
     "npm": "use-pnpm",
     "yarn": "use-pnpm"
   }

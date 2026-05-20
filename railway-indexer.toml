@@ -13,3 +13,6 @@ watchPatterns = [
 [deploy]
 healthcheckPath = "/ready"
 healthcheckTimeout = 3600
+
+[variables]
+PONDER_MAX_THREADS = "5"

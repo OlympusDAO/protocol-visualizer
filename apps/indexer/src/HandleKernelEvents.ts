@@ -242,6 +242,7 @@ const parsePolicyFunctions = async (
 
 const parsePolicyPermissions = async (
   action: number,
+  kernelAddress: `0x${string}`,
   target: `0x${string}`,
   targetName: string,
   blockNumber: bigint,
@@ -287,26 +288,39 @@ const parsePolicyPermissions = async (
       /\0/g,
       ""
     );
+    const moduleKeycodeHex = permission.keycode;
     const funcSelector = permission.funcSelector;
     console.log(
       `Looking up keycode ${moduleKeycode} and selector ${funcSelector}`
     );
 
-    return { moduleKeycode, funcSelector };
+    return { moduleKeycode, moduleKeycodeHex, funcSelector };
   });
 
   const moduleAddresses = new Map<string, `0x${string}`>();
+  const uniqueModules = new Map(
+    permissionDetails.map(({ moduleKeycode, moduleKeycodeHex }) => [
+      moduleKeycode,
+      moduleKeycodeHex,
+    ])
+  );
   await Promise.all(
-    [...new Set(permissionDetails.map(({ moduleKeycode }) => moduleKeycode))].map(
-      async (moduleKeycode) => {
-        const currentModule = await getCurrentModule(moduleKeycode, context);
-        if (!currentModule) {
+    [...uniqueModules.entries()].map(
+      async ([moduleKeycode, moduleKeycodeHex]) => {
+        const currentModuleAddress = await getCurrentModuleAddress(
+          moduleKeycode,
+          moduleKeycodeHex,
+          kernelAddress,
+          blockNumber,
+          context
+        );
+        if (!currentModuleAddress) {
           throw new Error(
-            `No indexed module found for keycode ${moduleKeycode} at block ${blockNumber}`
+            `No module found for keycode ${moduleKeycode} at block ${blockNumber}`
           );
         }
 
-        moduleAddresses.set(moduleKeycode, currentModule.address);
+        moduleAddresses.set(moduleKeycode, currentModuleAddress);
       }
     )
   );
@@ -359,7 +373,13 @@ const parsePolicyPermissions = async (
   return policyPermissions;
 };
 
-const getCurrentModule = async (keycode: string, context: Context) => {
+const getCurrentModuleAddress = async (
+  keycode: string,
+  keycodeHex: `0x${string}`,
+  kernelAddress: `0x${string}`,
+  blockNumber: bigint,
+  context: Context
+): Promise<`0x${string}` | null> => {
   const currentModules = await context.db.sql
     .select()
     .from(contract)
@@ -374,11 +394,24 @@ const getCurrentModule = async (keycode: string, context: Context) => {
     .orderBy(desc(contract.lastUpdatedBlockNumber))
     .limit(1);
 
-  if (currentModules.length === 0) {
+  const currentModule = currentModules[0];
+  if (currentModule) {
+    return currentModule.address;
+  }
+
+  const moduleAddress = await context.client.readContract({
+    abi: KernelAbi,
+    address: kernelAddress,
+    functionName: "getModuleForKeycode",
+    args: [keycodeHex],
+    blockNumber,
+  });
+
+  if (moduleAddress === ZERO_ADDRESS) {
     return null;
   }
 
-  return currentModules[0];
+  return moduleAddress;
 };
 
 const getKernelExecutor = async (
@@ -622,6 +655,7 @@ ponder.on("KernelPolicyActions:ActionExecuted", async ({ event, context }) => {
 
   const policyPermissions = await parsePolicyPermissions(
     actionInt,
+    kernelAddress,
     target,
     contractName,
     event.block.number,

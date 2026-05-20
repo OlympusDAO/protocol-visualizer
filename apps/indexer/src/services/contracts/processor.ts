@@ -9,11 +9,16 @@ import {
 import { EtherscanApi } from "../etherscan/api";
 import path from "path";
 import { ChainId } from "../../constants";
+import precomputedContractMetadata from "../../generated/contract-metadata.json";
 
 const CACHE_FILE = "./data/contract-cache.json";
 const ABI_DIR = "./data/abis";
 const SOURCE_CODE_DIR = "./data/source-code";
 const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 1 week
+const PRECOMPUTED_CONTRACT_METADATA = precomputedContractMetadata as Record<
+  string,
+  Record<string, ProcessedContractData>
+>;
 
 export class ContractProcessor {
   // private roleExtractor: RoleExtractor;
@@ -40,9 +45,21 @@ export class ContractProcessor {
     address: string,
     name: string
   ): Promise<ProcessedContractData> {
+    const normalizedAddress = address.toLowerCase();
+    const precomputedData =
+      PRECOMPUTED_CONTRACT_METADATA[this.chainId.toString()]?.[
+        normalizedAddress
+      ];
+    if (precomputedData) {
+      console.log(
+        `PRECOMPUTED CACHE HIT for ${name} on chain ${this.chainId}`
+      );
+      return precomputedData;
+    }
+
     // Check cache first
     const chainCache = this.cache[this.chainId];
-    const contractCache = chainCache?.[address];
+    const contractCache = chainCache?.[address] ?? chainCache?.[normalizedAddress];
     if (
       chainCache &&
       contractCache &&

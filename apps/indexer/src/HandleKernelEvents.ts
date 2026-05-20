@@ -8,7 +8,7 @@ import {
   PolicyPermission,
 } from "ponder:schema";
 import { ModuleAbi } from "../abis/Module";
-import { fromHex, stringToHex } from "viem";
+import { fromHex } from "viem";
 import { PolicyAbi } from "../abis/Policy";
 import { KernelAbi } from "../abis/Kernel";
 import {
@@ -28,9 +28,18 @@ import { getKernelConstants } from "./constants";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 
+type RequestedPolicyPermission = {
+  keycode: `0x${string}`;
+  funcSelector: `0x${string}`;
+};
+
 // Initialize services
 const contractProcessors = new Map<number, ContractProcessor>();
 const processedContracts = new Map<string, Promise<ProcessedContractData>>();
+const requestedPolicyPermissions = new Map<
+  string,
+  Promise<readonly RequestedPolicyPermission[]>
+>();
 
 const getContractProcessor = (chainId: number) => {
   const processor = contractProcessors.get(chainId);
@@ -65,6 +74,35 @@ const getProcessedContract = (
   processedContracts.set(cacheKey, processedContract);
 
   return processedContract;
+};
+
+const getRequestedPolicyPermissions = (
+  chainId: number,
+  policyAddress: `0x${string}`,
+  blockNumber: bigint,
+  context: Context
+): Promise<readonly RequestedPolicyPermission[]> => {
+  const cacheKey = `${chainId}:${policyAddress.toLowerCase()}`;
+  const cached = requestedPolicyPermissions.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const permissions = context.client
+    .readContract({
+      abi: PolicyAbi,
+      address: policyAddress,
+      functionName: "requestPermissions",
+      args: [],
+      blockNumber,
+    })
+    .catch((error) => {
+      requestedPolicyPermissions.delete(cacheKey);
+      throw error;
+    });
+  requestedPolicyPermissions.set(cacheKey, permissions);
+
+  return permissions;
 };
 
 const parseAction = (
@@ -204,7 +242,6 @@ const parsePolicyFunctions = async (
 
 const parsePolicyPermissions = async (
   action: number,
-  kernelAddress: `0x${string}`,
   target: `0x${string}`,
   targetName: string,
   blockNumber: bigint,
@@ -235,16 +272,17 @@ const parsePolicyPermissions = async (
 
   console.log(`Parsing policy permissions for ${targetName}`);
 
-  // Get the permissions from the policy
-  const permissionsResult = await context.client.readContract({
-    abi: PolicyAbi,
-    address: target,
-    functionName: "requestPermissions",
-    args: [],
-  });
+  // Get the permissions from the policy. This is static per policy contract, so
+  // cache it across repeated activation/deactivation events.
+  const permissionsResult = await getRequestedPolicyPermissions(
+    context.chain.id,
+    target,
+    blockNumber,
+    context
+  );
 
   const permissions = permissionsResult.filter((permission) => !!permission);
-  const moduleLookups = permissions.map((permission) => {
+  const permissionDetails = permissions.map((permission) => {
     const moduleKeycode = fromHex(permission.keycode, "string").replace(
       /\0/g,
       ""
@@ -254,40 +292,39 @@ const parsePolicyPermissions = async (
       `Looking up keycode ${moduleKeycode} and selector ${funcSelector}`
     );
 
-    return {
-      abi: KernelAbi,
-      address: kernelAddress,
-      functionName: "getModuleForKeycode",
-      args: [stringToHex(moduleKeycode, { size: 5 })],
-    } as const;
+    return { moduleKeycode, funcSelector };
   });
 
-  const moduleAddresses =
-    moduleLookups.length === 0
-      ? []
-      : await context.client.multicall({
-          allowFailure: false,
-          blockNumber,
-          contracts: moduleLookups,
-        });
+  const moduleAddresses = new Map<string, `0x${string}`>();
+  await Promise.all(
+    [...new Set(permissionDetails.map(({ moduleKeycode }) => moduleKeycode))].map(
+      async (moduleKeycode) => {
+        const currentModule = await getCurrentModule(moduleKeycode, context);
+        if (!currentModule) {
+          throw new Error(
+            `No indexed module found for keycode ${moduleKeycode} at block ${blockNumber}`
+          );
+        }
+
+        moduleAddresses.set(moduleKeycode, currentModule.address);
+      }
+    )
+  );
 
   // Iterate over the permissions
   const policyPermissions: PolicyPermission[] = [];
-  for (let i = 0; i < permissions.length; i++) {
-    const currentResult = permissions[i];
-    const moduleAddress = moduleAddresses[i];
-    if (!currentResult || !moduleAddress) {
+  for (let i = 0; i < permissionDetails.length; i++) {
+    const currentResult = permissionDetails[i];
+    if (!currentResult) {
       continue;
     }
 
     // Each Permission has a keycode and a hashed function selector
-    const moduleKeycode = fromHex(currentResult.keycode, "string").replace(
-      /\0/g,
-      ""
-    );
+    const moduleKeycode = currentResult.moduleKeycode;
     const funcSelector = currentResult.funcSelector;
+    const moduleAddress = moduleAddresses.get(moduleKeycode);
 
-    if (moduleAddress === ZERO_ADDRESS) {
+    if (!moduleAddress || moduleAddress === ZERO_ADDRESS) {
       throw new Error(
         `No module address found in Kernel for keycode ${moduleKeycode} at block ${blockNumber}`
       );
@@ -320,6 +357,28 @@ const parsePolicyPermissions = async (
   }
 
   return policyPermissions;
+};
+
+const getCurrentModule = async (keycode: string, context: Context) => {
+  const currentModules = await context.db.sql
+    .select()
+    .from(contract)
+    .where(
+      and(
+        eq(contract.name, keycode),
+        eq(contract.chainId, context.chain.id),
+        eq(contract.type, "module"),
+        eq(contract.isEnabled, true)
+      )
+    )
+    .orderBy(desc(contract.lastUpdatedBlockNumber))
+    .limit(1);
+
+  if (currentModules.length === 0) {
+    return null;
+  }
+
+  return currentModules[0];
 };
 
 const getKernelExecutor = async (
@@ -563,7 +622,6 @@ ponder.on("KernelPolicyActions:ActionExecuted", async ({ event, context }) => {
 
   const policyPermissions = await parsePolicyPermissions(
     actionInt,
-    kernelAddress,
     target,
     contractName,
     event.block.number,

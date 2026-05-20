@@ -36,39 +36,42 @@ const sepoliaKernel = getKernelConstants(ChainId.Sepolia);
 const sepoliaRoles = getRolesConstants(ChainId.Sepolia);
 const sepoliaRolesAdmin = getRolesAdminConstants(ChainId.Sepolia);
 
-function getPositiveInteger(value?: string): number | undefined {
-  if (!value) {
+function getPositiveInteger(
+  value: string | undefined,
+  envVarName: string
+): number | undefined {
+  if (value === undefined) {
     return undefined;
   }
 
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0) {
-    return undefined;
+    throw new Error(
+      `${envVarName} must be a positive integer, received "${value}".`
+    );
   }
 
   return parsed;
 }
 
-function getRateLimit(rpcUrlRateLimit?: string): number | undefined {
-  return getPositiveInteger(rpcUrlRateLimit);
+function getRateLimit(chainId: number): number | undefined {
+  const envVarName = `PONDER_RPC_URL_RATE_LIMIT_${chainId}`;
+  return getPositiveInteger(process.env[envVarName], envVarName);
 }
 
 function getEthGetLogsBlockRange(chainId: number): number | undefined {
-  return getPositiveInteger(process.env[`PONDER_RPC_BLOCK_RANGE_${chainId}`]);
+  const envVarName = `PONDER_RPC_BLOCK_RANGE_${chainId}`;
+  return getPositiveInteger(process.env[envVarName], envVarName);
 }
 
-function getRpcTransport(
-  chainId: number,
-  rpcUrl: string,
-  rpcUrlRateLimit?: string
-): Transport {
+function getRpcTransport(chainId: number, rpcUrl: string): Transport {
   // Check if URL uses websocket protocol (case-insensitive)
   const isWebSocket =
     rpcUrl.toLowerCase().startsWith("wss://") ||
     rpcUrl.toLowerCase().startsWith("ws://");
 
   // Check for rate-limiting
-  const rps = getRateLimit(rpcUrlRateLimit);
+  const rps = getRateLimit(chainId);
 
   let transport: Transport;
 
@@ -101,7 +104,6 @@ function getTransport(chainId: number): Transport {
   const envVarName = `PONDER_RPC_URL_${chainId}`;
   const rpcUrl = process.env[envVarName];
   const rpcUrlFallback = process.env[`PONDER_RPC_URL_FALLBACK_${chainId}`];
-  const rpcUrlRateLimit = process.env[`PONDER_RPC_URL_RATE_LIMIT_${chainId}`];
 
   if (!rpcUrl) {
     throw new Error(
@@ -109,7 +111,7 @@ function getTransport(chainId: number): Transport {
     );
   }
 
-  const rpcTransport = getRpcTransport(chainId, rpcUrl, rpcUrlRateLimit);
+  const rpcTransport = getRpcTransport(chainId, rpcUrl);
 
   // If no fallback URL is set, return the transport
   if (!rpcUrlFallback) {
@@ -117,11 +119,7 @@ function getTransport(chainId: number): Transport {
   }
 
   console.log(`Setting up fallback transport for chain ${chainId}`);
-  const rpcTransportFallback = getRpcTransport(
-    chainId,
-    rpcUrlFallback,
-    rpcUrlRateLimit
-  );
+  const rpcTransportFallback = getRpcTransport(chainId, rpcUrlFallback);
 
   return fallback([rpcTransport, rpcTransportFallback]);
 }

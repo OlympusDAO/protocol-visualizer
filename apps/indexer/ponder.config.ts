@@ -180,6 +180,7 @@ export default createConfig({
           startBlock: sepoliaKernel.creationBlockNumber,
         },
       },
+      filter: [{ event: "ActionExecuted", args: { action_: [0, 1, 4, 5] } }],
     },
     KernelPolicyActions: {
       abi: KernelAbi,

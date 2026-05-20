@@ -1,15 +1,20 @@
-import { mkdirSync, existsSync, readFileSync, writeFileSync } from "fs";
-import { AbiFunction, AbiParameter, Abi, toFunctionSelector } from "viem";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import {
-  ContractCache,
-  ProcessedContractData,
-  FunctionDetails,
+  type Abi,
+  type AbiFunction,
+  type AbiParameter,
+  toFunctionSelector,
+} from "viem";
+import type { ChainId } from "../../constants";
+import precomputedContractMetadata from "../../generated/contract-metadata.json";
+import type { EtherscanApi } from "../etherscan/api";
+import {
+  type ContractCache,
+  type FunctionDetails,
+  type ProcessedContractData,
   ROLE_ROLES_ADMIN,
 } from "./types";
-import { EtherscanApi } from "../etherscan/api";
-import path from "path";
-import { ChainId } from "../../constants";
-import precomputedContractMetadata from "../../generated/contract-metadata.json";
 
 const CACHE_FILE = "./data/contract-cache.json";
 const ABI_DIR = "./data/abis";
@@ -26,7 +31,7 @@ export class ContractProcessor {
 
   constructor(
     private etherscanApi: EtherscanApi,
-    private chainId: ChainId
+    private chainId: ChainId,
   ) {
     // this.roleExtractor = new RoleExtractor();
     this.cache = this.loadCache();
@@ -43,7 +48,7 @@ export class ContractProcessor {
 
   async processContract(
     address: string,
-    name: string
+    name: string,
   ): Promise<ProcessedContractData> {
     const normalizedAddress = address.toLowerCase();
     const precomputedData =
@@ -51,15 +56,14 @@ export class ContractProcessor {
         normalizedAddress
       ];
     if (precomputedData) {
-      console.log(
-        `PRECOMPUTED CACHE HIT for ${name} on chain ${this.chainId}`
-      );
+      console.log(`PRECOMPUTED CACHE HIT for ${name} on chain ${this.chainId}`);
       return precomputedData;
     }
 
     // Check cache first
     const chainCache = this.cache[this.chainId];
-    const contractCache = chainCache?.[address] ?? chainCache?.[normalizedAddress];
+    const contractCache =
+      chainCache?.[address] ?? chainCache?.[normalizedAddress];
     if (
       chainCache &&
       contractCache &&
@@ -87,7 +91,7 @@ export class ContractProcessor {
     const processedData = this.processAbi(abi);
 
     // Check if the source code exists on disk
-    let sourceCode;
+    let sourceCode: string;
     const sourceCodePath = this.getSourceCodePath(address);
     if (existsSync(sourceCodePath)) {
       sourceCode = readFileSync(sourceCodePath, "utf-8");
@@ -101,7 +105,7 @@ export class ContractProcessor {
     const processedContractData = this.processSourceCode(
       name,
       sourceCode,
-      processedData
+      processedData,
     );
 
     let currentChainCache = this.cache[this.chainId];
@@ -159,7 +163,6 @@ export class ContractProcessor {
         };
       } catch (error) {
         console.warn(`Failed to process function ${item.name}:`, error);
-        continue;
       }
     }
 
@@ -170,23 +173,23 @@ export class ContractProcessor {
     name: string,
     functionDefinition: string,
     sourceCode: string,
-    functionName: string
+    functionName: string,
   ): string[] | null {
     // First try to match constant references
     const constantMatch = functionDefinition.match(
-      /onlyRole\(([A-Z_][A-Z0-9_]*)\)/
+      /onlyRole\(([A-Z_][A-Z0-9_]*)\)/,
     );
     if (constantMatch) {
       const constantName = constantMatch[1];
       // Look for constant definition in the form: bytes32 [visibility] constant CONSTANT_NAME = "value"
       const constantDefinitionRegex = new RegExp(
-        `bytes32\\s+(?:public|private|internal)?\\s+constant\\s+${constantName}\\s*=\\s*\\\\?"([^"]*)\\\\"?`
+        `bytes32\\s+(?:public|private|internal)?\\s+constant\\s+${constantName}\\s*=\\s*\\\\?"([^"]*)\\\\"?`,
       );
       const constantDefinition = sourceCode.match(constantDefinitionRegex);
 
-      if (constantDefinition && constantDefinition[1]) {
+      if (constantDefinition?.[1]) {
         console.log(
-          `Found role with constant value ${constantDefinition[1]} for ${functionName}`
+          `Found role with constant value ${constantDefinition[1]} for ${functionName}`,
         );
         return [constantDefinition[1]];
       }
@@ -198,7 +201,7 @@ export class ContractProcessor {
       // If the contract name is RolesAdmin, use the special role name
       if (name.includes("RolesAdmin")) {
         console.log(
-          `Found role with onlyAdmin for ${functionName} on RolesAdmin`
+          `Found role with onlyAdmin for ${functionName} on RolesAdmin`,
         );
         return [ROLE_ROLES_ADMIN];
       }
@@ -208,7 +211,7 @@ export class ContractProcessor {
     }
 
     const onlyEmergencyMatch = functionDefinition.match(
-      /onlyEmergency(?:\(\))?/
+      /onlyEmergency(?:\(\))?/,
     );
     if (onlyEmergencyMatch) {
       console.log(`Found role with onlyEmergency for ${functionName}`);
@@ -216,7 +219,7 @@ export class ContractProcessor {
     }
 
     const onlyAdminOrEmergencyMatch = functionDefinition.match(
-      /onlyAdminOrEmergency(?:\(\))?/
+      /onlyAdminOrEmergency(?:\(\))?/,
     );
     if (onlyAdminOrEmergencyMatch) {
       console.log(`Found role with onlyAdminOrEmergency for ${functionName}`);
@@ -225,11 +228,11 @@ export class ContractProcessor {
 
     // If no constant found, try direct string values
     const directStringMatch = functionDefinition.match(
-      /onlyRole\(\\?"([^"]*)\\"?\)/
+      /onlyRole\(\\?"([^"]*)\\"?\)/,
     );
-    if (directStringMatch && directStringMatch[1]) {
+    if (directStringMatch?.[1]) {
       console.log(
-        `Found role with literal value ${directStringMatch[1]} for ${functionName}`
+        `Found role with literal value ${directStringMatch[1]} for ${functionName}`,
       );
       return [directStringMatch[1]];
     }
@@ -240,7 +243,7 @@ export class ContractProcessor {
   private processSourceCode(
     name: string,
     sourceCode: string,
-    processedData: ProcessedContractData
+    processedData: ProcessedContractData,
   ): ProcessedContractData {
     // Iterate over the defined functions
     for (const functionSignature in processedData.functionSelectors) {
@@ -248,7 +251,7 @@ export class ContractProcessor {
         processedData.functionSelectors[functionSignature];
       if (!functionDetails) {
         console.warn(
-          `Function ${functionSignature} not found in processed data`
+          `Function ${functionSignature} not found in processed data`,
         );
         continue;
       }
@@ -258,7 +261,7 @@ export class ContractProcessor {
 
       // Find the function in the source code, including any modifiers and newlines up to the opening bracket
       const functionDefinition = sourceCode.match(
-        new RegExp(`function ${functionName}\\s*\\([^{]*\\)\\s*[^{]*{`)
+        new RegExp(`function ${functionName}\\s*\\([^{]*\\)\\s*[^{]*{`),
       );
       if (!functionDefinition) {
         console.warn(`Function ${functionName} not found in source code`);
@@ -269,7 +272,7 @@ export class ContractProcessor {
         name,
         functionDefinition[0],
         sourceCode,
-        functionName
+        functionName,
       );
       if (!role) {
         continue;

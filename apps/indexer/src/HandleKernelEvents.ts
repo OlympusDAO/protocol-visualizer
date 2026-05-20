@@ -1,30 +1,30 @@
-import { Context, ponder } from "ponder:registry";
+import { type Context, ponder } from "ponder:registry";
 import {
   actionExecutedEvent,
   contract,
   contractEvent,
   kernelExecutor,
   kernelExecutorEvent,
-  PolicyPermission,
+  type PolicyPermission,
 } from "ponder:schema";
-import { ModuleAbi } from "../abis/Module";
+import { and, desc, eq } from "ponder";
 import { fromHex } from "viem";
-import { PolicyAbi } from "../abis/Policy";
 import { KernelAbi } from "../abis/Kernel";
+import { ModuleAbi } from "../abis/Module";
+import { PolicyAbi } from "../abis/Policy";
 import {
   getContractName,
   getContractStartBlock,
   getContractType,
   getContractVersion,
 } from "./ContractNames";
+import { getKernelConstants } from "./constants";
 import { ContractProcessor } from "./services/contracts/processor";
-import { getEtherscanApi } from "./services/etherscan/api";
-import {
+import type {
   FunctionDetails,
   ProcessedContractData,
 } from "./services/contracts/types";
-import { and, desc, eq } from "ponder";
-import { getKernelConstants } from "./constants";
+import { getEtherscanApi } from "./services/etherscan/api";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 
@@ -57,7 +57,7 @@ const getContractProcessor = (chainId: number) => {
 const getProcessedContract = (
   chainId: number,
   address: `0x${string}`,
-  name: string
+  name: string,
 ): Promise<ProcessedContractData> => {
   const cacheKey = `${chainId}:${address.toLowerCase()}`;
   const cached = processedContracts.get(cacheKey);
@@ -80,7 +80,7 @@ const getRequestedPolicyPermissions = (
   chainId: number,
   policyAddress: `0x${string}`,
   blockNumber: bigint,
-  context: Context
+  context: Context,
 ): Promise<readonly RequestedPolicyPermission[]> => {
   const cacheKey = `${chainId}:${policyAddress.toLowerCase()}`;
   const cached = requestedPolicyPermissions.get(cacheKey);
@@ -106,7 +106,7 @@ const getRequestedPolicyPermissions = (
 };
 
 const parseAction = (
-  action: number
+  action: number,
 ):
   | "installModule"
   | "upgradeModule"
@@ -145,7 +145,7 @@ const parseContractType = (action: number): "kernel" | "module" | "policy" => {
       return "kernel";
     default:
       throw new Error(
-        `parseContractType: Unknown/unsupported Kernel action: ${action}`
+        `parseContractType: Unknown/unsupported Kernel action: ${action}`,
       );
   }
 };
@@ -160,7 +160,7 @@ const parseIsEnabled = (action: number): boolean => {
       return false;
     default:
       throw new Error(
-        `parseIsEnabled: Unknown/unsupported Kernel action: ${action}`
+        `parseIsEnabled: Unknown/unsupported Kernel action: ${action}`,
       );
   }
 };
@@ -168,7 +168,7 @@ const parseIsEnabled = (action: number): boolean => {
 const parseContractName = async (
   action: number,
   target: `0x${string}`,
-  context: Context
+  context: Context,
 ): Promise<string> => {
   if (action > 1) {
     return getContractName(target, context.chain.id);
@@ -180,7 +180,7 @@ const parseContractName = async (
   }
 
   // Get the keycode from the module
-  let keycodeResult;
+  let keycodeResult: `0x${string}`;
   try {
     keycodeResult = await context.client.readContract({
       abi: ModuleAbi,
@@ -205,11 +205,11 @@ const parsePolicyFunctions = async (
   policyAddress: `0x${string}`,
   policyName: string,
   blockNumber: bigint,
-  context: Context
+  context: Context,
 ): Promise<FunctionDetails[] | null> => {
   if (action !== 2 && action !== 3) {
     console.debug(
-      `Skipping policy functions for non-policy action ${action} on ${policyName}`
+      `Skipping policy functions for non-policy action ${action} on ${policyName}`,
     );
     return null;
   }
@@ -217,7 +217,7 @@ const parsePolicyFunctions = async (
   const contractType = getContractType(policyAddress, context.chain.id);
   if (contractType !== "policy") {
     console.debug(
-      `Skipping policy functions for non-policy contract type ${String(contractType)} on ${policyName}`
+      `Skipping policy functions for non-policy contract type ${String(contractType)} on ${policyName}`,
     );
     return null;
   }
@@ -225,7 +225,7 @@ const parsePolicyFunctions = async (
   const startBlock = getContractStartBlock(policyAddress, context.chain.id);
   if (startBlock !== undefined && blockNumber < BigInt(startBlock)) {
     console.debug(
-      `Skipping policy functions for ${policyName} at block ${blockNumber} before start block ${startBlock}`
+      `Skipping policy functions for ${policyName} at block ${blockNumber} before start block ${startBlock}`,
     );
     return null;
   }
@@ -234,7 +234,7 @@ const parsePolicyFunctions = async (
   const policyFunctions = await getProcessedContract(
     context.chain.id,
     policyAddress,
-    policyName
+    policyName,
   );
 
   return Object.values(policyFunctions.functionSelectors);
@@ -246,11 +246,11 @@ const parsePolicyPermissions = async (
   target: `0x${string}`,
   targetName: string,
   blockNumber: bigint,
-  context: Context
+  context: Context,
 ): Promise<PolicyPermission[] | null> => {
   if (action !== 2 && action !== 3) {
     console.debug(
-      `Skipping policy permissions for non-policy action ${action} on ${targetName}`
+      `Skipping policy permissions for non-policy action ${action} on ${targetName}`,
     );
     return null;
   }
@@ -258,7 +258,7 @@ const parsePolicyPermissions = async (
   const contractType = getContractType(target, context.chain.id);
   if (contractType !== "policy") {
     console.debug(
-      `Skipping policy permissions for non-policy contract type ${String(contractType)} on ${targetName}`
+      `Skipping policy permissions for non-policy contract type ${String(contractType)} on ${targetName}`,
     );
     return null;
   }
@@ -266,7 +266,7 @@ const parsePolicyPermissions = async (
   const startBlock = getContractStartBlock(target, context.chain.id);
   if (startBlock !== undefined && blockNumber < BigInt(startBlock)) {
     console.debug(
-      `Skipping policy permissions for ${targetName} at block ${blockNumber} before start block ${startBlock}`
+      `Skipping policy permissions for ${targetName} at block ${blockNumber} before start block ${startBlock}`,
     );
     return null;
   }
@@ -279,19 +279,19 @@ const parsePolicyPermissions = async (
     context.chain.id,
     target,
     blockNumber,
-    context
+    context,
   );
 
   const permissions = permissionsResult.filter((permission) => !!permission);
   const permissionDetails = permissions.map((permission) => {
     const moduleKeycode = fromHex(permission.keycode, "string").replace(
       /\0/g,
-      ""
+      "",
     );
     const moduleKeycodeHex = permission.keycode;
     const funcSelector = permission.funcSelector;
     console.log(
-      `Looking up keycode ${moduleKeycode} and selector ${funcSelector}`
+      `Looking up keycode ${moduleKeycode} and selector ${funcSelector}`,
     );
 
     return { moduleKeycode, moduleKeycodeHex, funcSelector };
@@ -302,7 +302,7 @@ const parsePolicyPermissions = async (
     permissionDetails.map(({ moduleKeycode, moduleKeycodeHex }) => [
       moduleKeycode,
       moduleKeycodeHex,
-    ])
+    ]),
   );
   await Promise.all(
     [...uniqueModules.entries()].map(
@@ -312,17 +312,17 @@ const parsePolicyPermissions = async (
           moduleKeycodeHex,
           kernelAddress,
           blockNumber,
-          context
+          context,
         );
         if (!currentModuleAddress) {
           throw new Error(
-            `No module found for keycode ${moduleKeycode} at block ${blockNumber}`
+            `No module found for keycode ${moduleKeycode} at block ${blockNumber}`,
           );
         }
 
         moduleAddresses.set(moduleKeycode, currentModuleAddress);
-      }
-    )
+      },
+    ),
   );
 
   // Iterate over the permissions
@@ -340,26 +340,26 @@ const parsePolicyPermissions = async (
 
     if (!moduleAddress || moduleAddress === ZERO_ADDRESS) {
       throw new Error(
-        `No module address found in Kernel for keycode ${moduleKeycode} at block ${blockNumber}`
+        `No module address found in Kernel for keycode ${moduleKeycode} at block ${blockNumber}`,
       );
     }
 
     console.log(
-      `Found contract at ${moduleAddress} for module ${moduleKeycode}`
+      `Found contract at ${moduleAddress} for module ${moduleKeycode}`,
     );
 
     // Process the module contract to get function information
     const moduleProcessedData = await getProcessedContract(
       context.chain.id,
       moduleAddress,
-      moduleKeycode
+      moduleKeycode,
     );
 
     // Get the function details for this selector
     const functionDetails = moduleProcessedData.functionSelectors[funcSelector];
     if (!functionDetails) {
       console.warn(
-        `No function details found for keycode ${moduleKeycode} and selector ${funcSelector} on policy ${targetName}`
+        `No function details found for keycode ${moduleKeycode} and selector ${funcSelector} on policy ${targetName}`,
       );
       continue;
     }
@@ -378,7 +378,7 @@ const getCurrentModuleAddress = async (
   keycodeHex: `0x${string}`,
   kernelAddress: `0x${string}`,
   blockNumber: bigint,
-  context: Context
+  context: Context,
 ): Promise<`0x${string}` | null> => {
   const currentModules = await context.db.sql
     .select()
@@ -388,8 +388,8 @@ const getCurrentModuleAddress = async (
         eq(contract.name, keycode),
         eq(contract.chainId, context.chain.id),
         eq(contract.type, "module"),
-        eq(contract.isEnabled, true)
-      )
+        eq(contract.isEnabled, true),
+      ),
     )
     .orderBy(desc(contract.lastUpdatedBlockNumber))
     .limit(1);
@@ -416,7 +416,7 @@ const getCurrentModuleAddress = async (
 
 const getKernelExecutor = async (
   kernelAddress: `0x${string}`,
-  context: Context
+  context: Context,
 ): Promise<`0x${string}`> => {
   const kernelExecutor = await context.client.readContract({
     abi: KernelAbi,
@@ -433,7 +433,7 @@ const getPreviousModule = async (keycode: string, context: Context) => {
     .select()
     .from(contract)
     .where(
-      and(eq(contract.name, keycode), eq(contract.chainId, context.chain.id))
+      and(eq(contract.name, keycode), eq(contract.chainId, context.chain.id)),
     )
     .orderBy(desc(contract.lastUpdatedTimestamp))
     .limit(1);
@@ -444,7 +444,7 @@ const getPreviousModule = async (keycode: string, context: Context) => {
 
   if (previousContract.length > 1) {
     throw new Error(
-      `Found multiple previous contract records for keycode ${keycode}: ${previousContract.map((c) => c.address).join(", ")}`
+      `Found multiple previous contract records for keycode ${keycode}: ${previousContract.map((c) => c.address).join(", ")}`,
     );
   }
 
@@ -475,7 +475,7 @@ ponder.on(
 
     console.log("\n\n****");
     console.log(
-      `Chain ${context.chain.id}: Processing action ${action} on target ${target} at block ${event.block.number}`
+      `Chain ${context.chain.id}: Processing action ${action} on target ${target} at block ${event.block.number}`,
     );
 
     // Record the action event
@@ -503,7 +503,7 @@ ponder.on(
       if (action === "upgradeModule") {
         if (!previousContract) {
           throw new Error(
-            `No previous contract found for keycode ${contractName}`
+            `No previous contract found for keycode ${contractName}`,
           );
         }
 
@@ -564,7 +564,7 @@ ponder.on(
       if (action === "upgradeModule") {
         if (!previousContract) {
           throw new Error(
-            `No previous contract found for keycode ${contractName}`
+            `No previous contract found for keycode ${contractName}`,
           );
         }
 
@@ -639,7 +639,7 @@ ponder.on(
       });
       console.log("Recorded kernel executor event");
     }
-  }
+  },
 );
 
 ponder.on("KernelPolicyActions:ActionExecuted", async ({ event, context }) => {
@@ -659,19 +659,19 @@ ponder.on("KernelPolicyActions:ActionExecuted", async ({ event, context }) => {
     target,
     contractName,
     event.block.number,
-    context
+    context,
   );
   const policyFunctions = await parsePolicyFunctions(
     actionInt,
     target,
     contractName,
     event.block.number,
-    context
+    context,
   );
 
   console.log("\n\n****");
   console.log(
-    `Chain ${context.chain.id}: Processing policy action ${action} on target ${target} at block ${event.block.number}`
+    `Chain ${context.chain.id}: Processing policy action ${action} on target ${target} at block ${event.block.number}`,
   );
 
   await context.db
@@ -738,7 +738,7 @@ ponder.on("KernelPolicyActions:setup", async ({ context }) => {
   const initialExecutor = await getKernelExecutor(constants.address, context);
 
   console.log(
-    `Chain ${context.chain.id}: Inserting records for initial Kernel contract`
+    `Chain ${context.chain.id}: Inserting records for initial Kernel contract`,
   );
 
   // Record the action event

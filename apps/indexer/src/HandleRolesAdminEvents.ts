@@ -1,10 +1,10 @@
 import { ponder } from "ponder:registry";
 import { role, roleAssignment, roleEvent } from "ponder:schema";
-import { getContractName } from "./ContractNames";
 import { and, desc, eq } from "ponder";
-import { ROLE_ROLES_ADMIN } from "./services/contracts/types";
 import { RolesAdminAbi } from "../abis/RolesAdmin";
+import { getContractName } from "./ContractNames";
 import { getRolesAdminConstants } from "./constants";
+import { ROLE_ROLES_ADMIN } from "./services/contracts/types";
 
 ponder.on("RolesAdmin:NewAdminPulled", async ({ event, context }) => {
   const newAdmin = event.args.newAdmin_;
@@ -21,15 +21,15 @@ ponder.on("RolesAdmin:NewAdminPulled", async ({ event, context }) => {
     .where(
       and(
         eq(roleAssignment.role, ROLE_ROLES_ADMIN),
-        eq(roleAssignment.chainId, context.chain.id)
-      )
+        eq(roleAssignment.chainId, context.chain.id),
+      ),
     )
     .orderBy(desc(roleAssignment.lastUpdatedTimestamp))
     .limit(1);
   if (existingRoleAssignment.length > 0 && existingRoleAssignment[0]) {
     const previousAssignee = existingRoleAssignment[0].assignee;
     console.info(
-      `${CHAIN}: Previous assignment exists for role ${ROLE_ROLES_ADMIN}, assignee: ${previousAssignee}`
+      `${CHAIN}: Previous assignment exists for role ${ROLE_ROLES_ADMIN}, assignee: ${previousAssignee}`,
     );
 
     // Record the disabled role event
@@ -61,7 +61,7 @@ ponder.on("RolesAdmin:NewAdminPulled", async ({ event, context }) => {
   }
 
   console.info(
-    `${CHAIN}: Inserting role event for role ${ROLE_ROLES_ADMIN}, assignee: ${newAdmin}`
+    `${CHAIN}: Inserting role event for role ${ROLE_ROLES_ADMIN}, assignee: ${newAdmin}`,
   );
 
   // Record the role event
@@ -117,7 +117,7 @@ ponder.on("RolesAdmin:setup", async ({ context }) => {
   });
 
   console.log(
-    `Chain ${context.chain.id}: Recording initial admin for RolesAdmin contract`
+    `Chain ${context.chain.id}: Recording initial admin for RolesAdmin contract`,
   );
 
   // Record the role event

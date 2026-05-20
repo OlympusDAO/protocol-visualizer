@@ -34,7 +34,7 @@ export class EtherscanApiError extends Error {
   constructor(
     message: string,
     public status?: string,
-    public response?: string
+    public response?: string,
   ) {
     super(message);
     this.name = "EtherscanApiError";

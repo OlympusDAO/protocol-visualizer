@@ -47,7 +47,7 @@ if (!pnpmEngine) {
   fail("package.json engines.pnpm is missing.");
 }
 
-if (!packageManager || !packageManager.startsWith("pnpm@")) {
+if (!packageManager?.startsWith("pnpm@")) {
   fail("package.json packageManager must be set to pnpm@<version>.");
 }
 
@@ -60,24 +60,24 @@ const nodeVersionFileMajor = extractMajor(nodeVersionFile, ".node-version");
 
 if (nodeEngineMajor !== nvmrcMajor) {
   fail(
-    `package.json engines.node (${nodeEngine}) and .nvmrc (${nvmrc}) do not match.`
+    `package.json engines.node (${nodeEngine}) and .nvmrc (${nvmrc}) do not match.`,
   );
 }
 
 if (nodeEngineMajor !== nodeVersionFileMajor) {
   fail(
-    `package.json engines.node (${nodeEngine}) and .node-version (${nodeVersionFile}) do not match.`
+    `package.json engines.node (${nodeEngine}) and .node-version (${nodeVersionFile}) do not match.`,
   );
 }
 
 const runtimeNodeMajor = extractMajor(
   process.versions.node,
-  "current runtime node version"
+  "current runtime node version",
 );
 
 if (runtimeNodeMajor !== nodeEngineMajor) {
   fail(
-    `current Node.js version (${process.versions.node}) does not match engines.node (${nodeEngine}).`
+    `current Node.js version (${process.versions.node}) does not match engines.node (${nodeEngine}).`,
   );
 }
 
@@ -87,13 +87,13 @@ const pnpmEngineVersion = pnpmEngine.startsWith(">=")
   : pnpmEngine.trim();
 if (!semver.valid(pnpmEngineVersion) || !semver.valid(packageManagerVersion)) {
   fail(
-    `packageManager (${packageManagerVersion}) and engines.pnpm minimum (${pnpmEngineVersion}) must be valid semver versions.`
+    `packageManager (${packageManagerVersion}) and engines.pnpm minimum (${pnpmEngineVersion}) must be valid semver versions.`,
   );
 }
 
 if (!semver.satisfies(packageManagerVersion, pnpmEngine)) {
   fail(
-    `packageManager (${packageManagerVersion}) must satisfy engines.pnpm (${pnpmEngine}).`
+    `packageManager (${packageManagerVersion}) must satisfy engines.pnpm (${pnpmEngine}).`,
   );
 }
 
@@ -104,26 +104,26 @@ const runtimePnpmVersion = execSync("pnpm --version", {
 
 if (runtimePnpmVersion !== packageManagerVersion) {
   fail(
-    `current pnpm version (${runtimePnpmVersion}) does not match packageManager (${packageManagerVersion}).`
+    `current pnpm version (${runtimePnpmVersion}) does not match packageManager (${packageManagerVersion}).`,
   );
 }
 
 for (const workflowPath of WORKFLOW_FILES) {
   const content = readText(workflowPath);
   const usesBootstrap = /uses:\s*\.\/\.github\/actions\/bootstrap/.test(
-    content
+    content,
   );
   if (usesBootstrap) {
     const bootstrapContent = readText(BOOTSTRAP_ACTION);
     if (!/node-version-file:\s*\.nvmrc/.test(bootstrapContent)) {
       fail(
-        `${BOOTSTRAP_ACTION} must configure actions/setup-node with node-version-file: .nvmrc.`
+        `${BOOTSTRAP_ACTION} must configure actions/setup-node with node-version-file: .nvmrc.`,
       );
     }
 
     if (/\bnode-version\s*:/.test(bootstrapContent)) {
       fail(
-        `${BOOTSTRAP_ACTION} should not hardcode node-version; use node-version-file: .nvmrc.`
+        `${BOOTSTRAP_ACTION} should not hardcode node-version; use node-version-file: .nvmrc.`,
       );
     }
 
@@ -132,13 +132,13 @@ for (const workflowPath of WORKFLOW_FILES) {
 
   if (!/node-version-file:\s*\.nvmrc/.test(content)) {
     fail(
-      `${workflowPath} must use actions/setup-node with node-version-file: .nvmrc.`
+      `${workflowPath} must use actions/setup-node with node-version-file: .nvmrc.`,
     );
   }
 
   if (/\bnode-version\s*:/.test(content)) {
     fail(
-      `${workflowPath} should not hardcode node-version; use node-version-file: .nvmrc.`
+      `${workflowPath} should not hardcode node-version; use node-version-file: .nvmrc.`,
     );
   }
 }
@@ -153,28 +153,28 @@ for (const dockerfilePath of DOCKERFILES) {
 
   const dockerNodeMajor = extractMajor(
     nodeImageMatch[1],
-    `${dockerfilePath} Node.js image tag`
+    `${dockerfilePath} Node.js image tag`,
   );
 
   if (dockerNodeMajor !== nodeEngineMajor) {
     fail(
-      `${dockerfilePath} uses Node.js ${nodeImageMatch[1]} but engines.node is ${nodeEngine}.`
+      `${dockerfilePath} uses Node.js ${nodeImageMatch[1]} but engines.node is ${nodeEngine}.`,
     );
   }
 
   const pnpmMatch = content.match(
-    /corepack\s+prepare\s+pnpm@([^\s]+)\s+--activate/i
+    /corepack\s+prepare\s+pnpm@([^\s]+)\s+--activate/i,
   );
   if (!pnpmMatch) {
     fail(
-      `${dockerfilePath} must install pnpm using corepack prepare pnpm@<version> --activate.`
+      `${dockerfilePath} must install pnpm using corepack prepare pnpm@<version> --activate.`,
     );
   }
 
   const dockerPnpmVersion = pnpmMatch[1].trim();
   if (dockerPnpmVersion !== packageManagerVersion) {
     fail(
-      `${dockerfilePath} uses pnpm ${dockerPnpmVersion} but packageManager is ${packageManagerVersion}.`
+      `${dockerfilePath} uses pnpm ${dockerPnpmVersion} but packageManager is ${packageManagerVersion}.`,
     );
   }
 }

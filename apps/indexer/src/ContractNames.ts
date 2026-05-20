@@ -405,7 +405,7 @@ const contractNames: MultiChainContracts = {
       name: "EmissionManager",
       version: "1.2",
       type: "policy",
-    }
+    },
   },
   [ChainId.Arbitrum]: {
     // tx: https://arbiscan.io/tx/0x3f55f2ce3af9f803343c6b3361ccde1cf4853c931c9410ad935586cc3c21519d
@@ -773,7 +773,7 @@ const contractNames: MultiChainContracts = {
 
 const getContractDetails = (
   address: `0x${string}`,
-  chainId: number
+  chainId: number,
 ): ContractDetails | null => {
   // Convert input address to lowercase for case-insensitive comparison
   const normalizedAddress = address.toLowerCase() as `0x${string}`;
@@ -785,7 +785,7 @@ const getContractDetails = (
 
   // Find matching contract name by comparing normalized addresses
   const match = Object.entries(chainContracts).find(
-    ([addr]) => addr.toLowerCase() === normalizedAddress
+    ([addr]) => addr.toLowerCase() === normalizedAddress,
   );
 
   return match ? match[1] : null;
@@ -797,7 +797,7 @@ const isLikelyModuleName = (name: string): boolean => {
 
 export const getContractName = (
   address: `0x${string}`,
-  chainId: number
+  chainId: number,
 ): string => {
   const details = getContractDetails(address, chainId);
   return details?.name ?? "UNKNOWN";
@@ -805,7 +805,7 @@ export const getContractName = (
 
 export const getContractVersion = (
   address: `0x${string}`,
-  chainId: number
+  chainId: number,
 ): string | null => {
   const details = getContractDetails(address, chainId);
   return details?.version || null;
@@ -813,7 +813,7 @@ export const getContractVersion = (
 
 export const getContractType = (
   address: `0x${string}`,
-  chainId: number
+  chainId: number,
 ): ContractDetails["type"] => {
   const details = getContractDetails(address, chainId);
 
@@ -834,7 +834,7 @@ export const getContractType = (
 
 export const getContractStartBlock = (
   address: `0x${string}`,
-  chainId: number
+  chainId: number,
 ): number | undefined => {
   const details = getContractDetails(address, chainId);
   return details?.startBlock;

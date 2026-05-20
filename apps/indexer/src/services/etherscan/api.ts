@@ -1,9 +1,9 @@
-import { Abi } from "viem";
+import type { Abi } from "viem";
 import {
-  EtherscanApiConfig,
-  EtherscanResponse,
+  type EtherscanApiConfig,
   EtherscanApiError,
-  EtherscanSourceCodeResponse,
+  type EtherscanResponse,
+  type EtherscanSourceCodeResponse,
 } from "./types";
 
 const etherscanApis: Record<number, EtherscanApi> = {};
@@ -13,10 +13,10 @@ const BASE_URL = "https://api.etherscan.io/v2/api";
 export const getEtherscanApi = (chainId: number) => {
   if (!etherscanApis[chainId]) {
     // Check that the API key is set
-    const apiKey = process.env[`ETHERSCAN_API_KEY`];
+    const apiKey = process.env.ETHERSCAN_API_KEY;
     if (!apiKey) {
       throw new Error(
-        `Etherscan API key is not set. Set the ETHERSCAN_API_KEY environment variable.`
+        `Etherscan API key is not set. Set the ETHERSCAN_API_KEY environment variable.`,
       );
     }
 
@@ -69,7 +69,7 @@ export class EtherscanApi {
       throw new EtherscanApiError(
         `Failed to parse ABI for contract ${address}`,
         "PARSE_ERROR",
-        JSON.stringify(error)
+        JSON.stringify(error),
       );
     }
   }
@@ -89,12 +89,15 @@ export class EtherscanApi {
     if (response.length === 0) {
       throw new EtherscanApiError(
         `No source code found for contract ${address}`,
-        "NO_SOURCE_CODE"
+        "NO_SOURCE_CODE",
       );
     }
 
     try {
-      const sourceCode = response[0]!.SourceCode;
+      const sourceCode = response[0]?.SourceCode;
+      if (!sourceCode) {
+        throw new Error("Source code response is empty");
+      }
       // Strip duplicated first and last brackets if they exist
       const trimmedSourceCode = sourceCode.trim();
       if (
@@ -108,7 +111,7 @@ export class EtherscanApi {
       throw new EtherscanApiError(
         `Failed to parse source code for contract ${address}`,
         "PARSE_ERROR",
-        JSON.stringify(error)
+        JSON.stringify(error),
       );
     }
   }
@@ -129,7 +132,7 @@ export class EtherscanApi {
         if (!response.ok) {
           throw new EtherscanApiError(
             `HTTP error ${response.status}`,
-            response.status.toString()
+            response.status.toString(),
           );
         }
 
@@ -139,7 +142,7 @@ export class EtherscanApi {
           throw new EtherscanApiError(
             `API error: ${data.message}`,
             data.status,
-            JSON.stringify(data)
+            JSON.stringify(data),
           );
         }
 
@@ -151,12 +154,12 @@ export class EtherscanApi {
             : new EtherscanApiError(
                 `Failed to fetch from Etherscan: ${error instanceof Error ? error.message : "Unknown error"}`,
                 "NETWORK_ERROR",
-                JSON.stringify(error)
+                JSON.stringify(error),
               );
         }
 
         console.warn(
-          `Attempt ${attempt} failed, retrying in ${this.retryDelay}ms...`
+          `Attempt ${attempt} failed, retrying in ${this.retryDelay}ms...`,
         );
         await this.sleep(this.retryDelay * attempt);
       }

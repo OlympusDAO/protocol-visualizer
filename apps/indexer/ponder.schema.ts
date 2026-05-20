@@ -1,5 +1,5 @@
 import { onchainEnum, onchainTable, primaryKey, relations } from "ponder";
-import { FunctionDetails } from "./src/services/contracts/types";
+import type { FunctionDetails } from "./src/services/contracts/types";
 
 export const contractType = onchainEnum("contractType", [
   "kernel",
@@ -43,7 +43,7 @@ export const contract = onchainTable(
   }),
   (table) => ({
     pk: primaryKey({ columns: [table.chainId, table.address] }),
-  })
+  }),
 );
 
 /**
@@ -79,7 +79,7 @@ export const contractEvent = onchainTable(
         table.address,
       ],
     }),
-  })
+  }),
 );
 
 // 1 contract -> many contract events
@@ -114,7 +114,7 @@ export const kernelExecutor = onchainTable(
   }),
   (table) => ({
     pk: primaryKey({ columns: [table.chainId, table.kernel] }),
-  })
+  }),
 );
 
 export const kernelExecutorEvent = onchainTable(
@@ -140,7 +140,7 @@ export const kernelExecutorEvent = onchainTable(
         table.logIndex,
       ],
     }),
-  })
+  }),
 );
 
 // 1 kernel executor -> 1 kernel
@@ -153,7 +153,7 @@ export const kernelExecutorRelations = relations(
       references: [contract.chainId, contract.address],
     }),
     events: many(kernelExecutorEvent),
-  })
+  }),
 );
 
 // 1 kernel executor event -> 1 kernel executor
@@ -164,7 +164,7 @@ export const kernelExecutorEventRelations = relations(
       fields: [kernelExecutorEvent.chainId, kernelExecutorEvent.kernel],
       references: [kernelExecutor.chainId, kernelExecutor.kernel],
     }),
-  })
+  }),
 );
 
 export const actionExecutedEvent = onchainTable(
@@ -191,7 +191,7 @@ export const actionExecutedEvent = onchainTable(
         table.logIndex,
       ],
     }),
-  })
+  }),
 );
 
 // 1 action executed event -> 1 contract event
@@ -235,7 +235,7 @@ export const actionExecutedEventRelations = relations(
       fields: [actionExecutedEvent.chainId, actionExecutedEvent.kernel],
       references: [kernelExecutor.chainId, kernelExecutor.kernel],
     }),
-  })
+  }),
 );
 
 // Event related to granting/revoking a role
@@ -265,7 +265,7 @@ export const roleEvent = onchainTable(
         table.assignee,
       ],
     }),
-  })
+  }),
 );
 
 // A role
@@ -278,7 +278,7 @@ export const role = onchainTable(
   }),
   (table) => ({
     pk: primaryKey({ columns: [table.chainId, table.role] }),
-  })
+  }),
 );
 
 // TODO link role to policy (with matching functions)
@@ -300,7 +300,7 @@ export const roleAssignment = onchainTable(
   }),
   (table) => ({
     pk: primaryKey({ columns: [table.chainId, table.role, table.assignee] }),
-  })
+  }),
 );
 
 // 1 role -> many role assignments
@@ -316,7 +316,7 @@ export const roleAssignmentToRoleRelations = relations(
       fields: [roleAssignment.chainId, roleAssignment.role],
       references: [role.chainId, role.role],
     }),
-  })
+  }),
 );
 
 // 1 role -> many role events
@@ -344,5 +344,5 @@ export const roleAssignmentToRoleEventRelations = relations(
       ],
       references: [roleEvent.chainId, roleEvent.role, roleEvent.assignee],
     }),
-  })
+  }),
 );

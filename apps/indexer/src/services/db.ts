@@ -1,12 +1,12 @@
-import { eq, desc, and } from "ponder";
-import { Context } from "ponder:registry";
+import type { Context } from "ponder:registry";
+import { and, desc, eq } from "ponder";
 import { contract as contractTable } from "../../ponder.schema";
 
 type Contract = typeof contractTable.$inferSelect;
 
 export const getLatestContractByName = async (
   name: string,
-  context: Context
+  context: Context,
 ): Promise<Contract | null> => {
   const contract = await context.db.sql
     .select()
@@ -14,8 +14,8 @@ export const getLatestContractByName = async (
     .where(
       and(
         eq(contractTable.name, name),
-        eq(contractTable.chainId, context.chain.id)
-      )
+        eq(contractTable.chainId, context.chain.id),
+      ),
     )
     .orderBy(desc(contractTable.lastUpdatedTimestamp));
 

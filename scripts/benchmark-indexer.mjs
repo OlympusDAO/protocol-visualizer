@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -30,7 +30,7 @@ const schema = `bench${Date.now().toString(36)}`.slice(0, 45);
 const outputDir = path.join(repoRoot, "benchmarks", "indexer");
 const outputPath = path.join(
   outputDir,
-  `${timestamp}-enabled-chains-baseline.md`
+  `${timestamp}-enabled-chains-baseline.md`,
 );
 
 function parseEnv(contents) {
@@ -98,7 +98,7 @@ function makeInitialChainState(chainId) {
 }
 
 const chainState = Object.fromEntries(
-  enabledChainIds.map((chainId) => [chainId, makeInitialChainState(chainId)])
+  enabledChainIds.map((chainId) => [chainId, makeInitialChainState(chainId)]),
 );
 
 const counters = {
@@ -176,7 +176,7 @@ function handleJsonLog(log, startMs) {
     if (range) {
       state.highestIndexedBlock = Math.max(
         state.highestIndexedBlock ?? 0,
-        range.end
+        range.end,
       );
     }
     state.indexedRanges += 1;
@@ -234,8 +234,8 @@ function handleTextLine(line) {
 function handleChunk(chunk, startMs) {
   jsonBuffer += chunk.toString();
 
-  let newlineIndex;
-  while ((newlineIndex = jsonBuffer.indexOf("\n")) !== -1) {
+  let newlineIndex = jsonBuffer.indexOf("\n");
+  while (newlineIndex !== -1) {
     const line = jsonBuffer.slice(0, newlineIndex).trim();
     jsonBuffer = jsonBuffer.slice(newlineIndex + 1);
     if (!line) continue;
@@ -249,6 +249,8 @@ function handleChunk(chunk, startMs) {
     } else {
       handleTextLine(line);
     }
+
+    newlineIndex = jsonBuffer.indexOf("\n");
   }
 }
 
@@ -285,7 +287,9 @@ function renderMarkdown({
   lines.push(`- Port: ${port}`);
   lines.push(`- Ponder root: ${ponderRoot}`);
   lines.push(`- Clean local Ponder cache: ${cleanLocalCache ? "yes" : "no"}`);
-  lines.push(`- Clean contract metadata data: ${cleanContractData ? "yes" : "no"}`);
+  lines.push(
+    `- Clean contract metadata data: ${cleanContractData ? "yes" : "no"}`,
+  );
   if (cleanCacheBackup) {
     lines.push(`- Restored original cache from: ${cleanCacheBackup}`);
   }
@@ -296,18 +300,22 @@ function renderMarkdown({
     lines.push(`- Restored original contract data from: ${contractDataBackup}`);
   }
   if (freshContractDataPath) {
-    lines.push(`- Fresh benchmark contract data moved to: ${freshContractDataPath}`);
+    lines.push(
+      `- Fresh benchmark contract data moved to: ${freshContractDataPath}`,
+    );
   }
-  lines.push(`- Command: pnpm --dir apps/indexer exec ponder --root ${ponderRoot} --log-format json start --schema ${schema} -p ${port}`);
+  lines.push(
+    `- Command: pnpm --dir apps/indexer exec ponder --root ${ponderRoot} --log-format json start --schema ${schema} -p ${port}`,
+  );
   lines.push(`- Benchmark seconds limit: ${maxSeconds}`);
   lines.push("");
   lines.push("## Chain Progress");
   lines.push("");
   lines.push(
-    "| Chain | Chain ID | Target range | Cached block | Cache rate | Highest indexed block | Time to first range (s) | Time to target (s) | Indexed ranges | Events | Handler duration (ms) | Backfill fetch duration (ms) | eth_call errors | Other RPC errors |"
+    "| Chain | Chain ID | Target range | Cached block | Cache rate | Highest indexed block | Time to first range (s) | Time to target (s) | Indexed ranges | Events | Handler duration (ms) | Backfill fetch duration (ms) | eth_call errors | Other RPC errors |",
   );
   lines.push(
-    "| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"
+    "| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
   );
   for (const chainId of enabledChainIds) {
     const state = chainState[chainId];
@@ -316,7 +324,7 @@ function renderMarkdown({
         ? `[${formatNumber(state.targetStartBlock)}, ${formatNumber(state.targetEndBlock)}]`
         : "";
     lines.push(
-      `| ${state.label} | ${chainId} | ${targetRange} | ${formatNumber(state.cachedBlock)} | ${state.cacheRate ?? ""} | ${formatNumber(state.highestIndexedBlock)} | ${formatSeconds(state.firstIndexedAtSeconds)} | ${formatSeconds(state.targetReachedAtSeconds)} | ${state.indexedRanges} | ${state.indexedEvents} | ${formatSeconds(state.indexedHandlerDurationMs)} | ${formatSeconds(state.fetchBackfillDurationMs)} | ${state.ethCallErrors} | ${state.otherRpcErrors} |`
+      `| ${state.label} | ${chainId} | ${targetRange} | ${formatNumber(state.cachedBlock)} | ${state.cacheRate ?? ""} | ${formatNumber(state.highestIndexedBlock)} | ${formatSeconds(state.firstIndexedAtSeconds)} | ${formatSeconds(state.targetReachedAtSeconds)} | ${state.indexedRanges} | ${state.indexedEvents} | ${formatSeconds(state.indexedHandlerDurationMs)} | ${formatSeconds(state.fetchBackfillDurationMs)} | ${state.ethCallErrors} | ${state.otherRpcErrors} |`,
     );
   }
   lines.push("");
@@ -341,15 +349,19 @@ function renderMarkdown({
   lines.push(
     cleanLocalCache
       ? "- This benchmark temporarily moves `apps/indexer/.ponder` aside, so Ponder's RPC/database cache starts clean."
-      : "- This benchmark uses the local Ponder database/cache under `apps/indexer/.ponder`."
+      : "- This benchmark uses the local Ponder database/cache under `apps/indexer/.ponder`.",
   );
   if (cleanContractData) {
     lines.push(
-      "- This benchmark temporarily moves `apps/indexer/data` aside, so ABI/source/contract metadata data starts clean."
+      "- This benchmark temporarily moves `apps/indexer/data` aside, so ABI/source/contract metadata data starts clean.",
     );
   }
-  lines.push("- The output intentionally excludes raw RPC request bodies and URLs.");
-  lines.push("- Compare later runs against `Time to target`, `Highest indexed block`, handler counters, and `eth_call errors`.");
+  lines.push(
+    "- The output intentionally excludes raw RPC request bodies and URLs.",
+  );
+  lines.push(
+    "- Compare later runs against `Time to target`, `Highest indexed block`, handler counters, and `eth_call errors`.",
+  );
   lines.push("");
   return `${lines.join("\n")}\n`;
 }
@@ -360,20 +372,29 @@ async function main() {
     ...process.env,
     ...parseEnv(envFile),
   };
-  let ponderRoot = indexerDir;
+  const ponderRoot = indexerDir;
   const localPonderDir = path.join(indexerDir, ".ponder");
   const contractDataDir = path.join(indexerDir, "data");
   const cleanCacheBackup = cleanLocalCache
-    ? path.join("/private/tmp", `protocol-visualizer-ponder-original-${timestamp}`)
+    ? path.join(
+        "/private/tmp",
+        `protocol-visualizer-ponder-original-${timestamp}`,
+      )
     : undefined;
   const freshCachePath = cleanLocalCache
     ? path.join("/private/tmp", `protocol-visualizer-ponder-fresh-${timestamp}`)
     : undefined;
   const contractDataBackup = cleanContractData
-    ? path.join("/private/tmp", `protocol-visualizer-contract-data-original-${timestamp}`)
+    ? path.join(
+        "/private/tmp",
+        `protocol-visualizer-contract-data-original-${timestamp}`,
+      )
     : undefined;
   const freshContractDataPath = cleanContractData
-    ? path.join("/private/tmp", `protocol-visualizer-contract-data-fresh-${timestamp}`)
+    ? path.join(
+        "/private/tmp",
+        `protocol-visualizer-contract-data-fresh-${timestamp}`,
+      )
     : undefined;
   let movedOriginalCache = false;
   let movedOriginalContractData = false;
@@ -431,7 +452,7 @@ async function main() {
       cwd: repoRoot,
       env,
       stdio: ["ignore", "pipe", "pipe"],
-    }
+    },
   );
 
   const startMs = Date.now();
@@ -461,7 +482,8 @@ async function main() {
       clearTimeout(timeout);
       clearInterval(completionCheck);
       if (!killed && signal) exitReason = `process exited via ${signal}`;
-      if (!killed && code !== 0) exitReason = `process exited with code ${code}`;
+      if (!killed && code !== 0)
+        exitReason = `process exited with code ${code}`;
       resolve(code);
     });
   });

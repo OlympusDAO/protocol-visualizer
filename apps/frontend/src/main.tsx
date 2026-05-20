@@ -1,13 +1,18 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { Providers } from "./components/providers";
 import App from "./App";
+import { Providers } from "./components/providers";
 import "./index.css";
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
+const root = document.getElementById("root");
+if (!root) {
+  throw new Error("Root element not found");
+}
+
+ReactDOM.createRoot(root).render(
   <React.StrictMode>
     <Providers>
       <App />
     </Providers>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

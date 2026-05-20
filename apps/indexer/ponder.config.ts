@@ -1,6 +1,5 @@
-import { createConfig } from "ponder";
-import { fallback, http, Transport, webSocket } from "viem";
-import { rateLimit } from "ponder";
+import { createConfig, rateLimit } from "ponder";
+import { fallback, http, type Transport, webSocket } from "viem";
 
 import { KernelAbi } from "./abis/Kernel";
 import { OlympusRolesAbi } from "./abis/OlympusRoles";
@@ -16,8 +15,11 @@ const mainnetKernel = getKernelConstants(ChainId.Mainnet);
 const mainnetRoles = getRolesConstants(ChainId.Mainnet);
 const mainnetRolesAdmin = getRolesAdminConstants(ChainId.Mainnet);
 
+// biome-ignore lint/correctness/noUnusedVariables: Arbitrum is disabled for now, but these constants keep the re-enable diff local.
 const arbitrumKernel = getKernelConstants(ChainId.Arbitrum);
+// biome-ignore lint/correctness/noUnusedVariables: Arbitrum is disabled for now, but these constants keep the re-enable diff local.
 const arbitrumRoles = getRolesConstants(ChainId.Arbitrum);
+// biome-ignore lint/correctness/noUnusedVariables: Arbitrum is disabled for now, but these constants keep the re-enable diff local.
 const arbitrumRolesAdmin = getRolesAdminConstants(ChainId.Arbitrum);
 
 const baseKernel = getKernelConstants(ChainId.Base);
@@ -38,7 +40,7 @@ const sepoliaRolesAdmin = getRolesAdminConstants(ChainId.Sepolia);
 
 function getPositiveInteger(
   value: string | undefined,
-  envVarName: string
+  envVarName: string,
 ): number | undefined {
   if (value === undefined) {
     return undefined;
@@ -47,7 +49,7 @@ function getPositiveInteger(
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0) {
     throw new Error(
-      `${envVarName} must be a positive integer, received "${value}".`
+      `${envVarName} must be a positive integer, received "${value}".`,
     );
   }
 
@@ -85,7 +87,7 @@ function getRpcTransport(chainId: number, rpcUrl: string): Transport {
 
   if (rps) {
     console.log(
-      `Rate limiting transport for chain ${chainId} to ${rps} requests per second`
+      `Rate limiting transport for chain ${chainId} to ${rps} requests per second`,
     );
     transport = rateLimit(transport, { requestsPerSecond: rps });
   }
@@ -107,7 +109,7 @@ function getTransport(chainId: number): Transport {
 
   if (!rpcUrl) {
     throw new Error(
-      `RPC URL not found for chain ${chainId}. Set ${envVarName} environment variable.`
+      `RPC URL not found for chain ${chainId}. Set ${envVarName} environment variable.`,
     );
   }
 

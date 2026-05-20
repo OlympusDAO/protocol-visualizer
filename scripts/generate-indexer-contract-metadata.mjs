@@ -11,7 +11,7 @@ const inputPath = path.join(
   "apps",
   "indexer",
   "data",
-  "contract-cache.json"
+  "contract-cache.json",
 );
 const outputPath = path.join(
   repoRoot,
@@ -19,7 +19,7 @@ const outputPath = path.join(
   "indexer",
   "src",
   "generated",
-  "contract-metadata.json"
+  "contract-metadata.json",
 );
 
 function sortObject(value) {
@@ -34,7 +34,7 @@ function sortObject(value) {
   return Object.fromEntries(
     Object.entries(value)
       .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, childValue]) => [key, sortObject(childValue)])
+      .map(([key, childValue]) => [key, sortObject(childValue)]),
   );
 }
 
@@ -54,6 +54,9 @@ for (const [chainId, contracts] of Object.entries(rawCache)) {
 }
 
 await mkdir(path.dirname(outputPath), { recursive: true });
-await writeFile(outputPath, `${JSON.stringify(sortObject(metadata), null, 2)}\n`);
+await writeFile(
+  outputPath,
+  `${JSON.stringify(sortObject(metadata), null, 2)}\n`,
+);
 
 console.log(`Generated ${outputPath}`);

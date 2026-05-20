@@ -5,28 +5,28 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@hono/node-server': 1.19.13
+  '@hono/node-server@<1.19.13': 1.19.13
   ajv@>=6.0.0 <7.0.0: 6.14.0
   brace-expansion@<1.1.13: 1.1.13
   brace-expansion@>=2.0.0 <2.0.3: 2.0.3
   brace-expansion@>=5.0.0 <5.0.6: 5.0.6
-  drizzle-orm: 0.45.2
-  esbuild: 0.28.0
-  fast-uri: ^3.1.2
-  flatted: 3.4.2
-  hono: ^4.12.18
-  kysely: 0.28.17
-  lodash: 4.18.0
+  drizzle-orm@<0.45.2: 0.45.2
+  esbuild@<0.28.0: 0.28.0
+  fast-uri@<3.1.2: 3.1.2
+  flatted@<3.4.2: 3.4.2
+  hono@<4.12.18: 4.12.18
+  kysely@<0.28.17: 0.28.17
+  lodash@<4.18.0: 4.18.0
   minimatch@<3.1.4: 3.1.5
   minimatch@>=5.0.0 <5.1.8: 5.1.8
   minimatch@>=9.0.0 <9.0.7: 9.0.7
-  picomatch: 4.0.4
-  ponder>vite: 6.4.2
-  postcss: ^8.5.10
-  rollup: 4.59.0
+  picomatch@<4.0.4: 4.0.4
+  ponder>vite@<=6.4.1: 6.4.2
+  postcss@<8.5.10: 8.5.14
+  rollup@<4.59.0: 4.59.0
   vite@>=5.0.0 <5.4.21: 6.4.2
   ws@>=8.0.0 <8.20.1: 8.20.1
-  yaml: 2.8.3
+  yaml@<2.8.3: 2.8.3
 
 importers:
 
@@ -124,7 +124,7 @@ importers:
         specifier: ^0.4.5
         version: 0.4.19(eslint@8.57.1)
       postcss:
-        specifier: ^8.5.10
+        specifier: 8.5.14
         version: 8.5.14
       typescript:
         specifier: ^5.2.2
@@ -136,7 +136,7 @@ importers:
   apps/indexer:
     dependencies:
       hono:
-        specifier: ^4.12.18
+        specifier: 4.12.18
         version: 4.12.18
       ponder:
         specifier: ^0.16.6
@@ -465,7 +465,7 @@ packages:
     resolution: {integrity: sha512-TsQLe4i2gvoTtrHje625ngThGBySOgSK3Xo2XRYOdqGN1teR8+I7vchQC46uLJi8OF62YTYA3AhSpumtkhsaKQ==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
-      hono: ^4.12.18
+      hono: 4.12.18
 
   '@humanwhocodes/config-array@0.13.0':
     resolution: {integrity: sha512-DZLEEqFWQFiyK6h5YIeynKx7JlvCYWL0cImfSRXZ9l4Sg2efkFGTuFf6vzXjK1cq6IYkU+Eg/JizXw+TD2vRNw==}
@@ -1312,7 +1312,7 @@ packages:
     engines: {node: ^10 || ^12 || >=14}
     hasBin: true
     peerDependencies:
-      postcss: ^8.5.10
+      postcss: 8.5.14
 
   available-typed-arrays@1.0.7:
     resolution: {integrity: sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ==}
@@ -2663,7 +2663,7 @@ packages:
     engines: {node: '>=18.14'}
     hasBin: true
     peerDependencies:
-      hono: ^4.12.18
+      hono: 4.12.18
       typescript: '>=5.0.4'
       viem: '>=2'
     peerDependenciesMeta:
@@ -2678,19 +2678,19 @@ packages:
     resolution: {integrity: sha512-hpr+J05B2FVYUAXHeK1YyI267J/dDDhMU6B6civm8hSY1jYJnBXxzKDKDswzJmtLHryrjhnDjqqp/49t8FALew==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
-      postcss: ^8.5.10
+      postcss: 8.5.14
 
   postcss-js@4.0.1:
     resolution: {integrity: sha512-dDLF8pEO191hJMtlHFPRa8xsizHaM82MLfNkUHdUtVEV3tgTp5oj+8qbEqYM57SLfc74KSbw//4SeJma2LRVIw==}
     engines: {node: ^12 || ^14 || >= 16}
     peerDependencies:
-      postcss: ^8.5.10
+      postcss: 8.5.14
 
   postcss-load-config@4.0.2:
     resolution: {integrity: sha512-bSVhyJGL00wMVoPUzAVAnbEoWyqRxkjv64tUl427SKnPrENtq6hJwUojroMz2VB+Q1edmi4IfrAPpami5VVgMQ==}
     engines: {node: '>= 14'}
     peerDependencies:
-      postcss: ^8.5.10
+      postcss: 8.5.14
       ts-node: '>=9.0.0'
     peerDependenciesMeta:
       postcss:
@@ -2702,7 +2702,7 @@ packages:
     resolution: {integrity: sha512-HQbt28KulC5AJzG+cZtj9kvKB93CFCdLvog1WFLf1D+xmMvPGlBstkpTEZfK5+AN9hfJocyBFCNiqyS48bpgzQ==}
     engines: {node: '>=12.0'}
     peerDependencies:
-      postcss: ^8.5.10
+      postcss: 8.5.14
 
   postcss-selector-parser@6.1.2:
     resolution: {integrity: sha512-Q8qQfPiZ+THO/3ZrOrO0cJJKfpYCagtMUkXbnEfmgUjwXg6z/WBeOyS9APBBPCTSiDV+s4SwQGu8yFsiMRIudg==}

@@ -66,6 +66,18 @@ function getEthGetLogsBlockRange(chainId: number): number | undefined {
   return getPositiveInteger(process.env[envVarName], envVarName);
 }
 
+function logPonderMaxThreads(): void {
+  const envVarName = "PONDER_MAX_THREADS";
+  const maxThreads = getPositiveInteger(process.env[envVarName], envVarName);
+
+  if (maxThreads === undefined) {
+    console.log(`${envVarName} is not set; Ponder default will be used`);
+    return;
+  }
+
+  console.log(`${envVarName} is set to ${maxThreads}`);
+}
+
 function getRpcTransport(chainId: number, rpcUrl: string): Transport {
   // Check if URL uses websocket protocol (case-insensitive)
   const isWebSocket =
@@ -129,12 +141,24 @@ function getTransport(chainId: number): Transport {
 function getChainConfig(chainId: ChainId) {
   const ethGetLogsBlockRange = getEthGetLogsBlockRange(chainId);
 
+  if (ethGetLogsBlockRange === undefined) {
+    console.log(
+      `PONDER_RPC_BLOCK_RANGE_${chainId} is not set; Ponder default eth_getLogs block range will be used`
+    );
+  } else {
+    console.log(
+      `PONDER_RPC_BLOCK_RANGE_${chainId} is set to ${ethGetLogsBlockRange}`
+    );
+  }
+
   return {
     id: chainId,
     rpc: getTransport(chainId),
     ...(ethGetLogsBlockRange ? { ethGetLogsBlockRange } : {}),
   };
 }
+
+logPonderMaxThreads();
 
 export default createConfig({
   ordering: "experimental_isolated",

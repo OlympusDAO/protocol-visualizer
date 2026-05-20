@@ -16,3 +16,4 @@ healthcheckTimeout = 3600
 
 [variables]
 PONDER_MAX_THREADS = "5"
+PONDER_RPC_BLOCK_RANGE_80094 = "1000"

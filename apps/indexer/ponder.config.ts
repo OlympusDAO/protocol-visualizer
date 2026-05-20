@@ -36,17 +36,25 @@ const sepoliaKernel = getKernelConstants(ChainId.Sepolia);
 const sepoliaRoles = getRolesConstants(ChainId.Sepolia);
 const sepoliaRolesAdmin = getRolesAdminConstants(ChainId.Sepolia);
 
+function getPositiveInteger(value?: string): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
 function getRateLimit(rpcUrlRateLimit?: string): number | undefined {
-  if (!rpcUrlRateLimit) {
-    return undefined;
-  }
+  return getPositiveInteger(rpcUrlRateLimit);
+}
 
-  const rps = Number(rpcUrlRateLimit);
-  if (isNaN(rps) || rps <= 0) {
-    return undefined;
-  }
-
-  return rps;
+function getEthGetLogsBlockRange(chainId: number): number | undefined {
+  return getPositiveInteger(process.env[`PONDER_RPC_BLOCK_RANGE_${chainId}`]);
 }
 
 function getRpcTransport(
@@ -118,35 +126,30 @@ function getTransport(chainId: number): Transport {
   return fallback([rpcTransport, rpcTransportFallback]);
 }
 
+function getChainConfig(chainId: ChainId) {
+  const ethGetLogsBlockRange = getEthGetLogsBlockRange(chainId);
+
+  return {
+    id: chainId,
+    rpc: getTransport(chainId),
+    ...(ethGetLogsBlockRange ? { ethGetLogsBlockRange } : {}),
+  };
+}
+
 export default createConfig({
   ordering: "experimental_isolated",
   chains: {
     // Production chains
-    mainnet: {
-      id: ChainId.Mainnet,
-      rpc: getTransport(ChainId.Mainnet),
-    },
+    mainnet: getChainConfig(ChainId.Mainnet),
     // arbitrum: {
     //   id: ChainId.Arbitrum,
     //   rpc: getTransport(ChainId.Arbitrum),
     // },
-    base: {
-      id: ChainId.Base,
-      rpc: getTransport(ChainId.Base),
-    },
-    berachain: {
-      id: ChainId.Berachain,
-      rpc: getTransport(ChainId.Berachain),
-    },
-    optimism: {
-      id: ChainId.Optimism,
-      rpc: getTransport(ChainId.Optimism),
-    },
+    base: getChainConfig(ChainId.Base),
+    berachain: getChainConfig(ChainId.Berachain),
+    optimism: getChainConfig(ChainId.Optimism),
     // Testnets
-    sepolia: {
-      id: ChainId.Sepolia,
-      rpc: getTransport(ChainId.Sepolia),
-    },
+    sepolia: getChainConfig(ChainId.Sepolia),
   },
   contracts: {
     KernelNonPolicyActions: {
@@ -206,9 +209,7 @@ export default createConfig({
           startBlock: sepoliaKernel.creationBlockNumber,
         },
       },
-      filter: [
-        { event: "ActionExecuted", args: { action_: [2, 3] } },
-      ],
+      filter: [{ event: "ActionExecuted", args: { action_: [2, 3] } }],
     },
     ROLES: {
       abi: OlympusRolesAbi,

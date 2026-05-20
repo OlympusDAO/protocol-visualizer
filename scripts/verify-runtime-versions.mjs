@@ -38,6 +38,7 @@ const packageJson = JSON.parse(readText("package.json"));
 const nodeEngine = packageJson.engines?.node;
 const pnpmEngine = packageJson.engines?.pnpm;
 const packageManager = packageJson.packageManager;
+const expectedPackageManagerGuards = ["npm", "yarn", "bun"];
 
 if (!nodeEngine) {
   fail("package.json engines.node is missing.");
@@ -49,6 +50,12 @@ if (!pnpmEngine) {
 
 if (!packageManager || !packageManager.startsWith("pnpm@")) {
   fail("package.json packageManager must be set to pnpm@<version>.");
+}
+
+for (const packageManagerName of expectedPackageManagerGuards) {
+  if (packageJson.engines?.[packageManagerName] !== "use-pnpm") {
+    fail(`package.json engines.${packageManagerName} must be set to use-pnpm.`);
+  }
 }
 
 const nvmrc = readText(".nvmrc").trim();

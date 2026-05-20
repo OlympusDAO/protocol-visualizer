@@ -13,8 +13,7 @@
     "lint:check": "turbo run lint:check",
     "lint": "turbo run lint && prettier --write \"**/*.{js,mjs,ts,tsx,md,json}\"",
     "validate:local": "pnpm run check:runtime-versions && pnpm install --frozen-lockfile && pnpm run lint:check && pnpm run build && pnpm run docker:build:indexer && pnpm run docker:build:frontend",
-    "format": "prettier --write \"**/*.{js,mjs,ts,tsx,md,json}\"",
-    "preinstall": "npx only-allow@1.2.2 pnpm"
+    "format": "prettier --write \"**/*.{js,mjs,ts,tsx,md,json}\""
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
@@ -35,6 +34,7 @@
   "engines": {
     "node": ">=24",
     "pnpm": ">=10.33.0",
+    "bun": "use-pnpm",
     "npm": "use-pnpm",
     "yarn": "use-pnpm"
   }

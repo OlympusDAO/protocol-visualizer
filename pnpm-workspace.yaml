@@ -1,5 +1,11 @@
 minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
+  - "envio-darwin-arm64@3.0.0"
+  - "envio-darwin-x64@3.0.0"
+  - "envio-linux-arm64@3.0.0"
+  - "envio-linux-x64-musl@3.0.0"
+  - "envio-linux-x64@3.0.0"
+  - "envio@3.0.0"
   - "hono@4.12.18"
   - "kysely@0.28.17"
   - "postcss@8.5.14"
@@ -18,6 +24,11 @@ packages:
   - 'apps/*'
   - 'packages/*'
 overrides:
+  "envio>@fuel-ts/crypto": "0.103.0"
+  "envio>@fuel-ts/errors": "0.103.0"
+  "envio>@fuel-ts/hasher": "0.103.0"
+  "envio>@fuel-ts/math": "0.103.0"
+  "envio>@fuel-ts/utils": "0.103.0"
   "@hono/node-server@<1.19.13": "1.19.13"
   "ajv@>=6.0.0 <7.0.0": "6.14.0"
   "brace-expansion@<1.1.13": "1.1.13"

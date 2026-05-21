@@ -32,3 +32,14 @@ updates:
     labels:
       - "dependencies"
     versioning-strategy: increase
+
+  # GraphQL proxy app
+  - package-ecosystem: "npm"
+    directory: "/apps/graphql-proxy"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+    versioning-strategy: increase

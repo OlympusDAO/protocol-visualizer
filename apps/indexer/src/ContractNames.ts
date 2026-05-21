@@ -405,7 +405,7 @@ const contractNames: MultiChainContracts = {
       name: "EmissionManager",
       version: "1.2",
       type: "policy",
-    }
+    },
   },
   [ChainId.Arbitrum]: {
     // tx: https://arbiscan.io/tx/0x3f55f2ce3af9f803343c6b3361ccde1cf4853c931c9410ad935586cc3c21519d

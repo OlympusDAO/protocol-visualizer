@@ -1,14 +1,19 @@
-import { mkdirSync, existsSync, readFileSync, writeFileSync } from "fs";
-import { AbiFunction, AbiParameter, Abi, toFunctionSelector } from "viem";
+import { mkdirSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import {
-  ContractCache,
-  ProcessedContractData,
-  FunctionDetails,
+  type AbiFunction,
+  type AbiParameter,
+  type Abi,
+  toFunctionSelector,
+} from "viem";
+import {
+  type ContractCache,
+  type ProcessedContractData,
+  type FunctionDetails,
   ROLE_ROLES_ADMIN,
 } from "./types";
-import { EtherscanApi } from "../etherscan/api";
-import path from "path";
-import { ChainId } from "../../constants";
+import { type EtherscanApi, getEtherscanApi } from "../etherscan/api";
+import type { ChainId } from "../../constants";
 import precomputedContractMetadata from "../../generated/contract-metadata.json";
 
 const CACHE_FILE = "./data/contract-cache.json";
@@ -25,7 +30,7 @@ export class ContractProcessor {
   private cache: ContractCache;
 
   constructor(
-    private etherscanApi: EtherscanApi,
+    private etherscanApi: EtherscanApi | undefined,
     private chainId: ChainId
   ) {
     // this.roleExtractor = new RoleExtractor();
@@ -51,15 +56,14 @@ export class ContractProcessor {
         normalizedAddress
       ];
     if (precomputedData) {
-      console.log(
-        `PRECOMPUTED CACHE HIT for ${name} on chain ${this.chainId}`
-      );
+      console.log(`PRECOMPUTED CACHE HIT for ${name} on chain ${this.chainId}`);
       return precomputedData;
     }
 
     // Check cache first
     const chainCache = this.cache[this.chainId];
-    const contractCache = chainCache?.[address] ?? chainCache?.[normalizedAddress];
+    const contractCache =
+      chainCache?.[address] ?? chainCache?.[normalizedAddress];
     if (
       chainCache &&
       contractCache &&
@@ -79,7 +83,7 @@ export class ContractProcessor {
       abi = JSON.parse(abiJson) as Abi;
     } else {
       // Fetch and save ABI if it doesn't exist
-      abi = await this.etherscanApi.getContractAbi(address);
+      abi = await this.getEtherscanApi().getContractAbi(address);
       writeFileSync(abiPath, JSON.stringify(abi, null, 2));
     }
 
@@ -87,13 +91,13 @@ export class ContractProcessor {
     const processedData = this.processAbi(abi);
 
     // Check if the source code exists on disk
-    let sourceCode;
+    let sourceCode: string;
     const sourceCodePath = this.getSourceCodePath(address);
     if (existsSync(sourceCodePath)) {
       sourceCode = readFileSync(sourceCodePath, "utf-8");
     } else {
       // Fetch and save source code if it doesn't exist
-      sourceCode = await this.etherscanApi.getContractSourceCode(address);
+      sourceCode = await this.getEtherscanApi().getContractSourceCode(address);
       writeFileSync(sourceCodePath, sourceCode);
     }
 
@@ -122,6 +126,11 @@ export class ContractProcessor {
 
   private getChainAbiDir(): string {
     return path.join(ABI_DIR, this.chainId.toString());
+  }
+
+  private getEtherscanApi(): EtherscanApi {
+    this.etherscanApi ??= getEtherscanApi(this.chainId);
+    return this.etherscanApi;
   }
 
   private getChainSourceCodeDir(): string {
@@ -159,7 +168,6 @@ export class ContractProcessor {
         };
       } catch (error) {
         console.warn(`Failed to process function ${item.name}:`, error);
-        continue;
       }
     }
 
@@ -184,7 +192,7 @@ export class ContractProcessor {
       );
       const constantDefinition = sourceCode.match(constantDefinitionRegex);
 
-      if (constantDefinition && constantDefinition[1]) {
+      if (constantDefinition?.[1]) {
         console.log(
           `Found role with constant value ${constantDefinition[1]} for ${functionName}`
         );
@@ -227,7 +235,7 @@ export class ContractProcessor {
     const directStringMatch = functionDefinition.match(
       /onlyRole\(\\?"([^"]*)\\"?\)/
     );
-    if (directStringMatch && directStringMatch[1]) {
+    if (directStringMatch?.[1]) {
       console.log(
         `Found role with literal value ${directStringMatch[1]} for ${functionName}`
       );

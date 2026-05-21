@@ -48,7 +48,7 @@ if (!pnpmEngine) {
   fail("package.json engines.pnpm is missing.");
 }
 
-if (!packageManager || !packageManager.startsWith("pnpm@")) {
+if (!packageManager?.startsWith("pnpm@")) {
   fail("package.json packageManager must be set to pnpm@<version>.");
 }
 

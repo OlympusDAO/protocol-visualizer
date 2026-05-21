@@ -10,21 +10,18 @@ WORKDIR /app
 # Copy pnpm files and root package.json (for overrides)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/frontend/package.json ./apps/frontend/
-COPY apps/indexer/package.json ./apps/indexer/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
 # Copy source code
-# Indexer needed due to the ponder schema
-COPY apps/indexer/ ./apps/indexer/
 COPY apps/frontend/ ./apps/frontend/
 
 WORKDIR /app/apps/frontend
 
 # Environment variables
-ARG VITE_PONDER_URL
-ENV VITE_PONDER_URL=$VITE_PONDER_URL
+ARG VITE_ENVIO_GRAPHQL_URL
+ENV VITE_ENVIO_GRAPHQL_URL=$VITE_ENVIO_GRAPHQL_URL
 
 # Build the application
 RUN pnpm run build

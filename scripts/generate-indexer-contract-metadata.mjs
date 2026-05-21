@@ -54,6 +54,9 @@ for (const [chainId, contracts] of Object.entries(rawCache)) {
 }
 
 await mkdir(path.dirname(outputPath), { recursive: true });
-await writeFile(outputPath, `${JSON.stringify(sortObject(metadata), null, 2)}\n`);
+await writeFile(
+  outputPath,
+  `${JSON.stringify(sortObject(metadata), null, 2)}\n`
+);
 
 console.log(`Generated ${outputPath}`);

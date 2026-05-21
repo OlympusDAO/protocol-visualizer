@@ -51,15 +51,14 @@ export class ContractProcessor {
         normalizedAddress
       ];
     if (precomputedData) {
-      console.log(
-        `PRECOMPUTED CACHE HIT for ${name} on chain ${this.chainId}`
-      );
+      console.log(`PRECOMPUTED CACHE HIT for ${name} on chain ${this.chainId}`);
       return precomputedData;
     }
 
     // Check cache first
     const chainCache = this.cache[this.chainId];
-    const contractCache = chainCache?.[address] ?? chainCache?.[normalizedAddress];
+    const contractCache =
+      chainCache?.[address] ?? chainCache?.[normalizedAddress];
     if (
       chainCache &&
       contractCache &&

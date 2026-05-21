@@ -247,7 +247,8 @@ function getPublicClient(chainId: number): PublicClient<Transport> {
   const transports = getRpcUrls(chainId).map((url) =>
     http(url, { batch: true })
   );
-  const transport = transports.length === 1 ? transports[0]! : fallback(transports);
+  const transport =
+    transports.length === 1 ? transports[0]! : fallback(transports);
   const client = createPublicClient({ transport });
   publicClients.set(chainId, client);
 
@@ -373,7 +374,10 @@ const readModuleKeycodeEffect = createEffect(
     rateLimit: { calls: 25, per: "second" },
     cache: true,
   },
-  async ({ input, context }): Promise<{ keycode: Hex; usedLatestFallback: boolean }> => {
+  async ({
+    input,
+    context,
+  }): Promise<{ keycode: Hex; usedLatestFallback: boolean }> => {
     try {
       return {
         keycode: await getPublicClient(input.chainId).readContract({
@@ -793,7 +797,8 @@ async function getCurrentModuleAddress(
     return cached.address as Address;
   }
 
-  const currentModule = await context.CurrentModule.get<CurrentModuleEntity>(id);
+  const currentModule =
+    await context.CurrentModule.get<CurrentModuleEntity>(id);
   if (currentModule?.address) {
     currentModuleCache.set(id, currentModule);
     return currentModule.address as Address;
@@ -1002,11 +1007,7 @@ async function ensureRolesAdminSeeded(
 
   const timestamp = BigInt(constants.creationTimestamp);
   const blockNumber = BigInt(constants.creationBlockNumber);
-  const initialAdmin = await getRolesAdmin(
-    context,
-    constants.address,
-    chainId
-  );
+  const initialAdmin = await getRolesAdmin(context, constants.address, chainId);
   const assigneeName = getContractName(initialAdmin, chainId);
 
   context.RoleEvent.set({
@@ -1125,7 +1126,9 @@ async function handleKernelActionExecuted(
 
     if (action === "upgradeModule") {
       if (!previousContract) {
-        throw new Error(`No previous contract found for keycode ${contractName}`);
+        throw new Error(
+          `No previous contract found for keycode ${contractName}`
+        );
       }
 
       envioContext.ContractEvent.set({
@@ -1307,12 +1310,12 @@ async function handleRoleRevoked(
   const timestamp = BigInt(event.block.timestamp);
   const blockNumber = BigInt(event.block.number);
   const assignmentId = roleAssignmentId(event.chainId, role, assignee);
-  const existingAssignment =
-    await envioContext.RoleAssignment.get<{
-      assigneeName?: string;
-    }>(assignmentId);
+  const existingAssignment = await envioContext.RoleAssignment.get<{
+    assigneeName?: string;
+  }>(assignmentId);
   const assigneeName =
-    existingAssignment?.assigneeName ?? getContractName(assignee, event.chainId);
+    existingAssignment?.assigneeName ??
+    getContractName(assignee, event.chainId);
 
   console.log(
     `Chain ${event.chainId}: Processing role revoked event for ${role} from ${assignee}`

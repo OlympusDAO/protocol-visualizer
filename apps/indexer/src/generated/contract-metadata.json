@@ -213,9 +213,7 @@
       "functionSelectors": {
         "0x01de9ba8": {
           "name": "setReserveFactor",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x01de9ba8",
           "signature": "setReserveFactor(uint32)()"
         },
@@ -239,9 +237,7 @@
         },
         "0x0f15f4c0": {
           "name": "activate",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x0f15f4c0",
           "signature": "activate()()"
         },
@@ -253,9 +249,7 @@
         },
         "0x19f63dd7": {
           "name": "setBondContracts",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x19f63dd7",
           "signature": "setBondContracts(address,address)()"
         },
@@ -273,33 +267,25 @@
         },
         "0x2ecd1f20": {
           "name": "regenerate",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x2ecd1f20",
           "signature": "regenerate(bool)()"
         },
         "0x33bd33b4": {
           "name": "setThresholdFactor",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x33bd33b4",
           "signature": "setThresholdFactor(uint256)()"
         },
         "0x3a3f54bc": {
           "name": "setRegenParams",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x3a3f54bc",
           "signature": "setRegenParams(uint32,uint32,uint32)()"
         },
         "0x41f19a46": {
           "name": "setSpreads",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x41f19a46",
           "signature": "setSpreads(uint256,uint256)()"
         },
@@ -311,9 +297,7 @@
         },
         "0x51b42b00": {
           "name": "deactivate",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x51b42b00",
           "signature": "deactivate()()"
         },
@@ -331,9 +315,7 @@
         },
         "0x7159a618": {
           "name": "operate",
-          "roles": [
-            "operator_operate"
-          ],
+          "roles": ["operator_operate"],
           "selector": "0x7159a618",
           "signature": "operate()()"
         },
@@ -345,9 +327,7 @@
         },
         "0x8129fc1c": {
           "name": "initialize",
-          "roles": [
-            "operator_admin"
-          ],
+          "roles": ["operator_admin"],
           "selector": "0x8129fc1c",
           "signature": "initialize()()"
         },
@@ -377,17 +357,13 @@
         },
         "0xaa9760a1": {
           "name": "setCushionFactor",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xaa9760a1",
           "signature": "setCushionFactor(uint32)()"
         },
         "0xab104771": {
           "name": "bondPurchase",
-          "roles": [
-            "operator_reporter"
-          ],
+          "roles": ["operator_reporter"],
           "selector": "0xab104771",
           "signature": "bondPurchase(uint256,uint256)()"
         },
@@ -417,17 +393,13 @@
         },
         "0xf2f6d5bb": {
           "name": "deactivateCushion",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xf2f6d5bb",
           "signature": "deactivateCushion(bool)()"
         },
         "0xf2fa4737": {
           "name": "setCushionParams",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xf2fa4737",
           "signature": "setCushionParams(uint32,uint32,uint32)()"
         }
@@ -438,9 +410,7 @@
       "functionSelectors": {
         "0x01de9ba8": {
           "name": "setReserveFactor",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x01de9ba8",
           "signature": "setReserveFactor(uint32)()"
         },
@@ -464,9 +434,7 @@
         },
         "0x0f15f4c0": {
           "name": "activate",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x0f15f4c0",
           "signature": "activate()()"
         },
@@ -478,9 +446,7 @@
         },
         "0x19f63dd7": {
           "name": "setBondContracts",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x19f63dd7",
           "signature": "setBondContracts(address,address)()"
         },
@@ -498,33 +464,25 @@
         },
         "0x299ed196": {
           "name": "setSpreads",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x299ed196",
           "signature": "setSpreads(bool,uint256,uint256)()"
         },
         "0x2ecd1f20": {
           "name": "regenerate",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x2ecd1f20",
           "signature": "regenerate(bool)()"
         },
         "0x33bd33b4": {
           "name": "setThresholdFactor",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x33bd33b4",
           "signature": "setThresholdFactor(uint256)()"
         },
         "0x3a3f54bc": {
           "name": "setRegenParams",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x3a3f54bc",
           "signature": "setRegenParams(uint32,uint32,uint32)()"
         },
@@ -536,9 +494,7 @@
         },
         "0x51b42b00": {
           "name": "deactivate",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x51b42b00",
           "signature": "deactivate()()"
         },
@@ -556,9 +512,7 @@
         },
         "0x7159a618": {
           "name": "operate",
-          "roles": [
-            "operator_operate"
-          ],
+          "roles": ["operator_operate"],
           "selector": "0x7159a618",
           "signature": "operate()()"
         },
@@ -570,9 +524,7 @@
         },
         "0x8129fc1c": {
           "name": "initialize",
-          "roles": [
-            "operator_admin"
-          ],
+          "roles": ["operator_admin"],
           "selector": "0x8129fc1c",
           "signature": "initialize()()"
         },
@@ -602,17 +554,13 @@
         },
         "0xaa9760a1": {
           "name": "setCushionFactor",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xaa9760a1",
           "signature": "setCushionFactor(uint32)()"
         },
         "0xab104771": {
           "name": "bondPurchase",
-          "roles": [
-            "operator_reporter"
-          ],
+          "roles": ["operator_reporter"],
           "selector": "0xab104771",
           "signature": "bondPurchase(uint256,uint256)()"
         },
@@ -642,17 +590,13 @@
         },
         "0xf2f6d5bb": {
           "name": "deactivateCushion",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xf2f6d5bb",
           "signature": "deactivateCushion(bool)()"
         },
         "0xf2fa4737": {
           "name": "setCushionParams",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xf2fa4737",
           "signature": "setCushionParams(uint32,uint32,uint32)()"
         }
@@ -669,9 +613,7 @@
         },
         "0x0f15f4c0": {
           "name": "activate",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x0f15f4c0",
           "signature": "activate()()"
         },
@@ -695,9 +637,7 @@
         },
         "0x51b42b00": {
           "name": "deactivate",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x51b42b00",
           "signature": "deactivate()()"
         },
@@ -715,9 +655,7 @@
         },
         "0x63392990": {
           "name": "setRewardTokenAndAmount",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x63392990",
           "signature": "setRewardTokenAndAmount(address,uint256)()"
         },
@@ -741,17 +679,13 @@
         },
         "0x9ab7d7e7": {
           "name": "withdrawUnspentRewards",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x9ab7d7e7",
           "signature": "withdrawUnspentRewards(address)()"
         },
         "0xb3ab15fb": {
           "name": "setOperator",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0xb3ab15fb",
           "signature": "setOperator(address)()"
         },
@@ -775,9 +709,7 @@
         },
         "0xef68b87d": {
           "name": "resetBeat",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0xef68b87d",
           "signature": "resetBeat()()"
         },
@@ -794,9 +726,7 @@
       "functionSelectors": {
         "0x01de9ba8": {
           "name": "setReserveFactor",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x01de9ba8",
           "signature": "setReserveFactor(uint32)()"
         },
@@ -832,9 +762,7 @@
         },
         "0x19f63dd7": {
           "name": "setBondContracts",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x19f63dd7",
           "signature": "setBondContracts(address,address)()"
         },
@@ -864,9 +792,7 @@
         },
         "0x3a3f54bc": {
           "name": "setRegenParams",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x3a3f54bc",
           "signature": "setRegenParams(uint32,uint32,uint32)()"
         },
@@ -908,9 +834,7 @@
         },
         "0x7159a618": {
           "name": "operate",
-          "roles": [
-            "operator_operate"
-          ],
+          "roles": ["operator_operate"],
           "selector": "0x7159a618",
           "signature": "operate()()"
         },
@@ -952,17 +876,13 @@
         },
         "0xaa9760a1": {
           "name": "setCushionFactor",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xaa9760a1",
           "signature": "setCushionFactor(uint32)()"
         },
         "0xab104771": {
           "name": "bondPurchase",
-          "roles": [
-            "operator_reporter"
-          ],
+          "roles": ["operator_reporter"],
           "selector": "0xab104771",
           "signature": "bondPurchase(uint256,uint256)()"
         },
@@ -1004,17 +924,13 @@
         },
         "0xf2f6d5bb": {
           "name": "deactivateCushion",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xf2f6d5bb",
           "signature": "deactivateCushion(bool)()"
         },
         "0xf2fa4737": {
           "name": "setCushionParams",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xf2fa4737",
           "signature": "setCushionParams(uint32,uint32,uint32)()"
         }
@@ -1067,9 +983,7 @@
         },
         "0x0f15f4c0": {
           "name": "activate",
-          "roles": [
-            "cooler_overseer"
-          ],
+          "roles": ["cooler_overseer"],
           "selector": "0x0f15f4c0",
           "signature": "activate()()"
         },
@@ -1117,9 +1031,7 @@
         },
         "0x3403c2fc": {
           "name": "emergencyShutdown",
-          "roles": [
-            "emergency_shutdown"
-          ],
+          "roles": ["emergency_shutdown"],
           "selector": "0x3403c2fc",
           "signature": "emergencyShutdown()()"
         },
@@ -1227,9 +1139,7 @@
         },
         "0xb3c6326b": {
           "name": "defund",
-          "roles": [
-            "cooler_overseer"
-          ],
+          "roles": ["cooler_overseer"],
           "selector": "0xb3c6326b",
           "signature": "defund(address,uint256)()"
         },
@@ -1312,9 +1222,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -1410,9 +1318,7 @@
         },
         "0x7977ca90": {
           "name": "authorizeFacility",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x7977ca90",
           "signature": "authorizeFacility(address)()"
         },
@@ -1424,9 +1330,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -1486,9 +1390,7 @@
         },
         "0xe13fe767": {
           "name": "deauthorizeFacility",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0xe13fe767",
           "signature": "deauthorizeFacility(address)()"
         },
@@ -1606,17 +1508,13 @@
         },
         "0x04523e56": {
           "name": "adjustNextYield",
-          "roles": [
-            "loop_daddy"
-          ],
+          "roles": ["loop_daddy"],
           "selector": "0x04523e56",
           "signature": "adjustNextYield(uint256)()"
         },
         "0x0b9663db": {
           "name": "endEpoch",
-          "roles": [
-            "heart"
-          ],
+          "roles": ["heart"],
           "selector": "0x0b9663db",
           "signature": "endEpoch()()"
         },
@@ -1694,9 +1592,7 @@
         },
         "0x80d85911": {
           "name": "initialize",
-          "roles": [
-            "loop_daddy"
-          ],
+          "roles": ["loop_daddy"],
           "selector": "0x80d85911",
           "signature": "initialize(uint256,uint256,uint256)()"
         },
@@ -1732,9 +1628,7 @@
         },
         "0xbf2dc511": {
           "name": "shutdown",
-          "roles": [
-            "loop_daddy"
-          ],
+          "roles": ["loop_daddy"],
           "selector": "0xbf2dc511",
           "signature": "shutdown(address[])()"
         },
@@ -1799,9 +1693,7 @@
         },
         "0x33ba8882": {
           "name": "addPool",
-          "roles": [
-            "distributor_admin"
-          ],
+          "roles": ["distributor_admin"],
           "selector": "0x33ba8882",
           "signature": "addPool(uint256,address)()"
         },
@@ -1831,9 +1723,7 @@
         },
         "0x5d87d363": {
           "name": "setBounty",
-          "roles": [
-            "distributor_admin"
-          ],
+          "roles": ["distributor_admin"],
           "selector": "0x5d87d363",
           "signature": "setBounty(uint256)()"
         },
@@ -1851,9 +1741,7 @@
         },
         "0x8544c53b": {
           "name": "setPools",
-          "roles": [
-            "distributor_admin"
-          ],
+          "roles": ["distributor_admin"],
           "selector": "0x8544c53b",
           "signature": "setPools(address[])()"
         },
@@ -1877,17 +1765,13 @@
         },
         "0x9b429108": {
           "name": "removePool",
-          "roles": [
-            "distributor_admin"
-          ],
+          "roles": ["distributor_admin"],
           "selector": "0x9b429108",
           "signature": "removePool(uint256,address)()"
         },
         "0x9e447fc6": {
           "name": "setRewardRate",
-          "roles": [
-            "distributor_admin"
-          ],
+          "roles": ["distributor_admin"],
           "selector": "0x9e447fc6",
           "signature": "setRewardRate(uint256)()"
         },
@@ -1993,17 +1877,13 @@
         },
         "0x04523e56": {
           "name": "adjustNextYield",
-          "roles": [
-            "loop_daddy"
-          ],
+          "roles": ["loop_daddy"],
           "selector": "0x04523e56",
           "signature": "adjustNextYield(uint256)()"
         },
         "0x0b9663db": {
           "name": "endEpoch",
-          "roles": [
-            "heart"
-          ],
+          "roles": ["heart"],
           "selector": "0x0b9663db",
           "signature": "endEpoch()()"
         },
@@ -2093,9 +1973,7 @@
         },
         "0x80d85911": {
           "name": "initialize",
-          "roles": [
-            "loop_daddy"
-          ],
+          "roles": ["loop_daddy"],
           "selector": "0x80d85911",
           "signature": "initialize(uint256,uint256,uint256)()"
         },
@@ -2125,9 +2003,7 @@
         },
         "0xbf2dc511": {
           "name": "shutdown",
-          "roles": [
-            "loop_daddy"
-          ],
+          "roles": ["loop_daddy"],
           "selector": "0xbf2dc511",
           "signature": "shutdown(address[])()"
         },
@@ -2465,9 +2341,7 @@
         },
         "0x0f15f4c0": {
           "name": "activate",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x0f15f4c0",
           "signature": "activate()()"
         },
@@ -2491,17 +2365,13 @@
         },
         "0x4688bcd0": {
           "name": "setYieldRepo",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x4688bcd0",
           "signature": "setYieldRepo(address)()"
         },
         "0x51b42b00": {
           "name": "deactivate",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x51b42b00",
           "signature": "deactivate()()"
         },
@@ -2525,17 +2395,13 @@
         },
         "0x7539c13f": {
           "name": "setRewardAuctionParams",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x7539c13f",
           "signature": "setRewardAuctionParams(uint256,uint48)()"
         },
         "0x75619ab5": {
           "name": "setDistributor",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x75619ab5",
           "signature": "setDistributor(address)()"
         },
@@ -2559,9 +2425,7 @@
         },
         "0xb3ab15fb": {
           "name": "setOperator",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0xb3ab15fb",
           "signature": "setOperator(address)()"
         },
@@ -2591,9 +2455,7 @@
         },
         "0xef68b87d": {
           "name": "resetBeat",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0xef68b87d",
           "signature": "resetBeat()()"
         }
@@ -2616,17 +2478,13 @@
         },
         "0x07e0db17": {
           "name": "setSendVersion",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0x07e0db17",
           "signature": "setSendVersion(uint16)()"
         },
         "0x10ddb137": {
           "name": "setReceiveVersion",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0x10ddb137",
           "signature": "setReceiveVersion(uint16)()"
         },
@@ -2656,9 +2514,7 @@
         },
         "0x42d65a8d": {
           "name": "forceResumeReceive",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0x42d65a8d",
           "signature": "forceResumeReceive(uint16,bytes)()"
         },
@@ -2724,9 +2580,7 @@
         },
         "0xa6c3d165": {
           "name": "setTrustedRemoteAddress",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xa6c3d165",
           "signature": "setTrustedRemoteAddress(uint16,bytes)()"
         },
@@ -2738,17 +2592,13 @@
         },
         "0xbaf3292d": {
           "name": "setPrecrime",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xbaf3292d",
           "signature": "setPrecrime(address)()"
         },
         "0xcbed8b9c": {
           "name": "setConfig",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xcbed8b9c",
           "signature": "setConfig(uint16,uint16,uint256,bytes)()"
         },
@@ -2766,9 +2616,7 @@
         },
         "0xd58a8483": {
           "name": "setBridgeStatus",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xd58a8483",
           "signature": "setBridgeStatus(bool)()"
         },
@@ -2780,9 +2628,7 @@
         },
         "0xeb8d72b7": {
           "name": "setTrustedRemote",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xeb8d72b7",
           "signature": "setTrustedRemote(uint16,bytes)()"
         },
@@ -2805,17 +2651,13 @@
         },
         "0x09c2c843": {
           "name": "batchToTreasury",
-          "roles": [
-            "callback_admin"
-          ],
+          "roles": ["callback_admin"],
           "selector": "0x09c2c843",
           "signature": "batchToTreasury(address[])()"
         },
         "0x1074bce5": {
           "name": "blacklist",
-          "roles": [
-            "callback_whitelist"
-          ],
+          "roles": ["callback_whitelist"],
           "selector": "0x1074bce5",
           "signature": "blacklist(address,uint256)()"
         },
@@ -2899,17 +2741,13 @@
         },
         "0x98fc55d8": {
           "name": "whitelist",
-          "roles": [
-            "callback_whitelist"
-          ],
+          "roles": ["callback_whitelist"],
           "selector": "0x98fc55d8",
           "signature": "whitelist(address,uint256)()"
         },
         "0xb3ab15fb": {
           "name": "setOperator",
-          "roles": [
-            "callback_admin"
-          ],
+          "roles": ["callback_admin"],
           "selector": "0xb3ab15fb",
           "signature": "setOperator(address)()"
         },
@@ -2927,9 +2765,7 @@
         },
         "0xfafc51d6": {
           "name": "useWrappedVersion",
-          "roles": [
-            "callback_admin"
-          ],
+          "roles": ["callback_admin"],
           "selector": "0xfafc51d6",
           "signature": "useWrappedVersion(address,address)()"
         }
@@ -2964,25 +2800,19 @@
         },
         "0x1442775a": {
           "name": "setBacking",
-          "roles": [
-            "emissions_admin"
-          ],
+          "roles": ["emissions_admin"],
           "selector": "0x1442775a",
           "signature": "setBacking(uint256)()"
         },
         "0x19f63dd7": {
           "name": "setBondContracts",
-          "roles": [
-            "emissions_admin"
-          ],
+          "roles": ["emissions_admin"],
           "selector": "0x19f63dd7",
           "signature": "setBondContracts(address,address)()"
         },
         "0x1ef3755d": {
           "name": "restart",
-          "roles": [
-            "emergency_restart"
-          ],
+          "roles": ["emergency_restart"],
           "selector": "0x1ef3755d",
           "signature": "restart()()"
         },
@@ -3018,9 +2848,7 @@
         },
         "0x519528f8": {
           "name": "changeBaseRate",
-          "roles": [
-            "emissions_admin"
-          ],
+          "roles": ["emissions_admin"],
           "selector": "0x519528f8",
           "signature": "changeBaseRate(uint256,uint48,bool)()"
         },
@@ -3062,9 +2890,7 @@
         },
         "0x61461954": {
           "name": "execute",
-          "roles": [
-            "heart"
-          ],
+          "roles": ["heart"],
           "selector": "0x61461954",
           "signature": "execute()()"
         },
@@ -3076,9 +2902,7 @@
         },
         "0x63c9af14": {
           "name": "initialize",
-          "roles": [
-            "emissions_admin"
-          ],
+          "roles": ["emissions_admin"],
           "selector": "0x63c9af14",
           "signature": "initialize(uint256,uint256,uint256,uint48)()"
         },
@@ -3108,9 +2932,7 @@
         },
         "0x839006f2": {
           "name": "rescue",
-          "roles": [
-            "emissions_admin"
-          ],
+          "roles": ["emissions_admin"],
           "selector": "0x839006f2",
           "signature": "rescue(address)()"
         },
@@ -3146,9 +2968,7 @@
         },
         "0x9df44cfb": {
           "name": "setVestingPeriod",
-          "roles": [
-            "emissions_admin"
-          ],
+          "roles": ["emissions_admin"],
           "selector": "0x9df44cfb",
           "signature": "setVestingPeriod(uint48)()"
         },
@@ -3160,9 +2980,7 @@
         },
         "0xb2855c9d": {
           "name": "setMinimumPremium",
-          "roles": [
-            "emissions_admin"
-          ],
+          "roles": ["emissions_admin"],
           "selector": "0xb2855c9d",
           "signature": "setMinimumPremium(uint256)()"
         },
@@ -3192,9 +3010,7 @@
         },
         "0xd753466a": {
           "name": "setRestartTimeframe",
-          "roles": [
-            "emissions_admin"
-          ],
+          "roles": ["emissions_admin"],
           "selector": "0xd753466a",
           "signature": "setRestartTimeframe(uint48)()"
         },
@@ -3206,9 +3022,7 @@
         },
         "0xfc0e74d1": {
           "name": "shutdown",
-          "roles": [
-            "emergency_shutdown"
-          ],
+          "roles": ["emergency_shutdown"],
           "selector": "0xfc0e74d1",
           "signature": "shutdown()()"
         }
@@ -3231,9 +3045,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -3257,9 +3069,7 @@
         },
         "0x33b0a082": {
           "name": "removePeriodicTask",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x33b0a082",
           "signature": "removePeriodicTask(address)()"
         },
@@ -3289,17 +3099,13 @@
         },
         "0x7539c13f": {
           "name": "setRewardAuctionParams",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x7539c13f",
           "signature": "setRewardAuctionParams(uint256,uint48)()"
         },
         "0x75619ab5": {
           "name": "setDistributor",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x75619ab5",
           "signature": "setDistributor(address)()"
         },
@@ -3311,17 +3117,13 @@
         },
         "0x81fcb62a": {
           "name": "removePeriodicTaskAtIndex",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x81fcb62a",
           "signature": "removePeriodicTaskAtIndex(uint256)()"
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -3339,9 +3141,7 @@
         },
         "0xbdc81183": {
           "name": "addPeriodicTaskAtIndex",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xbdc81183",
           "signature": "addPeriodicTaskAtIndex(address,bytes4,uint256)()"
         },
@@ -3365,9 +3165,7 @@
         },
         "0xce68af3c": {
           "name": "addPeriodicTask",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xce68af3c",
           "signature": "addPeriodicTask(address)()"
         },
@@ -3420,9 +3218,7 @@
       "functionSelectors": {
         "0x01de9ba8": {
           "name": "setReserveFactor",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x01de9ba8",
           "signature": "setReserveFactor(uint32)()"
         },
@@ -3446,9 +3242,7 @@
         },
         "0x0f15f4c0": {
           "name": "activate",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x0f15f4c0",
           "signature": "activate()()"
         },
@@ -3460,9 +3254,7 @@
         },
         "0x19f63dd7": {
           "name": "setBondContracts",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x19f63dd7",
           "signature": "setBondContracts(address,address)()"
         },
@@ -3480,33 +3272,25 @@
         },
         "0x2ecd1f20": {
           "name": "regenerate",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x2ecd1f20",
           "signature": "regenerate(bool)()"
         },
         "0x33bd33b4": {
           "name": "setThresholdFactor",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x33bd33b4",
           "signature": "setThresholdFactor(uint256)()"
         },
         "0x3a3f54bc": {
           "name": "setRegenParams",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x3a3f54bc",
           "signature": "setRegenParams(uint32,uint32,uint32)()"
         },
         "0x41f19a46": {
           "name": "setSpreads",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x41f19a46",
           "signature": "setSpreads(uint256,uint256)()"
         },
@@ -3518,9 +3302,7 @@
         },
         "0x51b42b00": {
           "name": "deactivate",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x51b42b00",
           "signature": "deactivate()()"
         },
@@ -3538,9 +3320,7 @@
         },
         "0x7159a618": {
           "name": "operate",
-          "roles": [
-            "operator_operate"
-          ],
+          "roles": ["operator_operate"],
           "selector": "0x7159a618",
           "signature": "operate()()"
         },
@@ -3552,9 +3332,7 @@
         },
         "0x8129fc1c": {
           "name": "initialize",
-          "roles": [
-            "operator_admin"
-          ],
+          "roles": ["operator_admin"],
           "selector": "0x8129fc1c",
           "signature": "initialize()()"
         },
@@ -3584,17 +3362,13 @@
         },
         "0xaa9760a1": {
           "name": "setCushionFactor",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xaa9760a1",
           "signature": "setCushionFactor(uint32)()"
         },
         "0xab104771": {
           "name": "bondPurchase",
-          "roles": [
-            "operator_reporter"
-          ],
+          "roles": ["operator_reporter"],
           "selector": "0xab104771",
           "signature": "bondPurchase(uint256,uint256)()"
         },
@@ -3624,17 +3398,13 @@
         },
         "0xf2f6d5bb": {
           "name": "deactivateCushion",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xf2f6d5bb",
           "signature": "deactivateCushion(bool)()"
         },
         "0xf2fa4737": {
           "name": "setCushionParams",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xf2fa4737",
           "signature": "setCushionParams(uint32,uint32,uint32)()"
         }
@@ -3645,9 +3415,7 @@
       "functionSelectors": {
         "0x01de9ba8": {
           "name": "setReserveFactor",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x01de9ba8",
           "signature": "setReserveFactor(uint32)()"
         },
@@ -3671,9 +3439,7 @@
         },
         "0x0f15f4c0": {
           "name": "activate",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x0f15f4c0",
           "signature": "activate()()"
         },
@@ -3685,9 +3451,7 @@
         },
         "0x19f63dd7": {
           "name": "setBondContracts",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x19f63dd7",
           "signature": "setBondContracts(address,address)()"
         },
@@ -3705,33 +3469,25 @@
         },
         "0x299ed196": {
           "name": "setSpreads",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x299ed196",
           "signature": "setSpreads(bool,uint256,uint256)()"
         },
         "0x2ecd1f20": {
           "name": "regenerate",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x2ecd1f20",
           "signature": "regenerate(bool)()"
         },
         "0x33bd33b4": {
           "name": "setThresholdFactor",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x33bd33b4",
           "signature": "setThresholdFactor(uint256)()"
         },
         "0x3a3f54bc": {
           "name": "setRegenParams",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x3a3f54bc",
           "signature": "setRegenParams(uint32,uint32,uint32)()"
         },
@@ -3743,9 +3499,7 @@
         },
         "0x51b42b00": {
           "name": "deactivate",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x51b42b00",
           "signature": "deactivate()()"
         },
@@ -3763,9 +3517,7 @@
         },
         "0x7159a618": {
           "name": "operate",
-          "roles": [
-            "heart"
-          ],
+          "roles": ["heart"],
           "selector": "0x7159a618",
           "signature": "operate()()"
         },
@@ -3777,9 +3529,7 @@
         },
         "0x8129fc1c": {
           "name": "initialize",
-          "roles": [
-            "operator_admin"
-          ],
+          "roles": ["operator_admin"],
           "selector": "0x8129fc1c",
           "signature": "initialize()()"
         },
@@ -3815,17 +3565,13 @@
         },
         "0xaa9760a1": {
           "name": "setCushionFactor",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xaa9760a1",
           "signature": "setCushionFactor(uint32)()"
         },
         "0xab104771": {
           "name": "bondPurchase",
-          "roles": [
-            "operator_reporter"
-          ],
+          "roles": ["operator_reporter"],
           "selector": "0xab104771",
           "signature": "bondPurchase(uint256,uint256)()"
         },
@@ -3855,17 +3601,13 @@
         },
         "0xf2f6d5bb": {
           "name": "deactivateCushion",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xf2f6d5bb",
           "signature": "deactivateCushion(bool)()"
         },
         "0xf2fa4737": {
           "name": "setCushionParams",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xf2fa4737",
           "signature": "setCushionParams(uint32,uint32,uint32)()"
         }
@@ -3947,17 +3689,13 @@
         },
         "0x09c2c843": {
           "name": "batchToTreasury",
-          "roles": [
-            "callback_admin"
-          ],
+          "roles": ["callback_admin"],
           "selector": "0x09c2c843",
           "signature": "batchToTreasury(address[])()"
         },
         "0x1074bce5": {
           "name": "blacklist",
-          "roles": [
-            "callback_whitelist"
-          ],
+          "roles": ["callback_whitelist"],
           "selector": "0x1074bce5",
           "signature": "blacklist(address,uint256)()"
         },
@@ -4041,17 +3779,13 @@
         },
         "0x98fc55d8": {
           "name": "whitelist",
-          "roles": [
-            "callback_whitelist"
-          ],
+          "roles": ["callback_whitelist"],
           "selector": "0x98fc55d8",
           "signature": "whitelist(address,uint256)()"
         },
         "0xb3ab15fb": {
           "name": "setOperator",
-          "roles": [
-            "callback_admin"
-          ],
+          "roles": ["callback_admin"],
           "selector": "0xb3ab15fb",
           "signature": "setOperator(address)()"
         },
@@ -4069,9 +3803,7 @@
         },
         "0xfafc51d6": {
           "name": "useWrappedVersion",
-          "roles": [
-            "callback_admin"
-          ],
+          "roles": ["callback_admin"],
           "selector": "0xfafc51d6",
           "signature": "useWrappedVersion(address,address)()"
         }
@@ -4094,9 +3826,7 @@
         },
         "0x0f15f4c0": {
           "name": "activate",
-          "roles": [
-            "emergency_shutdown"
-          ],
+          "roles": ["emergency_shutdown"],
           "selector": "0x0f15f4c0",
           "signature": "activate()()"
         },
@@ -4132,9 +3862,7 @@
         },
         "0x51b42b00": {
           "name": "deactivate",
-          "roles": [
-            "emergency_shutdown"
-          ],
+          "roles": ["emergency_shutdown"],
           "selector": "0x51b42b00",
           "signature": "deactivate()()"
         },
@@ -4182,9 +3910,7 @@
         },
         "0xae06c1b7": {
           "name": "setFeePercentage",
-          "roles": [
-            "loan_consolidator_admin"
-          ],
+          "roles": ["loan_consolidator_admin"],
           "selector": "0xae06c1b7",
           "signature": "setFeePercentage(uint256)()"
         },
@@ -4314,17 +4040,13 @@
       "functionSelectors": {
         "0x01ffa059": {
           "name": "restartWithdrawals",
-          "roles": [
-            "emergency_restart"
-          ],
+          "roles": ["emergency_restart"],
           "selector": "0x01ffa059",
           "signature": "restartWithdrawals()()"
         },
         "0x1ef3755d": {
           "name": "restart",
-          "roles": [
-            "emergency_restart"
-          ],
+          "roles": ["emergency_restart"],
           "selector": "0x1ef3755d",
           "signature": "restart()()"
         },
@@ -4342,9 +4064,7 @@
         },
         "0x46745468": {
           "name": "shutdownMinting",
-          "roles": [
-            "emergency_shutdown"
-          ],
+          "roles": ["emergency_shutdown"],
           "selector": "0x46745468",
           "signature": "shutdownMinting()()"
         },
@@ -4380,9 +4100,7 @@
         },
         "0xc12954fa": {
           "name": "restartMinting",
-          "roles": [
-            "emergency_restart"
-          ],
+          "roles": ["emergency_restart"],
           "selector": "0xc12954fa",
           "signature": "restartMinting()()"
         },
@@ -4394,17 +4112,13 @@
         },
         "0xec3984f6": {
           "name": "shutdownWithdrawals",
-          "roles": [
-            "emergency_shutdown"
-          ],
+          "roles": ["emergency_shutdown"],
           "selector": "0xec3984f6",
           "signature": "shutdownWithdrawals()()"
         },
         "0xfc0e74d1": {
           "name": "shutdown",
-          "roles": [
-            "emergency_shutdown"
-          ],
+          "roles": ["emergency_shutdown"],
           "selector": "0xfc0e74d1",
           "signature": "shutdown()()"
         }
@@ -4415,9 +4129,7 @@
       "functionSelectors": {
         "0x0f15f4c0": {
           "name": "activate",
-          "roles": [
-            "reserve_migrator_admin"
-          ],
+          "roles": ["reserve_migrator_admin"],
           "selector": "0x0f15f4c0",
           "signature": "activate()()"
         },
@@ -4453,9 +4165,7 @@
         },
         "0x51b42b00": {
           "name": "deactivate",
-          "roles": [
-            "reserve_migrator_admin"
-          ],
+          "roles": ["reserve_migrator_admin"],
           "selector": "0x51b42b00",
           "signature": "deactivate()()"
         },
@@ -4473,17 +4183,13 @@
         },
         "0x839006f2": {
           "name": "rescue",
-          "roles": [
-            "reserve_migrator_admin"
-          ],
+          "roles": ["reserve_migrator_admin"],
           "selector": "0x839006f2",
           "signature": "rescue(address)()"
         },
         "0x8fd3ab80": {
           "name": "migrate",
-          "roles": [
-            "heart"
-          ],
+          "roles": ["heart"],
           "selector": "0x8fd3ab80",
           "signature": "migrate()()"
         },
@@ -4548,9 +4254,7 @@
         },
         "0x0f15f4c0": {
           "name": "activate",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x0f15f4c0",
           "signature": "activate()()"
         },
@@ -4568,9 +4272,7 @@
         },
         "0x51b42b00": {
           "name": "deactivate",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x51b42b00",
           "signature": "deactivate()()"
         },
@@ -4594,9 +4296,7 @@
         },
         "0x6911bb58": {
           "name": "setRewardAuctionParams",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x6911bb58",
           "signature": "setRewardAuctionParams(address,uint256,uint48)()"
         },
@@ -4620,17 +4320,13 @@
         },
         "0x9ab7d7e7": {
           "name": "withdrawUnspentRewards",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x9ab7d7e7",
           "signature": "withdrawUnspentRewards(address)()"
         },
         "0xb3ab15fb": {
           "name": "setOperator",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0xb3ab15fb",
           "signature": "setOperator(address)()"
         },
@@ -4654,9 +4350,7 @@
         },
         "0xef68b87d": {
           "name": "resetBeat",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0xef68b87d",
           "signature": "resetBeat()()"
         },
@@ -4846,9 +4540,7 @@
         },
         "0x185c26e1": {
           "name": "setMaxOriginationLtvDelta",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x185c26e1",
           "signature": "setMaxOriginationLtvDelta(uint96)()"
         },
@@ -4872,17 +4564,13 @@
         },
         "0x3a4e5175": {
           "name": "setMaxOriginationLtvRateOfChange",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x3a4e5175",
           "signature": "setMaxOriginationLtvRateOfChange(uint96,uint32)()"
         },
         "0x41e4913d": {
           "name": "setLiquidationLtvPremiumBps",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x41e4913d",
           "signature": "setLiquidationLtvPremiumBps(uint16)()"
         },
@@ -4912,17 +4600,13 @@
         },
         "0x69deb675": {
           "name": "setOriginationLtvAt",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x69deb675",
           "signature": "setOriginationLtvAt(uint96,uint40)()"
         },
         "0x8042f503": {
           "name": "setMinOriginationLtvTargetTimeDelta",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x8042f503",
           "signature": "setMinOriginationLtvTargetTimeDelta(uint32)()"
         },
@@ -4976,9 +4660,7 @@
         },
         "0xeb06776e": {
           "name": "setMaxLiquidationLtvPremiumBps",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xeb06776e",
           "signature": "setMaxLiquidationLtvPremiumBps(uint16)()"
         },
@@ -5007,17 +4689,13 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
         "0x1a70b681": {
           "name": "addCategory",
-          "roles": [
-            "burner_admin"
-          ],
+          "roles": ["burner_admin"],
           "selector": "0x1a70b681",
           "signature": "addCategory(bytes32)()"
         },
@@ -5029,9 +4707,7 @@
         },
         "0x45844f29": {
           "name": "burnFromTreasury",
-          "roles": [
-            "burner_admin"
-          ],
+          "roles": ["burner_admin"],
           "selector": "0x45844f29",
           "signature": "burnFromTreasury(uint256,bytes32)()"
         },
@@ -5061,17 +4737,13 @@
         },
         "0x8cc62ef7": {
           "name": "removeCategory",
-          "roles": [
-            "burner_admin"
-          ],
+          "roles": ["burner_admin"],
           "selector": "0x8cc62ef7",
           "signature": "removeCategory(bytes32)()"
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -5089,9 +4761,7 @@
         },
         "0x95b809bd": {
           "name": "burnFrom",
-          "roles": [
-            "burner_admin"
-          ],
+          "roles": ["burner_admin"],
           "selector": "0x95b809bd",
           "signature": "burnFrom(address,uint256,bytes32)()"
         },
@@ -5103,9 +4773,7 @@
         },
         "0xbcf64e05": {
           "name": "burn",
-          "roles": [
-            "burner_admin"
-          ],
+          "roles": ["burner_admin"],
           "selector": "0xbcf64e05",
           "signature": "burn(uint256,bytes32)()"
         },
@@ -5176,9 +4844,7 @@
         },
         "0x1442775a": {
           "name": "setBacking",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x1442775a",
           "signature": "setBacking(uint256)()"
         },
@@ -5190,17 +4856,13 @@
         },
         "0x19f63dd7": {
           "name": "setBondContracts",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x19f63dd7",
           "signature": "setBondContracts(address,address)()"
         },
         "0x1ef3755d": {
           "name": "restart",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x1ef3755d",
           "signature": "restart()()"
         },
@@ -5212,9 +4874,7 @@
         },
         "0x28f463e4": {
           "name": "setBondMarketCapacityScalar",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x28f463e4",
           "signature": "setBondMarketCapacityScalar(uint256)()"
         },
@@ -5256,17 +4916,13 @@
         },
         "0x519528f8": {
           "name": "changeBaseRate",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x519528f8",
           "signature": "changeBaseRate(uint256,uint48,bool)()"
         },
         "0x562b302d": {
           "name": "setCDAuctionContract",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x562b302d",
           "signature": "setCDAuctionContract(address)()"
         },
@@ -5296,9 +4952,7 @@
         },
         "0x61461954": {
           "name": "execute",
-          "roles": [
-            "heart"
-          ],
+          "roles": ["heart"],
           "selector": "0x61461954",
           "signature": "execute()()"
         },
@@ -5358,9 +5012,7 @@
         },
         "0x839006f2": {
           "name": "rescue",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x839006f2",
           "signature": "rescue(address)()"
         },
@@ -5414,17 +5066,13 @@
         },
         "0x9df44cfb": {
           "name": "setVestingPeriod",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x9df44cfb",
           "signature": "setVestingPeriod(uint48)()"
         },
         "0xa57b9401": {
           "name": "setMinPriceScalar",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xa57b9401",
           "signature": "setMinPriceScalar(uint256)()"
         },
@@ -5442,17 +5090,13 @@
         },
         "0xad9fafa9": {
           "name": "setTickSize",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xad9fafa9",
           "signature": "setTickSize(uint256)()"
         },
         "0xb2855c9d": {
           "name": "setMinimumPremium",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xb2855c9d",
           "signature": "setMinimumPremium(uint256)()"
         },
@@ -5482,9 +5126,7 @@
         },
         "0xd753466a": {
           "name": "setRestartTimeframe",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xd753466a",
           "signature": "setRestartTimeframe(uint48)()"
         },
@@ -5793,9 +5435,7 @@
         },
         "0x1af003fa": {
           "name": "emergencyBurnOhm",
-          "roles": [
-            "liquidityvault_admin"
-          ],
+          "roles": ["liquidityvault_admin"],
           "selector": "0x1af003fa",
           "signature": "emergencyBurnOhm(uint256)()"
         },
@@ -5813,9 +5453,7 @@
         },
         "0x27ea6f2b": {
           "name": "setLimit",
-          "roles": [
-            "liquidityvault_admin"
-          ],
+          "roles": ["liquidityvault_admin"],
           "selector": "0x27ea6f2b",
           "signature": "setLimit(uint256)()"
         },
@@ -5869,9 +5507,7 @@
         },
         "0x4baaee46": {
           "name": "setWithdrawalDelay",
-          "roles": [
-            "liquidityvault_admin"
-          ],
+          "roles": ["liquidityvault_admin"],
           "selector": "0x4baaee46",
           "signature": "setWithdrawalDelay(uint48)()"
         },
@@ -5907,9 +5543,7 @@
         },
         "0x5a630d7a": {
           "name": "setFee",
-          "roles": [
-            "liquidityvault_admin"
-          ],
+          "roles": ["liquidityvault_admin"],
           "selector": "0x5a630d7a",
           "signature": "setFee(uint64)()"
         },
@@ -6053,9 +5687,7 @@
         },
         "0xc4fa8d80": {
           "name": "changeUpdateThresholds",
-          "roles": [
-            "liquidityvault_admin"
-          ],
+          "roles": ["liquidityvault_admin"],
           "selector": "0xc4fa8d80",
           "signature": "changeUpdateThresholds(uint48,uint48,uint48)()"
         },
@@ -6245,9 +5877,7 @@
       "functionSelectors": {
         "0x03346696": {
           "name": "pushNewAdmin",
-          "roles": [
-            "RolesAdmin"
-          ],
+          "roles": ["RolesAdmin"],
           "selector": "0x03346696",
           "signature": "pushNewAdmin(address)()"
         },
@@ -6259,9 +5889,7 @@
         },
         "0x2f2ff15d": {
           "name": "grantRole",
-          "roles": [
-            "RolesAdmin"
-          ],
+          "roles": ["RolesAdmin"],
           "selector": "0x2f2ff15d",
           "signature": "grantRole(bytes32,address)()"
         },
@@ -6309,9 +5937,7 @@
         },
         "0xd547741f": {
           "name": "revokeRole",
-          "roles": [
-            "RolesAdmin"
-          ],
+          "roles": ["RolesAdmin"],
           "selector": "0xd547741f",
           "signature": "revokeRole(bytes32,address)()"
         },
@@ -6358,9 +5984,7 @@
         },
         "0x2e558d69": {
           "name": "migrate",
-          "roles": [
-            "poly_admin"
-          ],
+          "roles": ["poly_admin"],
           "selector": "0x2e558d69",
           "signature": "migrate(address[])()"
         },
@@ -6510,17 +6134,13 @@
         },
         "0xf0aa4c46": {
           "name": "migrateGenesis",
-          "roles": [
-            "poly_admin"
-          ],
+          "roles": ["poly_admin"],
           "selector": "0xf0aa4c46",
           "signature": "migrateGenesis(address[])()"
         },
         "0xf2cdac9b": {
           "name": "setTerms",
-          "roles": [
-            "poly_admin"
-          ],
+          "roles": ["poly_admin"],
           "selector": "0xf2cdac9b",
           "signature": "setTerms(address,uint256,uint256,uint256)()"
         },
@@ -6573,9 +6193,7 @@
         },
         "0x1442775a": {
           "name": "setBacking",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x1442775a",
           "signature": "setBacking(uint256)()"
         },
@@ -6587,17 +6205,13 @@
         },
         "0x19f63dd7": {
           "name": "setBondContracts",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x19f63dd7",
           "signature": "setBondContracts(address,address)()"
         },
         "0x1ef3755d": {
           "name": "restart",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x1ef3755d",
           "signature": "restart()()"
         },
@@ -6609,9 +6223,7 @@
         },
         "0x28f463e4": {
           "name": "setBondMarketCapacityScalar",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x28f463e4",
           "signature": "setBondMarketCapacityScalar(uint256)()"
         },
@@ -6653,17 +6265,13 @@
         },
         "0x519528f8": {
           "name": "changeBaseRate",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x519528f8",
           "signature": "changeBaseRate(uint256,uint48,bool)()"
         },
         "0x562b302d": {
           "name": "setCDAuctionContract",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x562b302d",
           "signature": "setCDAuctionContract(address)()"
         },
@@ -6693,9 +6301,7 @@
         },
         "0x61461954": {
           "name": "execute",
-          "roles": [
-            "heart"
-          ],
+          "roles": ["heart"],
           "selector": "0x61461954",
           "signature": "execute()()"
         },
@@ -6749,9 +6355,7 @@
         },
         "0x839006f2": {
           "name": "rescue",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x839006f2",
           "signature": "rescue(address)()"
         },
@@ -6805,17 +6409,13 @@
         },
         "0x9df44cfb": {
           "name": "setVestingPeriod",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x9df44cfb",
           "signature": "setVestingPeriod(uint48)()"
         },
         "0xa57b9401": {
           "name": "setMinPriceScalar",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xa57b9401",
           "signature": "setMinPriceScalar(uint256)()"
         },
@@ -6833,17 +6433,13 @@
         },
         "0xad9fafa9": {
           "name": "setTickSize",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xad9fafa9",
           "signature": "setTickSize(uint256)()"
         },
         "0xb2855c9d": {
           "name": "setMinimumPremium",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xb2855c9d",
           "signature": "setMinimumPremium(uint256)()"
         },
@@ -6873,9 +6469,7 @@
         },
         "0xd753466a": {
           "name": "setRestartTimeframe",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xd753466a",
           "signature": "setRestartTimeframe(uint48)()"
         },
@@ -6910,9 +6504,7 @@
       "functionSelectors": {
         "0x054e5399": {
           "name": "registerImmutableContract",
-          "roles": [
-            "contract_registry_admin"
-          ],
+          "roles": ["contract_registry_admin"],
           "selector": "0x054e5399",
           "signature": "registerImmutableContract(bytes5,address)()"
         },
@@ -6954,17 +6546,13 @@
         },
         "0xbd2680dd": {
           "name": "registerContract",
-          "roles": [
-            "contract_registry_admin"
-          ],
+          "roles": ["contract_registry_admin"],
           "selector": "0xbd2680dd",
           "signature": "registerContract(bytes5,address)()"
         },
         "0xc324ee80": {
           "name": "deregisterContract",
-          "roles": [
-            "contract_registry_admin"
-          ],
+          "roles": ["contract_registry_admin"],
           "selector": "0xc324ee80",
           "signature": "deregisterContract(bytes5)()"
         },
@@ -6976,9 +6564,7 @@
         },
         "0xd50f4df8": {
           "name": "updateContract",
-          "roles": [
-            "contract_registry_admin"
-          ],
+          "roles": ["contract_registry_admin"],
           "selector": "0xd50f4df8",
           "signature": "updateContract(bytes5,address)()"
         },
@@ -6995,9 +6581,7 @@
       "functionSelectors": {
         "0x01de9ba8": {
           "name": "setReserveFactor",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x01de9ba8",
           "signature": "setReserveFactor(uint32)()"
         },
@@ -7033,9 +6617,7 @@
         },
         "0x19f63dd7": {
           "name": "setBondContracts",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x19f63dd7",
           "signature": "setBondContracts(address,address)()"
         },
@@ -7065,9 +6647,7 @@
         },
         "0x3a3f54bc": {
           "name": "setRegenParams",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x3a3f54bc",
           "signature": "setRegenParams(uint32,uint32,uint32)()"
         },
@@ -7109,9 +6689,7 @@
         },
         "0x7159a618": {
           "name": "operate",
-          "roles": [
-            "operator_operate"
-          ],
+          "roles": ["operator_operate"],
           "selector": "0x7159a618",
           "signature": "operate()()"
         },
@@ -7153,17 +6731,13 @@
         },
         "0xaa9760a1": {
           "name": "setCushionFactor",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xaa9760a1",
           "signature": "setCushionFactor(uint32)()"
         },
         "0xab104771": {
           "name": "bondPurchase",
-          "roles": [
-            "operator_reporter"
-          ],
+          "roles": ["operator_reporter"],
           "selector": "0xab104771",
           "signature": "bondPurchase(uint256,uint256)()"
         },
@@ -7205,17 +6779,13 @@
         },
         "0xf2f6d5bb": {
           "name": "deactivateCushion",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xf2f6d5bb",
           "signature": "deactivateCushion(bool)()"
         },
         "0xf2fa4737": {
           "name": "setCushionParams",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xf2fa4737",
           "signature": "setCushionParams(uint32,uint32,uint32)()"
         }
@@ -7232,9 +6802,7 @@
         },
         "0x09c2c843": {
           "name": "batchToTreasury",
-          "roles": [
-            "callback_admin"
-          ],
+          "roles": ["callback_admin"],
           "selector": "0x09c2c843",
           "signature": "batchToTreasury(address[])()"
         },
@@ -7330,9 +6898,7 @@
         },
         "0xb3ab15fb": {
           "name": "setOperator",
-          "roles": [
-            "callback_admin"
-          ],
+          "roles": ["callback_admin"],
           "selector": "0xb3ab15fb",
           "signature": "setOperator(address)()"
         },
@@ -7367,33 +6933,25 @@
         },
         "0x59bb98a0": {
           "name": "revokePolicyApprovals",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0x59bb98a0",
           "signature": "revokePolicyApprovals(address,address[])()"
         },
         "0x5d60f33e": {
           "name": "reduceDebtorApproval",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0x5d60f33e",
           "signature": "reduceDebtorApproval(address,address,uint256)()"
         },
         "0x6de24492": {
           "name": "increaseDebt",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0x6de24492",
           "signature": "increaseDebt(address,address,uint256)()"
         },
         "0x72d2f718": {
           "name": "reduceWithdrawerApproval",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0x72d2f718",
           "signature": "reduceWithdrawerApproval(address,address,uint256)()"
         },
@@ -7405,9 +6963,7 @@
         },
         "0x90341e1b": {
           "name": "withdrawReservesTo",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0x90341e1b",
           "signature": "withdrawReservesTo(address,address,uint256)()"
         },
@@ -7425,17 +6981,13 @@
         },
         "0xbc9c21ca": {
           "name": "grantWithdrawerApproval",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0xbc9c21ca",
           "signature": "grantWithdrawerApproval(address,address,uint256)()"
         },
         "0xc11e37a4": {
           "name": "grantDebtorApproval",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0xc11e37a4",
           "signature": "grantDebtorApproval(address,address,uint256)()"
         },
@@ -7447,9 +6999,7 @@
         },
         "0xed60f188": {
           "name": "decreaseDebt",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0xed60f188",
           "signature": "decreaseDebt(address,address,uint256)()"
         }
@@ -7466,9 +7016,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -7522,9 +7070,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -7565,17 +7111,13 @@
         },
         "0x04523e56": {
           "name": "adjustNextYield",
-          "roles": [
-            "loop_daddy"
-          ],
+          "roles": ["loop_daddy"],
           "selector": "0x04523e56",
           "signature": "adjustNextYield(uint256)()"
         },
         "0x0b9663db": {
           "name": "endEpoch",
-          "roles": [
-            "heart"
-          ],
+          "roles": ["heart"],
           "selector": "0x0b9663db",
           "signature": "endEpoch()()"
         },
@@ -7659,9 +7201,7 @@
         },
         "0x80d85911": {
           "name": "initialize",
-          "roles": [
-            "loop_daddy"
-          ],
+          "roles": ["loop_daddy"],
           "selector": "0x80d85911",
           "signature": "initialize(uint256,uint256,uint256)()"
         },
@@ -7697,9 +7237,7 @@
         },
         "0xbf2dc511": {
           "name": "shutdown",
-          "roles": [
-            "loop_daddy"
-          ],
+          "roles": ["loop_daddy"],
           "selector": "0xbf2dc511",
           "signature": "shutdown(address[])()"
         },
@@ -7776,9 +7314,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -7802,9 +7338,7 @@
         },
         "0x3ec476b7": {
           "name": "borrowingWithdraw",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0x3ec476b7",
           "signature": "borrowingWithdraw(tuple)(uint256)"
         },
@@ -7870,9 +7404,7 @@
         },
         "0x839006f2": {
           "name": "rescue",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x839006f2",
           "signature": "rescue(address)()"
         },
@@ -7890,9 +7422,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -7922,9 +7452,7 @@
         },
         "0xa9080a7d": {
           "name": "borrowingDefault",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xa9080a7d",
           "signature": "borrowingDefault(tuple)()"
         },
@@ -7936,9 +7464,7 @@
         },
         "0xc110d627": {
           "name": "borrowingRepay",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xc110d627",
           "signature": "borrowingRepay(tuple)(uint256)"
         },
@@ -7962,9 +7488,7 @@
         },
         "0xd5e93888": {
           "name": "withdraw",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xd5e93888",
           "signature": "withdraw(tuple)(uint256)"
         },
@@ -7976,9 +7500,7 @@
         },
         "0xda047f61": {
           "name": "deposit",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xda047f61",
           "signature": "deposit(tuple)(uint256,uint256)"
         },
@@ -8008,9 +7530,7 @@
         },
         "0xf9719662": {
           "name": "claimYield",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xf9719662",
           "signature": "claimYield(address,address,uint256)(uint256)"
         },
@@ -8146,9 +7666,7 @@
       "functionSelectors": {
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -8196,9 +7714,7 @@
         },
         "0x7dbf67a7": {
           "name": "setDebt",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x7dbf67a7",
           "signature": "setDebt(uint256)()"
         },
@@ -8210,9 +7726,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -8289,9 +7803,7 @@
         },
         "0x0f15f4c0": {
           "name": "activate",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x0f15f4c0",
           "signature": "activate()()"
         },
@@ -8309,9 +7821,7 @@
         },
         "0x51b42b00": {
           "name": "deactivate",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x51b42b00",
           "signature": "deactivate()()"
         },
@@ -8335,17 +7845,13 @@
         },
         "0x7539c13f": {
           "name": "setRewardAuctionParams",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x7539c13f",
           "signature": "setRewardAuctionParams(uint256,uint48)()"
         },
         "0x75619ab5": {
           "name": "setDistributor",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x75619ab5",
           "signature": "setDistributor(address)()"
         },
@@ -8369,9 +7875,7 @@
         },
         "0xb3ab15fb": {
           "name": "setOperator",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0xb3ab15fb",
           "signature": "setOperator(address)()"
         },
@@ -8401,9 +7905,7 @@
         },
         "0xef68b87d": {
           "name": "resetBeat",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0xef68b87d",
           "signature": "resetBeat()()"
         }
@@ -8492,9 +7994,7 @@
         },
         "0x3403c2fc": {
           "name": "emergencyShutdown",
-          "roles": [
-            "emergency_shutdown"
-          ],
+          "roles": ["emergency_shutdown"],
           "selector": "0x3403c2fc",
           "signature": "emergencyShutdown()()"
         },
@@ -8602,9 +8102,7 @@
         },
         "0xb3c6326b": {
           "name": "defund",
-          "roles": [
-            "cooler_overseer"
-          ],
+          "roles": ["cooler_overseer"],
           "selector": "0xb3c6326b",
           "signature": "defund(address,uint256)()"
         },
@@ -8628,9 +8126,7 @@
         },
         "0xd18611d6": {
           "name": "reactivate",
-          "roles": [
-            "cooler_overseer"
-          ],
+          "roles": ["cooler_overseer"],
           "selector": "0xd18611d6",
           "signature": "reactivate()()"
         },
@@ -8886,9 +8382,7 @@
         },
         "0x1c46b149": {
           "name": "setLtvOracle",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x1c46b149",
           "signature": "setLtvOracle(address)()"
         },
@@ -8960,9 +8454,7 @@
         },
         "0x52fb2d02": {
           "name": "setMaxDelegateAddresses",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x52fb2d02",
           "signature": "setMaxDelegateAddresses(address,uint32)()"
         },
@@ -9028,9 +8520,7 @@
         },
         "0x939752bd": {
           "name": "setBorrowPaused",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x939752bd",
           "signature": "setBorrowPaused(bool)()"
         },
@@ -9078,9 +8568,7 @@
         },
         "0xb6b89443": {
           "name": "setInterestRateWad",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xb6b89443",
           "signature": "setInterestRateWad(uint96)()"
         },
@@ -9110,9 +8598,7 @@
         },
         "0xd9a7ed5c": {
           "name": "setLiquidationsPaused",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0xd9a7ed5c",
           "signature": "setLiquidationsPaused(bool)()"
         },
@@ -9183,9 +8669,7 @@
         },
         "0x0f15f4c0": {
           "name": "activate",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x0f15f4c0",
           "signature": "activate()()"
         },
@@ -9203,9 +8687,7 @@
         },
         "0x51b42b00": {
           "name": "deactivate",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x51b42b00",
           "signature": "deactivate()()"
         },
@@ -9229,9 +8711,7 @@
         },
         "0x6911bb58": {
           "name": "setRewardAuctionParams",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x6911bb58",
           "signature": "setRewardAuctionParams(address,uint256,uint48)()"
         },
@@ -9255,17 +8735,13 @@
         },
         "0x9ab7d7e7": {
           "name": "withdrawUnspentRewards",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x9ab7d7e7",
           "signature": "withdrawUnspentRewards(address)()"
         },
         "0xb3ab15fb": {
           "name": "setOperator",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0xb3ab15fb",
           "signature": "setOperator(address)()"
         },
@@ -9289,9 +8765,7 @@
         },
         "0xef68b87d": {
           "name": "resetBeat",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0xef68b87d",
           "signature": "resetBeat()()"
         },
@@ -9386,9 +8860,7 @@
         },
         "0x3403c2fc": {
           "name": "emergencyShutdown",
-          "roles": [
-            "emergency_shutdown"
-          ],
+          "roles": ["emergency_shutdown"],
           "selector": "0x3403c2fc",
           "signature": "emergencyShutdown()()"
         },
@@ -9496,9 +8968,7 @@
         },
         "0xb3c6326b": {
           "name": "defund",
-          "roles": [
-            "cooler_overseer"
-          ],
+          "roles": ["cooler_overseer"],
           "selector": "0xb3c6326b",
           "signature": "defund(address,uint256)()"
         },
@@ -9522,9 +8992,7 @@
         },
         "0xd18611d6": {
           "name": "reactivate",
-          "roles": [
-            "cooler_overseer"
-          ],
+          "roles": ["cooler_overseer"],
           "selector": "0xd18611d6",
           "signature": "reactivate()()"
         },
@@ -9565,9 +9033,7 @@
         },
         "0x0f15f4c0": {
           "name": "activate",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x0f15f4c0",
           "signature": "activate()()"
         },
@@ -9591,9 +9057,7 @@
         },
         "0x51b42b00": {
           "name": "deactivate",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x51b42b00",
           "signature": "deactivate()()"
         },
@@ -9605,9 +9069,7 @@
         },
         "0x63392990": {
           "name": "setRewardTokenAndAmount",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x63392990",
           "signature": "setRewardTokenAndAmount(address,uint256)()"
         },
@@ -9631,9 +9093,7 @@
         },
         "0x9ab7d7e7": {
           "name": "withdrawUnspentRewards",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x9ab7d7e7",
           "signature": "withdrawUnspentRewards(address)()"
         },
@@ -9657,9 +9117,7 @@
         },
         "0xef68b87d": {
           "name": "resetBeat",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0xef68b87d",
           "signature": "resetBeat()()"
         },
@@ -9694,9 +9152,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -9846,9 +9302,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -9866,9 +9320,7 @@
         },
         "0x959b8c3f": {
           "name": "authorizeOperator",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x959b8c3f",
           "signature": "authorizeOperator(address)()"
         },
@@ -9904,9 +9356,7 @@
         },
         "0xc21ff598": {
           "name": "deauthorizeOperator",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0xc21ff598",
           "signature": "deauthorizeOperator(address)()"
         },
@@ -9936,9 +9386,7 @@
         },
         "0xe72cb6a6": {
           "name": "createPosition",
-          "roles": [
-            "cd_auctioneer"
-          ],
+          "roles": ["cd_auctioneer"],
           "selector": "0xe72cb6a6",
           "signature": "createPosition(tuple)(uint256,uint256,uint256)"
         },
@@ -9979,9 +9427,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -10053,9 +9499,7 @@
         },
         "0x5d6cc1fc": {
           "name": "setAuctionParameters",
-          "roles": [
-            "cd_emissionmanager"
-          ],
+          "roles": ["cd_emissionmanager"],
           "selector": "0x5d6cc1fc",
           "signature": "setAuctionParameters(uint256,uint256,uint256)()"
         },
@@ -10097,9 +9541,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -10248,9 +9690,7 @@
         },
         "0x0f15f4c0": {
           "name": "activate",
-          "roles": [
-            "liquidityvault_admin"
-          ],
+          "roles": ["liquidityvault_admin"],
           "selector": "0x0f15f4c0",
           "signature": "activate()()"
         },
@@ -10274,9 +9714,7 @@
         },
         "0x1af003fa": {
           "name": "emergencyBurnOhm",
-          "roles": [
-            "liquidityvault_admin"
-          ],
+          "roles": ["liquidityvault_admin"],
           "selector": "0x1af003fa",
           "signature": "emergencyBurnOhm(uint256)()"
         },
@@ -10294,9 +9732,7 @@
         },
         "0x27ea6f2b": {
           "name": "setLimit",
-          "roles": [
-            "liquidityvault_admin"
-          ],
+          "roles": ["liquidityvault_admin"],
           "selector": "0x27ea6f2b",
           "signature": "setLimit(uint256)()"
         },
@@ -10350,9 +9786,7 @@
         },
         "0x4baaee46": {
           "name": "setWithdrawalDelay",
-          "roles": [
-            "liquidityvault_admin"
-          ],
+          "roles": ["liquidityvault_admin"],
           "selector": "0x4baaee46",
           "signature": "setWithdrawalDelay(uint48)()"
         },
@@ -10364,9 +9798,7 @@
         },
         "0x51b42b00": {
           "name": "deactivate",
-          "roles": [
-            "emergency_admin"
-          ],
+          "roles": ["emergency_admin"],
           "selector": "0x51b42b00",
           "signature": "deactivate()()"
         },
@@ -10390,9 +9822,7 @@
         },
         "0x5a630d7a": {
           "name": "setFee",
-          "roles": [
-            "liquidityvault_admin"
-          ],
+          "roles": ["liquidityvault_admin"],
           "selector": "0x5a630d7a",
           "signature": "setFee(uint64)()"
         },
@@ -10548,9 +9978,7 @@
         },
         "0xc4fa8d80": {
           "name": "changeUpdateThresholds",
-          "roles": [
-            "liquidityvault_admin"
-          ],
+          "roles": ["liquidityvault_admin"],
           "selector": "0xc4fa8d80",
           "signature": "changeUpdateThresholds(uint48,uint48,uint48)()"
         },
@@ -10615,9 +10043,7 @@
         },
         "0x2de874d3": {
           "name": "setFixedExpiryParameters",
-          "roles": [
-            "bondmanager_admin"
-          ],
+          "roles": ["bondmanager_admin"],
           "selector": "0x2de874d3",
           "signature": "setFixedExpiryParameters(uint256,uint256,uint48,uint32,uint32,bool)()"
         },
@@ -10629,9 +10055,7 @@
         },
         "0x5312ea8e": {
           "name": "emergencyWithdraw",
-          "roles": [
-            "bondmanager_admin"
-          ],
+          "roles": ["bondmanager_admin"],
           "selector": "0x5312ea8e",
           "signature": "emergencyWithdraw(uint256)()"
         },
@@ -10649,9 +10073,7 @@
         },
         "0x5780bca8": {
           "name": "emergencySetApproval",
-          "roles": [
-            "bondmanager_admin"
-          ],
+          "roles": ["bondmanager_admin"],
           "selector": "0x5780bca8",
           "signature": "emergencySetApproval(address,uint256)()"
         },
@@ -10675,17 +10097,13 @@
         },
         "0x8daa63ac": {
           "name": "setCallback",
-          "roles": [
-            "bondmanager_admin"
-          ],
+          "roles": ["bondmanager_admin"],
           "selector": "0x8daa63ac",
           "signature": "setCallback(address)()"
         },
         "0x919f975e": {
           "name": "emergencyShutdownFixedExpiryMarket",
-          "roles": [
-            "bondmanager_admin"
-          ],
+          "roles": ["bondmanager_admin"],
           "selector": "0x919f975e",
           "signature": "emergencyShutdownFixedExpiryMarket(uint256)()"
         },
@@ -10703,33 +10121,25 @@
         },
         "0xa9ac513a": {
           "name": "closeFixedExpiryBondMarket",
-          "roles": [
-            "bondmanager_admin"
-          ],
+          "roles": ["bondmanager_admin"],
           "selector": "0xa9ac513a",
           "signature": "closeFixedExpiryBondMarket(uint256)()"
         },
         "0xb947b5d0": {
           "name": "settleBatchAuction",
-          "roles": [
-            "bondmanager_admin"
-          ],
+          "roles": ["bondmanager_admin"],
           "selector": "0xb947b5d0",
           "signature": "settleBatchAuction(uint256)()"
         },
         "0xbc618f72": {
           "name": "createBatchAuction",
-          "roles": [
-            "bondmanager_admin"
-          ],
+          "roles": ["bondmanager_admin"],
           "selector": "0xbc618f72",
           "signature": "createBatchAuction(uint96,uint48)(uint256)"
         },
         "0xd37942b5": {
           "name": "createFixedExpiryBondMarket",
-          "roles": [
-            "bondmanager_admin"
-          ],
+          "roles": ["bondmanager_admin"],
           "selector": "0xd37942b5",
           "signature": "createFixedExpiryBondMarket(uint256,uint48)(uint256)"
         },
@@ -10753,9 +10163,7 @@
         },
         "0xecf1e6f4": {
           "name": "setBatchAuctionParameters",
-          "roles": [
-            "bondmanager_admin"
-          ],
+          "roles": ["bondmanager_admin"],
           "selector": "0xecf1e6f4",
           "signature": "setBatchAuctionParameters(uint48,uint48,uint96,uint256,uint256)()"
         }
@@ -10855,9 +10263,7 @@
         },
         "0x0f15f4c0": {
           "name": "activate",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x0f15f4c0",
           "signature": "activate()()"
         },
@@ -10887,25 +10293,19 @@
         },
         "0x4688bcd0": {
           "name": "setYieldRepo",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x4688bcd0",
           "signature": "setYieldRepo(address)()"
         },
         "0x4f7459d5": {
           "name": "setEmissionManager",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x4f7459d5",
           "signature": "setEmissionManager(address)()"
         },
         "0x51b42b00": {
           "name": "deactivate",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x51b42b00",
           "signature": "deactivate()()"
         },
@@ -10929,17 +10329,13 @@
         },
         "0x7539c13f": {
           "name": "setRewardAuctionParams",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x7539c13f",
           "signature": "setRewardAuctionParams(uint256,uint48)()"
         },
         "0x75619ab5": {
           "name": "setDistributor",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0x75619ab5",
           "signature": "setDistributor(address)()"
         },
@@ -10963,17 +10359,13 @@
         },
         "0xae48bc6d": {
           "name": "setReserveMigrator",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0xae48bc6d",
           "signature": "setReserveMigrator(address)()"
         },
         "0xb3ab15fb": {
           "name": "setOperator",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0xb3ab15fb",
           "signature": "setOperator(address)()"
         },
@@ -11009,9 +10401,7 @@
         },
         "0xef68b87d": {
           "name": "resetBeat",
-          "roles": [
-            "heart_admin"
-          ],
+          "roles": ["heart_admin"],
           "selector": "0xef68b87d",
           "signature": "resetBeat()()"
         },
@@ -11144,9 +10534,7 @@
         },
         "0xa6c3d165": {
           "name": "setTrustedRemoteAddress",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xa6c3d165",
           "signature": "setTrustedRemoteAddress(uint16,bytes)()"
         },
@@ -11158,9 +10546,7 @@
         },
         "0xbaf3292d": {
           "name": "setPrecrime",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xbaf3292d",
           "signature": "setPrecrime(address)()"
         },
@@ -11184,9 +10570,7 @@
         },
         "0xd58a8483": {
           "name": "setBridgeStatus",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xd58a8483",
           "signature": "setBridgeStatus(bool)()"
         },
@@ -11198,9 +10582,7 @@
         },
         "0xeb8d72b7": {
           "name": "setTrustedRemote",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xeb8d72b7",
           "signature": "setTrustedRemote(uint16,bytes)()"
         },
@@ -11306,9 +10688,7 @@
       "functionSelectors": {
         "0x03346696": {
           "name": "pushNewAdmin",
-          "roles": [
-            "RolesAdmin"
-          ],
+          "roles": ["RolesAdmin"],
           "selector": "0x03346696",
           "signature": "pushNewAdmin(address)()"
         },
@@ -11320,9 +10700,7 @@
         },
         "0x2f2ff15d": {
           "name": "grantRole",
-          "roles": [
-            "RolesAdmin"
-          ],
+          "roles": ["RolesAdmin"],
           "selector": "0x2f2ff15d",
           "signature": "grantRole(bytes32,address)()"
         },
@@ -11370,9 +10748,7 @@
         },
         "0xd547741f": {
           "name": "revokeRole",
-          "roles": [
-            "RolesAdmin"
-          ],
+          "roles": ["RolesAdmin"],
           "selector": "0xd547741f",
           "signature": "revokeRole(bytes32,address)()"
         },
@@ -11468,17 +10844,13 @@
         },
         "0x07e0db17": {
           "name": "setSendVersion",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0x07e0db17",
           "signature": "setSendVersion(uint16)()"
         },
         "0x10ddb137": {
           "name": "setReceiveVersion",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0x10ddb137",
           "signature": "setReceiveVersion(uint16)()"
         },
@@ -11508,9 +10880,7 @@
         },
         "0x42d65a8d": {
           "name": "forceResumeReceive",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0x42d65a8d",
           "signature": "forceResumeReceive(uint16,bytes)()"
         },
@@ -11576,9 +10946,7 @@
         },
         "0xa6c3d165": {
           "name": "setTrustedRemoteAddress",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xa6c3d165",
           "signature": "setTrustedRemoteAddress(uint16,bytes)()"
         },
@@ -11590,17 +10958,13 @@
         },
         "0xbaf3292d": {
           "name": "setPrecrime",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xbaf3292d",
           "signature": "setPrecrime(address)()"
         },
         "0xcbed8b9c": {
           "name": "setConfig",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xcbed8b9c",
           "signature": "setConfig(uint16,uint16,uint256,bytes)()"
         },
@@ -11618,9 +10982,7 @@
         },
         "0xd58a8483": {
           "name": "setBridgeStatus",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xd58a8483",
           "signature": "setBridgeStatus(bool)()"
         },
@@ -11632,9 +10994,7 @@
         },
         "0xeb8d72b7": {
           "name": "setTrustedRemote",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xeb8d72b7",
           "signature": "setTrustedRemote(uint16,bytes)()"
         },
@@ -11752,17 +11112,13 @@
         },
         "0x07e0db17": {
           "name": "setSendVersion",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0x07e0db17",
           "signature": "setSendVersion(uint16)()"
         },
         "0x10ddb137": {
           "name": "setReceiveVersion",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0x10ddb137",
           "signature": "setReceiveVersion(uint16)()"
         },
@@ -11792,9 +11148,7 @@
         },
         "0x42d65a8d": {
           "name": "forceResumeReceive",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0x42d65a8d",
           "signature": "forceResumeReceive(uint16,bytes)()"
         },
@@ -11860,9 +11214,7 @@
         },
         "0xa6c3d165": {
           "name": "setTrustedRemoteAddress",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xa6c3d165",
           "signature": "setTrustedRemoteAddress(uint16,bytes)()"
         },
@@ -11874,17 +11226,13 @@
         },
         "0xbaf3292d": {
           "name": "setPrecrime",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xbaf3292d",
           "signature": "setPrecrime(address)()"
         },
         "0xcbed8b9c": {
           "name": "setConfig",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xcbed8b9c",
           "signature": "setConfig(uint16,uint16,uint256,bytes)()"
         },
@@ -11902,9 +11250,7 @@
         },
         "0xd58a8483": {
           "name": "setBridgeStatus",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xd58a8483",
           "signature": "setBridgeStatus(bool)()"
         },
@@ -11916,9 +11262,7 @@
         },
         "0xeb8d72b7": {
           "name": "setTrustedRemote",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xeb8d72b7",
           "signature": "setTrustedRemote(uint16,bytes)()"
         },
@@ -11935,9 +11279,7 @@
       "functionSelectors": {
         "0x03346696": {
           "name": "pushNewAdmin",
-          "roles": [
-            "RolesAdmin"
-          ],
+          "roles": ["RolesAdmin"],
           "selector": "0x03346696",
           "signature": "pushNewAdmin(address)()"
         },
@@ -11949,9 +11291,7 @@
         },
         "0x2f2ff15d": {
           "name": "grantRole",
-          "roles": [
-            "RolesAdmin"
-          ],
+          "roles": ["RolesAdmin"],
           "selector": "0x2f2ff15d",
           "signature": "grantRole(bytes32,address)()"
         },
@@ -11999,9 +11339,7 @@
         },
         "0xd547741f": {
           "name": "revokeRole",
-          "roles": [
-            "RolesAdmin"
-          ],
+          "roles": ["RolesAdmin"],
           "selector": "0xd547741f",
           "signature": "revokeRole(bytes32,address)()"
         },
@@ -12097,17 +11435,13 @@
         },
         "0x07e0db17": {
           "name": "setSendVersion",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0x07e0db17",
           "signature": "setSendVersion(uint16)()"
         },
         "0x10ddb137": {
           "name": "setReceiveVersion",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0x10ddb137",
           "signature": "setReceiveVersion(uint16)()"
         },
@@ -12137,9 +11471,7 @@
         },
         "0x42d65a8d": {
           "name": "forceResumeReceive",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0x42d65a8d",
           "signature": "forceResumeReceive(uint16,bytes)()"
         },
@@ -12205,9 +11537,7 @@
         },
         "0xa6c3d165": {
           "name": "setTrustedRemoteAddress",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xa6c3d165",
           "signature": "setTrustedRemoteAddress(uint16,bytes)()"
         },
@@ -12219,17 +11549,13 @@
         },
         "0xbaf3292d": {
           "name": "setPrecrime",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xbaf3292d",
           "signature": "setPrecrime(address)()"
         },
         "0xcbed8b9c": {
           "name": "setConfig",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xcbed8b9c",
           "signature": "setConfig(uint16,uint16,uint256,bytes)()"
         },
@@ -12247,9 +11573,7 @@
         },
         "0xd58a8483": {
           "name": "setBridgeStatus",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xd58a8483",
           "signature": "setBridgeStatus(bool)()"
         },
@@ -12261,9 +11585,7 @@
         },
         "0xeb8d72b7": {
           "name": "setTrustedRemote",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xeb8d72b7",
           "signature": "setTrustedRemote(uint16,bytes)()"
         },
@@ -12280,9 +11602,7 @@
       "functionSelectors": {
         "0x03346696": {
           "name": "pushNewAdmin",
-          "roles": [
-            "RolesAdmin"
-          ],
+          "roles": ["RolesAdmin"],
           "selector": "0x03346696",
           "signature": "pushNewAdmin(address)()"
         },
@@ -12294,9 +11614,7 @@
         },
         "0x2f2ff15d": {
           "name": "grantRole",
-          "roles": [
-            "RolesAdmin"
-          ],
+          "roles": ["RolesAdmin"],
           "selector": "0x2f2ff15d",
           "signature": "grantRole(bytes32,address)()"
         },
@@ -12344,9 +11662,7 @@
         },
         "0xd547741f": {
           "name": "revokeRole",
-          "roles": [
-            "RolesAdmin"
-          ],
+          "roles": ["RolesAdmin"],
           "selector": "0xd547741f",
           "signature": "revokeRole(bytes32,address)()"
         },
@@ -12589,9 +11905,7 @@
         },
         "0x2e1a7d4d": {
           "name": "withdraw",
-          "roles": [
-            "lendingamo_admin"
-          ],
+          "roles": ["lendingamo_admin"],
           "selector": "0x2e1a7d4d",
           "signature": "withdraw(uint256)()"
         },
@@ -12633,9 +11947,7 @@
         },
         "0x7124c683": {
           "name": "setUpdateInterval",
-          "roles": [
-            "lendingamo_admin"
-          ],
+          "roles": ["lendingamo_admin"],
           "selector": "0x7124c683",
           "signature": "setUpdateInterval(uint256)()"
         },
@@ -12647,9 +11959,7 @@
         },
         "0x7f9028c8": {
           "name": "setRateModel",
-          "roles": [
-            "lendingamo_admin"
-          ],
+          "roles": ["lendingamo_admin"],
           "selector": "0x7f9028c8",
           "signature": "setRateModel(address)()"
         },
@@ -12715,9 +12025,7 @@
         },
         "0xb6b55f25": {
           "name": "deposit",
-          "roles": [
-            "lendingamo_admin"
-          ],
+          "roles": ["lendingamo_admin"],
           "selector": "0xb6b55f25",
           "signature": "deposit(uint256)()"
         },
@@ -12729,9 +12037,7 @@
         },
         "0xcd61dd82": {
           "name": "emergencyUnwind",
-          "roles": [
-            "emergency_admin"
-          ],
+          "roles": ["emergency_admin"],
           "selector": "0xcd61dd82",
           "signature": "emergencyUnwind()()"
         },
@@ -12749,9 +12055,7 @@
         },
         "0xe655dbd8": {
           "name": "setIncentivesController",
-          "roles": [
-            "lendingamo_admin"
-          ],
+          "roles": ["lendingamo_admin"],
           "selector": "0xe655dbd8",
           "signature": "setIncentivesController(address)()"
         },
@@ -12763,17 +12067,13 @@
         },
         "0xeec0c9ec": {
           "name": "setMaximumToDeploy",
-          "roles": [
-            "lendingamo_admin"
-          ],
+          "roles": ["lendingamo_admin"],
           "selector": "0xeec0c9ec",
           "signature": "setMaximumToDeploy(uint256)()"
         },
         "0xf5f6d3af": {
           "name": "sweepTokens",
-          "roles": [
-            "lendingamo_admin"
-          ],
+          "roles": ["lendingamo_admin"],
           "selector": "0xf5f6d3af",
           "signature": "sweepTokens(address)()"
         },
@@ -12875,33 +12175,25 @@
         },
         "0x59bb98a0": {
           "name": "revokePolicyApprovals",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0x59bb98a0",
           "signature": "revokePolicyApprovals(address,address[])()"
         },
         "0x5d60f33e": {
           "name": "reduceDebtorApproval",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0x5d60f33e",
           "signature": "reduceDebtorApproval(address,address,uint256)()"
         },
         "0x6de24492": {
           "name": "increaseDebt",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0x6de24492",
           "signature": "increaseDebt(address,address,uint256)()"
         },
         "0x72d2f718": {
           "name": "reduceWithdrawerApproval",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0x72d2f718",
           "signature": "reduceWithdrawerApproval(address,address,uint256)()"
         },
@@ -12913,9 +12205,7 @@
         },
         "0x90341e1b": {
           "name": "withdrawReservesTo",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0x90341e1b",
           "signature": "withdrawReservesTo(address,address,uint256)()"
         },
@@ -12933,17 +12223,13 @@
         },
         "0xbc9c21ca": {
           "name": "grantWithdrawerApproval",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0xbc9c21ca",
           "signature": "grantWithdrawerApproval(address,address,uint256)()"
         },
         "0xc11e37a4": {
           "name": "grantDebtorApproval",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0xc11e37a4",
           "signature": "grantDebtorApproval(address,address,uint256)()"
         },
@@ -12955,9 +12241,7 @@
         },
         "0xed60f188": {
           "name": "decreaseDebt",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0xed60f188",
           "signature": "decreaseDebt(address,address,uint256)()"
         }
@@ -13176,17 +12460,13 @@
         },
         "0x07e0db17": {
           "name": "setSendVersion",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0x07e0db17",
           "signature": "setSendVersion(uint16)()"
         },
         "0x10ddb137": {
           "name": "setReceiveVersion",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0x10ddb137",
           "signature": "setReceiveVersion(uint16)()"
         },
@@ -13216,9 +12496,7 @@
         },
         "0x42d65a8d": {
           "name": "forceResumeReceive",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0x42d65a8d",
           "signature": "forceResumeReceive(uint16,bytes)()"
         },
@@ -13284,9 +12562,7 @@
         },
         "0xa6c3d165": {
           "name": "setTrustedRemoteAddress",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xa6c3d165",
           "signature": "setTrustedRemoteAddress(uint16,bytes)()"
         },
@@ -13298,17 +12574,13 @@
         },
         "0xbaf3292d": {
           "name": "setPrecrime",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xbaf3292d",
           "signature": "setPrecrime(address)()"
         },
         "0xcbed8b9c": {
           "name": "setConfig",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xcbed8b9c",
           "signature": "setConfig(uint16,uint16,uint256,bytes)()"
         },
@@ -13326,9 +12598,7 @@
         },
         "0xd58a8483": {
           "name": "setBridgeStatus",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xd58a8483",
           "signature": "setBridgeStatus(bool)()"
         },
@@ -13340,9 +12610,7 @@
         },
         "0xeb8d72b7": {
           "name": "setTrustedRemote",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xeb8d72b7",
           "signature": "setTrustedRemote(uint16,bytes)()"
         },
@@ -13448,17 +12716,13 @@
       "functionSelectors": {
         "0x01ffa059": {
           "name": "restartWithdrawals",
-          "roles": [
-            "emergency_restart"
-          ],
+          "roles": ["emergency_restart"],
           "selector": "0x01ffa059",
           "signature": "restartWithdrawals()()"
         },
         "0x1ef3755d": {
           "name": "restart",
-          "roles": [
-            "emergency_restart"
-          ],
+          "roles": ["emergency_restart"],
           "selector": "0x1ef3755d",
           "signature": "restart()()"
         },
@@ -13476,9 +12740,7 @@
         },
         "0x46745468": {
           "name": "shutdownMinting",
-          "roles": [
-            "emergency_shutdown"
-          ],
+          "roles": ["emergency_shutdown"],
           "selector": "0x46745468",
           "signature": "shutdownMinting()()"
         },
@@ -13514,9 +12776,7 @@
         },
         "0xc12954fa": {
           "name": "restartMinting",
-          "roles": [
-            "emergency_restart"
-          ],
+          "roles": ["emergency_restart"],
           "selector": "0xc12954fa",
           "signature": "restartMinting()()"
         },
@@ -13528,17 +12788,13 @@
         },
         "0xec3984f6": {
           "name": "shutdownWithdrawals",
-          "roles": [
-            "emergency_shutdown"
-          ],
+          "roles": ["emergency_shutdown"],
           "selector": "0xec3984f6",
           "signature": "shutdownWithdrawals()()"
         },
         "0xfc0e74d1": {
           "name": "shutdown",
-          "roles": [
-            "emergency_shutdown"
-          ],
+          "roles": ["emergency_shutdown"],
           "selector": "0xfc0e74d1",
           "signature": "shutdown()()"
         }
@@ -13549,9 +12805,7 @@
       "functionSelectors": {
         "0x03346696": {
           "name": "pushNewAdmin",
-          "roles": [
-            "RolesAdmin"
-          ],
+          "roles": ["RolesAdmin"],
           "selector": "0x03346696",
           "signature": "pushNewAdmin(address)()"
         },
@@ -13563,9 +12817,7 @@
         },
         "0x2f2ff15d": {
           "name": "grantRole",
-          "roles": [
-            "RolesAdmin"
-          ],
+          "roles": ["RolesAdmin"],
           "selector": "0x2f2ff15d",
           "signature": "grantRole(bytes32,address)()"
         },
@@ -13613,9 +12865,7 @@
         },
         "0xd547741f": {
           "name": "revokeRole",
-          "roles": [
-            "RolesAdmin"
-          ],
+          "roles": ["RolesAdmin"],
           "selector": "0xd547741f",
           "signature": "revokeRole(bytes32,address)()"
         },
@@ -13652,9 +12902,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -13804,9 +13052,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -13824,9 +13070,7 @@
         },
         "0x959b8c3f": {
           "name": "authorizeOperator",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x959b8c3f",
           "signature": "authorizeOperator(address)()"
         },
@@ -13862,9 +13106,7 @@
         },
         "0xc21ff598": {
           "name": "deauthorizeOperator",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0xc21ff598",
           "signature": "deauthorizeOperator(address)()"
         },
@@ -13894,9 +13136,7 @@
         },
         "0xe72cb6a6": {
           "name": "createPosition",
-          "roles": [
-            "cd_auctioneer"
-          ],
+          "roles": ["cd_auctioneer"],
           "selector": "0xe72cb6a6",
           "signature": "createPosition(tuple)(uint256,uint256,uint256)"
         },
@@ -13973,9 +13213,7 @@
         },
         "0x1c46b149": {
           "name": "setLtvOracle",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x1c46b149",
           "signature": "setLtvOracle(address)()"
         },
@@ -14047,9 +13285,7 @@
         },
         "0x52fb2d02": {
           "name": "setMaxDelegateAddresses",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x52fb2d02",
           "signature": "setMaxDelegateAddresses(address,uint32)()"
         },
@@ -14115,9 +13351,7 @@
         },
         "0x939752bd": {
           "name": "setBorrowPaused",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x939752bd",
           "signature": "setBorrowPaused(bool)()"
         },
@@ -14165,9 +13399,7 @@
         },
         "0xb6b89443": {
           "name": "setInterestRateWad",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xb6b89443",
           "signature": "setInterestRateWad(uint96)()"
         },
@@ -14197,9 +13429,7 @@
         },
         "0xd9a7ed5c": {
           "name": "setLiquidationsPaused",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0xd9a7ed5c",
           "signature": "setLiquidationsPaused(bool)()"
         },
@@ -14264,9 +13494,7 @@
         },
         "0x185c26e1": {
           "name": "setMaxOriginationLtvDelta",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x185c26e1",
           "signature": "setMaxOriginationLtvDelta(uint96)()"
         },
@@ -14290,17 +13518,13 @@
         },
         "0x3a4e5175": {
           "name": "setMaxOriginationLtvRateOfChange",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x3a4e5175",
           "signature": "setMaxOriginationLtvRateOfChange(uint96,uint32)()"
         },
         "0x41e4913d": {
           "name": "setLiquidationLtvPremiumBps",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x41e4913d",
           "signature": "setLiquidationLtvPremiumBps(uint16)()"
         },
@@ -14330,17 +13554,13 @@
         },
         "0x69deb675": {
           "name": "setOriginationLtvAt",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x69deb675",
           "signature": "setOriginationLtvAt(uint96,uint40)()"
         },
         "0x8042f503": {
           "name": "setMinOriginationLtvTargetTimeDelta",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x8042f503",
           "signature": "setMinOriginationLtvTargetTimeDelta(uint32)()"
         },
@@ -14394,9 +13614,7 @@
         },
         "0xeb06776e": {
           "name": "setMaxLiquidationLtvPremiumBps",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xeb06776e",
           "signature": "setMaxLiquidationLtvPremiumBps(uint16)()"
         },
@@ -14431,9 +13649,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -14457,9 +13673,7 @@
         },
         "0x33b0a082": {
           "name": "removePeriodicTask",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x33b0a082",
           "signature": "removePeriodicTask(address)()"
         },
@@ -14489,17 +13703,13 @@
         },
         "0x7539c13f": {
           "name": "setRewardAuctionParams",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x7539c13f",
           "signature": "setRewardAuctionParams(uint256,uint48)()"
         },
         "0x75619ab5": {
           "name": "setDistributor",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x75619ab5",
           "signature": "setDistributor(address)()"
         },
@@ -14511,17 +13721,13 @@
         },
         "0x81fcb62a": {
           "name": "removePeriodicTaskAtIndex",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x81fcb62a",
           "signature": "removePeriodicTaskAtIndex(uint256)()"
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -14539,9 +13745,7 @@
         },
         "0xbdc81183": {
           "name": "addPeriodicTaskAtIndex",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xbdc81183",
           "signature": "addPeriodicTaskAtIndex(address,bytes4,uint256)()"
         },
@@ -14565,9 +13769,7 @@
         },
         "0xce68af3c": {
           "name": "addPeriodicTask",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xce68af3c",
           "signature": "addPeriodicTask(address)()"
         },
@@ -14733,9 +13935,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -14759,9 +13959,7 @@
         },
         "0x3ec476b7": {
           "name": "borrowingWithdraw",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0x3ec476b7",
           "signature": "borrowingWithdraw(tuple)(uint256)"
         },
@@ -14827,9 +14025,7 @@
         },
         "0x839006f2": {
           "name": "rescue",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x839006f2",
           "signature": "rescue(address)()"
         },
@@ -14847,9 +14043,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -14879,9 +14073,7 @@
         },
         "0xa9080a7d": {
           "name": "borrowingDefault",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xa9080a7d",
           "signature": "borrowingDefault(tuple)()"
         },
@@ -14899,9 +14091,7 @@
         },
         "0xcf3b117f": {
           "name": "borrowingRepay",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xcf3b117f",
           "signature": "borrowingRepay(tuple)(uint256)"
         },
@@ -14919,9 +14109,7 @@
         },
         "0xd5e93888": {
           "name": "withdraw",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xd5e93888",
           "signature": "withdraw(tuple)(uint256)"
         },
@@ -14933,9 +14121,7 @@
         },
         "0xda047f61": {
           "name": "deposit",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xda047f61",
           "signature": "deposit(tuple)(uint256,uint256)"
         },
@@ -14965,9 +14151,7 @@
         },
         "0xf9719662": {
           "name": "claimYield",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xf9719662",
           "signature": "claimYield(address,address,uint256)(uint256)"
         },
@@ -14996,9 +14180,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -15070,9 +14252,7 @@
         },
         "0x5d6cc1fc": {
           "name": "setAuctionParameters",
-          "roles": [
-            "cd_emissionmanager"
-          ],
+          "roles": ["cd_emissionmanager"],
           "selector": "0x5d6cc1fc",
           "signature": "setAuctionParameters(uint256,uint256,uint256)()"
         },
@@ -15114,9 +14294,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -15265,9 +14443,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -15291,9 +14467,7 @@
         },
         "0x3ec476b7": {
           "name": "borrowingWithdraw",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0x3ec476b7",
           "signature": "borrowingWithdraw(tuple)(uint256)"
         },
@@ -15359,9 +14533,7 @@
         },
         "0x839006f2": {
           "name": "rescue",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x839006f2",
           "signature": "rescue(address)()"
         },
@@ -15379,9 +14551,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -15411,9 +14581,7 @@
         },
         "0xa9080a7d": {
           "name": "borrowingDefault",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xa9080a7d",
           "signature": "borrowingDefault(tuple)()"
         },
@@ -15425,9 +14593,7 @@
         },
         "0xc110d627": {
           "name": "borrowingRepay",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xc110d627",
           "signature": "borrowingRepay(tuple)(uint256)"
         },
@@ -15451,9 +14617,7 @@
         },
         "0xd5e93888": {
           "name": "withdraw",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xd5e93888",
           "signature": "withdraw(tuple)(uint256)"
         },
@@ -15465,9 +14629,7 @@
         },
         "0xda047f61": {
           "name": "deposit",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xda047f61",
           "signature": "deposit(tuple)(uint256,uint256)"
         },
@@ -15497,9 +14659,7 @@
         },
         "0xf9719662": {
           "name": "claimYield",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xf9719662",
           "signature": "claimYield(address,address,uint256)(uint256)"
         },
@@ -15778,9 +14938,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -15834,9 +14992,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -15901,17 +15057,13 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
         "0x1442775a": {
           "name": "setBacking",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x1442775a",
           "signature": "setBacking(uint256)()"
         },
@@ -15923,17 +15075,13 @@
         },
         "0x19f63dd7": {
           "name": "setBondContracts",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x19f63dd7",
           "signature": "setBondContracts(address,address)()"
         },
         "0x1ef3755d": {
           "name": "restart",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x1ef3755d",
           "signature": "restart()()"
         },
@@ -15975,17 +15123,13 @@
         },
         "0x519528f8": {
           "name": "changeBaseRate",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x519528f8",
           "signature": "changeBaseRate(uint256,uint48,bool)()"
         },
         "0x562b302d": {
           "name": "setCDAuctionContract",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x562b302d",
           "signature": "setCDAuctionContract(address)()"
         },
@@ -16015,9 +15159,7 @@
         },
         "0x61461954": {
           "name": "execute",
-          "roles": [
-            "heart"
-          ],
+          "roles": ["heart"],
           "selector": "0x61461954",
           "signature": "execute()()"
         },
@@ -16071,9 +15213,7 @@
         },
         "0x839006f2": {
           "name": "rescue",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x839006f2",
           "signature": "rescue(address)()"
         },
@@ -16097,9 +15237,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -16129,17 +15267,13 @@
         },
         "0x9df44cfb": {
           "name": "setVestingPeriod",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x9df44cfb",
           "signature": "setVestingPeriod(uint48)()"
         },
         "0xa57b9401": {
           "name": "setMinPriceScalar",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xa57b9401",
           "signature": "setMinPriceScalar(uint256)()"
         },
@@ -16157,17 +15291,13 @@
         },
         "0xa93fc7fb": {
           "name": "setTickSizeScalar",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xa93fc7fb",
           "signature": "setTickSizeScalar(uint256)()"
         },
         "0xb2855c9d": {
           "name": "setMinimumPremium",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xb2855c9d",
           "signature": "setMinimumPremium(uint256)()"
         },
@@ -16197,9 +15327,7 @@
         },
         "0xd753466a": {
           "name": "setRestartTimeframe",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xd753466a",
           "signature": "setRestartTimeframe(uint48)()"
         },
@@ -16234,17 +15362,13 @@
       "functionSelectors": {
         "0x1a70b681": {
           "name": "addCategory",
-          "roles": [
-            "minter_admin"
-          ],
+          "roles": ["minter_admin"],
           "selector": "0x1a70b681",
           "signature": "addCategory(bytes32)()"
         },
         "0x1e458bee": {
           "name": "mint",
-          "roles": [
-            "minter_admin"
-          ],
+          "roles": ["minter_admin"],
           "selector": "0x1e458bee",
           "signature": "mint(address,uint256,bytes32)()"
         },
@@ -16274,9 +15398,7 @@
         },
         "0x8cc62ef7": {
           "name": "removeCategory",
-          "roles": [
-            "minter_admin"
-          ],
+          "roles": ["minter_admin"],
           "selector": "0x8cc62ef7",
           "signature": "removeCategory(bytes32)()"
         },
@@ -16323,9 +15445,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -16391,9 +15511,7 @@
         },
         "0x5d6cc1fc": {
           "name": "setAuctionParameters",
-          "roles": [
-            "cd_emissionmanager"
-          ],
+          "roles": ["cd_emissionmanager"],
           "selector": "0x5d6cc1fc",
           "signature": "setAuctionParameters(uint256,uint256,uint256)()"
         },
@@ -16429,9 +15547,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -16532,9 +15648,7 @@
       "functionSelectors": {
         "0x0fbe3476": {
           "name": "changeUpdateThresholds",
-          "roles": [
-            "price_admin"
-          ],
+          "roles": ["price_admin"],
           "selector": "0x0fbe3476",
           "signature": "changeUpdateThresholds(uint48,uint48)()"
         },
@@ -16552,9 +15666,7 @@
         },
         "0x57ee9383": {
           "name": "changeMinimumTargetPrice",
-          "roles": [
-            "price_admin"
-          ],
+          "roles": ["price_admin"],
           "selector": "0x57ee9383",
           "signature": "changeMinimumTargetPrice(uint256)()"
         },
@@ -16566,25 +15678,19 @@
         },
         "0x7d4dce76": {
           "name": "changeObservationFrequency",
-          "roles": [
-            "price_admin"
-          ],
+          "roles": ["price_admin"],
           "selector": "0x7d4dce76",
           "signature": "changeObservationFrequency(uint48)()"
         },
         "0x8a157337": {
           "name": "changeMovingAverageDuration",
-          "roles": [
-            "price_admin"
-          ],
+          "roles": ["price_admin"],
           "selector": "0x8a157337",
           "signature": "changeMovingAverageDuration(uint48)()"
         },
         "0x902a35b9": {
           "name": "initialize",
-          "roles": [
-            "price_admin"
-          ],
+          "roles": ["price_admin"],
           "selector": "0x902a35b9",
           "signature": "initialize(uint256[],uint48)()"
         },
@@ -16637,9 +15743,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -16735,9 +15839,7 @@
         },
         "0x7977ca90": {
           "name": "authorizeFacility",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x7977ca90",
           "signature": "authorizeFacility(address)()"
         },
@@ -16749,9 +15851,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -16811,9 +15911,7 @@
         },
         "0xe13fe767": {
           "name": "deauthorizeFacility",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0xe13fe767",
           "signature": "deauthorizeFacility(address)()"
         },
@@ -16896,9 +15994,7 @@
         },
         "0x0f15f4c0": {
           "name": "activate",
-          "roles": [
-            "cooler_overseer"
-          ],
+          "roles": ["cooler_overseer"],
           "selector": "0x0f15f4c0",
           "signature": "activate()()"
         },
@@ -16946,9 +16042,7 @@
         },
         "0x3403c2fc": {
           "name": "emergencyShutdown",
-          "roles": [
-            "emergency_shutdown"
-          ],
+          "roles": ["emergency_shutdown"],
           "selector": "0x3403c2fc",
           "signature": "emergencyShutdown()()"
         },
@@ -17056,9 +16150,7 @@
         },
         "0xb3c6326b": {
           "name": "defund",
-          "roles": [
-            "cooler_overseer"
-          ],
+          "roles": ["cooler_overseer"],
           "selector": "0xb3c6326b",
           "signature": "defund(address,uint256)()"
         },
@@ -17117,9 +16209,7 @@
       "functionSelectors": {
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -17167,9 +16257,7 @@
         },
         "0x7dbf67a7": {
           "name": "setDebt",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x7dbf67a7",
           "signature": "setDebt(uint256)()"
         },
@@ -17181,9 +16269,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -17254,17 +16340,13 @@
         },
         "0x07e0db17": {
           "name": "setSendVersion",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0x07e0db17",
           "signature": "setSendVersion(uint16)()"
         },
         "0x10ddb137": {
           "name": "setReceiveVersion",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0x10ddb137",
           "signature": "setReceiveVersion(uint16)()"
         },
@@ -17294,9 +16376,7 @@
         },
         "0x42d65a8d": {
           "name": "forceResumeReceive",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0x42d65a8d",
           "signature": "forceResumeReceive(uint16,bytes)()"
         },
@@ -17362,9 +16442,7 @@
         },
         "0xa6c3d165": {
           "name": "setTrustedRemoteAddress",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xa6c3d165",
           "signature": "setTrustedRemoteAddress(uint16,bytes)()"
         },
@@ -17376,17 +16454,13 @@
         },
         "0xbaf3292d": {
           "name": "setPrecrime",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xbaf3292d",
           "signature": "setPrecrime(address)()"
         },
         "0xcbed8b9c": {
           "name": "setConfig",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xcbed8b9c",
           "signature": "setConfig(uint16,uint16,uint256,bytes)()"
         },
@@ -17404,9 +16478,7 @@
         },
         "0xd58a8483": {
           "name": "setBridgeStatus",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xd58a8483",
           "signature": "setBridgeStatus(bool)()"
         },
@@ -17418,9 +16490,7 @@
         },
         "0xeb8d72b7": {
           "name": "setTrustedRemote",
-          "roles": [
-            "bridge_admin"
-          ],
+          "roles": ["bridge_admin"],
           "selector": "0xeb8d72b7",
           "signature": "setTrustedRemote(uint16,bytes)()"
         },
@@ -17473,9 +16543,7 @@
         },
         "0x1442775a": {
           "name": "setBacking",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x1442775a",
           "signature": "setBacking(uint256)()"
         },
@@ -17487,17 +16555,13 @@
         },
         "0x19f63dd7": {
           "name": "setBondContracts",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x19f63dd7",
           "signature": "setBondContracts(address,address)()"
         },
         "0x1ef3755d": {
           "name": "restart",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x1ef3755d",
           "signature": "restart()()"
         },
@@ -17509,9 +16573,7 @@
         },
         "0x28f463e4": {
           "name": "setBondMarketCapacityScalar",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x28f463e4",
           "signature": "setBondMarketCapacityScalar(uint256)()"
         },
@@ -17553,17 +16615,13 @@
         },
         "0x519528f8": {
           "name": "changeBaseRate",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x519528f8",
           "signature": "changeBaseRate(uint256,uint48,bool)()"
         },
         "0x562b302d": {
           "name": "setCDAuctionContract",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x562b302d",
           "signature": "setCDAuctionContract(address)()"
         },
@@ -17593,9 +16651,7 @@
         },
         "0x61461954": {
           "name": "execute",
-          "roles": [
-            "heart"
-          ],
+          "roles": ["heart"],
           "selector": "0x61461954",
           "signature": "execute()()"
         },
@@ -17649,9 +16705,7 @@
         },
         "0x839006f2": {
           "name": "rescue",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x839006f2",
           "signature": "rescue(address)()"
         },
@@ -17705,17 +16759,13 @@
         },
         "0x9df44cfb": {
           "name": "setVestingPeriod",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x9df44cfb",
           "signature": "setVestingPeriod(uint48)()"
         },
         "0xa57b9401": {
           "name": "setMinPriceScalar",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xa57b9401",
           "signature": "setMinPriceScalar(uint256)()"
         },
@@ -17733,17 +16783,13 @@
         },
         "0xad9fafa9": {
           "name": "setTickSize",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xad9fafa9",
           "signature": "setTickSize(uint256)()"
         },
         "0xb2855c9d": {
           "name": "setMinimumPremium",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xb2855c9d",
           "signature": "setMinimumPremium(uint256)()"
         },
@@ -17773,9 +16819,7 @@
         },
         "0xd753466a": {
           "name": "setRestartTimeframe",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xd753466a",
           "signature": "setRestartTimeframe(uint48)()"
         },
@@ -17828,9 +16872,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -17974,9 +17016,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -17994,9 +17034,7 @@
         },
         "0x959b8c3f": {
           "name": "authorizeOperator",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x959b8c3f",
           "signature": "authorizeOperator(address)()"
         },
@@ -18038,9 +17076,7 @@
         },
         "0xc21ff598": {
           "name": "deauthorizeOperator",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0xc21ff598",
           "signature": "deauthorizeOperator(address)()"
         },
@@ -18070,9 +17106,7 @@
         },
         "0xe72cb6a6": {
           "name": "createPosition",
-          "roles": [
-            "cd_auctioneer"
-          ],
+          "roles": ["cd_auctioneer"],
           "selector": "0xe72cb6a6",
           "signature": "createPosition(tuple)(uint256,uint256,uint256)"
         },
@@ -18107,9 +17141,7 @@
       "functionSelectors": {
         "0x0f15f4c0": {
           "name": "activate",
-          "roles": [
-            "reserve_migrator_admin"
-          ],
+          "roles": ["reserve_migrator_admin"],
           "selector": "0x0f15f4c0",
           "signature": "activate()()"
         },
@@ -18145,9 +17177,7 @@
         },
         "0x51b42b00": {
           "name": "deactivate",
-          "roles": [
-            "reserve_migrator_admin"
-          ],
+          "roles": ["reserve_migrator_admin"],
           "selector": "0x51b42b00",
           "signature": "deactivate()()"
         },
@@ -18165,17 +17195,13 @@
         },
         "0x839006f2": {
           "name": "rescue",
-          "roles": [
-            "reserve_migrator_admin"
-          ],
+          "roles": ["reserve_migrator_admin"],
           "selector": "0x839006f2",
           "signature": "rescue(address)()"
         },
         "0x8fd3ab80": {
           "name": "migrate",
-          "roles": [
-            "heart"
-          ],
+          "roles": ["heart"],
           "selector": "0x8fd3ab80",
           "signature": "migrate()()"
         },
@@ -18246,9 +17272,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -18344,9 +17368,7 @@
         },
         "0x7977ca90": {
           "name": "authorizeFacility",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x7977ca90",
           "signature": "authorizeFacility(address)()"
         },
@@ -18358,9 +17380,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -18420,9 +17440,7 @@
         },
         "0xe13fe767": {
           "name": "deauthorizeFacility",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0xe13fe767",
           "signature": "deauthorizeFacility(address)()"
         },
@@ -18493,17 +17511,13 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
         "0x1442775a": {
           "name": "setBacking",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x1442775a",
           "signature": "setBacking(uint256)()"
         },
@@ -18515,17 +17529,13 @@
         },
         "0x19f63dd7": {
           "name": "setBondContracts",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x19f63dd7",
           "signature": "setBondContracts(address,address)()"
         },
         "0x1ef3755d": {
           "name": "restart",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x1ef3755d",
           "signature": "restart()()"
         },
@@ -18567,17 +17577,13 @@
         },
         "0x519528f8": {
           "name": "changeBaseRate",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x519528f8",
           "signature": "changeBaseRate(uint256,uint48,bool)()"
         },
         "0x562b302d": {
           "name": "setCDAuctionContract",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x562b302d",
           "signature": "setCDAuctionContract(address)()"
         },
@@ -18607,9 +17613,7 @@
         },
         "0x61461954": {
           "name": "execute",
-          "roles": [
-            "heart"
-          ],
+          "roles": ["heart"],
           "selector": "0x61461954",
           "signature": "execute()()"
         },
@@ -18663,9 +17667,7 @@
         },
         "0x839006f2": {
           "name": "rescue",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x839006f2",
           "signature": "rescue(address)()"
         },
@@ -18689,9 +17691,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -18721,17 +17721,13 @@
         },
         "0x9df44cfb": {
           "name": "setVestingPeriod",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x9df44cfb",
           "signature": "setVestingPeriod(uint48)()"
         },
         "0xa57b9401": {
           "name": "setMinPriceScalar",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xa57b9401",
           "signature": "setMinPriceScalar(uint256)()"
         },
@@ -18749,17 +17745,13 @@
         },
         "0xad9fafa9": {
           "name": "setTickSize",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xad9fafa9",
           "signature": "setTickSize(uint256)()"
         },
         "0xb2855c9d": {
           "name": "setMinimumPremium",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xb2855c9d",
           "signature": "setMinimumPremium(uint256)()"
         },
@@ -18789,9 +17781,7 @@
         },
         "0xd753466a": {
           "name": "setRestartTimeframe",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xd753466a",
           "signature": "setRestartTimeframe(uint48)()"
         },
@@ -18832,9 +17822,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -18888,9 +17876,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -18961,9 +17947,7 @@
         },
         "0x33b0a082": {
           "name": "removePeriodicTask",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x33b0a082",
           "signature": "removePeriodicTask(address)()"
         },
@@ -18993,17 +17977,13 @@
         },
         "0x7539c13f": {
           "name": "setRewardAuctionParams",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x7539c13f",
           "signature": "setRewardAuctionParams(uint256,uint48)()"
         },
         "0x75619ab5": {
           "name": "setDistributor",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x75619ab5",
           "signature": "setDistributor(address)()"
         },
@@ -19015,9 +17995,7 @@
         },
         "0x81fcb62a": {
           "name": "removePeriodicTaskAtIndex",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x81fcb62a",
           "signature": "removePeriodicTaskAtIndex(uint256)()"
         },
@@ -19041,9 +18019,7 @@
         },
         "0xbdc81183": {
           "name": "addPeriodicTaskAtIndex",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xbdc81183",
           "signature": "addPeriodicTaskAtIndex(address,bytes4,uint256)()"
         },
@@ -19067,9 +18043,7 @@
         },
         "0xce68af3c": {
           "name": "addPeriodicTask",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xce68af3c",
           "signature": "addPeriodicTask(address)()"
         },
@@ -19134,9 +18108,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -19160,9 +18132,7 @@
         },
         "0x33b0a082": {
           "name": "removePeriodicTask",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x33b0a082",
           "signature": "removePeriodicTask(address)()"
         },
@@ -19192,17 +18162,13 @@
         },
         "0x7539c13f": {
           "name": "setRewardAuctionParams",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x7539c13f",
           "signature": "setRewardAuctionParams(uint256,uint48)()"
         },
         "0x75619ab5": {
           "name": "setDistributor",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x75619ab5",
           "signature": "setDistributor(address)()"
         },
@@ -19214,17 +18180,13 @@
         },
         "0x81fcb62a": {
           "name": "removePeriodicTaskAtIndex",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x81fcb62a",
           "signature": "removePeriodicTaskAtIndex(uint256)()"
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -19242,9 +18204,7 @@
         },
         "0xbdc81183": {
           "name": "addPeriodicTaskAtIndex",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xbdc81183",
           "signature": "addPeriodicTaskAtIndex(address,bytes4,uint256)()"
         },
@@ -19268,9 +18228,7 @@
         },
         "0xce68af3c": {
           "name": "addPeriodicTask",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0xce68af3c",
           "signature": "addPeriodicTask(address)()"
         },
@@ -19687,9 +18645,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -19833,9 +18789,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -19853,9 +18807,7 @@
         },
         "0x959b8c3f": {
           "name": "authorizeOperator",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x959b8c3f",
           "signature": "authorizeOperator(address)()"
         },
@@ -19891,9 +18843,7 @@
         },
         "0xc21ff598": {
           "name": "deauthorizeOperator",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0xc21ff598",
           "signature": "deauthorizeOperator(address)()"
         },
@@ -19917,9 +18867,7 @@
         },
         "0xe72cb6a6": {
           "name": "createPosition",
-          "roles": [
-            "cd_auctioneer"
-          ],
+          "roles": ["cd_auctioneer"],
           "selector": "0xe72cb6a6",
           "signature": "createPosition(tuple)(uint256,uint256,uint256)"
         },
@@ -19954,9 +18902,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -20028,9 +18974,7 @@
         },
         "0x5d6cc1fc": {
           "name": "setAuctionParameters",
-          "roles": [
-            "cd_emissionmanager"
-          ],
+          "roles": ["cd_emissionmanager"],
           "selector": "0x5d6cc1fc",
           "signature": "setAuctionParameters(uint256,uint256,uint256)()"
         },
@@ -20066,9 +19010,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -20759,33 +19701,25 @@
         },
         "0x59bb98a0": {
           "name": "revokePolicyApprovals",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0x59bb98a0",
           "signature": "revokePolicyApprovals(address,address[])()"
         },
         "0x5d60f33e": {
           "name": "reduceDebtorApproval",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0x5d60f33e",
           "signature": "reduceDebtorApproval(address,address,uint256)()"
         },
         "0x6de24492": {
           "name": "increaseDebt",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0x6de24492",
           "signature": "increaseDebt(address,address,uint256)()"
         },
         "0x72d2f718": {
           "name": "reduceWithdrawerApproval",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0x72d2f718",
           "signature": "reduceWithdrawerApproval(address,address,uint256)()"
         },
@@ -20797,9 +19731,7 @@
         },
         "0x90341e1b": {
           "name": "withdrawReservesTo",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0x90341e1b",
           "signature": "withdrawReservesTo(address,address,uint256)()"
         },
@@ -20817,17 +19749,13 @@
         },
         "0xbc9c21ca": {
           "name": "grantWithdrawerApproval",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0xbc9c21ca",
           "signature": "grantWithdrawerApproval(address,address,uint256)()"
         },
         "0xc11e37a4": {
           "name": "grantDebtorApproval",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0xc11e37a4",
           "signature": "grantDebtorApproval(address,address,uint256)()"
         },
@@ -20839,9 +19767,7 @@
         },
         "0xed60f188": {
           "name": "decreaseDebt",
-          "roles": [
-            "custodian"
-          ],
+          "roles": ["custodian"],
           "selector": "0xed60f188",
           "signature": "decreaseDebt(address,address,uint256)()"
         }
@@ -20852,9 +19778,7 @@
       "functionSelectors": {
         "0x01de9ba8": {
           "name": "setReserveFactor",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x01de9ba8",
           "signature": "setReserveFactor(uint32)()"
         },
@@ -20878,9 +19802,7 @@
         },
         "0x0f15f4c0": {
           "name": "activate",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x0f15f4c0",
           "signature": "activate()()"
         },
@@ -20892,9 +19814,7 @@
         },
         "0x19f63dd7": {
           "name": "setBondContracts",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x19f63dd7",
           "signature": "setBondContracts(address,address)()"
         },
@@ -20912,33 +19832,25 @@
         },
         "0x299ed196": {
           "name": "setSpreads",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x299ed196",
           "signature": "setSpreads(bool,uint256,uint256)()"
         },
         "0x2ecd1f20": {
           "name": "regenerate",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x2ecd1f20",
           "signature": "regenerate(bool)()"
         },
         "0x33bd33b4": {
           "name": "setThresholdFactor",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x33bd33b4",
           "signature": "setThresholdFactor(uint256)()"
         },
         "0x3a3f54bc": {
           "name": "setRegenParams",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x3a3f54bc",
           "signature": "setRegenParams(uint32,uint32,uint32)()"
         },
@@ -20950,9 +19862,7 @@
         },
         "0x51b42b00": {
           "name": "deactivate",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0x51b42b00",
           "signature": "deactivate()()"
         },
@@ -20970,9 +19880,7 @@
         },
         "0x7159a618": {
           "name": "operate",
-          "roles": [
-            "heart"
-          ],
+          "roles": ["heart"],
           "selector": "0x7159a618",
           "signature": "operate()()"
         },
@@ -20984,9 +19892,7 @@
         },
         "0x8129fc1c": {
           "name": "initialize",
-          "roles": [
-            "operator_admin"
-          ],
+          "roles": ["operator_admin"],
           "selector": "0x8129fc1c",
           "signature": "initialize()()"
         },
@@ -21022,17 +19928,13 @@
         },
         "0xaa9760a1": {
           "name": "setCushionFactor",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xaa9760a1",
           "signature": "setCushionFactor(uint32)()"
         },
         "0xab104771": {
           "name": "bondPurchase",
-          "roles": [
-            "operator_reporter"
-          ],
+          "roles": ["operator_reporter"],
           "selector": "0xab104771",
           "signature": "bondPurchase(uint256,uint256)()"
         },
@@ -21062,17 +19964,13 @@
         },
         "0xf2f6d5bb": {
           "name": "deactivateCushion",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xf2f6d5bb",
           "signature": "deactivateCushion(bool)()"
         },
         "0xf2fa4737": {
           "name": "setCushionParams",
-          "roles": [
-            "operator_policy"
-          ],
+          "roles": ["operator_policy"],
           "selector": "0xf2fa4737",
           "signature": "setCushionParams(uint32,uint32,uint32)()"
         }
@@ -21083,17 +19981,13 @@
       "functionSelectors": {
         "0x01ffa059": {
           "name": "restartWithdrawals",
-          "roles": [
-            "emergency_restart"
-          ],
+          "roles": ["emergency_restart"],
           "selector": "0x01ffa059",
           "signature": "restartWithdrawals()()"
         },
         "0x1ef3755d": {
           "name": "restart",
-          "roles": [
-            "emergency_restart"
-          ],
+          "roles": ["emergency_restart"],
           "selector": "0x1ef3755d",
           "signature": "restart()()"
         },
@@ -21111,9 +20005,7 @@
         },
         "0x46745468": {
           "name": "shutdownMinting",
-          "roles": [
-            "emergency_shutdown"
-          ],
+          "roles": ["emergency_shutdown"],
           "selector": "0x46745468",
           "signature": "shutdownMinting()()"
         },
@@ -21149,9 +20041,7 @@
         },
         "0xc12954fa": {
           "name": "restartMinting",
-          "roles": [
-            "emergency_restart"
-          ],
+          "roles": ["emergency_restart"],
           "selector": "0xc12954fa",
           "signature": "restartMinting()()"
         },
@@ -21163,17 +20053,13 @@
         },
         "0xec3984f6": {
           "name": "shutdownWithdrawals",
-          "roles": [
-            "emergency_shutdown"
-          ],
+          "roles": ["emergency_shutdown"],
           "selector": "0xec3984f6",
           "signature": "shutdownWithdrawals()()"
         },
         "0xfc0e74d1": {
           "name": "shutdown",
-          "roles": [
-            "emergency_shutdown"
-          ],
+          "roles": ["emergency_shutdown"],
           "selector": "0xfc0e74d1",
           "signature": "shutdown()()"
         }
@@ -21208,9 +20094,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -21240,9 +20124,7 @@
         },
         "0x3ec476b7": {
           "name": "borrowingWithdraw",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0x3ec476b7",
           "signature": "borrowingWithdraw(tuple)(uint256)"
         },
@@ -21320,9 +20202,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -21358,9 +20238,7 @@
         },
         "0xa9080a7d": {
           "name": "borrowingDefault",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xa9080a7d",
           "signature": "borrowingDefault(tuple)()"
         },
@@ -21378,9 +20256,7 @@
         },
         "0xcf3b117f": {
           "name": "borrowingRepay",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xcf3b117f",
           "signature": "borrowingRepay(tuple)(uint256)"
         },
@@ -21398,9 +20274,7 @@
         },
         "0xd5e93888": {
           "name": "withdraw",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xd5e93888",
           "signature": "withdraw(tuple)(uint256)"
         },
@@ -21412,9 +20286,7 @@
         },
         "0xda047f61": {
           "name": "deposit",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xda047f61",
           "signature": "deposit(tuple)(uint256,uint256)"
         },
@@ -21438,9 +20310,7 @@
         },
         "0xf9719662": {
           "name": "claimYield",
-          "roles": [
-            "deposit_operator"
-          ],
+          "roles": ["deposit_operator"],
           "selector": "0xf9719662",
           "signature": "claimYield(address,address,uint256)(uint256)"
         },
@@ -21737,9 +20607,7 @@
       "functionSelectors": {
         "0x03346696": {
           "name": "pushNewAdmin",
-          "roles": [
-            "RolesAdmin"
-          ],
+          "roles": ["RolesAdmin"],
           "selector": "0x03346696",
           "signature": "pushNewAdmin(address)()"
         },
@@ -21751,9 +20619,7 @@
         },
         "0x2f2ff15d": {
           "name": "grantRole",
-          "roles": [
-            "RolesAdmin"
-          ],
+          "roles": ["RolesAdmin"],
           "selector": "0x2f2ff15d",
           "signature": "grantRole(bytes32,address)()"
         },
@@ -21801,9 +20667,7 @@
         },
         "0xd547741f": {
           "name": "revokeRole",
-          "roles": [
-            "RolesAdmin"
-          ],
+          "roles": ["RolesAdmin"],
           "selector": "0xd547741f",
           "signature": "revokeRole(bytes32,address)()"
         },
@@ -21844,9 +20708,7 @@
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -21936,9 +20798,7 @@
         },
         "0x7977ca90": {
           "name": "authorizeFacility",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x7977ca90",
           "signature": "authorizeFacility(address)()"
         },
@@ -21950,9 +20810,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
@@ -22006,9 +20864,7 @@
         },
         "0xe13fe767": {
           "name": "deauthorizeFacility",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0xe13fe767",
           "signature": "deauthorizeFacility(address)()"
         },
@@ -22055,25 +20911,19 @@
         },
         "0x04523e56": {
           "name": "adjustNextYield",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x04523e56",
           "signature": "adjustNextYield(uint256)()"
         },
         "0x0b9663db": {
           "name": "endEpoch",
-          "roles": [
-            "heart"
-          ],
+          "roles": ["heart"],
           "selector": "0x0b9663db",
           "signature": "endEpoch()()"
         },
         "0x0c959556": {
           "name": "enable",
-          "roles": [
-            "admin"
-          ],
+          "roles": ["admin"],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
@@ -22169,9 +21019,7 @@
         },
         "0x8fc925aa": {
           "name": "disable",
-          "roles": [
-            "emergency"
-          ],
+          "roles": ["emergency"],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },

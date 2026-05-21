@@ -484,177 +484,179 @@ export function ContractVisualizer() {
     []
   );
 
-  const setupGraph = useCallback(() => {
-    if (!contracts || !roles || !roleAssignments || layouting) return;
+  const setupGraph = useCallback(
+    () => {
+      if (!contracts || !roles || !roleAssignments || layouting) return;
 
-    setLayouting(true);
-    const newNodes: CustomNode[] = [];
-    const newEdges: Edge[] = [];
+      setLayouting(true);
+      const newNodes: CustomNode[] = [];
+      const newEdges: Edge[] = [];
 
-    // Group contracts by type
-    const kernelContract = contracts.find((c) => c.type === "kernel") as
-      | Contract
-      | undefined;
-    const moduleContracts = contracts.filter(
-      (c) => c.type === "module"
-    ) as Contract[];
-    const policyContracts = contracts.filter(
-      (c) => c.type === "policy"
-    ) as Contract[];
+      // Group contracts by type
+      const kernelContract = contracts.find((c) => c.type === "kernel") as
+        | Contract
+        | undefined;
+      const moduleContracts = contracts.filter(
+        (c) => c.type === "module"
+      ) as Contract[];
+      const policyContracts = contracts.filter(
+        (c) => c.type === "policy"
+      ) as Contract[];
 
-    // Create a mapping of module keycodes to module addresses
-    const moduleKeycodeToAddress = new Map<string, string>();
-    moduleContracts.forEach((module) => {
-      const keycode = extractKeycode(module.name);
-      if (keycode) {
-        moduleKeycodeToAddress.set(keycode, module.address);
-      }
-    });
-
-    // Add kernel node
-    if (kernelContract) {
-      newNodes.push({
-        ...createNodeFromContract(kernelContract, kernelContract.address),
-        position: { x: 0, y: 0 },
-      });
-    }
-
-    // Add module nodes
-    moduleContracts.forEach((contract) => {
-      newNodes.push({
-        ...createNodeFromContract(contract, contract.address),
-        position: { x: 0, y: 0 },
-      });
-    });
-
-    // Add policy nodes and connect to modules
-    policyContracts.forEach((policy) => {
-      newNodes.push({
-        ...createNodeFromContract(policy, policy.address),
-        position: { x: 0, y: 0 },
+      // Create a mapping of module keycodes to module addresses
+      const moduleKeycodeToAddress = new Map<string, string>();
+      moduleContracts.forEach((module) => {
+        const keycode = extractKeycode(module.name);
+        if (keycode) {
+          moduleKeycodeToAddress.set(keycode, module.address);
+        }
       });
 
-      // Connect policy to modules it uses
-      if (policy.policyPermissions && Array.isArray(policy.policyPermissions)) {
-        const uniqueKeycodes = Array.from(
-          new Set(
-            (policy.policyPermissions as Array<{ keycode: string }>).map(
-              (p) => p.keycode
-            )
-          )
-        );
-
-        uniqueKeycodes.forEach((keycode) => {
-          const moduleAddress = moduleKeycodeToAddress.get(keycode);
-          if (moduleAddress) {
-            newEdges.push(createEdge(policy.address, moduleAddress, false));
-          }
+      // Add kernel node
+      if (kernelContract) {
+        newNodes.push({
+          ...createNodeFromContract(kernelContract, kernelContract.address),
+          position: { x: 0, y: 0 },
         });
       }
-    });
 
-    // Process roles and assignees
-    roles.forEach((role) => {
-      const roleId = `role-${role.role}`;
-      const roleAssignmentsList = roleAssignments.filter(
-        (a) => a.role === role.role
-      );
-
-      // Find policies that use this role
-      const policiesUsingRole = contracts.filter(
-        (c) =>
-          c.type === "policy" &&
-          Array.isArray(c.policyFunctions) &&
-          (c.policyFunctions as Array<{ roles: string[]; name: string }>).some(
-            (func) => func.roles.includes(role.role)
-          )
-      );
-
-      // Add role node
-      newNodes.push({
-        id: roleId,
-        type: "role",
-        position: { x: 0, y: 0 },
-        data: {
-          name: role.role,
-          label: role.role,
-          assignees: roleAssignmentsList,
-          policiesCount: policiesUsingRole.length,
-          onMouseEnter: () => setHoveredRole(role.role),
-          onMouseLeave: () => setHoveredRole(null),
-        },
-        style: {
-          zIndex: hoveredRole === role.role ? 1000 : 1,
-        },
-        targetPosition: Position.Left,
-        sourcePosition: Position.Right,
+      // Add module nodes
+      moduleContracts.forEach((contract) => {
+        newNodes.push({
+          ...createNodeFromContract(contract, contract.address),
+          position: { x: 0, y: 0 },
+        });
       });
 
-      // Process assignees
-      roleAssignmentsList.forEach((assignment) => {
-        const contractNode = contracts.find(
-          (c) => c.address.toLowerCase() === assignment.assignee.toLowerCase()
-        );
-
-        if (contractNode) {
-          // Add edge to existing contract node
-          newEdges.push(createEdge(assignment.assignee, roleId, false));
-        } else {
-          // Create node for non-contract assignee
-          const assigneeId = `assignee-${assignment.assignee}`;
-          newNodes.push({
-            ...createAssigneeNode(assignment, assigneeId),
-            position: { x: 0, y: 0 },
-          });
-
-          // Add edge from role to assignee
-          newEdges.push(createEdge(assigneeId, roleId, false));
-        }
-      });
-
-      // Link roles with policies that use them
-      const policyContracts = contracts.filter(
-        (c) => c.type === "policy" && Array.isArray(c.policyFunctions)
-      );
+      // Add policy nodes and connect to modules
       policyContracts.forEach((policy) => {
-        const policyFunctions = policy.policyFunctions as Array<{
-          roles: string[];
-        }>;
-        const hasRole = policyFunctions.some((func) =>
-          func.roles.includes(role.role)
-        );
-        if (hasRole) {
-          newEdges.push(createEdge(roleId, policy.address, false));
+        newNodes.push({
+          ...createNodeFromContract(policy, policy.address),
+          position: { x: 0, y: 0 },
+        });
+
+        // Connect policy to modules it uses
+        if (
+          policy.policyPermissions &&
+          Array.isArray(policy.policyPermissions)
+        ) {
+          const uniqueKeycodes = Array.from(
+            new Set(
+              (policy.policyPermissions as Array<{ keycode: string }>).map(
+                (p) => p.keycode
+              )
+            )
+          );
+
+          uniqueKeycodes.forEach((keycode) => {
+            const moduleAddress = moduleKeycodeToAddress.get(keycode);
+            if (moduleAddress) {
+              newEdges.push(createEdge(policy.address, moduleAddress, false));
+            }
+          });
         }
       });
-    });
 
-    // Apply dagre layout
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-      newNodes,
-      newEdges,
-      "TB"
-    );
+      // Process roles and assignees
+      roles.forEach((role) => {
+        const roleId = `role-${role.role}`;
+        const roleAssignmentsList = roleAssignments.filter(
+          (a) => a.role === role.role
+        );
 
-    // Store the original layout for resetting
-    setOriginalLayout({ nodes: layoutedNodes, edges: layoutedEdges });
+        // Find policies that use this role
+        const policiesUsingRole = contracts.filter(
+          (c) =>
+            c.type === "policy" &&
+            Array.isArray(c.policyFunctions) &&
+            (
+              c.policyFunctions as Array<{ roles: string[]; name: string }>
+            ).some((func) => func.roles.includes(role.role))
+        );
 
-    setNodes(layoutedNodes);
-    setEdges(layoutedEdges);
-    setLayouting(false);
-    setInitialized(true);
-  },
+        // Add role node
+        newNodes.push({
+          id: roleId,
+          type: "role",
+          position: { x: 0, y: 0 },
+          data: {
+            name: role.role,
+            label: role.role,
+            assignees: roleAssignmentsList,
+            policiesCount: policiesUsingRole.length,
+            onMouseEnter: () => setHoveredRole(role.role),
+            onMouseLeave: () => setHoveredRole(null),
+          },
+          style: {
+            zIndex: hoveredRole === role.role ? 1000 : 1,
+          },
+          targetPosition: Position.Left,
+          sourcePosition: Position.Right,
+        });
+
+        // Process assignees
+        roleAssignmentsList.forEach((assignment) => {
+          const contractNode = contracts.find(
+            (c) => c.address.toLowerCase() === assignment.assignee.toLowerCase()
+          );
+
+          if (contractNode) {
+            // Add edge to existing contract node
+            newEdges.push(createEdge(assignment.assignee, roleId, false));
+          } else {
+            // Create node for non-contract assignee
+            const assigneeId = `assignee-${assignment.assignee}`;
+            newNodes.push({
+              ...createAssigneeNode(assignment, assigneeId),
+              position: { x: 0, y: 0 },
+            });
+
+            // Add edge from role to assignee
+            newEdges.push(createEdge(assigneeId, roleId, false));
+          }
+        });
+
+        // Link roles with policies that use them
+        const policyContracts = contracts.filter(
+          (c) => c.type === "policy" && Array.isArray(c.policyFunctions)
+        );
+        policyContracts.forEach((policy) => {
+          const policyFunctions = policy.policyFunctions as Array<{
+            roles: string[];
+          }>;
+          const hasRole = policyFunctions.some((func) =>
+            func.roles.includes(role.role)
+          );
+          if (hasRole) {
+            newEdges.push(createEdge(roleId, policy.address, false));
+          }
+        });
+      });
+
+      // Apply dagre layout
+      const { nodes: layoutedNodes, edges: layoutedEdges } =
+        getLayoutedElements(newNodes, newEdges, "TB");
+
+      // Store the original layout for resetting
+      setOriginalLayout({ nodes: layoutedNodes, edges: layoutedEdges });
+
+      setNodes(layoutedNodes);
+      setEdges(layoutedEdges);
+      setLayouting(false);
+      setInitialized(true);
+    },
     // setNodes/setEdges are stable React Flow setters; this layout reset only tracks chain changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  [
-    contracts,
-    roles,
-    roleAssignments,
-    layouting,
-    createNodeFromContract,
-    createEdge,
-    hoveredRole,
-  ]);
+    [
+      contracts,
+      roles,
+      roleAssignments,
+      layouting,
+      createNodeFromContract,
+      createEdge,
+      hoveredRole,
+    ]
+  );
 
   // Add function to get connected nodes
   const getConnectedNodes = useCallback(
@@ -673,115 +675,120 @@ export function ContractVisualizer() {
   );
 
   // Add effect to handle node selection and layout
-  useEffect(() => {
-    if (!selectedNode || !originalLayout || !reactFlowInstance.current) return;
+  useEffect(
+    () => {
+      if (!selectedNode || !originalLayout || !reactFlowInstance.current)
+        return;
 
-    const connectedNodeIds = getConnectedNodes(selectedNode);
+      const connectedNodeIds = getConnectedNodes(selectedNode);
 
-    // Calculate the center of the current view
-    const { x: viewX, y: viewY } = reactFlowInstance.current.getViewport();
+      // Calculate the center of the current view
+      const { x: viewX, y: viewY } = reactFlowInstance.current.getViewport();
 
-    // Create a subgraph of connected nodes
-    const relevantNodes = nodes.map((node) => ({
-      ...node,
-      // Move unconnected nodes just outside the view
-      position: connectedNodeIds.includes(node.id)
-        ? node.position
-        : {
-            x: node.position.x + viewX + 800,
-            y: node.position.y + viewY + 800,
-          },
-      style: {
-        ...node.style,
-        opacity: connectedNodeIds.includes(node.id) ? 1 : 0.2,
-        transition: "all 0.5s ease-in-out",
-      },
-    }));
-
-    // Filter edges to only show those connecting selected nodes
-    const relevantEdges = edges.map((edge) => ({
-      ...edge,
-      style: {
-        ...edge.style,
-        opacity:
-          connectedNodeIds.includes(edge.source) &&
-          connectedNodeIds.includes(edge.target)
-            ? 1
-            : 0,
-        transition: "all 0.5s ease-in-out",
-      },
-    }));
-
-    // Re-layout the connected nodes to bring them closer
-    const { nodes: layoutedNodes } = getLayoutedElements(
-      relevantNodes.filter((node) => connectedNodeIds.includes(node.id)),
-      relevantEdges.filter(
-        (edge) =>
-          connectedNodeIds.includes(edge.source) &&
-          connectedNodeIds.includes(edge.target)
-      ),
-      "TB"
-    );
-
-    // Combine the layouts
-    const finalNodes = relevantNodes.map((node) => {
-      const layoutedNode = layoutedNodes.find((n) => n.id === node.id);
-      return layoutedNode || node;
-    });
-
-    setNodes(finalNodes);
-    setEdges(relevantEdges);
-
-    // Fit view to connected nodes after a short delay to allow transition
-    setTimeout(() => {
-      if (reactFlowInstance.current) {
-        reactFlowInstance.current.fitView({
-          padding: 0.2,
-          duration: 0,
-          nodes: finalNodes.filter((node) =>
-            connectedNodeIds.includes(node.id)
-          ),
-        });
-      }
-    }, 10);
-  },
-    // setNodes/setEdges are stable React Flow setters; this selection effect only tracks graph state.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  [selectedNode, originalLayout, getConnectedNodes, edges, nodes]);
-
-  // Modify effect to reset layout when deselecting
-  useEffect(() => {
-    if (
-      !selectedNode &&
-      originalLayout &&
-      initialized &&
-      reactFlowInstance.current
-    ) {
-      const restoredNodes = originalLayout.nodes.map((node) => ({
+      // Create a subgraph of connected nodes
+      const relevantNodes = nodes.map((node) => ({
         ...node,
+        // Move unconnected nodes just outside the view
+        position: connectedNodeIds.includes(node.id)
+          ? node.position
+          : {
+              x: node.position.x + viewX + 800,
+              y: node.position.y + viewY + 800,
+            },
         style: {
           ...node.style,
-          opacity: 1,
+          opacity: connectedNodeIds.includes(node.id) ? 1 : 0.2,
           transition: "all 0.5s ease-in-out",
         },
       }));
 
-      setNodes(restoredNodes);
-      setEdges(originalLayout.edges);
+      // Filter edges to only show those connecting selected nodes
+      const relevantEdges = edges.map((edge) => ({
+        ...edge,
+        style: {
+          ...edge.style,
+          opacity:
+            connectedNodeIds.includes(edge.source) &&
+            connectedNodeIds.includes(edge.target)
+              ? 1
+              : 0,
+          transition: "all 0.5s ease-in-out",
+        },
+      }));
 
-      void setTimeout(() => {
+      // Re-layout the connected nodes to bring them closer
+      const { nodes: layoutedNodes } = getLayoutedElements(
+        relevantNodes.filter((node) => connectedNodeIds.includes(node.id)),
+        relevantEdges.filter(
+          (edge) =>
+            connectedNodeIds.includes(edge.source) &&
+            connectedNodeIds.includes(edge.target)
+        ),
+        "TB"
+      );
+
+      // Combine the layouts
+      const finalNodes = relevantNodes.map((node) => {
+        const layoutedNode = layoutedNodes.find((n) => n.id === node.id);
+        return layoutedNode || node;
+      });
+
+      setNodes(finalNodes);
+      setEdges(relevantEdges);
+
+      // Fit view to connected nodes after a short delay to allow transition
+      setTimeout(() => {
         if (reactFlowInstance.current) {
           reactFlowInstance.current.fitView({
             padding: 0.2,
-            duration: 800,
+            duration: 0,
+            nodes: finalNodes.filter((node) =>
+              connectedNodeIds.includes(node.id)
+            ),
           });
         }
-      }, 50);
-    }
-  },
+      }, 10);
+    },
+    // setNodes/setEdges are stable React Flow setters; this selection effect only tracks graph state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedNode, originalLayout, getConnectedNodes, edges, nodes]
+  );
+
+  // Modify effect to reset layout when deselecting
+  useEffect(
+    () => {
+      if (
+        !selectedNode &&
+        originalLayout &&
+        initialized &&
+        reactFlowInstance.current
+      ) {
+        const restoredNodes = originalLayout.nodes.map((node) => ({
+          ...node,
+          style: {
+            ...node.style,
+            opacity: 1,
+            transition: "all 0.5s ease-in-out",
+          },
+        }));
+
+        setNodes(restoredNodes);
+        setEdges(originalLayout.edges);
+
+        void setTimeout(() => {
+          if (reactFlowInstance.current) {
+            reactFlowInstance.current.fitView({
+              padding: 0.2,
+              duration: 800,
+            });
+          }
+        }, 50);
+      }
+    },
     // setNodes/setEdges are stable React Flow setters; this restore effect only tracks selection state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  [selectedNode, originalLayout, initialized]);
+    [selectedNode, originalLayout, initialized]
+  );
 
   // Add initialization effect back
   useEffect(() => {

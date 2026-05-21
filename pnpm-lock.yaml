@@ -134,6 +134,8 @@ importers:
         specifier: 8.0.8
         version: 8.0.8(@types/node@25.0.8)(esbuild@0.28.0)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.3)
 
+  apps/graphql-proxy: {}
+
   apps/indexer:
     dependencies:
       envio:

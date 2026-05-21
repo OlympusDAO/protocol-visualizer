@@ -5,10 +5,12 @@
   "scripts": {
     "build": "turbo run build",
     "check:runtime-versions": "node scripts/verify-runtime-versions.mjs",
-    "docker:build:frontend": "docker build -f Dockerfile-frontend --build-arg VITE_ENVIO_GRAPHQL_URL=http://localhost:8080/v1/graphql -t protocol-visualizer/frontend:local .",
+    "docker:build:frontend": "docker build -f Dockerfile-frontend --build-arg VITE_ENVIO_GRAPHQL_URL=http://localhost:8080/graphql -t protocol-visualizer/frontend:local .",
+    "docker:build:graphql-proxy": "docker build -f Dockerfile-graphql-proxy -t protocol-visualizer/graphql-proxy:local .",
     "docker:build:hasura": "docker build -f Dockerfile-hasura -t protocol-visualizer/hasura:local .",
     "docker:build:indexer": "docker build -f Dockerfile-indexer -t protocol-visualizer/indexer:local .",
     "docker:tag:scan:frontend": "docker tag protocol-visualizer/frontend:local protocol-visualizer/frontend:scan",
+    "docker:tag:scan:graphql-proxy": "docker tag protocol-visualizer/graphql-proxy:local protocol-visualizer/graphql-proxy:scan",
     "docker:tag:scan:hasura": "docker tag protocol-visualizer/hasura:local protocol-visualizer/hasura:scan",
     "docker:tag:scan:indexer": "docker tag protocol-visualizer/indexer:local protocol-visualizer/indexer:scan",
     "dev": "turbo run dev",
@@ -17,7 +19,7 @@
     "indexer:metrics": "sh -c 'curl -s \"http://localhost:${ENVIO_INDEXER_PORT:-9898}/metrics\" | rg \"envio_progress_|hyperindex_synced_to_head|envio_effect_\"'",
     "lint:check": "turbo run lint:check",
     "lint": "turbo run lint && prettier --write \"**/*.{js,mjs,ts,tsx,md,json}\"",
-    "validate:local": "pnpm run check:runtime-versions && pnpm install --frozen-lockfile && pnpm run lint:check && pnpm run build && pnpm run docker:build:indexer && pnpm run docker:build:frontend && pnpm run docker:build:hasura",
+    "validate:local": "pnpm run check:runtime-versions && pnpm install --frozen-lockfile && pnpm run lint:check && pnpm run build && pnpm run docker:build:indexer && pnpm run docker:build:frontend && pnpm run docker:build:hasura && pnpm run docker:build:graphql-proxy",
     "format": "prettier --write \"**/*.{js,mjs,ts,tsx,md,json}\""
   },
   "devDependencies": {

@@ -5,7 +5,10 @@ USER root
 
 RUN apt-get update \
     && ACCEPT_EULA=Y DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && chown -R hasura:hasura /home/hasura
+
+USER hasura
 
 ENV HASURA_GRAPHQL_ENABLE_CONSOLE=false
 ENV HASURA_GRAPHQL_ENABLED_LOG_TYPES=startup,http-log,webhook-log,websocket-log,query-log

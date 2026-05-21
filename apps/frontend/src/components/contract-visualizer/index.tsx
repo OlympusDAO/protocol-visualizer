@@ -13,16 +13,15 @@ import ReactFlow, {
   ReactFlowInstance,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { usePonderQuery } from "@ponder/react";
-import { schema } from "@/lib/ponder";
-import { Contract } from "@/services/contracts";
-import { eq, and } from "@ponder/client";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Contract,
+  getProtocolVisualizerData,
+  RoleAssignment,
+} from "@/services/contracts";
 import dagre from "dagre";
 import { ChainSelector } from "../chain-selector";
 import { ChainId } from "@/lib/constants";
-
-// Types
-type RoleAssignment = typeof schema.roleAssignment.$inferSelect;
 
 interface NodeData {
   name: string;
@@ -331,43 +330,14 @@ export function ContractVisualizer() {
     setSelectedNode(null);
   }, [selectedChainId, setNodes, setEdges]);
 
-  // Query contracts with chain ID filter
-  const { data: contracts, isLoading: isLoadingContracts } = usePonderQuery({
-    queryFn: (db) =>
-      db
-        .select()
-        .from(schema.contract)
-        .where(
-          and(
-            eq(schema.contract.isEnabled, true),
-            eq(schema.contract.chainId, selectedChainId)
-          )
-        ),
+  const { data, isLoading } = useQuery({
+    queryKey: ["protocol-visualizer", selectedChainId],
+    queryFn: () => getProtocolVisualizerData(selectedChainId),
   });
 
-  // Query roles with chain ID filter
-  const { data: roles, isLoading: isLoadingRoles } = usePonderQuery({
-    queryFn: (db) =>
-      db
-        .select()
-        .from(schema.role)
-        .where(eq(schema.role.chainId, selectedChainId)),
-  });
-
-  // Query role assignments with chain ID filter
-  const { data: roleAssignments, isLoading: isLoadingAssignments } =
-    usePonderQuery({
-      queryFn: (db) =>
-        db
-          .select()
-          .from(schema.roleAssignment)
-          .where(
-            and(
-              eq(schema.roleAssignment.isGranted, true),
-              eq(schema.roleAssignment.chainId, selectedChainId)
-            )
-          ),
-    });
+  const contracts = data?.contracts;
+  const roles = data?.roles;
+  const roleAssignments = data?.roleAssignments;
 
   const createNodeFromContract = useCallback(
     (contract: Contract, id: string) => {
@@ -827,8 +797,7 @@ export function ContractVisualizer() {
     );
   }, []);
 
-  const isLoading =
-    isLoadingContracts || isLoadingRoles || isLoadingAssignments || layouting;
+  const graphIsLoading = isLoading || layouting;
 
   // Render tooltip for hovered assignee
   const renderAssigneeTooltip = () => {
@@ -1370,7 +1339,7 @@ export function ContractVisualizer() {
     );
   };
 
-  if (isLoading && !initialized) {
+  if (graphIsLoading && !initialized) {
     return (
       <div className="w-full h-[800px] flex items-center justify-center">
         Loading...

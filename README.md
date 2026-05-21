@@ -54,3 +54,12 @@ pnpm run docker:build:frontend
 
 Indexer setup, local Envio testing, metrics, and Docker runtime notes are
 documented in `apps/indexer/README.md`.
+
+## Frontend
+
+The frontend reads directly from the Envio GraphQL endpoint. Configure it at
+build time with:
+
+```bash
+VITE_ENVIO_GRAPHQL_URL=http://localhost:8080/v1/graphql
+```

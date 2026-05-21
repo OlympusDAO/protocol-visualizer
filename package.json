@@ -5,7 +5,7 @@
   "scripts": {
     "build": "turbo run build",
     "check:runtime-versions": "node scripts/verify-runtime-versions.mjs",
-    "docker:build:frontend": "docker build -f Dockerfile-frontend --build-arg VITE_PONDER_URL=https://example.com -t protocol-visualizer/frontend:local .",
+    "docker:build:frontend": "docker build -f Dockerfile-frontend --build-arg VITE_ENVIO_GRAPHQL_URL=https://example.com/v1/graphql -t protocol-visualizer/frontend:local .",
     "docker:build:indexer": "docker build -f Dockerfile-indexer -t protocol-visualizer/indexer:local .",
     "docker:tag:scan:frontend": "docker tag protocol-visualizer/frontend:local protocol-visualizer/frontend:scan",
     "docker:tag:scan:indexer": "docker tag protocol-visualizer/indexer:local protocol-visualizer/indexer:scan",

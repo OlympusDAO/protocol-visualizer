@@ -6,7 +6,7 @@ import {
   FunctionDetails,
   ROLE_ROLES_ADMIN,
 } from "./types";
-import { EtherscanApi } from "../etherscan/api";
+import { EtherscanApi, getEtherscanApi } from "../etherscan/api";
 import path from "path";
 import { ChainId } from "../../constants";
 import precomputedContractMetadata from "../../generated/contract-metadata.json";
@@ -25,7 +25,7 @@ export class ContractProcessor {
   private cache: ContractCache;
 
   constructor(
-    private etherscanApi: EtherscanApi,
+    private etherscanApi: EtherscanApi | undefined,
     private chainId: ChainId
   ) {
     // this.roleExtractor = new RoleExtractor();
@@ -79,7 +79,7 @@ export class ContractProcessor {
       abi = JSON.parse(abiJson) as Abi;
     } else {
       // Fetch and save ABI if it doesn't exist
-      abi = await this.etherscanApi.getContractAbi(address);
+      abi = await this.getEtherscanApi().getContractAbi(address);
       writeFileSync(abiPath, JSON.stringify(abi, null, 2));
     }
 
@@ -93,7 +93,7 @@ export class ContractProcessor {
       sourceCode = readFileSync(sourceCodePath, "utf-8");
     } else {
       // Fetch and save source code if it doesn't exist
-      sourceCode = await this.etherscanApi.getContractSourceCode(address);
+      sourceCode = await this.getEtherscanApi().getContractSourceCode(address);
       writeFileSync(sourceCodePath, sourceCode);
     }
 
@@ -122,6 +122,11 @@ export class ContractProcessor {
 
   private getChainAbiDir(): string {
     return path.join(ABI_DIR, this.chainId.toString());
+  }
+
+  private getEtherscanApi(): EtherscanApi {
+    this.etherscanApi ??= getEtherscanApi(this.chainId);
+    return this.etherscanApi;
   }
 
   private getChainSourceCodeDir(): string {

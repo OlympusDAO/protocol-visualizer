@@ -31,7 +31,6 @@ import {
   type ProcessedContractData,
   ROLE_ROLES_ADMIN,
 } from "./services/contracts/types";
-import { getEtherscanApi } from "./services/etherscan/api";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -245,14 +244,21 @@ function getPublicClient(chainId: number): PublicClient<Transport> {
   return client;
 }
 
+function isHistoricalStateUnavailable(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.toLowerCase().includes("historical state") &&
+    error.message.toLowerCase().includes("not available")
+  );
+}
+
 function getContractProcessor(chainId: number): ContractProcessor {
   const processor = contractProcessors.get(chainId);
   if (processor) {
     return processor;
   }
 
-  const etherscanApi = getEtherscanApi(chainId);
-  const newProcessor = new ContractProcessor(etherscanApi, chainId);
+  const newProcessor = new ContractProcessor(undefined, chainId);
   contractProcessors.set(chainId, newProcessor);
 
   return newProcessor;
@@ -291,15 +297,32 @@ function getRequestedPolicyPermissions(
     return cached;
   }
 
-  const permissions = getPublicClient(chainId)
-    .readContract({
+  const permissions = (async () => {
+    try {
+      return await getPublicClient(chainId).readContract({
+        abi: PolicyAbi,
+        address: policyAddress,
+        functionName: "requestPermissions",
+        args: [],
+        blockNumber,
+      });
+    } catch (error) {
+      if (!isHistoricalStateUnavailable(error)) {
+        throw error;
+      }
+
+      console.warn(
+        `Historical requestPermissions unavailable for ${policyAddress} on chain ${chainId} at block ${blockNumber}; retrying at latest block`
+      );
+
+      return getPublicClient(chainId).readContract({
       abi: PolicyAbi,
       address: policyAddress,
       functionName: "requestPermissions",
       args: [],
-      blockNumber,
-    })
-    .catch((error) => {
+      });
+    }
+  })().catch((error) => {
       requestedPolicyPermissions.delete(cacheKey);
       throw error;
     }) as Promise<readonly RequestedPolicyPermission[]>;
@@ -376,13 +399,30 @@ async function parseContractName(
   }
 
   try {
-    const keycodeResult = await getPublicClient(chainId).readContract({
-      abi: ModuleAbi,
-      address: target,
-      functionName: "KEYCODE",
-      args: [],
-      blockNumber,
-    });
+    let keycodeResult: Hex;
+    try {
+      keycodeResult = await getPublicClient(chainId).readContract({
+        abi: ModuleAbi,
+        address: target,
+        functionName: "KEYCODE",
+        args: [],
+        blockNumber,
+      });
+    } catch (error) {
+      if (!isHistoricalStateUnavailable(error)) {
+        throw error;
+      }
+
+      console.warn(
+        `Historical KEYCODE unavailable for ${target} on chain ${chainId} at block ${blockNumber}; retrying at latest block`
+      );
+      keycodeResult = await getPublicClient(chainId).readContract({
+        abi: ModuleAbi,
+        address: target,
+        functionName: "KEYCODE",
+        args: [],
+      });
+    }
 
     const keycode = fromHex(keycodeResult, "string").replace(/\0/g, "");
     console.log(`Keycode for ${target}: ${keycode}`);
@@ -672,8 +712,7 @@ async function ensureKernelSeeded(
   const blockNumber = BigInt(constants.creationBlockNumber);
   const initialExecutor = await getKernelExecutor(
     constants.address,
-    chainId,
-    blockNumber
+    chainId
   );
 
   context.ActionExecutedEvent.set({
@@ -772,8 +811,7 @@ async function ensureRolesAdminSeeded(
   const blockNumber = BigInt(constants.creationBlockNumber);
   const initialAdmin = await getRolesAdmin(
     constants.address,
-    chainId,
-    blockNumber
+    chainId
   );
   const assigneeName = getContractName(initialAdmin, chainId);
 
@@ -978,7 +1016,7 @@ async function handleKernelActionExecuted(
   }
 
   if (action === "changeExecutor") {
-    const executor = await getKernelExecutor(event.srcAddress, chainId, blockNumber);
+    const executor = await getKernelExecutor(event.srcAddress, chainId);
 
     envioContext.KernelExecutor.set({
       id: kernelExecutorId(chainId, event.srcAddress),

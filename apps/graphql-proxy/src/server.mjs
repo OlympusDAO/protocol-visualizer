@@ -98,7 +98,9 @@ const forwardGraphqlGet = async (request, response, requestUrl) => {
     try {
       parsedVariables = JSON.parse(variables);
     } catch {
-      sendJson(response, 400, { error: "GraphQL variables must be valid JSON" });
+      sendJson(response, 400, {
+        error: "GraphQL variables must be valid JSON",
+      });
       return;
     }
   }

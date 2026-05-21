@@ -247,8 +247,16 @@ function getPublicClient(chainId: number): PublicClient<Transport> {
   const transports = getRpcUrls(chainId).map((url) =>
     http(url, { batch: true })
   );
-  const transport =
-    transports.length === 1 ? transports[0]! : fallback(transports);
+  let transport: Transport;
+  if (transports.length === 1) {
+    const [singleTransport] = transports;
+    if (!singleTransport) {
+      throw new Error(`RPC URL not found for chain ${chainId}`);
+    }
+    transport = singleTransport;
+  } else {
+    transport = fallback(transports);
+  }
   const client = createPublicClient({ transport });
   publicClients.set(chainId, client);
 

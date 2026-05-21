@@ -140,8 +140,6 @@ const requestedPolicyPermissions = new Map<
   Promise<readonly RequestedPolicyPermission[]>
 >();
 const publicClients = new Map<number, PublicClient<Transport>>();
-const seededKernels = new Set<number>();
-const seededRolesAdmins = new Set<number>();
 const currentModuleCache = new Map<string, CurrentModuleEntity>();
 
 const DEFAULT_RPC_URLS: Record<number, string> = {
@@ -902,15 +900,10 @@ async function ensureKernelSeeded(
   context: EnvioContext,
   chainId: number
 ): Promise<void> {
-  if (seededKernels.has(chainId)) {
-    return;
-  }
-
   const constants = getKernelConstants(chainId);
   const id = contractId(chainId, constants.address);
   const existing = await context.Contract.get(id);
   if (existing) {
-    seededKernels.add(chainId);
     return;
   }
 
@@ -994,23 +987,16 @@ async function ensureKernelSeeded(
     blockNumber,
     executor: initialExecutor,
   });
-
-  seededKernels.add(chainId);
 }
 
 async function ensureRolesAdminSeeded(
   context: EnvioContext,
   chainId: number
 ): Promise<void> {
-  if (seededRolesAdmins.has(chainId)) {
-    return;
-  }
-
   const constants = getRolesAdminConstants(chainId);
   const id = currentRoleAssigneeId(chainId, ROLE_ROLES_ADMIN);
   const existing = await context.CurrentRoleAssignee.get(id);
   if (existing) {
-    seededRolesAdmins.add(chainId);
     return;
   }
 
@@ -1064,7 +1050,6 @@ async function ensureRolesAdminSeeded(
   });
 
   setRole(context, chainId, ROLE_ROLES_ADMIN);
-  seededRolesAdmins.add(chainId);
 }
 
 async function handleKernelActionExecuted(
@@ -1260,11 +1245,13 @@ async function handleKernelActionExecuted(
   }
 }
 
-function handleRoleGranted(
+async function handleRoleGranted(
   event: RoleGrantedEvent,
   context: EnvioContext
 ): Promise<void> {
   const envioContext = context;
+  await ensureRolesAdminSeeded(envioContext, event.chainId);
+
   const role = fromHex(event.params.role_, "string").replace(/\0/g, "");
   const assignee = event.params.addr_;
   const timestamp = BigInt(event.block.timestamp);
@@ -1306,7 +1293,6 @@ function handleRoleGranted(
   });
 
   setRole(envioContext, event.chainId, role);
-  return Promise.resolve();
 }
 
 async function handleRoleRevoked(
@@ -1314,6 +1300,8 @@ async function handleRoleRevoked(
   context: EnvioContext
 ): Promise<void> {
   const envioContext = context;
+  await ensureRolesAdminSeeded(envioContext, event.chainId);
+
   const role = fromHex(event.params.role_, "string").replace(/\0/g, "");
   const assignee = event.params.addr_;
   const timestamp = BigInt(event.block.timestamp);

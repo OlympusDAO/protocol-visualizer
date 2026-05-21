@@ -3,6 +3,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const RPC_MODES = new Set(["sync", "fallback"]);
+const DEFAULT_HASURA_STARTUP_TIMEOUT_MS = 180_000;
+const HASURA_STARTUP_RETRY_INTERVAL_MS = 2_000;
+const HASURA_STARTUP_REQUEST_TIMEOUT_MS = 5_000;
 
 const loadDotEnv = () => {
   const envPath = resolve(process.cwd(), ".env");
@@ -92,9 +95,94 @@ if (envioArgs.length === 0) {
   envioArgs.push("start");
 }
 
+const sleep = (durationMs) =>
+  new Promise((resolveSleep) => setTimeout(resolveSleep, durationMs));
+
+const getPositiveIntegerEnv = (key, defaultValue) => {
+  const value = process.env[key];
+  if (value === undefined || value === "") {
+    return defaultValue;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`${key} must be a positive integer; received ${value}`);
+  }
+
+  return parsed;
+};
+
+const isIndexerCommand = () => {
+  const [command] = envioArgs;
+  return command === "start" || command === "dev";
+};
+
+const waitForHasura = async () => {
+  const endpoint = process.env.HASURA_GRAPHQL_ENDPOINT;
+  const secret = process.env.HASURA_GRAPHQL_ADMIN_SECRET;
+
+  if (!isIndexerCommand() || !endpoint || !secret) {
+    return;
+  }
+
+  const timeoutMs = getPositiveIntegerEnv(
+    "ENVIO_HASURA_STARTUP_TIMEOUT_MS",
+    DEFAULT_HASURA_STARTUP_TIMEOUT_MS
+  );
+  const deadline = Date.now() + timeoutMs;
+  let lastError = "not attempted";
+
+  console.log(`Waiting for Hasura metadata endpoint at ${endpoint}`);
+
+  while (Date.now() < deadline) {
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(),
+      HASURA_STARTUP_REQUEST_TIMEOUT_MS
+    );
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-hasura-admin-secret": secret,
+        },
+        body: JSON.stringify({ type: "export_metadata", args: {} }),
+        signal: controller.signal,
+      });
+
+      if (response.ok) {
+        console.log("Hasura metadata endpoint is reachable");
+        return;
+      }
+
+      const responseText = await response.text();
+      lastError = `HTTP ${response.status}: ${responseText.slice(0, 200)}`;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    await sleep(HASURA_STARTUP_RETRY_INTERVAL_MS);
+  }
+
+  throw new Error(
+    `Hasura metadata endpoint did not become reachable within ${timeoutMs}ms: ${lastError}`
+  );
+};
+
+await waitForHasura();
+
 const child = spawn("./node_modules/.bin/envio", envioArgs, {
   env: process.env,
   stdio: "inherit",
+});
+
+child.on("error", (error) => {
+  console.error(`Failed to start Envio: ${error.message}`);
+  process.exit(1);
 });
 
 child.on("exit", (code, signal) => {

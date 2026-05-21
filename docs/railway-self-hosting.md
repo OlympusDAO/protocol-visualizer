@@ -37,6 +37,8 @@ PORT=9898
 DATABASE_URL=${{Postgres.DATABASE_URL}}
 HASURA_GRAPHQL_ENDPOINT=http://${{protocol-visualizer-hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/metadata
 HASURA_GRAPHQL_ADMIN_SECRET=${{protocol-visualizer-hasura.HASURA_GRAPHQL_ADMIN_SECRET}}
+# Optional. Defaults to 180000.
+ENVIO_HASURA_STARTUP_TIMEOUT_MS=
 ENVIO_API_TOKEN=
 ENVIO_RPC_MODE=
 ENVIO_RPC_URL_1=<ethereum RPC>
@@ -78,7 +80,10 @@ main production constraints.
    `/railway-indexer.json`.
 4. Configure the variables above using Railway variable references for
    `DATABASE_URL`, `HASURA_GRAPHQL_ENDPOINT`, and `HASURA_GRAPHQL_ADMIN_SECRET`.
-5. Deploy Hasura first, then deploy the indexer.
+5. Deploy Hasura first, then deploy the indexer. The indexer startup wrapper
+   waits for Hasura's metadata endpoint before starting Envio, because Envio's
+   first table-tracking request is not retried if Hasura is still refusing
+   private-network connections.
 6. Watch indexer metrics at `/metrics`; readiness is visible through
    `hyperindex_synced_to_head` and `envio_progress_ready{chainId="..."}`.
 

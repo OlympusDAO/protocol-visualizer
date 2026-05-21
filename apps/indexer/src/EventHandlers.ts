@@ -223,8 +223,8 @@ function currentRoleAssigneeId(chainId: number, role: string): string {
 
 function getRpcUrls(chainId: number): string[] {
   const urls = [
-    process.env[`PONDER_RPC_URL_${chainId}`],
-    process.env[`PONDER_RPC_URL_FALLBACK_${chainId}`],
+    process.env[`ENVIO_RPC_URL_${chainId}`],
+    process.env[`ENVIO_RPC_URL_FALLBACK_${chainId}`],
     DEFAULT_RPC_URLS[chainId],
   ].filter((url): url is string => !!url);
 

@@ -41,19 +41,20 @@ URLs and Envio token:
 cp apps/indexer/.env.sample apps/indexer/.env
 ```
 
-The chain RPC variables currently keep the existing `PONDER_RPC_URL_*` names
-because they are already used by deployment configuration:
+Set one RPC URL for each enabled chain:
 
 ```bash
-PONDER_RPC_URL_1=
-PONDER_RPC_URL_10=
-PONDER_RPC_URL_8453=
-PONDER_RPC_URL_80094=
-PONDER_RPC_URL_11155111=
+ENVIO_RPC_URL_1=
+ENVIO_RPC_URL_10=
+ENVIO_RPC_URL_8453=
+ENVIO_RPC_URL_80094=
+ENVIO_RPC_URL_11155111=
 ENVIO_API_TOKEN=
 ```
 
-`PONDER_RPC_URL_42161` is still present in the sample for Arbitrum, but Arbitrum
+Effect-handler RPC reads also support `ENVIO_RPC_URL_FALLBACK_<chainId>`.
+
+`ENVIO_RPC_URL_42161` is still present in the sample for Arbitrum, but Arbitrum
 is not currently enabled in `config.yaml`.
 
 For Railway or any externally managed Postgres database, set `DATABASE_URL`.

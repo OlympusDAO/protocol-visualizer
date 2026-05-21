@@ -30,7 +30,7 @@ chains:
   - id: 1
     start_block: 15998125
     rpc:
-      - url: ${PONDER_RPC_URL_1:-https://eth.llamarpc.com}
+      - url: ${ENVIO_RPC_URL_1:-https://eth.llamarpc.com}
         for: fallback
     contracts:
       - name: Kernel
@@ -49,7 +49,7 @@ chains:
   - id: 8453
     start_block: 13204831
     rpc:
-      - url: ${PONDER_RPC_URL_8453:-https://base.llamarpc.com}
+      - url: ${ENVIO_RPC_URL_8453:-https://base.llamarpc.com}
         for: fallback
     contracts:
       - name: Kernel
@@ -68,7 +68,7 @@ chains:
   - id: 80094
     start_block: 780016
     rpc:
-      - url: ${PONDER_RPC_URL_80094:-https://rpc.berachain.com}
+      - url: ${ENVIO_RPC_URL_80094:-https://rpc.berachain.com}
         for: fallback
     contracts:
       - name: Kernel
@@ -87,7 +87,7 @@ chains:
   - id: 10
     start_block: 98531655
     rpc:
-      - url: ${PONDER_RPC_URL_10:-https://optimism.llamarpc.com}
+      - url: ${ENVIO_RPC_URL_10:-https://optimism.llamarpc.com}
         for: fallback
     contracts:
       - name: Kernel
@@ -106,7 +106,7 @@ chains:
   - id: 11155111
     start_block: 8226369
     rpc:
-      - url: ${PONDER_RPC_URL_11155111:-https://ethereum-sepolia-rpc.publicnode.com}
+      - url: ${ENVIO_RPC_URL_11155111:-https://ethereum-sepolia-rpc.publicnode.com}
         for: fallback
     contracts:
       - name: Kernel

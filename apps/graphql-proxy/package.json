@@ -6,8 +6,8 @@
   "scripts": {
     "build": "node --check src/server.mjs",
     "dev": "node src/server.mjs",
-    "lint": "eslint . --fix",
-    "lint:check": "eslint . --max-warnings 0",
+    "lint": "biome lint --write . --error-on-warnings",
+    "lint:check": "biome lint . --error-on-warnings",
     "start": "node src/server.mjs"
   },
   "engines": {

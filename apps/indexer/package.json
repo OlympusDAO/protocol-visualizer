@@ -7,8 +7,8 @@
     "dev": "envio dev",
     "start": "envio start",
     "codegen": "envio codegen",
-    "lint": "eslint . --fix",
-    "lint:check": "eslint . --max-warnings 0",
+    "lint": "biome lint --write . --error-on-warnings",
+    "lint:check": "biome lint . --error-on-warnings",
     "typecheck": "tsc"
   },
   "dependencies": {
@@ -17,7 +17,6 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "eslint": "^8.57.1",
     "typescript": "^5.2.2"
   },
   "engines": {

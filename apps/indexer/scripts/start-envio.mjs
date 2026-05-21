@@ -112,16 +112,16 @@ const getPositiveIntegerEnv = (key, defaultValue) => {
   return parsed;
 };
 
-const isIndexerCommand = () => {
+const shouldWaitForHasura = () => {
   const [command] = envioArgs;
-  return command === "start" || command === "dev";
+  return command === "start";
 };
 
 const waitForHasura = async () => {
   const endpoint = process.env.HASURA_GRAPHQL_ENDPOINT;
   const secret = process.env.HASURA_GRAPHQL_ADMIN_SECRET;
 
-  if (!isIndexerCommand() || !endpoint || !secret) {
+  if (!shouldWaitForHasura() || !endpoint || !secret) {
     return;
   }
 
@@ -130,6 +130,7 @@ const waitForHasura = async () => {
     DEFAULT_HASURA_STARTUP_TIMEOUT_MS
   );
   const deadline = Date.now() + timeoutMs;
+  let lastLogAt = 0;
   let lastError = "not attempted";
 
   console.log(`Waiting for Hasura metadata endpoint at ${endpoint}`);
@@ -163,6 +164,12 @@ const waitForHasura = async () => {
       lastError = error instanceof Error ? error.message : String(error);
     } finally {
       clearTimeout(timeout);
+    }
+
+    const now = Date.now();
+    if (now - lastLogAt >= 10_000) {
+      console.log(`Still waiting for Hasura metadata endpoint: ${lastError}`);
+      lastLogAt = now;
     }
 
     await sleep(HASURA_STARTUP_RETRY_INTERVAL_MS);

@@ -20,6 +20,10 @@ Keep the Hasura service public if the frontend queries it directly. The indexer
 does not need a public domain; Railway can still healthcheck `/healthz` on the
 service port.
 
+The Hasura image binds to `::` so it accepts Railway private-network IPv6
+traffic. This matters for legacy Railway environments where
+`*.railway.internal` resolves only to IPv6 addresses.
+
 ## Variables
 
 Set these variables on `protocol-visualizer-hasura`:
@@ -81,9 +85,9 @@ main production constraints.
 4. Configure the variables above using Railway variable references for
    `DATABASE_URL`, `HASURA_GRAPHQL_ENDPOINT`, and `HASURA_GRAPHQL_ADMIN_SECRET`.
 5. Deploy Hasura first, then deploy the indexer. The indexer startup wrapper
-   waits for Hasura's metadata endpoint before starting Envio, because Envio's
-   first table-tracking request is not retried if Hasura is still refusing
-   private-network connections.
+   waits for Hasura's metadata endpoint before production `envio start`,
+   because Envio's first table-tracking request is not retried if Hasura is
+   still refusing private-network connections.
 6. Watch indexer metrics at `/metrics`; readiness is visible through
    `hyperindex_synced_to_head` and `envio_progress_ready{chainId="..."}`.
 

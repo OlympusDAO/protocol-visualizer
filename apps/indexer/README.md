@@ -200,10 +200,11 @@ Railway-style environment variables. It maps:
   `ENVIO_PG_SSL_MODE=prefer`, `HASURA_GRAPHQL_ROLE=admin`,
   `ENVIO_THROTTLE_CHAIN_METADATA_INTERVAL_MILLIS=500`, and
   `ENVIO_THROTTLE_PRUNE_STALE_DATA_INTERVAL_MILLIS=30000`
-- `HASURA_GRAPHQL_ENDPOINT` readiness, when both it and
-  `HASURA_GRAPHQL_ADMIN_SECRET` are set, before launching Envio. This avoids a
-  Railway startup race where Envio can attempt table tracking before Hasura is
-  accepting metadata requests.
+- `HASURA_GRAPHQL_ENDPOINT` readiness before production `envio start`, when
+  both it and `HASURA_GRAPHQL_ADMIN_SECRET` are set. This avoids a Railway
+  startup race where Envio can attempt table tracking before Hasura is accepting
+  metadata requests. Local `envio dev` skips this wait because Envio owns the
+  local stack lifecycle.
 - `RAILWAY_DEPLOYMENT_ID` to `ENVIO_PG_SCHEMA`, when no schema is explicitly set
 - `PORT` to `ENVIO_INDEXER_PORT`, when no indexer port is explicitly set
 

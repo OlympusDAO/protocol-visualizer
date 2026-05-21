@@ -1045,7 +1045,7 @@ async function handleKernelActionExecuted(
   }
 }
 
-async function handleRoleGranted(
+function handleRoleGranted(
   event: RoleGrantedEvent,
   context: EnvioContext
 ): Promise<void> {
@@ -1091,6 +1091,7 @@ async function handleRoleGranted(
   });
 
   setRole(envioContext, event.chainId, role);
+  return Promise.resolve();
 }
 
 async function handleRoleRevoked(
@@ -1264,12 +1265,11 @@ indexer.onEvent(
     contract: "OlympusRoles",
     event: "RoleGranted",
   },
-  async ({ event, context }) => {
-    await handleRoleGranted(
+  ({ event, context }) =>
+    handleRoleGranted(
       event as unknown as RoleGrantedEvent,
       context as EnvioContext
-    );
-  }
+    )
 );
 
 indexer.onEvent(

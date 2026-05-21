@@ -32,6 +32,12 @@ const loadDotEnv = () => {
 
 loadDotEnv();
 
+const setDefaultEnv = (key, value) => {
+  if (process.env[key] === undefined || process.env[key] === "") {
+    process.env[key] = value;
+  }
+};
+
 const databaseUrl = process.env.DATABASE_URL;
 
 if (databaseUrl && !process.env.ENVIO_PG_HOST) {
@@ -48,6 +54,11 @@ if (databaseUrl && !process.env.ENVIO_PG_HOST) {
     process.env.ENVIO_PG_SSL_MODE = sslMode;
   }
 }
+
+setDefaultEnv("ENVIO_PG_SSL_MODE", "prefer");
+setDefaultEnv("HASURA_GRAPHQL_ROLE", "admin");
+setDefaultEnv("ENVIO_THROTTLE_CHAIN_METADATA_INTERVAL_MILLIS", "500");
+setDefaultEnv("ENVIO_THROTTLE_PRUNE_STALE_DATA_INTERVAL_MILLIS", "30000");
 
 if (process.env.RAILWAY_DEPLOYMENT_ID && !process.env.ENVIO_PG_SCHEMA) {
   process.env.ENVIO_PG_SCHEMA = process.env.RAILWAY_DEPLOYMENT_ID.replace(

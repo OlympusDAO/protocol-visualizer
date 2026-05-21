@@ -196,6 +196,10 @@ Railway-style environment variables. It maps:
 
 - `DATABASE_URL` to `ENVIO_PG_HOST`, `ENVIO_PG_PORT`, `ENVIO_PG_USER`,
   `ENVIO_PG_PASSWORD`, and `ENVIO_PG_DATABASE`
+- missing Envio production defaults required by `NODE_ENV=production`:
+  `ENVIO_PG_SSL_MODE=prefer`, `HASURA_GRAPHQL_ROLE=admin`,
+  `ENVIO_THROTTLE_CHAIN_METADATA_INTERVAL_MILLIS=500`, and
+  `ENVIO_THROTTLE_PRUNE_STALE_DATA_INTERVAL_MILLIS=30000`
 - `RAILWAY_DEPLOYMENT_ID` to `ENVIO_PG_SCHEMA`, when no schema is explicitly set
 - `PORT` to `ENVIO_INDEXER_PORT`, when no indexer port is explicitly set
 

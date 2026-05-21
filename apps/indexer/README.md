@@ -1,9 +1,7 @@
 # Indexer
 
-This package contains the Olympus protocol visualizer indexer. The primary
-runtime is Envio HyperIndex. The old Ponder scripts and config are still present
-for comparison while the migration is being validated, but new local testing and
-deployments should use Envio.
+This package contains the Olympus protocol visualizer indexer. The runtime is
+Envio HyperIndex.
 
 ## What It Indexes
 
@@ -43,8 +41,8 @@ URLs and Envio token:
 cp apps/indexer/.env.sample apps/indexer/.env
 ```
 
-The chain RPC variables intentionally keep the existing Ponder names because
-they are already used by deployment configuration:
+The chain RPC variables currently keep the existing `PONDER_RPC_URL_*` names
+because they are already used by deployment configuration:
 
 ```bash
 PONDER_RPC_URL_1=
@@ -180,15 +178,3 @@ Railway-style environment variables. It maps:
 
 The runtime image removes package-manager binaries after install to reduce the
 container scan surface.
-
-## Legacy Ponder Path
-
-The following scripts are retained for fallback comparison only:
-
-```bash
-pnpm --filter indexer run ponder:dev
-pnpm --filter indexer run ponder:start
-pnpm --filter indexer run ponder:codegen
-```
-
-Do not use these for the Envio migration benchmark or Railway deployment path.

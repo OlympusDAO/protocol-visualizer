@@ -7,10 +7,6 @@
     "dev": "envio dev",
     "start": "envio start",
     "codegen": "envio codegen",
-    "ponder:dev": "ponder dev",
-    "ponder:start": "ponder start",
-    "ponder:db": "ponder db",
-    "ponder:codegen": "ponder codegen",
     "lint": "eslint . --fix",
     "lint:check": "eslint . --max-warnings 0",
     "typecheck": "tsc"
@@ -21,10 +17,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "hono": "4.12.14",
-    "ponder": "^0.16.6",
     "eslint": "^8.57.1",
-    "eslint-config-ponder": "^0.9.28",
     "typescript": "^5.2.2"
   },
   "engines": {

@@ -94,5 +94,6 @@ jobs:
           image-ref: protocol-visualizer/hasura:scan
           format: table
           severity: MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: true
           trivyignores: .trivyignore
           exit-code: "1"

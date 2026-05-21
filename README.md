@@ -13,12 +13,16 @@ To be specific, it visualizes the following:
 
 ## Components
 
-The project is made up of two components:
+The project is made up of these components:
 
 - Indexer
   - This uses Envio HyperIndex to index blockchain events
+- GraphQL proxy
+  - A GET-only public GraphQL gateway that forwards read queries to private
+    Hasura and emits cache headers for Cloudflare
 - Frontend
-  - A static frontend that retrieves records from the indexer and renders them in a diagram
+  - A static frontend that retrieves records through GraphQL and renders them in
+    a diagram
 
 ## Deployment
 
@@ -27,9 +31,11 @@ indexer config is RPC-only and does not require `ENVIO_API_TOKEN`.
 
 Railway self-hosting is documented in `docs/railway-self-hosting.md`. The
 deployable Railway services are defined by `railway-indexer.json`,
-`railway-hasura.json`, and `railway-frontend.json`.
+`railway-hasura.json`, `railway-graphql-proxy.json`, and
+`railway-frontend.json`.
 
-The frontend is a static build that points at the Envio/Hasura GraphQL endpoint.
+The frontend is a static build that points at the public GraphQL proxy. The
+proxy talks to Hasura over Railway private networking.
 
 ## Validation
 
@@ -49,6 +55,7 @@ pnpm run build
 pnpm run docker:build:indexer
 pnpm run docker:build:frontend
 pnpm run docker:build:hasura
+pnpm run docker:build:graphql-proxy
 ```
 
 ## Indexer
@@ -66,9 +73,9 @@ pnpm run indexer:metrics
 
 ## Frontend
 
-The frontend reads directly from the Envio GraphQL endpoint. Configure it at
-build time with:
+The frontend reads from the public GraphQL proxy using GET requests. Configure
+it at build time with:
 
 ```bash
-VITE_ENVIO_GRAPHQL_URL=http://localhost:8080/v1/graphql
+VITE_ENVIO_GRAPHQL_URL=http://localhost:8080/graphql
 ```

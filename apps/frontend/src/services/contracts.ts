@@ -141,10 +141,15 @@ async function envioGraphqlRequest<TData>(
   query: string,
   variables?: Record<string, unknown>
 ): Promise<TData> {
-  const response = await fetch(getEnvioGraphqlUrl(), {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ query, variables }),
+  const url = new URL(getEnvioGraphqlUrl(), window.location.origin);
+  url.searchParams.set("query", query);
+  if (variables) {
+    url.searchParams.set("variables", JSON.stringify(variables));
+  }
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: { accept: "application/json" },
   });
 
   if (!response.ok) {
@@ -173,7 +178,9 @@ async function envioGraphqlRequest<TData>(
   return payload.data;
 }
 
-function contractTypeToDisplayType(contractType: EnvioContractType): ContractType {
+function contractTypeToDisplayType(
+  contractType: EnvioContractType
+): ContractType {
   switch (contractType) {
     case "KERNEL":
       return "kernel";

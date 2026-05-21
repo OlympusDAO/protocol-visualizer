@@ -21,21 +21,23 @@ engineStrict: true
 strictDepBuilds: true
 blockExoticSubdeps: true
 packages:
-  - 'apps/*'
-  - 'packages/*'
+  - "apps/*"
+  - "packages/*"
 overrides:
-  "envio>@fuel-ts/crypto": "0.103.0"
-  "envio>@fuel-ts/errors": "0.103.0"
-  "envio>@fuel-ts/hasher": "0.103.0"
-  "envio>@fuel-ts/math": "0.103.0"
-  "envio>@fuel-ts/utils": "0.103.0"
+  "envio>@fuel-ts/crypto@<0.103.0": "0.103.0"
+  "envio>@fuel-ts/errors@<0.103.0": "0.103.0"
+  "envio>@fuel-ts/hasher@<0.103.0": "0.103.0"
+  "envio>@fuel-ts/math@<0.103.0": "0.103.0"
+  "envio>@fuel-ts/utils@<0.103.0": "0.103.0"
   "@hono/node-server@<1.19.13": "1.19.13"
   "ajv@>=6.0.0 <7.0.0": "6.14.0"
+  "bn.js@>=5.0.0 <5.2.3": "5.2.3"
   "brace-expansion@<1.1.13": "1.1.13"
   "brace-expansion@>=2.0.0 <2.0.3": "2.0.3"
   "brace-expansion@>=5.0.0 <5.0.6": "5.0.6"
   "drizzle-orm@<0.45.2": "0.45.2"
   "esbuild@<0.28.0": "0.28.0"
+  "express@>=4.0.0 <4.22.2": "4.22.2"
   "fast-uri@<3.1.2": "3.1.2"
   "flatted@<3.4.2": "3.4.2"
   "hono@<4.12.18": "4.12.18"
@@ -44,6 +46,7 @@ overrides:
   "minimatch@<3.1.4": "3.1.5"
   "minimatch@>=5.0.0 <5.1.8": "5.1.8"
   "minimatch@>=9.0.0 <9.0.7": "9.0.7"
+  "path-to-regexp@<0.1.13": "0.1.13"
   "picomatch@<4.0.4": "4.0.4"
   "postcss@<8.5.10": "8.5.14"
   "rollup@<4.59.0": "4.59.0"

@@ -140,12 +140,9 @@ importers:
 
   apps/indexer:
     dependencies:
-      hono:
-        specifier: 4.12.18
-        version: 4.12.18
-      ponder:
-        specifier: ^0.16.6
-        version: 0.16.6(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(better-sqlite3@9.6.0)(hono@4.12.18)(jiti@1.21.7)(lightningcss@1.32.0)(postgres@3.4.8)(tsx@4.21.0)(typescript@5.7.3)(viem@2.47.11(typescript@5.7.3))(yaml@2.8.3)
+      envio:
+        specifier: 3.0.0
+        version: 3.0.0(react-dom@18.3.1(react@19.2.5))(typescript@5.7.3)(vitest@3.0.9(@types/node@24.12.2)(jiti@1.21.7)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3))
       viem:
         specifier: ^2.21.3
         version: 2.47.11(typescript@5.7.3)
@@ -153,15 +150,18 @@ importers:
       '@types/node':
         specifier: ^24.0.0
         version: 24.12.2
-      envio:
-        specifier: 3.0.0
-        version: 3.0.0(react-dom@18.3.1(react@19.2.5))(typescript@5.7.3)(vitest@3.0.9(@types/node@24.12.2)(jiti@1.21.7)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3))
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
       eslint-config-ponder:
         specifier: ^0.9.28
         version: 0.9.28(@typescript-eslint/eslint-plugin@8.53.0(@typescript-eslint/parser@8.53.0(eslint@8.57.1)(typescript@5.7.3))(eslint@8.57.1)(typescript@5.7.3))(@typescript-eslint/parser@8.53.0(eslint@8.57.1)(typescript@5.7.3))(eslint@8.57.1)
+      hono:
+        specifier: 4.12.18
+        version: 4.12.18
+      ponder:
+        specifier: ^0.16.6
+        version: 0.16.6(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(better-sqlite3@9.6.0)(hono@4.12.18)(jiti@1.21.7)(lightningcss@1.32.0)(postgres@3.4.8)(tsx@4.21.0)(typescript@5.7.3)(viem@2.47.11(typescript@5.7.3))(yaml@2.8.3)
       typescript:
         specifier: ^5.2.2
         version: 5.7.3

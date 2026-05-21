@@ -11,5 +11,5 @@ watchPatterns = [
 ]
 
 [deploy]
-healthcheckPath = "/ready"
+healthcheckPath = "/healthz"
 healthcheckTimeout = 3600

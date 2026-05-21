@@ -16,13 +16,13 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "hono": "4.12.14",
-    "ponder": "^0.16.6",
+    "envio": "3.0.0",
     "viem": "^2.21.3"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "envio": "3.0.0",
+    "hono": "4.12.14",
+    "ponder": "^0.16.6",
     "eslint": "^8.57.1",
     "eslint-config-ponder": "^0.9.28",
     "typescript": "^5.2.2"

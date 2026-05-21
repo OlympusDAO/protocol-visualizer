@@ -59,7 +59,4 @@ EXPOSE 3000
 # Start the application
 WORKDIR /app/apps/indexer
 USER app
-# Known issue: shell-form CMD is required here to expand ${RAILWAY_DEPLOYMENT_ID}
-# into the schema argument. This keeps `sh` as PID 1, so signal propagation is
-# less robust than a pure exec-form entrypoint.
-CMD ["sh", "-c", "./node_modules/.bin/ponder start --schema ${RAILWAY_DEPLOYMENT_ID}"]
+CMD ["node", "scripts/start-envio.mjs"]

@@ -58,3 +58,6 @@ jobs:
 
       - name: Build Hasura Docker image
         run: pnpm run docker:build:hasura
+
+      - name: Build GraphQL proxy Docker image
+        run: pnpm run docker:build:graphql-proxy

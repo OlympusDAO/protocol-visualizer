@@ -62,6 +62,11 @@ type RequestedPolicyPermissionsResult = {
   usedLatestFallback: boolean;
 };
 
+type PolicyPermission = {
+  keycode: string;
+  function: string;
+};
+
 type BaseEvent = {
   chainId: number;
   block: { number: number; timestamp: number };
@@ -264,6 +269,37 @@ const requestedPolicyPermissionSchema = S.schema({
   funcSelector: S.string,
 });
 
+const functionDetailsSchema = S.schema({
+  name: S.string,
+  selector: S.string,
+  signature: S.string,
+  roles: S.array(S.string),
+});
+
+const processedContractDataSchema = S.schema({
+  roleToFunctions: S.record(S.array(S.string)),
+  functionSelectors: S.record(functionDetailsSchema),
+});
+
+const processContractMetadataEffect = createEffect(
+  {
+    name: "processContractMetadata",
+    input: {
+      chainId: S.number,
+      address: S.address,
+      name: S.string,
+    },
+    output: processedContractDataSchema,
+    rateLimit: { calls: 5, per: "second" },
+    cache: true,
+  },
+  async ({ input }) =>
+    getContractProcessor(input.chainId).processContract(
+      input.address,
+      input.name
+    )
+);
+
 const readPolicyPermissionsEffect = createEffect(
   {
     name: "readPolicyPermissions",
@@ -453,6 +489,7 @@ function getContractProcessor(chainId: number): ContractProcessor {
 }
 
 function getProcessedContract(
+  context: EnvioContext,
   chainId: number,
   address: Address,
   name: string
@@ -463,12 +500,12 @@ function getProcessedContract(
     return cached;
   }
 
-  const processedContract = getContractProcessor(chainId)
-    .processContract(address, name)
+  const processedContract = context
+    .effect(processContractMetadataEffect, { chainId, address, name })
     .catch((error) => {
       processedContracts.delete(cacheKey);
       throw error;
-    });
+    }) as Promise<ProcessedContractData>;
   processedContracts.set(cacheKey, processedContract);
 
   return processedContract;
@@ -601,7 +638,8 @@ async function parsePolicyFunctions(
   policyAddress: Address,
   policyName: string,
   blockNumber: bigint,
-  chainId: number
+  chainId: number,
+  context: EnvioContext
 ): Promise<FunctionDetails[] | undefined> {
   if (action !== 2 && action !== 3) {
     return undefined;
@@ -618,6 +656,7 @@ async function parsePolicyFunctions(
   }
 
   const policyFunctions = await getProcessedContract(
+    context,
     chainId,
     policyAddress,
     policyName
@@ -634,7 +673,7 @@ async function parsePolicyPermissions(
   blockNumber: bigint,
   chainId: number,
   context: EnvioContext
-): Promise<Array<{ keycode: string; function: string }> | undefined> {
+): Promise<PolicyPermission[] | undefined> {
   if (action !== 2 && action !== 3) {
     return undefined;
   }
@@ -703,37 +742,43 @@ async function parsePolicyPermissions(
     )
   );
 
-  const policyPermissions: Array<{ keycode: string; function: string }> = [];
-  for (const currentResult of permissionDetails) {
-    const moduleAddress = moduleAddresses.get(currentResult.moduleKeycode);
-    if (!moduleAddress || moduleAddress === ZERO_ADDRESS) {
-      throw new Error(
-        `No module address found in Kernel for keycode ${currentResult.moduleKeycode} at block ${blockNumber}`
-      );
-    }
+  const policyPermissions = await Promise.all(
+    permissionDetails.map(
+      async (currentResult): Promise<PolicyPermission | undefined> => {
+        const moduleAddress = moduleAddresses.get(currentResult.moduleKeycode);
+        if (!moduleAddress || moduleAddress === ZERO_ADDRESS) {
+          throw new Error(
+            `No module address found in Kernel for keycode ${currentResult.moduleKeycode} at block ${blockNumber}`
+          );
+        }
 
-    const moduleProcessedData = await getProcessedContract(
-      chainId,
-      moduleAddress,
-      currentResult.moduleKeycode
-    );
-    const functionDetails =
-      moduleProcessedData.functionSelectors[currentResult.funcSelector];
+        const moduleProcessedData = await getProcessedContract(
+          context,
+          chainId,
+          moduleAddress,
+          currentResult.moduleKeycode
+        );
+        const functionDetails =
+          moduleProcessedData.functionSelectors[currentResult.funcSelector];
 
-    if (!functionDetails) {
-      console.warn(
-        `No function details found for keycode ${currentResult.moduleKeycode} and selector ${currentResult.funcSelector} on policy ${targetName}`
-      );
-      continue;
-    }
+        if (!functionDetails) {
+          console.warn(
+            `No function details found for keycode ${currentResult.moduleKeycode} and selector ${currentResult.funcSelector} on policy ${targetName}`
+          );
+          return undefined;
+        }
 
-    policyPermissions.push({
-      keycode: currentResult.moduleKeycode,
-      function: functionDetails.signature,
-    });
-  }
+        return {
+          keycode: currentResult.moduleKeycode,
+          function: functionDetails.signature,
+        };
+      }
+    )
+  );
 
-  return policyPermissions;
+  return policyPermissions.filter(
+    (permission): permission is PolicyPermission => !!permission
+  );
 }
 
 async function getCurrentModuleAddress(
@@ -1071,22 +1116,27 @@ async function handleKernelActionExecuted(
   });
 
   if (contractType !== "KERNEL") {
-    const policyPermissions = await parsePolicyPermissions(
-      actionInt,
-      event.srcAddress,
-      target,
-      contractName,
-      blockNumber,
-      chainId,
-      envioContext
-    );
-    const policyFunctions = await parsePolicyFunctions(
-      actionInt,
-      target,
-      contractName,
-      blockNumber,
-      chainId
-    );
+    const [policyPermissions, policyFunctions, existingContract] =
+      await Promise.all([
+        parsePolicyPermissions(
+          actionInt,
+          event.srcAddress,
+          target,
+          contractName,
+          blockNumber,
+          chainId,
+          envioContext
+        ),
+        parsePolicyFunctions(
+          actionInt,
+          target,
+          contractName,
+          blockNumber,
+          chainId,
+          envioContext
+        ),
+        envioContext.Contract.get<ContractEntity>(contractId(chainId, target)),
+      ]);
 
     if (action === "upgradeModule") {
       if (!previousContract) {
@@ -1148,9 +1198,6 @@ async function handleKernelActionExecuted(
       policyFunctions,
     });
 
-    const existingContract = await envioContext.Contract.get<ContractEntity>(
-      contractId(chainId, target)
-    );
     envioContext.Contract.set({
       ...(existingContract ?? {
         id: contractId(chainId, target),

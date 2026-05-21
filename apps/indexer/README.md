@@ -103,7 +103,7 @@ During a local run, use the Envio metrics endpoint to confirm each chain is
 advancing and whether effect handlers are running:
 
 ```bash
-curl -s http://localhost:8080/metrics | rg 'envio_progress_|hyperindex_synced_to_head|envio_effect_'
+curl -s http://localhost:9898/metrics | rg 'envio_progress_|hyperindex_synced_to_head|envio_effect_'
 ```
 
 Useful metrics include:

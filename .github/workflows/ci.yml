@@ -14,7 +14,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-
       - name: Bootstrap
         uses: ./.github/actions/bootstrap
       - name: Verify runtime version alignment
@@ -28,7 +27,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
 
       - name: Bootstrap
         uses: ./.github/actions/bootstrap
@@ -44,7 +42,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-
       - name: Bootstrap
         uses: ./.github/actions/bootstrap
       - name: Verify runtime version alignment
@@ -58,3 +55,6 @@ jobs:
 
       - name: Build frontend Docker image
         run: pnpm run docker:build:frontend
+
+      - name: Build Hasura Docker image
+        run: pnpm run docker:build:hasura

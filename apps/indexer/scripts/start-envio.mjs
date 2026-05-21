@@ -1,4 +1,36 @@
 import { spawn } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+const RPC_MODES = new Set(["sync", "fallback"]);
+
+const loadDotEnv = () => {
+  const envPath = resolve(process.cwd(), ".env");
+  if (!existsSync(envPath)) return;
+
+  for (const rawLine of readFileSync(envPath, "utf8").split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+
+    const separatorIndex = line.indexOf("=");
+    if (separatorIndex === -1) continue;
+
+    const key = line.slice(0, separatorIndex).trim();
+    let value = line.slice(separatorIndex + 1).trim();
+    if (!key || process.env[key] !== undefined) continue;
+
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    process.env[key] = value;
+  }
+};
+
+loadDotEnv();
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -28,7 +60,28 @@ if (process.env.PORT && !process.env.ENVIO_INDEXER_PORT) {
   process.env.ENVIO_INDEXER_PORT = process.env.PORT;
 }
 
-const child = spawn("./node_modules/.bin/envio", ["start"], {
+if (!process.env.ENVIO_RPC_MODE) {
+  process.env.ENVIO_RPC_MODE = process.env.ENVIO_API_TOKEN?.trim()
+    ? "fallback"
+    : "sync";
+}
+
+if (!RPC_MODES.has(process.env.ENVIO_RPC_MODE)) {
+  throw new Error(
+    `ENVIO_RPC_MODE must be one of ${Array.from(RPC_MODES).join(", ")}; received ${JSON.stringify(
+      process.env.ENVIO_RPC_MODE
+    )}`
+  );
+}
+
+console.log(`Using ENVIO_RPC_MODE=${process.env.ENVIO_RPC_MODE}`);
+
+const envioArgs = process.argv.slice(2);
+if (envioArgs.length === 0) {
+  envioArgs.push("start");
+}
+
+const child = spawn("./node_modules/.bin/envio", envioArgs, {
   env: process.env,
   stdio: "inherit",
 });

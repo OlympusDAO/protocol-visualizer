@@ -24,7 +24,8 @@ surface effect metrics for those reads.
 - pnpm 10.33.0
 - Docker Desktop, for the local Envio Postgres/Hasura stack
 - RPC URLs for the enabled chains
-- `ENVIO_API_TOKEN`, required for Envio HyperSync on supported chains
+- `ENVIO_API_TOKEN` is optional. It is only needed if `config.yaml` is changed
+  to use HyperSync as the primary data source.
 
 Install dependencies from the repository root:
 
@@ -35,7 +36,7 @@ pnpm install --frozen-lockfile
 ## Environment
 
 Create `apps/indexer/.env` from `apps/indexer/.env.sample` and fill in the RPC
-URLs and Envio token:
+URLs:
 
 ```bash
 cp apps/indexer/.env.sample apps/indexer/.env
@@ -49,8 +50,16 @@ ENVIO_RPC_URL_10=
 ENVIO_RPC_URL_8453=
 ENVIO_RPC_URL_80094=
 ENVIO_RPC_URL_11155111=
-ENVIO_API_TOKEN=
 ```
+
+`config.yaml` uses `ENVIO_RPC_MODE` for each RPC source. The startup wrapper
+sets it automatically:
+
+- `sync` when `ENVIO_API_TOKEN` is absent, for RPC-only indexing
+- `fallback` when `ENVIO_API_TOKEN` is present, for HyperSync with RPC fallback
+
+You can explicitly set `ENVIO_RPC_MODE=sync` or `fallback` to override that
+derived default. Any other value fails at startup.
 
 Effect-handler RPC reads also support `ENVIO_RPC_URL_FALLBACK_<chainId>`.
 
@@ -77,18 +86,17 @@ ESLint config.
 
 ## Local Development
 
-Start the local Envio stack and indexer from `apps/indexer`:
+For the quickest local loop, run Envio's built-in local stack and indexer from
+the repository root:
 
 ```bash
-cd apps/indexer
-ENVIO_TUI=false pnpm exec envio dev
+pnpm run indexer:dev
 ```
 
 For a cold local run that resets Envio's local database state:
 
 ```bash
-cd apps/indexer
-ENVIO_TUI=false pnpm exec envio dev -r
+pnpm run indexer:dev:reset
 ```
 
 Use `-r` for benchmarking or debugging startup behavior. Avoid it when you want
@@ -96,6 +104,12 @@ to keep local progress between runs.
 
 Stop the dev process with `Ctrl-C`. Envio's Docker services may remain running;
 that is normal for repeated local testing.
+
+To check progress from another terminal:
+
+```bash
+pnpm run indexer:metrics
+```
 
 ## Checking Progress
 
@@ -144,7 +158,7 @@ pnpm run validate:local
 
 For a simple cold-start benchmark:
 
-1. Ensure `apps/indexer/.env` has the intended RPC URLs and `ENVIO_API_TOKEN`.
+1. Ensure `apps/indexer/.env` has the intended RPC URLs.
 2. Run a reset local indexer:
 
    ```bash
@@ -155,13 +169,21 @@ For a simple cold-start benchmark:
 3. Record elapsed time and per-chain `envio_progress_block` values from the
    metrics endpoint.
 
-The last local cold Envio run during the migration reached head for all enabled
-chains in about one minute, versus the earlier Ponder baseline that was still
-partially backfilling after five minutes. Treat that as a migration validation
-signal, not a permanent SLA; RPC provider behavior and HyperSync availability
-can change over time.
+During the migration, a cold Envio run using HyperSync reached head for all
+enabled chains in about one minute, versus the earlier Ponder baseline that was
+still partially backfilling after five minutes.
+
+After switching the config to RPC-only (`ENVIO_RPC_MODE=sync`) and running with
+`ENVIO_API_TOKEN` empty, a cold local run reached head in about eight minutes.
+That is slower than HyperSync but still completed well inside the prior Railway
+timeout risk. The RPC-only run emitted Alchemy compute-unit `429` backoffs on
+Base, Optimism, and especially Berachain, so RPC quota is the main constraint to
+watch when self-hosting.
 
 ## Production Runtime
+
+Railway self-hosting architecture and service variables are documented in
+`../../docs/railway-self-hosting.md`.
 
 The Docker image starts:
 

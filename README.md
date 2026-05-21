@@ -22,14 +22,14 @@ The project is made up of two components:
 
 ## Deployment
 
-Note: WIP
+The indexer is designed to be self-hosted with Postgres and Hasura. The default
+indexer config is RPC-only and does not require `ENVIO_API_TOKEN`.
 
-- PostgreSQL database
-  - Hosted on a Google Compute Engine VM
-- Indexer
-  - Hosted on a Google Compute Engine VM
-- Frontend
-  - Hosted on Fleek
+Railway self-hosting is documented in `docs/railway-self-hosting.md`. The
+deployable Railway services are defined by `railway-indexer.json`,
+`railway-hasura.json`, and `railway-frontend.json`.
+
+The frontend is a static build that points at the Envio/Hasura GraphQL endpoint.
 
 ## Validation
 
@@ -48,12 +48,21 @@ pnpm run lint:check
 pnpm run build
 pnpm run docker:build:indexer
 pnpm run docker:build:frontend
+pnpm run docker:build:hasura
 ```
 
 ## Indexer
 
 Indexer setup, local Envio testing, metrics, and Docker runtime notes are
 documented in `apps/indexer/README.md`.
+
+Quick local indexer commands:
+
+```bash
+pnpm run indexer:dev
+pnpm run indexer:dev:reset
+pnpm run indexer:metrics
+```
 
 ## Frontend
 

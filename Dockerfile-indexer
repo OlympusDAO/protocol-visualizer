@@ -53,8 +53,8 @@ ENV NODE_ENV=production
 # Use non-root user
 RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
 
-# Expose the port the app runs on
-EXPOSE 3000
+# Expose the Envio indexer metrics/API port.
+EXPOSE 9898
 
 # Start the application
 WORKDIR /app/apps/indexer

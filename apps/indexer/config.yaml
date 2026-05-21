@@ -31,7 +31,7 @@ chains:
     start_block: 15998125
     rpc:
       - url: ${ENVIO_RPC_URL_1:-https://eth.llamarpc.com}
-        for: fallback
+        for: ${ENVIO_RPC_MODE:-sync}
     contracts:
       - name: Kernel
         address:
@@ -50,7 +50,7 @@ chains:
     start_block: 13204831
     rpc:
       - url: ${ENVIO_RPC_URL_8453:-https://base.llamarpc.com}
-        for: fallback
+        for: ${ENVIO_RPC_MODE:-sync}
     contracts:
       - name: Kernel
         address:
@@ -69,7 +69,7 @@ chains:
     start_block: 780016
     rpc:
       - url: ${ENVIO_RPC_URL_80094:-https://rpc.berachain.com}
-        for: fallback
+        for: ${ENVIO_RPC_MODE:-sync}
     contracts:
       - name: Kernel
         address:
@@ -88,7 +88,7 @@ chains:
     start_block: 98531655
     rpc:
       - url: ${ENVIO_RPC_URL_10:-https://optimism.llamarpc.com}
-        for: fallback
+        for: ${ENVIO_RPC_MODE:-sync}
     contracts:
       - name: Kernel
         address:
@@ -107,7 +107,7 @@ chains:
     start_block: 8226369
     rpc:
       - url: ${ENVIO_RPC_URL_11155111:-https://ethereum-sepolia-rpc.publicnode.com}
-        for: fallback
+        for: ${ENVIO_RPC_MODE:-sync}
     contracts:
       - name: Kernel
         address:

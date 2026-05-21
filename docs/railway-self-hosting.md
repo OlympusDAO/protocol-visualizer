@@ -147,10 +147,10 @@ main production constraints.
 ## Public GraphQL Proxy
 
 The proxy exposes `/graphql` and `/v1/graphql` for browser reads. It accepts only
-GET GraphQL requests, forwards them to private Hasura, supports introspection,
-and sets cache headers so Cloudflare can cache successful responses by URL.
-`POST` and other non-GET GraphQL requests are rejected at the proxy. Railway
-uses `/ready` for proxy healthchecks.
+GET GraphQL requests, forwards them to private Hasura as JSON POST requests,
+supports introspection, and sets cache headers so Cloudflare can cache
+successful responses by URL. `POST` and other non-GET GraphQL requests are
+rejected at the proxy. Railway uses `/ready` for proxy healthchecks.
 
 Cloudflare should be configured with a cache rule for the proxy GraphQL path,
 because JSON/API responses are not always cached by default even when

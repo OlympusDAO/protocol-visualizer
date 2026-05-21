@@ -8,6 +8,10 @@ It accepts browser-friendly `GET` GraphQL requests at `/graphql` and
 `POST` and other non-GET GraphQL requests are rejected. Introspection is allowed.
 `/ready` returns proxy liveness for Railway healthchecks.
 
+The public proxy contract is GET-only for browser and Cloudflare caching, but
+the proxy forwards requests to Hasura as JSON POST requests for compatibility
+with Hasura's GraphQL endpoint.
+
 ## Environment
 
 ```bash

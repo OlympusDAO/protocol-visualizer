@@ -93,8 +93,15 @@ const forwardGraphqlGet = async (request, response, requestUrl) => {
     return;
   }
 
-  const upstreamUrl = new URL(hasuraGraphqlUrl);
-  upstreamUrl.search = requestUrl.search;
+  let parsedVariables;
+  if (variables) {
+    try {
+      parsedVariables = JSON.parse(variables);
+    } catch {
+      sendJson(response, 400, { error: "GraphQL variables must be valid JSON" });
+      return;
+    }
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => {
@@ -102,11 +109,17 @@ const forwardGraphqlGet = async (request, response, requestUrl) => {
   }, HASURA_REQUEST_TIMEOUT_MS);
 
   try {
-    const upstreamResponse = await fetch(upstreamUrl, {
-      method: "GET",
+    const upstreamResponse = await fetch(hasuraGraphqlUrl, {
+      method: "POST",
       headers: {
         accept: request.headers.accept || "application/json",
+        "content-type": "application/json",
       },
+      body: JSON.stringify({
+        query,
+        variables: parsedVariables,
+        operationName: requestUrl.searchParams.get("operationName"),
+      }),
       signal: controller.signal,
     });
 

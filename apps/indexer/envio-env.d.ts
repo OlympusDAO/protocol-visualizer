@@ -4,4 +4,4 @@
  * If your project's types look out of date, run `envio codegen`
  * (or your package manager's `codegen` script, e.g. `pnpm codegen`).
  */
-import "./.envio/types.d.ts";
+/// <reference path="./.envio/types.d.ts" />

@@ -16,6 +16,7 @@ export default tseslint.config(
       "**/postcss.config.mjs",
       "**/*.config.ts",
       "**/next-env.d.ts",
+      "apps/indexer/envio-env.d.ts",
       "apps/indexer/scripts/*.mjs",
     ],
   },

@@ -1,4 +1,4 @@
-import { type EvmOnEventContext, indexer } from "envio";
+import { createEffect, type EvmOnEventContext, indexer, S } from "envio";
 import {
   createPublicClient,
   fallback,
@@ -55,6 +55,11 @@ type EntityStore = {
 type RequestedPolicyPermission = {
   keycode: Hex;
   funcSelector: Hex;
+};
+
+type RequestedPolicyPermissionsResult = {
+  permissions: RequestedPolicyPermission[];
+  usedLatestFallback: boolean;
 };
 
 type BaseEvent = {
@@ -236,7 +241,9 @@ function getPublicClient(chainId: number): PublicClient<Transport> {
     return cached;
   }
 
-  const transports = getRpcUrls(chainId).map((url) => http(url));
+  const transports = getRpcUrls(chainId).map((url) =>
+    http(url, { batch: true })
+  );
   const transport = transports.length === 1 ? transports[0]! : fallback(transports);
   const client = createPublicClient({ transport });
   publicClients.set(chainId, client);
@@ -251,6 +258,187 @@ function isHistoricalStateUnavailable(error: unknown): boolean {
     error.message.toLowerCase().includes("not available")
   );
 }
+
+const requestedPolicyPermissionSchema = S.schema({
+  keycode: S.string,
+  funcSelector: S.string,
+});
+
+const readPolicyPermissionsEffect = createEffect(
+  {
+    name: "readPolicyPermissions",
+    input: {
+      chainId: S.number,
+      policyAddress: S.address,
+      blockNumber: S.bigint,
+    },
+    output: {
+      permissions: S.array(requestedPolicyPermissionSchema),
+      usedLatestFallback: S.boolean,
+    },
+    rateLimit: { calls: 25, per: "second" },
+    cache: true,
+  },
+  async ({ input, context }): Promise<RequestedPolicyPermissionsResult> => {
+    try {
+      const permissions = await getPublicClient(input.chainId).readContract({
+        abi: PolicyAbi,
+        address: input.policyAddress,
+        functionName: "requestPermissions",
+        args: [],
+        blockNumber: input.blockNumber,
+      });
+
+      return {
+        permissions: permissions.map((permission) => ({
+          keycode: permission.keycode,
+          funcSelector: permission.funcSelector,
+        })),
+        usedLatestFallback: false,
+      };
+    } catch (error) {
+      if (!isHistoricalStateUnavailable(error)) {
+        throw error;
+      }
+
+      context.cache = false;
+      context.log.warn(
+        `Historical requestPermissions unavailable for ${input.policyAddress} on chain ${input.chainId} at block ${input.blockNumber}; retrying at latest block`
+      );
+
+      const permissions = await getPublicClient(input.chainId).readContract({
+        abi: PolicyAbi,
+        address: input.policyAddress,
+        functionName: "requestPermissions",
+        args: [],
+      });
+
+      return {
+        permissions: permissions.map((permission) => ({
+          keycode: permission.keycode,
+          funcSelector: permission.funcSelector,
+        })),
+        usedLatestFallback: true,
+      };
+    }
+  }
+);
+
+const readModuleKeycodeEffect = createEffect(
+  {
+    name: "readModuleKeycode",
+    input: {
+      chainId: S.number,
+      moduleAddress: S.address,
+      blockNumber: S.bigint,
+    },
+    output: {
+      keycode: S.string,
+      usedLatestFallback: S.boolean,
+    },
+    rateLimit: { calls: 25, per: "second" },
+    cache: true,
+  },
+  async ({ input, context }): Promise<{ keycode: Hex; usedLatestFallback: boolean }> => {
+    try {
+      return {
+        keycode: await getPublicClient(input.chainId).readContract({
+          abi: ModuleAbi,
+          address: input.moduleAddress,
+          functionName: "KEYCODE",
+          args: [],
+          blockNumber: input.blockNumber,
+        }),
+        usedLatestFallback: false,
+      };
+    } catch (error) {
+      if (!isHistoricalStateUnavailable(error)) {
+        throw error;
+      }
+
+      context.cache = false;
+      context.log.warn(
+        `Historical KEYCODE unavailable for ${input.moduleAddress} on chain ${input.chainId} at block ${input.blockNumber}; retrying at latest block`
+      );
+
+      return {
+        keycode: await getPublicClient(input.chainId).readContract({
+          abi: ModuleAbi,
+          address: input.moduleAddress,
+          functionName: "KEYCODE",
+          args: [],
+        }),
+        usedLatestFallback: true,
+      };
+    }
+  }
+);
+
+const readModuleForKeycodeEffect = createEffect(
+  {
+    name: "readModuleForKeycode",
+    input: {
+      chainId: S.number,
+      kernelAddress: S.address,
+      keycodeHex: S.string,
+      blockNumber: S.bigint,
+    },
+    output: S.address,
+    rateLimit: { calls: 25, per: "second" },
+    cache: true,
+  },
+  async ({ input }) =>
+    getPublicClient(input.chainId).readContract({
+      abi: KernelAbi,
+      address: input.kernelAddress,
+      functionName: "getModuleForKeycode",
+      args: [input.keycodeHex as Hex],
+      blockNumber: input.blockNumber,
+    })
+);
+
+const readKernelExecutorEffect = createEffect(
+  {
+    name: "readKernelExecutor",
+    input: {
+      chainId: S.number,
+      kernelAddress: S.address,
+      blockNumber: S.optional(S.bigint),
+    },
+    output: S.address,
+    rateLimit: { calls: 25, per: "second" },
+    cache: true,
+  },
+  async ({ input }) =>
+    getPublicClient(input.chainId).readContract({
+      abi: KernelAbi,
+      address: input.kernelAddress,
+      functionName: "executor",
+      args: [],
+      ...(input.blockNumber ? { blockNumber: input.blockNumber } : {}),
+    })
+);
+
+const readRolesAdminEffect = createEffect(
+  {
+    name: "readRolesAdmin",
+    input: {
+      chainId: S.number,
+      rolesAdminAddress: S.address,
+      blockNumber: S.optional(S.bigint),
+    },
+    output: S.address,
+    rateLimit: { calls: 25, per: "second" },
+    cache: true,
+  },
+  async ({ input }) =>
+    getPublicClient(input.chainId).readContract({
+      abi: RolesAdminAbi,
+      address: input.rolesAdminAddress,
+      functionName: "admin",
+      ...(input.blockNumber ? { blockNumber: input.blockNumber } : {}),
+    })
+);
 
 function getContractProcessor(chainId: number): ContractProcessor {
   const processor = contractProcessors.get(chainId);
@@ -287,6 +475,7 @@ function getProcessedContract(
 }
 
 function getRequestedPolicyPermissions(
+  context: EnvioContext,
   chainId: number,
   policyAddress: Address,
   blockNumber: bigint
@@ -297,35 +486,23 @@ function getRequestedPolicyPermissions(
     return cached;
   }
 
-  const permissions = (async () => {
-    try {
-      return await getPublicClient(chainId).readContract({
-        abi: PolicyAbi,
-        address: policyAddress,
-        functionName: "requestPermissions",
-        args: [],
-        blockNumber,
-      });
-    } catch (error) {
-      if (!isHistoricalStateUnavailable(error)) {
-        throw error;
+  const permissions = context
+    .effect(readPolicyPermissionsEffect, {
+      chainId,
+      policyAddress,
+      blockNumber,
+    })
+    .then((result) => {
+      if (result.usedLatestFallback) {
+        requestedPolicyPermissions.delete(cacheKey);
       }
 
-      console.warn(
-        `Historical requestPermissions unavailable for ${policyAddress} on chain ${chainId} at block ${blockNumber}; retrying at latest block`
-      );
-
-      return getPublicClient(chainId).readContract({
-      abi: PolicyAbi,
-      address: policyAddress,
-      functionName: "requestPermissions",
-      args: [],
-      });
-    }
-  })().catch((error) => {
+      return result.permissions as RequestedPolicyPermission[];
+    })
+    .catch((error) => {
       requestedPolicyPermissions.delete(cacheKey);
       throw error;
-    }) as Promise<readonly RequestedPolicyPermission[]>;
+    });
   requestedPolicyPermissions.set(cacheKey, permissions);
 
   return permissions;
@@ -387,7 +564,8 @@ async function parseContractName(
   action: number,
   target: Address,
   chainId: number,
-  blockNumber: bigint
+  blockNumber: bigint,
+  context: EnvioContext
 ): Promise<string> {
   if (action > 1) {
     return getContractName(target, chainId);
@@ -399,32 +577,16 @@ async function parseContractName(
   }
 
   try {
-    let keycodeResult: Hex;
-    try {
-      keycodeResult = await getPublicClient(chainId).readContract({
-        abi: ModuleAbi,
-        address: target,
-        functionName: "KEYCODE",
-        args: [],
+    const { keycode: keycodeResult } = await context.effect(
+      readModuleKeycodeEffect,
+      {
+        chainId,
+        moduleAddress: target,
         blockNumber,
-      });
-    } catch (error) {
-      if (!isHistoricalStateUnavailable(error)) {
-        throw error;
       }
+    );
 
-      console.warn(
-        `Historical KEYCODE unavailable for ${target} on chain ${chainId} at block ${blockNumber}; retrying at latest block`
-      );
-      keycodeResult = await getPublicClient(chainId).readContract({
-        abi: ModuleAbi,
-        address: target,
-        functionName: "KEYCODE",
-        args: [],
-      });
-    }
-
-    const keycode = fromHex(keycodeResult, "string").replace(/\0/g, "");
+    const keycode = fromHex(keycodeResult as Hex, "string").replace(/\0/g, "");
     console.log(`Keycode for ${target}: ${keycode}`);
 
     return keycode;
@@ -490,6 +652,7 @@ async function parsePolicyPermissions(
   console.log(`Parsing policy permissions for ${targetName}`);
 
   const permissionsResult = await getRequestedPolicyPermissions(
+    context,
     chainId,
     target,
     blockNumber
@@ -593,11 +756,10 @@ async function getCurrentModuleAddress(
     return currentModule.address as Address;
   }
 
-  const moduleAddress = await getPublicClient(chainId).readContract({
-    abi: KernelAbi,
-    address: kernelAddress,
-    functionName: "getModuleForKeycode",
-    args: [keycodeHex],
+  const moduleAddress = await context.effect(readModuleForKeycodeEffect, {
+    chainId,
+    kernelAddress,
+    keycodeHex,
     blockNumber,
   });
 
@@ -620,29 +782,28 @@ async function getCurrentModuleAddress(
 }
 
 async function getKernelExecutor(
+  context: EnvioContext,
   kernelAddress: Address,
   chainId: number,
   blockNumber?: bigint
 ): Promise<Address> {
-  return getPublicClient(chainId).readContract({
-    abi: KernelAbi,
-    address: kernelAddress,
-    functionName: "executor",
-    args: [],
-    ...(blockNumber ? { blockNumber } : {}),
+  return context.effect(readKernelExecutorEffect, {
+    chainId,
+    kernelAddress,
+    blockNumber,
   });
 }
 
 async function getRolesAdmin(
+  context: EnvioContext,
   rolesAdminAddress: Address,
   chainId: number,
   blockNumber?: bigint
 ): Promise<Address> {
-  return getPublicClient(chainId).readContract({
-    address: rolesAdminAddress,
-    abi: RolesAdminAbi,
-    functionName: "admin",
-    ...(blockNumber ? { blockNumber } : {}),
+  return context.effect(readRolesAdminEffect, {
+    chainId,
+    rolesAdminAddress,
+    blockNumber,
   });
 }
 
@@ -711,6 +872,7 @@ async function ensureKernelSeeded(
   const timestamp = BigInt(constants.creationTimestamp);
   const blockNumber = BigInt(constants.creationBlockNumber);
   const initialExecutor = await getKernelExecutor(
+    context,
     constants.address,
     chainId
   );
@@ -810,6 +972,7 @@ async function ensureRolesAdminSeeded(
   const timestamp = BigInt(constants.creationTimestamp);
   const blockNumber = BigInt(constants.creationBlockNumber);
   const initialAdmin = await getRolesAdmin(
+    context,
     constants.address,
     chainId
   );
@@ -877,7 +1040,8 @@ async function handleKernelActionExecuted(
     actionInt,
     target,
     chainId,
-    blockNumber
+    blockNumber,
+    envioContext
   );
   const contractVersion = getContractVersion(target, chainId) ?? undefined;
   const previousContract =
@@ -1016,7 +1180,11 @@ async function handleKernelActionExecuted(
   }
 
   if (action === "changeExecutor") {
-    const executor = await getKernelExecutor(event.srcAddress, chainId);
+    const executor = await getKernelExecutor(
+      envioContext,
+      event.srcAddress,
+      chainId
+    );
 
     envioContext.KernelExecutor.set({
       id: kernelExecutorId(chainId, event.srcAddress),

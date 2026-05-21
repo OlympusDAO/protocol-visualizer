@@ -43,6 +43,10 @@ HASURA_GRAPHQL_ENDPOINT=http://${{protocol-visualizer-hasura.RAILWAY_PRIVATE_DOM
 HASURA_GRAPHQL_ADMIN_SECRET=${{protocol-visualizer-hasura.HASURA_GRAPHQL_ADMIN_SECRET}}
 # Optional. Defaults to 180000.
 ENVIO_HASURA_STARTUP_TIMEOUT_MS=
+# Optional. Defaults to true when PORT is set for production `envio start`.
+ENVIO_HEALTHCHECK_WRAPPER_ENABLED=
+# Optional. Defaults to PORT + 1 when the wrapper is enabled.
+ENVIO_INDEXER_INTERNAL_PORT=
 ENVIO_API_TOKEN=
 ENVIO_RPC_MODE=
 ENVIO_RPC_URL_1=<ethereum RPC>
@@ -88,7 +92,10 @@ main production constraints.
    waits for Hasura's metadata endpoint before production `envio start`,
    because Envio's first table-tracking request is not retried if Hasura is
    still refusing private-network connections.
-6. Watch indexer metrics at `/metrics`; readiness is visible through
+6. Railway healthchecks use the wrapper's `/ready`, which returns `503` until
+   Envio reports full indexing readiness from its metrics. The wrapper proxies
+   `/healthz`, `/metrics`, and other requests to the internal Envio port.
+7. Watch indexer metrics at `/metrics`; readiness is visible through
    `hyperindex_synced_to_head` and `envio_progress_ready{chainId="..."}`.
 
 The indexer wrapper derives `ENVIO_PG_SCHEMA` from `RAILWAY_DEPLOYMENT_ID` when

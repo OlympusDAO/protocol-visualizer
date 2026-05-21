@@ -206,10 +206,20 @@ Railway-style environment variables. It maps:
   metadata requests. Local `envio dev` skips this wait because Envio owns the
   local stack lifecycle.
 - `RAILWAY_DEPLOYMENT_ID` to `ENVIO_PG_SCHEMA`, when no schema is explicitly set
-- `PORT` to `ENVIO_INDEXER_PORT`, when no indexer port is explicitly set
+- production readiness on `PORT`, when `PORT` is set. The wrapper moves Envio to
+  an internal port, proxies normal requests through, and returns `503` from
+  `/ready` until `hyperindex_synced_to_head` is `1` or all
+  `envio_progress_ready{chainId="..."}` metrics are `1`. `/healthz` is proxied
+  to Envio as a normal liveness endpoint.
+- `PORT` to `ENVIO_INDEXER_PORT`, when no indexer port is explicitly set and the
+  healthcheck wrapper is disabled or not used
 
 Set `ENVIO_HASURA_STARTUP_TIMEOUT_MS` to change the Hasura readiness wait from
 the default 180 seconds.
+
+Set `ENVIO_HEALTHCHECK_WRAPPER_ENABLED=false` to disable the production
+healthcheck wrapper. If you need to choose the internal Envio port explicitly,
+set `ENVIO_INDEXER_INTERNAL_PORT`.
 
 The runtime image removes package-manager binaries after install to reduce the
 container scan surface.

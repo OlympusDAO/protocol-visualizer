@@ -1,11 +1,14 @@
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import http from "node:http";
 import { resolve } from "node:path";
 
 const RPC_MODES = new Set(["sync", "fallback"]);
 const DEFAULT_HASURA_STARTUP_TIMEOUT_MS = 180_000;
 const HASURA_STARTUP_RETRY_INTERVAL_MS = 2_000;
 const HASURA_STARTUP_REQUEST_TIMEOUT_MS = 5_000;
+const DEFAULT_INDEXER_INTERNAL_PORT_OFFSET = 1;
+const HEALTHCHECK_REQUEST_TIMEOUT_MS = 5_000;
 
 const loadDotEnv = () => {
   const envPath = resolve(process.cwd(), ".env");
@@ -63,15 +66,55 @@ setDefaultEnv("HASURA_GRAPHQL_ROLE", "admin");
 setDefaultEnv("ENVIO_THROTTLE_CHAIN_METADATA_INTERVAL_MILLIS", "500");
 setDefaultEnv("ENVIO_THROTTLE_PRUNE_STALE_DATA_INTERVAL_MILLIS", "30000");
 
+const envioArgs = process.argv.slice(2);
+if (envioArgs.length === 0) {
+  envioArgs.push("start");
+}
+
+const isStartCommand = () => {
+  const [command] = envioArgs;
+  return command === "start";
+};
+
+const getPositiveIntegerEnv = (key, defaultValue) => {
+  const value = process.env[key];
+  if (value === undefined || value === "") {
+    return defaultValue;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`${key} must be a positive integer; received ${value}`);
+  }
+
+  return parsed;
+};
+
+const getBooleanEnv = (key, defaultValue) => {
+  const value = process.env[key];
+  if (value === undefined || value === "") {
+    return defaultValue;
+  }
+
+  if (value === "true" || value === "1") {
+    return true;
+  }
+
+  if (value === "false" || value === "0") {
+    return false;
+  }
+
+  throw new Error(`${key} must be true, false, 1, or 0; received ${value}`);
+};
+
+const sleep = (durationMs) =>
+  new Promise((resolveSleep) => setTimeout(resolveSleep, durationMs));
+
 if (process.env.RAILWAY_DEPLOYMENT_ID && !process.env.ENVIO_PG_SCHEMA) {
   process.env.ENVIO_PG_SCHEMA = process.env.RAILWAY_DEPLOYMENT_ID.replace(
     /[^a-zA-Z0-9_]/g,
     "_"
   );
-}
-
-if (process.env.PORT && !process.env.ENVIO_INDEXER_PORT) {
-  process.env.ENVIO_INDEXER_PORT = process.env.PORT;
 }
 
 if (!process.env.ENVIO_RPC_MODE) {
@@ -90,38 +133,40 @@ if (!RPC_MODES.has(process.env.ENVIO_RPC_MODE)) {
 
 console.log(`Using ENVIO_RPC_MODE=${process.env.ENVIO_RPC_MODE}`);
 
-const envioArgs = process.argv.slice(2);
-if (envioArgs.length === 0) {
-  envioArgs.push("start");
+const shouldUseHealthcheckWrapper = () =>
+  isStartCommand() &&
+  Boolean(process.env.PORT) &&
+  getBooleanEnv("ENVIO_HEALTHCHECK_WRAPPER_ENABLED", true);
+
+const useHealthcheckWrapper = shouldUseHealthcheckWrapper();
+
+if (process.env.PORT && !process.env.ENVIO_INDEXER_PORT) {
+  process.env.ENVIO_INDEXER_PORT = process.env.PORT;
 }
 
-const sleep = (durationMs) =>
-  new Promise((resolveSleep) => setTimeout(resolveSleep, durationMs));
+if (useHealthcheckWrapper) {
+  const externalPort = getPositiveIntegerEnv("PORT", 9898);
+  const internalPort =
+    process.env.ENVIO_INDEXER_PORT === process.env.PORT
+      ? getPositiveIntegerEnv(
+          "ENVIO_INDEXER_INTERNAL_PORT",
+          externalPort + DEFAULT_INDEXER_INTERNAL_PORT_OFFSET
+        )
+      : getPositiveIntegerEnv("ENVIO_INDEXER_PORT", 9899);
 
-const getPositiveIntegerEnv = (key, defaultValue) => {
-  const value = process.env[key];
-  if (value === undefined || value === "") {
-    return defaultValue;
-  }
+  process.env.ENVIO_INDEXER_PORT = String(internalPort);
+  process.env.ENVIO_HEALTHCHECK_WRAPPER_PORT = String(externalPort);
 
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new Error(`${key} must be a positive integer; received ${value}`);
-  }
-
-  return parsed;
-};
-
-const shouldWaitForHasura = () => {
-  const [command] = envioArgs;
-  return command === "start";
-};
+  console.log(
+    `Using healthcheck wrapper on port ${externalPort}; Envio indexer will listen on port ${internalPort}`
+  );
+}
 
 const waitForHasura = async () => {
   const endpoint = process.env.HASURA_GRAPHQL_ENDPOINT;
   const secret = process.env.HASURA_GRAPHQL_ADMIN_SECRET;
 
-  if (!shouldWaitForHasura() || !endpoint || !secret) {
+  if (!isStartCommand() || !endpoint || !secret) {
     return;
   }
 
@@ -180,7 +225,151 @@ const waitForHasura = async () => {
   );
 };
 
+const readReadyStatusFromMetrics = (metrics) => {
+  const syncedToHead = metrics.match(
+    /^hyperindex_synced_to_head\s+([0-9.]+)$/m
+  );
+  if (syncedToHead) {
+    const value = Number(syncedToHead[1]);
+    return {
+      ready: value === 1,
+      reason:
+        value === 1
+          ? "hyperindex_synced_to_head is 1"
+          : "hyperindex_synced_to_head is not 1",
+    };
+  }
+
+  const chainReadiness = [
+    ...metrics.matchAll(
+      /^envio_progress_ready\{[^}]*chainId="([^"]+)"[^}]*\}\s+([0-9.]+)$/gm
+    ),
+  ].map((match) => ({
+    chainId: match[1],
+    ready: Number(match[2]) === 1,
+  }));
+
+  if (chainReadiness.length === 0) {
+    return {
+      ready: false,
+      reason: "readiness metrics are not available yet",
+    };
+  }
+
+  const waitingChains = chainReadiness
+    .filter((chain) => !chain.ready)
+    .map((chain) => chain.chainId);
+
+  return {
+    ready: waitingChains.length === 0,
+    reason:
+      waitingChains.length === 0
+        ? "all envio_progress_ready metrics are 1"
+        : `waiting for chains: ${waitingChains.join(", ")}`,
+  };
+};
+
+const fetchIndexerMetrics = async (internalPort) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    HEALTHCHECK_REQUEST_TIMEOUT_MS
+  );
+
+  try {
+    const response = await fetch(`http://127.0.0.1:${internalPort}/metrics`, {
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      return {
+        metrics: "",
+        error: `metrics endpoint returned HTTP ${response.status}`,
+      };
+    }
+
+    return { metrics: await response.text(), error: "" };
+  } catch (error) {
+    return {
+      metrics: "",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const proxyToIndexer = (request, response, internalPort) => {
+  const proxyRequest = http.request(
+    {
+      hostname: "127.0.0.1",
+      port: internalPort,
+      path: request.url,
+      method: request.method,
+      headers: request.headers,
+    },
+    (proxyResponse) => {
+      response.writeHead(
+        proxyResponse.statusCode ?? 502,
+        proxyResponse.headers
+      );
+      proxyResponse.pipe(response);
+    }
+  );
+
+  proxyRequest.on("error", (error) => {
+    response.writeHead(502, { "content-type": "application/json" });
+    response.end(
+      JSON.stringify({
+        ready: false,
+        reason: `indexer proxy failed: ${error.message}`,
+      })
+    );
+  });
+
+  request.pipe(proxyRequest);
+};
+
+const startHealthcheckWrapper = () => {
+  if (!useHealthcheckWrapper) {
+    return undefined;
+  }
+
+  const externalPort = getPositiveIntegerEnv("ENVIO_HEALTHCHECK_WRAPPER_PORT");
+  const internalPort = getPositiveIntegerEnv("ENVIO_INDEXER_PORT");
+
+  const server = http.createServer(async (request, response) => {
+    if (request.url?.split("?")[0] !== "/ready") {
+      proxyToIndexer(request, response, internalPort);
+      return;
+    }
+
+    const { metrics, error } = await fetchIndexerMetrics(internalPort);
+    const status = error
+      ? { ready: false, reason: error }
+      : readReadyStatusFromMetrics(metrics);
+
+    response.writeHead(status.ready ? 200 : 503, {
+      "content-type": "application/json",
+    });
+    response.end(JSON.stringify(status));
+  });
+
+  server.listen(externalPort, "::", () => {
+    console.log(`Healthcheck wrapper listening on port ${externalPort}`);
+  });
+
+  server.on("error", (error) => {
+    console.error(`Healthcheck wrapper failed: ${error.message}`);
+    process.exit(1);
+  });
+
+  return server;
+};
+
 await waitForHasura();
+
+const wrapperServer = startHealthcheckWrapper();
 
 const child = spawn("./node_modules/.bin/envio", envioArgs, {
   env: process.env,
@@ -193,6 +382,8 @@ child.on("error", (error) => {
 });
 
 child.on("exit", (code, signal) => {
+  wrapperServer?.close();
+
   if (signal) {
     process.kill(process.pid, signal);
     return;

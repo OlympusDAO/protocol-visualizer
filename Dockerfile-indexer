@@ -2,8 +2,9 @@
 # Pinned image: node:24-alpine (Node v24.14.1)
 FROM node:24-alpine@sha256:01743339035a5c3c11a373cd7c83aeab6ed1457b55da6a69e014a95ac4e4700b AS deps
 
-# Apply Alpine security updates
-RUN apk upgrade --no-cache musl musl-utils zlib libssl3 libcrypto3 libxpm nghttp2-libs xz-libs
+# Apply Alpine security updates and add glibc compatibility for Envio native bindings.
+RUN apk upgrade --no-cache musl musl-utils zlib libssl3 libcrypto3 libxpm nghttp2-libs xz-libs \
+    && apk add --no-cache libc6-compat
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
@@ -24,8 +25,9 @@ COPY apps/indexer/ ./apps/indexer/
 # Runtime stage
 FROM node:24-alpine@sha256:01743339035a5c3c11a373cd7c83aeab6ed1457b55da6a69e014a95ac4e4700b AS runtime
 
-# Apply Alpine security updates
-RUN apk upgrade --no-cache musl musl-utils zlib libssl3 libcrypto3 libxpm nghttp2-libs xz-libs
+# Apply Alpine security updates and add glibc compatibility for Envio native bindings.
+RUN apk upgrade --no-cache musl musl-utils zlib libssl3 libcrypto3 libxpm nghttp2-libs xz-libs \
+    && apk add --no-cache libc6-compat
 
 # Set working directory
 WORKDIR /app

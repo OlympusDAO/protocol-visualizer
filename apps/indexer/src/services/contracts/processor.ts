@@ -120,7 +120,7 @@ export class ContractProcessor {
     this.cache[this.chainId] = currentChainCache;
     this.saveCache();
 
-    return processedData;
+    return processedContractData;
   }
 
   private getChainAbiDir(): string {

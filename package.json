@@ -5,7 +5,7 @@
   "scripts": {
     "build": "turbo run build",
     "check:runtime-versions": "node scripts/verify-runtime-versions.mjs",
-    "docker:build:frontend": "docker build -f Dockerfile-frontend --build-arg VITE_ENVIO_GRAPHQL_URL=http://localhost:8080/graphql -t protocol-visualizer/frontend:local .",
+    "docker:build:frontend": "docker build -f Dockerfile-frontend --build-arg VITE_ENVIO_GRAPHQL_URL=http://localhost:8081/graphql -t protocol-visualizer/frontend:local .",
     "docker:build:graphql-proxy": "docker build -f Dockerfile-graphql-proxy -t protocol-visualizer/graphql-proxy:local .",
     "docker:build:hasura": "docker build -f Dockerfile-hasura -t protocol-visualizer/hasura:local .",
     "docker:build:indexer": "docker build -f Dockerfile-indexer -t protocol-visualizer/indexer:local .",

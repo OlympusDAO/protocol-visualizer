@@ -71,7 +71,7 @@ type ActionExecutedEventsQueryResult = {
   ActionExecutedEvent: ActionExecutedEvent[];
 };
 
-const DEFAULT_ENVIO_GRAPHQL_URL = "http://localhost:8080/v1/graphql";
+const DEFAULT_ENVIO_GRAPHQL_URL = "http://localhost:8081/graphql";
 
 const PROTOCOL_VISUALIZER_QUERY = `
   query ProtocolVisualizerData($chainId: Int!) {

@@ -15,7 +15,7 @@ with Hasura's GraphQL endpoint.
 ## Environment
 
 ```bash
-PORT=8080
+PORT=8081
 HASURA_GRAPHQL_URL=http://localhost:8080/v1/graphql
 GRAPHQL_PROXY_CACHE_CONTROL=public, s-maxage=60, stale-while-revalidate=300
 GRAPHQL_PROXY_CORS_ORIGIN=*
@@ -34,7 +34,7 @@ HASURA_GRAPHQL_URL=http://${{protocol-visualizer-hasura.RAILWAY_PRIVATE_DOMAIN}}
 ## Local Run
 
 ```bash
-HASURA_GRAPHQL_URL=http://localhost:8080/v1/graphql pnpm --filter graphql-proxy run dev
+PORT=8081 HASURA_GRAPHQL_URL=http://localhost:8080/v1/graphql pnpm --filter graphql-proxy run dev
 ```
 
 ## Validation

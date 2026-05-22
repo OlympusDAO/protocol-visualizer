@@ -278,7 +278,7 @@ export function getRequestedPolicyPermissions(
   policyAddress: Address,
   blockNumber: bigint
 ): Promise<readonly RequestedPolicyPermission[]> {
-  const cacheKey = `${chainId}:${normalizeAddress(policyAddress)}`;
+  const cacheKey = `${chainId}:${normalizeAddress(policyAddress)}:${blockNumber.toString()}`;
   const cached = requestedPolicyPermissions.get(cacheKey);
   if (cached) {
     return cached;

@@ -125,19 +125,32 @@ const forwardGraphqlGet = async (request, response, requestUrl) => {
       signal: controller.signal,
     });
 
-    const responseBody = await upstreamResponse.arrayBuffer();
+    const responseBody = await upstreamResponse.text();
+    const contentType = upstreamResponse.headers.get("content-type");
+    let hasGraphqlErrors = false;
+
+    if (contentType?.includes("application/json")) {
+      try {
+        const payload = JSON.parse(responseBody);
+        hasGraphqlErrors =
+          Array.isArray(payload?.errors) && payload.errors.length > 0;
+      } catch {
+        hasGraphqlErrors = true;
+      }
+    }
+
     const headers = {
       "access-control-allow-origin": corsOrigin,
       vary: "origin",
-      "cache-control": upstreamResponse.ok ? cacheControl : "no-store",
+      "cache-control":
+        upstreamResponse.ok && !hasGraphqlErrors ? cacheControl : "no-store",
     };
-    const contentType = upstreamResponse.headers.get("content-type");
     if (contentType) {
       headers["content-type"] = contentType;
     }
 
     response.writeHead(upstreamResponse.status, headers);
-    response.end(Buffer.from(responseBody));
+    response.end(responseBody);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     sendJson(response, 502, { error: `Hasura request failed: ${message}` });

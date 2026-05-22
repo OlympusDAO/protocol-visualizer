@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node --check src/server.mjs",
-    "dev": "node src/server.mjs",
+    "dev": "env PORT=8081 HASURA_GRAPHQL_URL=http://localhost:8080/v1/graphql node src/server.mjs",
     "lint": "biome lint --write . --error-on-warnings",
     "lint:check": "biome lint . --error-on-warnings",
     "start": "node src/server.mjs"

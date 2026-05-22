@@ -8,7 +8,7 @@ The frontend reads from the public GraphQL proxy using GET requests. Configure
 the endpoint at build time:
 
 ```bash
-VITE_ENVIO_GRAPHQL_URL=http://localhost:8080/graphql
+VITE_ENVIO_GRAPHQL_URL=http://localhost:8081/graphql
 ```
 
 For Railway, point this value at the public GraphQL proxy domain, not directly

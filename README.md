@@ -77,5 +77,5 @@ The frontend reads from the public GraphQL proxy using GET requests. Configure
 it at build time with:
 
 ```bash
-VITE_ENVIO_GRAPHQL_URL=http://localhost:8080/graphql
+VITE_ENVIO_GRAPHQL_URL=http://localhost:8081/graphql
 ```

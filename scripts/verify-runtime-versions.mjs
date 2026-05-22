@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import semver from "semver";
@@ -14,7 +14,36 @@ const WORKFLOW_FILES = [
 
 const BOOTSTRAP_ACTION = ".github/actions/bootstrap/action.yml";
 
-const DOCKERFILES = ["Dockerfile-indexer", "Dockerfile-frontend"];
+const IGNORED_DIRECTORIES = new Set([
+  ".git",
+  ".turbo",
+  "node_modules",
+  "dist",
+  "build",
+]);
+
+function discoverDockerfiles(directory = ROOT) {
+  const dockerfiles = [];
+
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const entryPath = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      if (!IGNORED_DIRECTORIES.has(entry.name)) {
+        dockerfiles.push(...discoverDockerfiles(entryPath));
+      }
+      continue;
+    }
+
+    if (entry.isFile() && entry.name.startsWith("Dockerfile")) {
+      dockerfiles.push(path.relative(ROOT, entryPath));
+    }
+  }
+
+  return dockerfiles.sort();
+}
+
+const DOCKERFILES = discoverDockerfiles();
 
 function readText(relativePath) {
   return readFileSync(path.join(ROOT, relativePath), "utf8");
@@ -38,6 +67,7 @@ const packageJson = JSON.parse(readText("package.json"));
 const nodeEngine = packageJson.engines?.node;
 const pnpmEngine = packageJson.engines?.pnpm;
 const packageManager = packageJson.packageManager;
+const expectedPackageManagerGuards = ["npm", "yarn", "bun"];
 
 if (!nodeEngine) {
   fail("package.json engines.node is missing.");
@@ -47,8 +77,14 @@ if (!pnpmEngine) {
   fail("package.json engines.pnpm is missing.");
 }
 
-if (!packageManager || !packageManager.startsWith("pnpm@")) {
+if (!packageManager?.startsWith("pnpm@")) {
   fail("package.json packageManager must be set to pnpm@<version>.");
+}
+
+for (const packageManagerName of expectedPackageManagerGuards) {
+  if (packageJson.engines?.[packageManagerName] !== "use-pnpm") {
+    fail(`package.json engines.${packageManagerName} must be set to use-pnpm.`);
+  }
 }
 
 const nvmrc = readText(".nvmrc").trim();
@@ -148,7 +184,10 @@ for (const dockerfilePath of DOCKERFILES) {
 
   const nodeImageMatch = content.match(/FROM\s+node:([^\s]+)/i);
   if (!nodeImageMatch) {
-    fail(`${dockerfilePath} must define a Node.js base image (FROM node:...).`);
+    console.warn(
+      `${dockerfilePath} does not define a Node.js base image; skipping Node.js and pnpm runtime version checks.`
+    );
+    continue;
   }
 
   const dockerNodeMajor = extractMajor(

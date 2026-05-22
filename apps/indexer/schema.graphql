@@ -1,0 +1,126 @@
+enum ContractType {
+  KERNEL
+  MODULE
+  POLICY
+}
+
+enum ActionType {
+  installModule
+  upgradeModule
+  activatePolicy
+  deactivatePolicy
+  changeExecutor
+  migrateKernel
+}
+
+type Contract {
+  id: ID!
+  chainId: Int! @index
+  address: String! @index
+  lastUpdatedTimestamp: BigInt!
+  lastUpdatedBlockNumber: BigInt! @index
+  name: String! @index
+  version: String
+  contractType: ContractType! @index
+  isEnabled: Boolean! @index
+  policyPermissions: Json
+  policyFunctions: Json
+}
+
+type ContractEvent {
+  id: ID!
+  chainId: Int! @index
+  transactionHash: String! @index
+  logIndex: Int!
+  action: ActionType! @index
+  address: String! @index
+  timestamp: BigInt!
+  blockNumber: BigInt! @index
+  name: String!
+  version: String
+  contractType: ContractType!
+  isEnabled: Boolean!
+  policyPermissions: Json
+  policyFunctions: Json
+}
+
+type KernelExecutor {
+  id: ID!
+  chainId: Int! @index
+  kernel: String! @index
+  lastUpdatedTimestamp: BigInt!
+  lastUpdatedBlockNumber: BigInt! @index
+  executor: String! @index
+}
+
+type KernelExecutorEvent {
+  id: ID!
+  chainId: Int! @index
+  kernel: String! @index
+  transactionHash: String! @index
+  logIndex: Int!
+  timestamp: BigInt!
+  blockNumber: BigInt! @index
+  executor: String! @index
+}
+
+type ActionExecutedEvent {
+  id: ID!
+  chainId: Int! @index
+  kernel: String! @index
+  transactionHash: String! @index
+  logIndex: Int!
+  timestamp: BigInt!
+  blockNumber: BigInt! @index
+  action: ActionType! @index
+  target: String! @index
+}
+
+type RoleEvent {
+  id: ID!
+  chainId: Int! @index
+  role: String! @index
+  transactionHash: String! @index
+  logIndex: Int!
+  assignee: String! @index
+  timestamp: BigInt!
+  blockNumber: BigInt! @index
+  assigneeName: String!
+  isGranted: Boolean! @index
+}
+
+type Role {
+  id: ID!
+  chainId: Int! @index
+  role: String! @index
+}
+
+type RoleAssignment {
+  id: ID!
+  chainId: Int! @index
+  role: String! @index
+  assignee: String! @index
+  assigneeName: String!
+  lastUpdatedTimestamp: BigInt!
+  lastUpdatedBlockNumber: BigInt! @index
+  isGranted: Boolean! @index
+}
+
+type CurrentModule {
+  id: ID!
+  chainId: Int! @index
+  keycode: String! @index
+  address: String! @index
+  lastUpdatedTimestamp: BigInt!
+  lastUpdatedBlockNumber: BigInt! @index
+}
+
+type CurrentRoleAssignee {
+  id: ID!
+  chainId: Int! @index
+  role: String! @index
+  assignee: String! @index
+  assigneeName: String!
+  lastUpdatedTimestamp: BigInt!
+  lastUpdatedBlockNumber: BigInt! @index
+}

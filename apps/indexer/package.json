@@ -4,23 +4,19 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "ponder dev",
-    "start": "ponder start",
-    "db": "ponder db",
-    "codegen": "ponder codegen",
-    "lint": "eslint . --fix",
-    "lint:check": "eslint . --max-warnings 0",
+    "dev": "envio dev",
+    "start": "envio start",
+    "codegen": "envio codegen",
+    "lint": "biome lint --write . --error-on-warnings",
+    "lint:check": "biome lint . --error-on-warnings",
     "typecheck": "tsc"
   },
   "dependencies": {
-    "hono": "4.12.14",
-    "ponder": "^0.16.6",
+    "envio": "3.0.0",
     "viem": "^2.21.3"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "eslint": "^8.57.1",
-    "eslint-config-ponder": "^0.9.28",
     "typescript": "^5.2.2"
   },
   "engines": {

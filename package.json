@@ -5,28 +5,29 @@
   "scripts": {
     "build": "turbo run build",
     "check:runtime-versions": "node scripts/verify-runtime-versions.mjs",
-    "docker:build:frontend": "docker build -f Dockerfile-frontend --build-arg VITE_PONDER_URL=https://example.com -t protocol-visualizer/frontend:local .",
+    "docker:build:frontend": "docker build -f Dockerfile-frontend --build-arg VITE_ENVIO_GRAPHQL_URL=http://localhost:8081/graphql -t protocol-visualizer/frontend:local .",
+    "docker:build:graphql-proxy": "docker build -f Dockerfile-graphql-proxy -t protocol-visualizer/graphql-proxy:local .",
+    "docker:build:hasura": "docker build -f Dockerfile-hasura -t protocol-visualizer/hasura:local .",
     "docker:build:indexer": "docker build -f Dockerfile-indexer -t protocol-visualizer/indexer:local .",
     "docker:tag:scan:frontend": "docker tag protocol-visualizer/frontend:local protocol-visualizer/frontend:scan",
+    "docker:tag:scan:graphql-proxy": "docker tag protocol-visualizer/graphql-proxy:local protocol-visualizer/graphql-proxy:scan",
+    "docker:tag:scan:hasura": "docker tag protocol-visualizer/hasura:local protocol-visualizer/hasura:scan",
     "docker:tag:scan:indexer": "docker tag protocol-visualizer/indexer:local protocol-visualizer/indexer:scan",
     "dev": "turbo run dev",
+    "indexer:dev": "env ENVIO_TUI=false pnpm --dir apps/indexer exec node scripts/start-envio.mjs dev",
+    "indexer:dev:reset": "env ENVIO_TUI=false pnpm --dir apps/indexer exec node scripts/start-envio.mjs dev -r",
+    "indexer:metrics": "sh -c 'curl -s \"http://localhost:${ENVIO_INDEXER_PORT:-9898}/metrics\" | rg \"envio_progress_|hyperindex_synced_to_head|envio_effect_\"'",
     "lint:check": "turbo run lint:check",
-    "lint": "turbo run lint && prettier --write \"**/*.{js,mjs,ts,tsx,md,json}\"",
-    "validate:local": "pnpm run check:runtime-versions && pnpm install --frozen-lockfile && pnpm run lint:check && pnpm run build && pnpm run docker:build:indexer && pnpm run docker:build:frontend",
-    "format": "prettier --write \"**/*.{js,mjs,ts,tsx,md,json}\"",
-    "preinstall": "npx only-allow@1.2.2 pnpm"
+    "lint": "turbo run lint && biome format --write .",
+    "validate:local": "pnpm run check:runtime-versions && pnpm install --frozen-lockfile && pnpm run lint:check && pnpm run build && pnpm run docker:build:indexer && pnpm run docker:build:frontend && pnpm run docker:build:hasura && pnpm run docker:build:graphql-proxy",
+    "format": "biome format --write ."
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.2",
+    "@biomejs/biome": "2.4.15",
     "@types/node": "^24.0.0",
-    "eslint": "^8.57.1",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-import": "^2.32.0",
-    "prettier": "^3.7.4",
     "semver": "^7.7.4",
-    "turbo": "^2.7.4",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.53.0"
+    "turbo": "^2.9.14",
+    "typescript": "^5.9.3"
   },
   "workspaces": [
     "apps/*",
@@ -35,6 +36,7 @@
   "engines": {
     "node": ">=24",
     "pnpm": ">=10.33.0",
+    "bun": "use-pnpm",
     "npm": "use-pnpm",
     "yarn": "use-pnpm"
   }

@@ -14,7 +14,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-
       - name: Bootstrap
         uses: ./.github/actions/bootstrap
       - name: Verify runtime version alignment
@@ -38,6 +37,18 @@ jobs:
       - name: Tag frontend image for scan
         run: pnpm run docker:tag:scan:frontend
 
+      - name: Build Hasura Docker image
+        run: pnpm run docker:build:hasura
+
+      - name: Tag Hasura image for scan
+        run: pnpm run docker:tag:scan:hasura
+
+      - name: Build GraphQL proxy Docker image
+        run: pnpm run docker:build:graphql-proxy
+
+      - name: Tag GraphQL proxy image for scan
+        run: pnpm run docker:tag:scan:graphql-proxy
+
       - name: Scan indexer Dockerfile for misconfigurations
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
@@ -56,6 +67,24 @@ jobs:
           severity: MEDIUM,HIGH,CRITICAL
           exit-code: "1"
 
+      - name: Scan Hasura Dockerfile for misconfigurations
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          scan-type: config
+          scan-ref: Dockerfile-hasura
+          scanners: misconfig
+          severity: MEDIUM,HIGH,CRITICAL
+          exit-code: "1"
+
+      - name: Scan GraphQL proxy Dockerfile for misconfigurations
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          scan-type: config
+          scan-ref: Dockerfile-graphql-proxy
+          scanners: misconfig
+          severity: MEDIUM,HIGH,CRITICAL
+          exit-code: "1"
+
       - name: Scan indexer image for vulnerabilities
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
@@ -69,6 +98,25 @@ jobs:
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
           image-ref: protocol-visualizer/frontend:scan
+          format: table
+          severity: MEDIUM,HIGH,CRITICAL
+          trivyignores: .trivyignore
+          exit-code: "1"
+
+      - name: Scan Hasura image for vulnerabilities
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: protocol-visualizer/hasura:scan
+          format: table
+          severity: MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          exit-code: "1"
+
+      - name: Scan GraphQL proxy image for vulnerabilities
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: protocol-visualizer/graphql-proxy:scan
           format: table
           severity: MEDIUM,HIGH,CRITICAL
           trivyignores: .trivyignore

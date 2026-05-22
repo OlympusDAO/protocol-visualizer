@@ -2,27 +2,26 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import ReactFlow, {
   Background,
   Controls,
-  Node,
+  type Node,
   useEdgesState,
   useNodesState,
-  NodeTypes,
-  Edge,
+  type NodeTypes,
+  type Edge,
   Position,
   Handle,
   MarkerType,
-  ReactFlowInstance,
+  type ReactFlowInstance,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { usePonderQuery } from "@ponder/react";
-import { schema } from "@/lib/ponder";
-import { Contract } from "@/services/contracts";
-import { eq, and } from "@ponder/client";
+import { useQuery } from "@tanstack/react-query";
+import {
+  type Contract,
+  getProtocolVisualizerData,
+  type RoleAssignment,
+} from "@/services/contracts";
 import dagre from "dagre";
 import { ChainSelector } from "../chain-selector";
 import { ChainId } from "@/lib/constants";
-
-// Types
-type RoleAssignment = typeof schema.roleAssignment.$inferSelect;
 
 interface NodeData {
   name: string;
@@ -100,7 +99,11 @@ const NODE_COLORS = {
 };
 
 // Create a node for a non-contract assignee
-const createAssigneeNode = (assignee: RoleAssignment, id: string) => {
+const createAssigneeNode = (
+  assignee: RoleAssignment,
+  id: string,
+  chainId: number
+) => {
   const assigneeName =
     assignee.assigneeName === "UNKNOWN" ? "EOA" : assignee.assigneeName;
 
@@ -126,7 +129,7 @@ const createAssigneeNode = (assignee: RoleAssignment, id: string) => {
             {assigneeName}
           </div>
           <a
-            href={getEtherscanLink(assignee.assignee, ChainId.Mainnet)}
+            href={getEtherscanLink(assignee.assignee, chainId)}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs break-all hover:opacity-80"
@@ -162,6 +165,7 @@ const createAssigneeNode = (assignee: RoleAssignment, id: string) => {
 // Node types configuration
 const nodeTypes: NodeTypes = {
   role: ({ data }: { data: NodeData }) => (
+    // biome-ignore lint/a11y/noStaticElementInteractions: graph node hover state is handled by React Flow, not an interactive control.
     <div
       className="rounded-lg p-4 cursor-pointer transition-colors"
       style={{
@@ -240,8 +244,8 @@ const PolicyTooltip = ({ contract }: { contract: Contract }) => {
                 (p) => p.keycode
               )
             )
-          ).map((keycode, index) => (
-            <li key={index} className="text-xs mb-1">
+          ).map((keycode) => (
+            <li key={keycode} className="text-xs mb-1">
               <span className="text-blue-600">{keycode}</span>
             </li>
           ))}
@@ -323,6 +327,7 @@ export function ContractVisualizer() {
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
 
   // Reset initialized state when chain ID changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: selectedChainId intentionally triggers a graph reset.
   useEffect(() => {
     setInitialized(false);
     setNodes([]);
@@ -331,43 +336,16 @@ export function ContractVisualizer() {
     setSelectedNode(null);
   }, [selectedChainId, setNodes, setEdges]);
 
-  // Query contracts with chain ID filter
-  const { data: contracts, isLoading: isLoadingContracts } = usePonderQuery({
-    queryFn: (db) =>
-      db
-        .select()
-        .from(schema.contract)
-        .where(
-          and(
-            eq(schema.contract.isEnabled, true),
-            eq(schema.contract.chainId, selectedChainId)
-          )
-        ),
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["protocol-visualizer", selectedChainId],
+    queryFn: () => getProtocolVisualizerData(selectedChainId),
   });
 
-  // Query roles with chain ID filter
-  const { data: roles, isLoading: isLoadingRoles } = usePonderQuery({
-    queryFn: (db) =>
-      db
-        .select()
-        .from(schema.role)
-        .where(eq(schema.role.chainId, selectedChainId)),
-  });
-
-  // Query role assignments with chain ID filter
-  const { data: roleAssignments, isLoading: isLoadingAssignments } =
-    usePonderQuery({
-      queryFn: (db) =>
-        db
-          .select()
-          .from(schema.roleAssignment)
-          .where(
-            and(
-              eq(schema.roleAssignment.isGranted, true),
-              eq(schema.roleAssignment.chainId, selectedChainId)
-            )
-          ),
-    });
+  const contracts = data?.contracts;
+  const roles = data?.roles;
+  const roleAssignments = data?.roleAssignments;
+  const hasNoContractData =
+    !isLoading && !error && (contracts?.length ?? 0) === 0;
 
   const createNodeFromContract = useCallback(
     (contract: Contract, id: string) => {
@@ -400,6 +378,7 @@ export function ContractVisualizer() {
         data: {
           name: formatContractName(contract),
           label: (
+            // biome-ignore lint/a11y/noStaticElementInteractions: graph node hover state is handled by React Flow, not an interactive control.
             <div
               className="p-1 text-sm relative"
               style={{ position: "relative" }}
@@ -514,6 +493,7 @@ export function ContractVisualizer() {
     []
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: setNodes/setEdges are stable React Flow setters; this layout reset only tracks chain changes.
   const setupGraph = useCallback(() => {
     if (!contracts || !roles || !roleAssignments || layouting) return;
 
@@ -633,7 +613,7 @@ export function ContractVisualizer() {
           // Create node for non-contract assignee
           const assigneeId = `assignee-${assignment.assignee}`;
           newNodes.push({
-            ...createAssigneeNode(assignment, assigneeId),
+            ...createAssigneeNode(assignment, assigneeId, selectedChainId),
             position: { x: 0, y: 0 },
           });
 
@@ -673,10 +653,7 @@ export function ContractVisualizer() {
     setEdges(layoutedEdges);
     setLayouting(false);
     setInitialized(true);
-  },
-    // setNodes/setEdges are stable React Flow setters; this layout reset only tracks chain changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  [
+  }, [
     contracts,
     roles,
     roleAssignments,
@@ -684,6 +661,7 @@ export function ContractVisualizer() {
     createNodeFromContract,
     createEdge,
     hoveredRole,
+    selectedChainId,
   ]);
 
   // Add function to get connected nodes
@@ -703,6 +681,7 @@ export function ContractVisualizer() {
   );
 
   // Add effect to handle node selection and layout
+  // biome-ignore lint/correctness/useExhaustiveDependencies: setNodes/setEdges are stable React Flow setters; this selection effect only tracks graph state.
   useEffect(() => {
     if (!selectedNode || !originalLayout || !reactFlowInstance.current) return;
 
@@ -774,12 +753,10 @@ export function ContractVisualizer() {
         });
       }
     }, 10);
-  },
-    // setNodes/setEdges are stable React Flow setters; this selection effect only tracks graph state.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  [selectedNode, originalLayout, getConnectedNodes, edges, nodes]);
+  }, [selectedNode, originalLayout, getConnectedNodes, edges, nodes]);
 
   // Modify effect to reset layout when deselecting
+  // biome-ignore lint/correctness/useExhaustiveDependencies: setNodes/setEdges are stable React Flow setters; this restore effect only tracks selection state.
   useEffect(() => {
     if (
       !selectedNode &&
@@ -808,10 +785,7 @@ export function ContractVisualizer() {
         }
       }, 50);
     }
-  },
-    // setNodes/setEdges are stable React Flow setters; this restore effect only tracks selection state.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  [selectedNode, originalLayout, initialized]);
+  }, [selectedNode, originalLayout, initialized]);
 
   // Add initialization effect back
   useEffect(() => {
@@ -827,17 +801,11 @@ export function ContractVisualizer() {
     );
   }, []);
 
-  const isLoading =
-    isLoadingContracts || isLoadingRoles || isLoadingAssignments || layouting;
+  const graphIsLoading = isLoading || layouting;
 
   // Render tooltip for hovered assignee
   const renderAssigneeTooltip = () => {
-    if (
-      !selectedNode ||
-      !selectedNode.startsWith("assignee-") ||
-      !roleAssignments
-    )
-      return null;
+    if (!selectedNode?.startsWith("assignee-") || !roleAssignments) return null;
 
     // Extract assignee address from node ID
     const assigneeAddress = selectedNode.replace("assignee-", "");
@@ -872,11 +840,13 @@ export function ContractVisualizer() {
               Assignee
             </span>
             <button
+              type="button"
               onClick={() => setSelectedNode(null)}
               className="text-gray-500 hover:text-gray-700"
               aria-label="Close tooltip"
             >
               <svg
+                aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-4 w-4"
                 fill="none"
@@ -908,9 +878,10 @@ export function ContractVisualizer() {
           <div className="text-sm">
             {assignedRoles.length > 0 ? (
               <ul className="list-disc pl-4">
-                {assignedRoles.map((role, index) => (
-                  <li key={index} className="text-xs mb-1">
+                {assignedRoles.map((role) => (
+                  <li key={role} className="text-xs mb-1">
                     <button
+                      type="button"
                       className="text-purple-600 hover:text-purple-800 hover:underline text-left"
                       onClick={() => setSelectedNode(`role-${role}`)}
                     >
@@ -930,12 +901,7 @@ export function ContractVisualizer() {
 
   // Render tooltip for hovered role
   const renderRoleTooltip = () => {
-    if (
-      !selectedNode ||
-      !selectedNode.startsWith("role-") ||
-      !roleAssignments ||
-      !contracts
-    )
+    if (!selectedNode?.startsWith("role-") || !roleAssignments || !contracts)
       return null;
 
     // Extract role name from node ID
@@ -990,11 +956,13 @@ export function ContractVisualizer() {
               Role
             </span>
             <button
+              type="button"
               onClick={() => setSelectedNode(null)}
               className="text-gray-500 hover:text-gray-700"
               aria-label="Close tooltip"
             >
               <svg
+                aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-4 w-4"
                 fill="none"
@@ -1020,9 +988,10 @@ export function ContractVisualizer() {
           <div className="text-sm max-h-[120px] overflow-y-auto">
             {assignees.length > 0 ? (
               <ul className="list-disc pl-4">
-                {assignees.map((assignee, index) => (
-                  <li key={index} className="text-xs mb-1">
+                {assignees.map((assignee) => (
+                  <li key={assignee.address} className="text-xs mb-1">
                     <button
+                      type="button"
                       className="text-pink-600 hover:text-pink-800 hover:underline text-left"
                       onClick={() =>
                         setSelectedNode(`assignee-${assignee.address}`)
@@ -1055,13 +1024,14 @@ export function ContractVisualizer() {
           <div className="text-sm max-h-[150px] overflow-y-auto">
             {policiesUsingRole.length > 0 ? (
               <ul className="list-none">
-                {policiesUsingRole.map((policy, index) => (
+                {policiesUsingRole.map((policy) => (
                   <li
-                    key={index}
+                    key={policy.address}
                     className="mb-2 pb-2 border-b border-gray-100 last:border-b-0"
                   >
                     <div className="font-medium text-xs text-green-700 mb-1">
                       <button
+                        type="button"
                         className="hover:underline text-left"
                         onClick={() => setSelectedNode(policy.address)}
                       >
@@ -1080,8 +1050,8 @@ export function ContractVisualizer() {
                       <div className="mt-1">
                         <div className="text-xs text-gray-600">Functions:</div>
                         <ul className="list-disc pl-4">
-                          {policy.functions.map((func, idx) => (
-                            <li key={idx} className="text-xs text-blue-600">
+                          {policy.functions.map((func) => (
+                            <li key={func} className="text-xs text-blue-600">
                               {func}
                             </li>
                           ))}
@@ -1102,13 +1072,12 @@ export function ContractVisualizer() {
 
   // Render tooltip for policy
   const renderPolicyTooltip = () => {
-    if (!selectedNode || !selectedNode.startsWith("0x") || !contracts)
-      return null;
+    if (!selectedNode?.startsWith("0x") || !contracts) return null;
 
     const contract = contracts.find(
       (c) => c.address === selectedNode && c.type === "policy"
     ) as Contract | undefined;
-    if (!contract || !contract.policyPermissions) return null;
+    if (!contract?.policyPermissions) return null;
 
     // Create a mapping of module keycodes to module contracts
     const moduleKeycodeToContract = new Map<string, Contract>();
@@ -1153,11 +1122,13 @@ export function ContractVisualizer() {
               Policy
             </span>
             <button
+              type="button"
               onClick={() => setSelectedNode(null)}
               className="text-gray-500 hover:text-gray-700"
               aria-label="Close tooltip"
             >
               <svg
+                aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-4 w-4"
                 fill="none"
@@ -1196,16 +1167,17 @@ export function ContractVisualizer() {
           </h4>
           <div className="text-sm max-h-[250px] overflow-y-auto">
             <ul className="list-none divide-y divide-gray-100">
-              {uniqueKeycodes.map((keycode, index) => {
+              {uniqueKeycodes.map((keycode) => {
                 const moduleContract = moduleKeycodeToContract.get(keycode);
                 const moduleFunctions = permissionsByKeycode.get(keycode) || [];
 
                 return (
-                  <li key={index} className="py-2 first:pt-0 last:pb-0">
+                  <li key={keycode} className="py-2 first:pt-0 last:pb-0">
                     <div className="flex items-center mb-1">
                       <div className="font-medium text-xs text-blue-700">
                         {moduleContract ? (
                           <button
+                            type="button"
                             className="hover:underline text-left"
                             onClick={() =>
                               setSelectedNode(moduleContract.address)
@@ -1240,8 +1212,11 @@ export function ContractVisualizer() {
                           Functions:
                         </div>
                         <ul className="list-disc pl-4">
-                          {moduleFunctions.map((func, idx) => (
-                            <li key={idx} className="text-xs text-blue-600">
+                          {moduleFunctions.map((func) => (
+                            <li
+                              key={`${keycode}-${func.function}`}
+                              className="text-xs text-blue-600"
+                            >
                               {func.function}
                             </li>
                           ))}
@@ -1260,8 +1235,7 @@ export function ContractVisualizer() {
 
   // Add a tooltip for module nodes
   const renderModuleTooltip = () => {
-    if (!selectedNode || !selectedNode.startsWith("0x") || !contracts)
-      return null;
+    if (!selectedNode?.startsWith("0x") || !contracts) return null;
 
     const moduleContract = contracts.find(
       (c) => c.address === selectedNode && c.type === "module"
@@ -1299,11 +1273,13 @@ export function ContractVisualizer() {
               Module
             </span>
             <button
+              type="button"
               onClick={() => setSelectedNode(null)}
               className="text-gray-500 hover:text-gray-700"
               aria-label="Close tooltip"
             >
               <svg
+                aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-4 w-4"
                 fill="none"
@@ -1342,9 +1318,10 @@ export function ContractVisualizer() {
           <div className="text-sm max-h-[150px] overflow-y-auto">
             {policiesUsingModule.length > 0 ? (
               <ul className="list-disc pl-4">
-                {policiesUsingModule.map((policy, index) => (
-                  <li key={index} className="text-xs mb-1">
+                {policiesUsingModule.map((policy) => (
+                  <li key={policy.address} className="text-xs mb-1">
                     <button
+                      type="button"
                       className="text-green-600 hover:text-green-800 hover:underline text-left"
                       onClick={() => setSelectedNode(policy.address)}
                     >
@@ -1370,7 +1347,7 @@ export function ContractVisualizer() {
     );
   };
 
-  if (isLoading && !initialized) {
+  if (graphIsLoading && !initialized) {
     return (
       <div className="w-full h-[800px] flex items-center justify-center">
         Loading...
@@ -1385,9 +1362,22 @@ export function ContractVisualizer() {
         onChainChange={setSelectedChainId}
       />
       <div className="h-[800px] border border-gray-200 rounded-lg">
-        {!contracts || contracts.length === 0 ? (
+        {error ? (
           <div className="w-full h-full flex items-center justify-center">
-            <div className="text-lg">No contracts found</div>
+            <div className="max-w-md text-center">
+              <div className="text-lg font-semibold">
+                Unable to load protocol data
+              </div>
+              <div className="mt-2 text-sm text-gray-600">
+                {error instanceof Error
+                  ? error.message
+                  : "The GraphQL request failed."}
+              </div>
+            </div>
+          </div>
+        ) : hasNoContractData ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="text-lg">No contract data found</div>
           </div>
         ) : (
           <>
@@ -1428,11 +1418,11 @@ export function ContractVisualizer() {
               : selectedNode?.startsWith("role-")
                 ? renderRoleTooltip()
                 : selectedNode?.startsWith("0x") &&
-                    contracts.find((c) => c.address === selectedNode)?.type ===
+                    contracts?.find((c) => c.address === selectedNode)?.type ===
                       "policy"
                   ? renderPolicyTooltip()
                   : selectedNode?.startsWith("0x") &&
-                      contracts.find((c) => c.address === selectedNode)
+                      contracts?.find((c) => c.address === selectedNode)
                         ?.type === "module"
                     ? renderModuleTooltip()
                     : null}

@@ -1,9 +1,9 @@
-import { Abi } from "viem";
+import type { Abi } from "viem";
 import {
-  EtherscanApiConfig,
-  EtherscanResponse,
+  type EtherscanApiConfig,
+  type EtherscanResponse,
   EtherscanApiError,
-  EtherscanSourceCodeResponse,
+  type EtherscanSourceCodeResponse,
 } from "./types";
 
 const etherscanApis: Record<number, EtherscanApi> = {};
@@ -13,7 +13,7 @@ const BASE_URL = "https://api.etherscan.io/v2/api";
 export const getEtherscanApi = (chainId: number) => {
   if (!etherscanApis[chainId]) {
     // Check that the API key is set
-    const apiKey = process.env[`ETHERSCAN_API_KEY`];
+    const apiKey = process.env.ETHERSCAN_API_KEY;
     if (!apiKey) {
       throw new Error(
         `Etherscan API key is not set. Set the ETHERSCAN_API_KEY environment variable.`
@@ -94,7 +94,15 @@ export class EtherscanApi {
     }
 
     try {
-      const sourceCode = response[0]!.SourceCode;
+      const [sourceCodeResponse] = response;
+      if (!sourceCodeResponse) {
+        throw new EtherscanApiError(
+          `No source code found for contract ${address}`,
+          "NO_SOURCE_CODE"
+        );
+      }
+
+      const sourceCode = sourceCodeResponse.SourceCode;
       // Strip duplicated first and last brackets if they exist
       const trimmedSourceCode = sourceCode.trim();
       if (

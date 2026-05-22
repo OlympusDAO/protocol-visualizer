@@ -2,7 +2,7 @@ import http from "node:http";
 
 const DEFAULT_PORT = 8080;
 const DEFAULT_CACHE_CONTROL = "public, s-maxage=60, stale-while-revalidate=300";
-const DEFAULT_MAX_URL_LENGTH = 16_384;
+const DEFAULT_MAX_URL_LENGTH = 32_768;
 const DEFAULT_MAX_QUERY_LENGTH = 12_000;
 const DEFAULT_MAX_VARIABLES_LENGTH = 4_000;
 const HASURA_REQUEST_TIMEOUT_MS = 10_000;
@@ -68,7 +68,7 @@ const sendOptions = (response) => {
   response.end();
 };
 
-const isGraphqlPath = (path) => path === "/graphql" || path === "/v1/graphql";
+const isGraphqlPath = (path) => path === "/graphql";
 
 const forwardGraphqlGet = async (request, response, requestUrl) => {
   if (request.url.length > maxUrlLength) {
@@ -173,11 +173,6 @@ const server = http.createServer((request, response) => {
     return;
   }
 
-  if (request.method === "OPTIONS") {
-    sendOptions(response);
-    return;
-  }
-
   if (!isGraphqlPath(requestUrl.pathname)) {
     sendJson(
       response,
@@ -185,6 +180,11 @@ const server = http.createServer((request, response) => {
       { error: "Not found" },
       { "cache-control": "no-store" }
     );
+    return;
+  }
+
+  if (request.method === "OPTIONS") {
+    sendOptions(response);
     return;
   }
 

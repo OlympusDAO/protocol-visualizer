@@ -62,20 +62,19 @@ export class ContractProcessor {
 
     // Check cache first
     const chainCache = this.cache[this.chainId];
-    const contractCache =
-      chainCache?.[address] ?? chainCache?.[normalizedAddress];
+    const contractCache = chainCache?.[normalizedAddress];
     if (
       chainCache &&
       contractCache &&
       Date.now() - contractCache.lastFetched < CACHE_DURATION &&
-      existsSync(this.getAbiPath(address))
+      existsSync(this.getAbiPath(normalizedAddress))
     ) {
       console.log(`CACHE HIT for ${name} on chain ${this.chainId}`);
       return contractCache.processedData;
     }
 
     let abi: Abi;
-    const abiPath = this.getAbiPath(address);
+    const abiPath = this.getAbiPath(normalizedAddress);
 
     // Check if ABI exists on disk
     if (existsSync(abiPath)) {
@@ -92,7 +91,7 @@ export class ContractProcessor {
 
     // Check if the source code exists on disk
     let sourceCode: string;
-    const sourceCodePath = this.getSourceCodePath(address);
+    const sourceCodePath = this.getSourceCodePath(normalizedAddress);
     if (existsSync(sourceCodePath)) {
       sourceCode = readFileSync(sourceCodePath, "utf-8");
     } else {
@@ -114,7 +113,7 @@ export class ContractProcessor {
     }
 
     // Update cache
-    currentChainCache[address] = {
+    currentChainCache[normalizedAddress] = {
       processedData: processedContractData,
       lastFetched: Date.now(),
     };

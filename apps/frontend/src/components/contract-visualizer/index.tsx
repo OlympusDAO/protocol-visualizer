@@ -99,7 +99,11 @@ const NODE_COLORS = {
 };
 
 // Create a node for a non-contract assignee
-const createAssigneeNode = (assignee: RoleAssignment, id: string) => {
+const createAssigneeNode = (
+  assignee: RoleAssignment,
+  id: string,
+  chainId: number
+) => {
   const assigneeName =
     assignee.assigneeName === "UNKNOWN" ? "EOA" : assignee.assigneeName;
 
@@ -125,7 +129,7 @@ const createAssigneeNode = (assignee: RoleAssignment, id: string) => {
             {assigneeName}
           </div>
           <a
-            href={getEtherscanLink(assignee.assignee, ChainId.Mainnet)}
+            href={getEtherscanLink(assignee.assignee, chainId)}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs break-all hover:opacity-80"
@@ -613,7 +617,7 @@ export function ContractVisualizer() {
           // Create node for non-contract assignee
           const assigneeId = `assignee-${assignment.assignee}`;
           newNodes.push({
-            ...createAssigneeNode(assignment, assigneeId),
+            ...createAssigneeNode(assignment, assigneeId, selectedChainId),
             position: { x: 0, y: 0 },
           });
 
@@ -661,6 +665,7 @@ export function ContractVisualizer() {
     createNodeFromContract,
     createEdge,
     hoveredRole,
+    selectedChainId,
   ]);
 
   // Add function to get connected nodes

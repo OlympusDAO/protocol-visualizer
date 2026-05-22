@@ -925,7 +925,8 @@ async function ensureKernelSeeded(
   const initialExecutor = await getKernelExecutor(
     context,
     constants.address,
-    chainId
+    chainId,
+    blockNumber
   );
 
   context.ActionExecutedEvent.set({
@@ -1015,7 +1016,12 @@ async function ensureRolesAdminSeeded(
 
   const timestamp = BigInt(constants.creationTimestamp);
   const blockNumber = BigInt(constants.creationBlockNumber);
-  const initialAdmin = await getRolesAdmin(context, constants.address, chainId);
+  const initialAdmin = await getRolesAdmin(
+    context,
+    constants.address,
+    chainId,
+    blockNumber
+  );
   const assigneeName = getContractName(initialAdmin, chainId);
 
   context.RoleEvent.set({
@@ -1226,7 +1232,8 @@ async function handleKernelActionExecuted(
     const executor = await getKernelExecutor(
       envioContext,
       event.srcAddress,
-      chainId
+      chainId,
+      blockNumber
     );
 
     envioContext.KernelExecutor.set({

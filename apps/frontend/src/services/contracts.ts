@@ -141,6 +141,8 @@ async function envioGraphqlRequest<TData>(
   query: string,
   variables?: Record<string, unknown>
 ): Promise<TData> {
+  // This URL is the public GraphQL proxy, not Hasura directly. The proxy accepts
+  // GET queries and forwards them to Hasura over the private network.
   const url = new URL(getEnvioGraphqlUrl(), window.location.origin);
   url.searchParams.set("query", query);
   if (variables) {

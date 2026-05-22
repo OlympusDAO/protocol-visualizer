@@ -147,10 +147,13 @@ const forwardGraphqlGet = async (request, response, requestUrl) => {
 };
 
 const server = http.createServer((request, response) => {
-  const requestUrl = new URL(
-    request.url || "/",
-    `http://${request.headers.host}`
-  );
+  let requestUrl;
+  try {
+    requestUrl = new URL(request.url || "/", "http://localhost");
+  } catch {
+    sendJson(response, 400, { error: "Invalid request URL" });
+    return;
+  }
 
   if (requestUrl.pathname === "/ready") {
     sendJson(response, 200, { ok: true }, { "cache-control": "no-store" });

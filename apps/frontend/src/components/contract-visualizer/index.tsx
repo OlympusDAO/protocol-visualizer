@@ -345,11 +345,7 @@ export function ContractVisualizer() {
   const roles = data?.roles;
   const roleAssignments = data?.roleAssignments;
   const hasNoContractData =
-    !isLoading &&
-    !error &&
-    ((contracts?.length ?? 0) === 0 ||
-      (roles?.length ?? 0) === 0 ||
-      (roleAssignments?.length ?? 0) === 0);
+    !isLoading && !error && (contracts?.length ?? 0) === 0;
 
   const createNodeFromContract = useCallback(
     (contract: Contract, id: string) => {

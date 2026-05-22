@@ -332,7 +332,7 @@ export function ContractVisualizer() {
     setSelectedNode(null);
   }, [selectedChainId, setNodes, setEdges]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ["protocol-visualizer", selectedChainId],
     queryFn: () => getProtocolVisualizerData(selectedChainId),
   });
@@ -340,6 +340,12 @@ export function ContractVisualizer() {
   const contracts = data?.contracts;
   const roles = data?.roles;
   const roleAssignments = data?.roleAssignments;
+  const hasNoContractData =
+    !isLoading &&
+    !error &&
+    ((contracts?.length ?? 0) === 0 ||
+      (roles?.length ?? 0) === 0 ||
+      (roleAssignments?.length ?? 0) === 0);
 
   const createNodeFromContract = useCallback(
     (contract: Contract, id: string) => {
@@ -1355,9 +1361,22 @@ export function ContractVisualizer() {
         onChainChange={setSelectedChainId}
       />
       <div className="h-[800px] border border-gray-200 rounded-lg">
-        {!contracts || contracts.length === 0 ? (
+        {error ? (
           <div className="w-full h-full flex items-center justify-center">
-            <div className="text-lg">No contracts found</div>
+            <div className="max-w-md text-center">
+              <div className="text-lg font-semibold">
+                Unable to load protocol data
+              </div>
+              <div className="mt-2 text-sm text-gray-600">
+                {error instanceof Error
+                  ? error.message
+                  : "The GraphQL request failed."}
+              </div>
+            </div>
+          </div>
+        ) : hasNoContractData ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="text-lg">No contract data found</div>
           </div>
         ) : (
           <>
@@ -1398,11 +1417,11 @@ export function ContractVisualizer() {
               : selectedNode?.startsWith("role-")
                 ? renderRoleTooltip()
                 : selectedNode?.startsWith("0x") &&
-                    contracts.find((c) => c.address === selectedNode)?.type ===
+                    contracts?.find((c) => c.address === selectedNode)?.type ===
                       "policy"
                   ? renderPolicyTooltip()
                   : selectedNode?.startsWith("0x") &&
-                      contracts.find((c) => c.address === selectedNode)
+                      contracts?.find((c) => c.address === selectedNode)
                         ?.type === "module"
                     ? renderModuleTooltip()
                     : null}

@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_ENVIO_GRAPHQL_URL: string;
+  readonly VITE_PROTOCOL_SNAPSHOT_BASE_URL: string;
 }
 
 interface ImportMeta {

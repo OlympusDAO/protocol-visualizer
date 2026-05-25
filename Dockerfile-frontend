@@ -16,12 +16,13 @@ RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY apps/frontend/ ./apps/frontend/
+COPY packages/protocol-config/ ./packages/protocol-config/
 
 WORKDIR /app/apps/frontend
 
 # Environment variables
-ARG VITE_ENVIO_GRAPHQL_URL
-ENV VITE_ENVIO_GRAPHQL_URL=$VITE_ENVIO_GRAPHQL_URL
+ARG VITE_PROTOCOL_SNAPSHOT_BASE_URL
+ENV VITE_PROTOCOL_SNAPSHOT_BASE_URL=$VITE_PROTOCOL_SNAPSHOT_BASE_URL
 
 # Build the application
 RUN pnpm run build

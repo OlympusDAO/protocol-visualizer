@@ -26,6 +26,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "../../packages/protocol-config/protocol-chains.json"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

@@ -1,18 +1,9 @@
-import { ChainId } from "@/lib/constants";
+import { SUPPORTED_CHAINS } from "@/lib/constants";
 
 interface ChainSelectorProps {
   selectedChainId: number;
   onChainChange: (chainId: number) => void;
 }
-
-const CHAIN_LABELS: Record<number, string> = {
-  [ChainId.Mainnet]: "Ethereum Mainnet",
-  [ChainId.Arbitrum]: "Arbitrum",
-  [ChainId.Base]: "Base",
-  [ChainId.Berachain]: "Berachain",
-  [ChainId.Optimism]: "Optimism",
-  [ChainId.Sepolia]: "Sepolia",
-};
 
 export function ChainSelector({
   selectedChainId,
@@ -32,9 +23,9 @@ export function ChainSelector({
         onChange={(e) => onChainChange(Number(e.target.value))}
         className="block w-48 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
       >
-        {Object.entries(CHAIN_LABELS).map(([chainId, label]) => (
-          <option key={chainId} value={chainId}>
-            {label}
+        {SUPPORTED_CHAINS.map((chain) => (
+          <option key={chain.chainId} value={chain.chainId}>
+            {chain.name}
           </option>
         ))}
       </select>

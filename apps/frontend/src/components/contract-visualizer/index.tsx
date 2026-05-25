@@ -21,7 +21,7 @@ import {
 } from "@/services/contracts";
 import dagre from "dagre";
 import { ChainSelector } from "../chain-selector";
-import { ChainId } from "@/lib/constants";
+import { DEFAULT_CHAIN_ID, SUPPORTED_CHAINS } from "@/lib/constants";
 
 interface NodeData {
   name: string;
@@ -42,17 +42,13 @@ const shortenAddress = (address: string) => {
 };
 
 const getEtherscanLink = (address: string, chainId: number) => {
-  const baseUrls: Record<number, string> = {
-    [ChainId.Mainnet]: "https://etherscan.io",
-    [ChainId.Arbitrum]: "https://arbiscan.io",
-    [ChainId.Base]: "https://basescan.org",
-    [ChainId.Berachain]: "https://berascan.com",
-    [ChainId.Optimism]: "https://optimistic.etherscan.io",
-    [ChainId.Sepolia]: "https://sepolia.etherscan.io",
-  };
-
-  const baseUrl = baseUrls[chainId] || baseUrls[ChainId.Mainnet];
-  return `${baseUrl}/address/${address}`;
+  const chain = SUPPORTED_CHAINS.find(
+    (candidate) => candidate.chainId === chainId
+  );
+  if (!chain) {
+    throw new Error(`Unsupported chain id for explorer link: ${chainId}`);
+  }
+  return `${chain.explorerBaseUrl}/address/${address}`;
 };
 
 // Helper function to format contract name with version
@@ -315,9 +311,8 @@ export function ContractVisualizer() {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [layouting, setLayouting] = useState(false);
   const [initialized, setInitialized] = useState(false);
-  const [selectedChainId, setSelectedChainId] = useState<number>(
-    ChainId.Mainnet
-  );
+  const [selectedChainId, setSelectedChainId] =
+    useState<number>(DEFAULT_CHAIN_ID);
   const [originalLayout, setOriginalLayout] = useState<{
     nodes: CustomNode[];
     edges: Edge[];
@@ -1371,7 +1366,7 @@ export function ContractVisualizer() {
               <div className="mt-2 text-sm text-gray-600">
                 {error instanceof Error
                   ? error.message
-                  : "The GraphQL request failed."}
+                  : "The protocol snapshot request failed."}
               </div>
             </div>
           </div>

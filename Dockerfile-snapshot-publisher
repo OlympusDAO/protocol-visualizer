@@ -1,0 +1,48 @@
+# Dependency stage
+# Pinned image: node:24-alpine (Node v24.14.1)
+FROM node:24-alpine@sha256:01743339035a5c3c11a373cd7c83aeab6ed1457b55da6a69e014a95ac4e4700b AS deps
+
+RUN apk upgrade --no-cache musl musl-utils zlib libssl3 libcrypto3 nghttp2-libs xz-libs
+
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/snapshot-publisher/package.json ./apps/snapshot-publisher/
+COPY packages/protocol-config/protocol-chains.json ./config/protocol-chains.json
+
+RUN pnpm install --frozen-lockfile --filter snapshot-publisher
+
+COPY apps/snapshot-publisher/ ./apps/snapshot-publisher/
+
+RUN pnpm --filter snapshot-publisher run build && pnpm deploy --legacy --filter snapshot-publisher --prod /deploy/snapshot-publisher
+
+# Runtime stage
+FROM node:24-alpine@sha256:01743339035a5c3c11a373cd7c83aeab6ed1457b55da6a69e014a95ac4e4700b AS runtime
+
+RUN apk upgrade --no-cache musl musl-utils zlib libssl3 libcrypto3 nghttp2-libs xz-libs
+
+WORKDIR /app
+
+COPY --from=deps /deploy/snapshot-publisher ./apps/snapshot-publisher
+COPY --from=deps /app/config/protocol-chains.json ./config/protocol-chains.json
+
+RUN rm -rf \
+    /root/.cache/node/corepack \
+    /usr/local/lib/node_modules/corepack \
+    /usr/local/lib/node_modules/npm \
+    /usr/local/bin/corepack \
+    /usr/local/bin/npm \
+    /usr/local/bin/npx \
+    /usr/local/bin/pnpm \
+    /usr/local/bin/pnpx
+
+ENV NODE_ENV=production
+ENV PROTOCOL_CHAINS_CONFIG_PATH=/app/config/protocol-chains.json
+
+RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
+
+WORKDIR /app/apps/snapshot-publisher
+USER app
+CMD ["node", "dist/src/publish.js"]

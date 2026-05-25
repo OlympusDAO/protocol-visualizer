@@ -43,11 +43,17 @@ jobs:
       - name: Tag Hasura image for scan
         run: pnpm run docker:tag:scan:hasura
 
-      - name: Build GraphQL proxy Docker image
-        run: pnpm run docker:build:graphql-proxy
+      - name: Build snapshot gateway Docker image
+        run: pnpm run docker:build:snapshot-gateway
 
-      - name: Tag GraphQL proxy image for scan
-        run: pnpm run docker:tag:scan:graphql-proxy
+      - name: Tag snapshot gateway image for scan
+        run: pnpm run docker:tag:scan:snapshot-gateway
+
+      - name: Build snapshot publisher Docker image
+        run: pnpm run docker:build:snapshot-publisher
+
+      - name: Tag snapshot publisher image for scan
+        run: pnpm run docker:tag:scan:snapshot-publisher
 
       - name: Scan indexer Dockerfile for misconfigurations
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
@@ -76,11 +82,20 @@ jobs:
           severity: MEDIUM,HIGH,CRITICAL
           exit-code: "1"
 
-      - name: Scan GraphQL proxy Dockerfile for misconfigurations
+      - name: Scan snapshot gateway Dockerfile for misconfigurations
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
           scan-type: config
-          scan-ref: Dockerfile-graphql-proxy
+          scan-ref: Dockerfile-snapshot-gateway
+          scanners: misconfig
+          severity: MEDIUM,HIGH,CRITICAL
+          exit-code: "1"
+
+      - name: Scan snapshot publisher Dockerfile for misconfigurations
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          scan-type: config
+          scan-ref: Dockerfile-snapshot-publisher
           scanners: misconfig
           severity: MEDIUM,HIGH,CRITICAL
           exit-code: "1"
@@ -113,10 +128,19 @@ jobs:
           trivyignores: .trivyignore
           exit-code: "1"
 
-      - name: Scan GraphQL proxy image for vulnerabilities
+      - name: Scan snapshot gateway image for vulnerabilities
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
-          image-ref: protocol-visualizer/graphql-proxy:scan
+          image-ref: protocol-visualizer/snapshot-gateway:scan
+          format: table
+          severity: MEDIUM,HIGH,CRITICAL
+          trivyignores: .trivyignore
+          exit-code: "1"
+
+      - name: Scan snapshot publisher image for vulnerabilities
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: protocol-visualizer/snapshot-publisher:scan
           format: table
           severity: MEDIUM,HIGH,CRITICAL
           trivyignores: .trivyignore

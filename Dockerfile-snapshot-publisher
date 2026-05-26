@@ -16,7 +16,9 @@ RUN pnpm install --frozen-lockfile --filter snapshot-publisher
 
 COPY apps/snapshot-publisher/ ./apps/snapshot-publisher/
 
-RUN pnpm --filter snapshot-publisher run build && pnpm deploy --legacy --filter snapshot-publisher --prod /deploy/snapshot-publisher
+RUN pnpm --filter snapshot-publisher run build \
+    && pnpm deploy --legacy --filter snapshot-publisher --prod /deploy/snapshot-publisher \
+    && cp -R apps/snapshot-publisher/dist /deploy/snapshot-publisher/dist
 
 # Runtime stage
 FROM node:24-alpine@sha256:01743339035a5c3c11a373cd7c83aeab6ed1457b55da6a69e014a95ac4e4700b AS runtime

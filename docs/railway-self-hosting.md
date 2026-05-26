@@ -117,7 +117,9 @@ ENVIO_RPC_URL_80094=<berachain RPC>
 ENVIO_RPC_URL_11155111=<sepolia RPC>
 ```
 
-Set these variables on `snapshot-publisher`:
+### Snapshot Publisher Variables
+
+Set these required production variables on `snapshot-publisher`:
 
 ```bash
 HASURA_GRAPHQL_URL=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql
@@ -127,19 +129,47 @@ ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
 SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
 REGION=${{<bucket-service>.REGION}}
 ENDPOINT=${{<bucket-service>.ENDPOINT}}
-SNAPSHOT_PUBLIC_BASE_PATH=/v1
 ```
 
 Use `BUCKET` for the S3 bucket name. Do not use `RAILWAY_BUCKET_NAME` in the
 publisher or gateway S3 client configuration.
+`HASURA_GRAPHQL_ADMIN_SECRET` must match the private Hasura service's admin
+secret so the publisher can read the protocol tables.
 
 Supported snapshot chains are defined in
-`packages/protocol-config/protocol-chains.json`. `SNAPSHOT_CHAIN_IDS` is
-optional and should only be used to publish a subset of that shared list:
+`packages/protocol-config/protocol-chains.json`. The publisher Docker image sets
+`PROTOCOL_CHAINS_CONFIG_PATH=/app/config/protocol-chains.json`; normally do not
+override it on Railway.
+
+Optional publisher variables:
 
 ```bash
+SNAPSHOT_PUBLIC_BASE_PATH=/v1
 SNAPSHOT_CHAIN_IDS=1,10,42161,8453,80094,11155111
 ```
+
+`SNAPSHOT_PUBLIC_BASE_PATH` defaults to `/v1`. `SNAPSHOT_CHAIN_IDS` should only
+be used to publish a subset of the shared chain list; every chain ID must exist
+in `protocol-chains.json`.
+
+Local-only publisher variables:
+
+```bash
+SNAPSHOT_OUTPUT_DIR=/tmp/protocol-visualizer-snapshots
+SNAPSHOT_SOURCE=sample
+```
+
+When `SNAPSHOT_OUTPUT_DIR` is set and `SNAPSHOT_SOURCE` is omitted, the
+publisher defaults to deterministic sample data and does not require Hasura or
+bucket credentials. Use `SNAPSHOT_SOURCE=hasura` with `HASURA_GRAPHQL_URL` and
+`HASURA_GRAPHQL_ADMIN_SECRET` to write live Hasura data to local files.
+
+`/railway-snapshot-publisher.json` configures the cron schedule as
+`0 * * * *` UTC with `restartPolicyType: NEVER`. Each run starts a container,
+publishes one snapshot batch, logs `Snapshot publisher completed successfully;
+exiting` on success, and exits.
+
+### Snapshot Gateway Variables
 
 Set the same bucket variables on `snapshot-gateway`:
 

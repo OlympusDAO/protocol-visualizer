@@ -52,9 +52,11 @@ The publisher reads that file at startup. `SNAPSHOT_CHAIN_IDS` is only an
 optional subset filter for a run; every chain ID in it must exist in the shared
 config.
 
-## Environment
+## Configuration
 
-Production requires:
+Production bucket publishing reads from Hasura and uploads to the private
+Railway Bucket. Configure these variables on the `snapshot-publisher` Railway
+service:
 
 ```bash
 HASURA_GRAPHQL_URL=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql
@@ -64,17 +66,47 @@ ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
 SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
 REGION=${{<bucket-service>.REGION}}
 ENDPOINT=${{<bucket-service>.ENDPOINT}}
-SNAPSHOT_PUBLIC_BASE_PATH=/v1
 ```
 
 Use `BUCKET` as the S3 bucket name. Do not use `RAILWAY_BUCKET_NAME`.
+`HASURA_GRAPHQL_ADMIN_SECRET` should reference the same value configured on the
+private Hasura service; without it, Hasura may return an unauthorized or empty
+schema response.
 
 Optional variables:
 
 ```bash
+SNAPSHOT_PUBLIC_BASE_PATH=/v1
 SNAPSHOT_CHAIN_IDS=1,10,42161,8453,80094,11155111
 PROTOCOL_CHAINS_CONFIG_PATH=/app/config/protocol-chains.json
 ```
+
+`SNAPSHOT_PUBLIC_BASE_PATH` defaults to `/v1`. `PROTOCOL_CHAINS_CONFIG_PATH` is
+set by the Docker image and usually does not need to be configured manually.
+
+Local-only variables:
+
+```bash
+SNAPSHOT_OUTPUT_DIR=/tmp/protocol-visualizer-snapshots
+SNAPSHOT_SOURCE=sample
+```
+
+When `SNAPSHOT_OUTPUT_DIR` is set and `SNAPSHOT_SOURCE` is omitted, the
+publisher defaults to deterministic sample data so local validation can run
+without Hasura or bucket credentials. Set `SNAPSHOT_SOURCE=hasura` when writing
+live Hasura data to a local output directory.
+
+## Railway Cron
+
+The Railway service uses `/railway-snapshot-publisher.json`, which configures:
+
+```text
+cronSchedule: 0 * * * *
+restartPolicyType: NEVER
+```
+
+Each cron invocation starts the container, publishes one snapshot batch, logs
+`Snapshot publisher completed successfully; exiting` on success, and exits.
 
 ## Local Generation
 
@@ -91,7 +123,8 @@ That writes files to:
 ```
 
 To write live Hasura data locally, set `HASURA_GRAPHQL_URL`,
-`SNAPSHOT_OUTPUT_DIR`, and `SNAPSHOT_SOURCE=hasura`.
+`HASURA_GRAPHQL_ADMIN_SECRET`, `SNAPSHOT_OUTPUT_DIR`, and
+`SNAPSHOT_SOURCE=hasura`.
 
 ## Validation
 

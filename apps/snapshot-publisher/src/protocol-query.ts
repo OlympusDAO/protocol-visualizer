@@ -1,8 +1,8 @@
 export const PROTOCOL_VISUALIZER_QUERY = `
   query ProtocolVisualizerData($chainId: Int!) {
-    Contract(
+    Contract: contract(
       where: { chainId: { _eq: $chainId }, isEnabled: { _eq: true } }
-      order_by: { name: asc }
+      orderBy: { name: asc }
     ) {
       id
       chainId
@@ -16,14 +16,14 @@ export const PROTOCOL_VISUALIZER_QUERY = `
       policyPermissions
       policyFunctions
     }
-    Role(where: { chainId: { _eq: $chainId } }, order_by: { role: asc }) {
+    Role: role(where: { chainId: { _eq: $chainId } }, orderBy: { role: asc }) {
       id
       chainId
       role
     }
-    RoleAssignment(
+    RoleAssignment: roleAssignment(
       where: { chainId: { _eq: $chainId }, isGranted: { _eq: true } }
-      order_by: { role: asc }
+      orderBy: { role: asc }
     ) {
       id
       chainId

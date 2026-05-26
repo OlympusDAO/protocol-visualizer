@@ -153,9 +153,10 @@ ENDPOINT=${{<bucket-service>.ENDPOINT}}
 
 `PORT` does not need to be set for `snapshot-gateway`; Railway injects it and
 the gateway defaults to `8080` outside Railway. The gateway uses Go's standard
-`net/http` server and no HTTP framework. Its `/ready` endpoint returns `200`
-only after the service can access `v1/manifest.json` in the Railway Bucket.
-The gateway image copies the shared chain config and sets
+`net/http` server and no HTTP framework. It sets public read CORS headers for
+browser access to the snapshot files. Its `/ready` endpoint returns `200` only
+after the service can access `v1/manifest.json` in the Railway Bucket. The
+gateway image copies the shared chain config and sets
 `PROTOCOL_CHAINS_CONFIG_PATH=/app/config/protocol-chains.json`.
 
 Set this variable on `frontend` if it is deployed on Railway:
@@ -184,8 +185,8 @@ GET /v1/chain/{chainId}/protocol.json
 
 Supported chain IDs come from `packages/protocol-config/protocol-chains.json`,
 which is used by the frontend, publisher, and gateway. The gateway rejects
-unknown paths, unsupported chains, request bodies, and methods other than `GET`
-and `HEAD`.
+unknown paths, unsupported chains, request bodies, and methods other than `GET`,
+`HEAD`, and preflight `OPTIONS` for allowlisted `/v1/` routes.
 
 Each `protocol.json` file contains:
 
@@ -264,7 +265,7 @@ Suggested WAF rules:
 
 ```text
 http.host eq "protocol-visualizer-api.olympusdao.finance"
-and not http.request.method in {"GET" "HEAD"}
+and not http.request.method in {"GET" "HEAD" "OPTIONS"}
 ```
 
 ```text

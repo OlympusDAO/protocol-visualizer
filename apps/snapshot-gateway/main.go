@@ -21,6 +21,7 @@ const (
 	defaultPort       = "8080"
 	defaultChainsPath = "config/protocol-chains.json"
 	bucketRoot        = "v1"
+	corsAllowOrigin   = "*"
 )
 
 type route struct {
@@ -150,15 +151,24 @@ func (s server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Method != http.MethodGet && r.Method != http.MethodHead {
-		w.Header().Set("Allow", "GET, HEAD")
-		writeJSON(w, http.StatusMethodNotAllowed, `{"error":"method not allowed"}`+"\n", "no-store")
-		return
-	}
-
 	resolved, ok := resolveRoute(r.URL.Path, s.allowedChains)
 	if !ok {
 		writeJSON(w, http.StatusNotFound, `{"error":"not found"}`+"\n", "no-store")
+		return
+	}
+
+	if r.Method == http.MethodOptions {
+		setCORSHeaders(w)
+		w.Header().Set("Access-Control-Allow-Headers", "Accept")
+		w.Header().Set("Access-Control-Max-Age", "86400")
+		w.Header().Set("Allow", "GET, HEAD, OPTIONS")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("Allow", "GET, HEAD, OPTIONS")
+		writeJSON(w, http.StatusMethodNotAllowed, `{"error":"method not allowed"}`+"\n", "no-store")
 		return
 	}
 
@@ -270,6 +280,7 @@ func resolveRoute(path string, allowedChains map[int]struct{}) (route, bool) {
 }
 
 func setObjectHeaders(w http.ResponseWriter, resolved route, output *s3.GetObjectOutput) {
+	setCORSHeaders(w)
 	w.Header().Set("Content-Type", resolved.contentType)
 	w.Header().Set("Cache-Control", resolved.cacheControl)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -285,11 +296,17 @@ func setObjectHeaders(w http.ResponseWriter, resolved route, output *s3.GetObjec
 }
 
 func writeJSON(w http.ResponseWriter, status int, body string, cacheControl string) {
+	setCORSHeaders(w)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", cacheControl)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(status)
 	_, _ = w.Write([]byte(body))
+}
+
+func setCORSHeaders(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", corsAllowOrigin)
+	w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD")
 }
 
 func isMissingObject(err error) bool {

@@ -15,14 +15,19 @@ Allowed public paths:
 ```text
 GET  /v1/index.html
 HEAD /v1/index.html
+OPTIONS /v1/index.html
 GET  /v1/manifest.json
 HEAD /v1/manifest.json
+OPTIONS /v1/manifest.json
 GET  /v1/schemas/manifest-v1.schema.json
 HEAD /v1/schemas/manifest-v1.schema.json
+OPTIONS /v1/schemas/manifest-v1.schema.json
 GET  /v1/schemas/protocol-snapshot-v1.schema.json
 HEAD /v1/schemas/protocol-snapshot-v1.schema.json
+OPTIONS /v1/schemas/protocol-snapshot-v1.schema.json
 GET  /v1/chain/{chainId}/protocol.json
 HEAD /v1/chain/{chainId}/protocol.json
+OPTIONS /v1/chain/{chainId}/protocol.json
 GET  /ready
 HEAD /ready
 ```
@@ -30,7 +35,8 @@ HEAD /ready
 Supported chain IDs are loaded from
 `packages/protocol-config/protocol-chains.json`, which is copied into the
 gateway image. The gateway rejects unknown paths, unsupported chains, request
-bodies, and methods other than `GET` and `HEAD`.
+bodies, and methods other than `GET`, `HEAD`, and CORS preflight `OPTIONS` for
+the allowlisted `/v1/` routes.
 
 ## Readiness
 
@@ -71,6 +77,10 @@ The gateway sets stable content types and cache headers:
 
 It also sets `X-Content-Type-Options: nosniff`.
 
+The gateway permits browser reads with `Access-Control-Allow-Origin: *` and
+supports preflight only for allowlisted `/v1/` routes. It does not allow
+credentials or map arbitrary request paths to bucket keys.
+
 ## Validation
 
 The Docker build runs Go tests and compiles the static gateway binary:
@@ -80,4 +90,5 @@ pnpm run docker:build:snapshot-gateway
 ```
 
 The tests cover route allowlisting, chain allowlisting, request-body rejection,
-method rejection, cache headers, HEAD support, and manifest-based readiness.
+method rejection, CORS headers, cache headers, HEAD support, and
+manifest-based readiness.

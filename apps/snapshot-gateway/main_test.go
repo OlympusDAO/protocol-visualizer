@@ -100,7 +100,7 @@ func TestGatewayRejectsUnsupportedMethods(t *testing.T) {
 	if recorder.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("expected 405, got %d", recorder.Code)
 	}
-	if recorder.Header().Get("Allow") != "GET, HEAD" {
+	if recorder.Header().Get("Allow") != "GET, HEAD, OPTIONS" {
 		t.Fatalf("expected Allow header")
 	}
 }
@@ -164,6 +164,12 @@ func TestGatewayStreamsAllowedObjectWithCacheHeaders(t *testing.T) {
 	if recorder.Header().Get("X-Content-Type-Options") != "nosniff" {
 		t.Fatalf("expected nosniff header")
 	}
+	if recorder.Header().Get("Access-Control-Allow-Origin") != "*" {
+		t.Fatalf("expected CORS allow-origin header")
+	}
+	if recorder.Header().Get("Access-Control-Allow-Methods") != "GET, HEAD" {
+		t.Fatalf("expected CORS allow-methods header")
+	}
 }
 
 func TestGatewaySupportsHeadWithoutBody(t *testing.T) {
@@ -176,6 +182,39 @@ func TestGatewaySupportsHeadWithoutBody(t *testing.T) {
 	}
 	if recorder.Body.Len() != 0 {
 		t.Fatalf("expected empty HEAD body")
+	}
+}
+
+func TestGatewaySupportsCorsPreflightForAllowedRoutes(t *testing.T) {
+	fake := &fakeS3{}
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodOptions, "/v1/chain/1/protocol.json", nil)
+	server{bucket: "bucket", s3: fake, allowedChains: testAllowedChains}.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d", recorder.Code)
+	}
+	if fake.key != "" {
+		t.Fatalf("expected preflight not to fetch S3 object")
+	}
+	if recorder.Header().Get("Access-Control-Allow-Origin") != "*" {
+		t.Fatalf("expected CORS allow-origin header")
+	}
+	if recorder.Header().Get("Access-Control-Allow-Methods") != "GET, HEAD" {
+		t.Fatalf("expected CORS allow-methods header")
+	}
+	if recorder.Header().Get("Access-Control-Allow-Headers") != "Accept" {
+		t.Fatalf("expected CORS allow-headers header")
+	}
+}
+
+func TestGatewayRejectsCorsPreflightForUnknownRoutes(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodOptions, "/v1/chain/999/protocol.json", nil)
+	server{bucket: "bucket", s3: &fakeS3{}, allowedChains: testAllowedChains}.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", recorder.Code)
 	}
 }
 

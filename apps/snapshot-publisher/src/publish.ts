@@ -38,8 +38,13 @@ const createS3Client = () =>
     },
   });
 
+export type SnapshotS3Client = {
+  send: S3Client["send"];
+  destroy: () => void;
+};
+
 const uploadAndVerify = async (
-  client: S3Client,
+  client: SnapshotS3Client,
   bucket: string,
   file: SnapshotFile
 ) => {
@@ -59,6 +64,26 @@ const uploadAndVerify = async (
       Key: file.key,
     })
   );
+};
+
+export const uploadSnapshotFiles = async (
+  client: SnapshotS3Client,
+  bucket: string,
+  files: SnapshotFile[]
+) => {
+  const regularFiles = files.filter((file) => !file.publishLast);
+  const publishLastFiles = files.filter((file) => file.publishLast);
+
+  try {
+    for (const file of regularFiles) {
+      await uploadAndVerify(client, bucket, file);
+    }
+    for (const file of publishLastFiles) {
+      await uploadAndVerify(client, bucket, file);
+    }
+  } finally {
+    client.destroy();
+  }
 };
 
 const writeLocalFile = async (outputDir: string, file: SnapshotFile) => {
@@ -112,15 +137,9 @@ export async function runPublisher() {
     return;
   }
 
-  const client = createS3Client();
   const bucket = getRequiredEnv("BUCKET");
-
-  for (const file of regularFiles) {
-    await uploadAndVerify(client, bucket, file);
-  }
-  for (const file of publishLastFiles) {
-    await uploadAndVerify(client, bucket, file);
-  }
+  const client = createS3Client();
+  await uploadSnapshotFiles(client, bucket, files);
 
   console.log(`Published ${files.length} snapshot files to ${bucket}`);
 }

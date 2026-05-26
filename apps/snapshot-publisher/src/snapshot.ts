@@ -95,12 +95,55 @@ type GraphqlResponse = {
   errors?: Array<{ message: string }>;
 };
 
+type QueryRootIntrospectionResponse = {
+  data?: {
+    __schema?: {
+      queryType?: {
+        fields?: Array<{ name: string }>;
+      };
+    };
+  };
+};
+
 const isSchemaFieldError = (errors: Array<{ message: string }>): boolean =>
   errors.some(
     (error) =>
       error.message.includes("field 'contract' not found") ||
       error.message.includes("field 'Contract' not found")
   );
+
+const fetchRelevantQueryRootFields = async (
+  hasuraGraphqlUrl: string,
+  headers: Record<string, string>
+): Promise<string[]> => {
+  const response = await fetch(hasuraGraphqlUrl, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      query: `
+        query SnapshotPublisherQueryRootFields {
+          __schema {
+            queryType {
+              fields {
+                name
+              }
+            }
+          }
+        }
+      `,
+    }),
+  });
+  if (!response.ok) {
+    return [`introspection failed with HTTP ${response.status}`];
+  }
+
+  const payload = (await response.json()) as QueryRootIntrospectionResponse;
+  const fields = payload.data?.__schema?.queryType?.fields ?? [];
+  return fields
+    .map((field) => field.name)
+    .filter((name) => /contract|role/i.test(name))
+    .sort();
+};
 
 export async function fetchProtocolData(
   hasuraGraphqlUrl: string,
@@ -162,10 +205,15 @@ export async function fetchProtocolData(
     return payload.data;
   }
 
+  const relevantFields = await fetchRelevantQueryRootFields(
+    hasuraGraphqlUrl,
+    headers
+  );
+
   throw new Error(
     `Hasura request for chain ${chainId} returned schema errors for all query naming modes: ${queryErrors.join(
       " | "
-    )}`
+    )}. Relevant query root fields: ${relevantFields.join(", ") || "none"}`
   );
 }
 

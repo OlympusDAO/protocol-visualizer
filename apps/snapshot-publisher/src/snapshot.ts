@@ -3,7 +3,7 @@ import {
   DEFAULT_PUBLIC_BASE_PATH,
   SCHEMA_VERSION,
 } from "./constants.js";
-import { PROTOCOL_VISUALIZER_QUERY } from "./protocol-query.js";
+import { PROTOCOL_VISUALIZER_QUERIES } from "./protocol-query.js";
 import { manifestSchema, protocolSnapshotSchema } from "./schema.js";
 import type {
   ChainConfig,
@@ -95,53 +95,73 @@ type GraphqlResponse = {
   errors?: Array<{ message: string }>;
 };
 
+const isSchemaFieldError = (errors: Array<{ message: string }>): boolean =>
+  errors.some(
+    (error) =>
+      error.message.includes("field 'contract' not found") ||
+      error.message.includes("field 'Contract' not found")
+  );
+
 export async function fetchProtocolData(
   hasuraGraphqlUrl: string,
   chainId: number
 ): Promise<ProtocolGraphqlData> {
-  let response: Response;
-  try {
-    response = await fetch(hasuraGraphqlUrl, {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        query: PROTOCOL_VISUALIZER_QUERY,
-        variables: { chainId },
-      }),
-    });
-  } catch (error) {
-    const cause =
-      error instanceof Error && error.cause instanceof Error
-        ? `: ${error.cause.message}`
-        : "";
-    throw new Error(
-      `Hasura request for chain ${chainId} failed before response${cause}`
-    );
+  const queryErrors: string[] = [];
+
+  for (const query of PROTOCOL_VISUALIZER_QUERIES) {
+    let response: Response;
+    try {
+      response = await fetch(hasuraGraphqlUrl, {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          query: query.query,
+          variables: { chainId },
+        }),
+      });
+    } catch (error) {
+      const cause =
+        error instanceof Error && error.cause instanceof Error
+          ? `: ${error.cause.message}`
+          : "";
+      throw new Error(
+        `Hasura request for chain ${chainId} failed before response${cause}`
+      );
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        `Hasura request for chain ${chainId} failed with HTTP ${response.status}`
+      );
+    }
+
+    const payload = (await response.json()) as GraphqlResponse;
+    if (payload.errors?.length) {
+      const messages = payload.errors.map((error) => error.message).join("; ");
+      queryErrors.push(`${query.name}: ${messages}`);
+      if (isSchemaFieldError(payload.errors)) {
+        continue;
+      }
+      throw new Error(
+        `Hasura request for chain ${chainId} returned errors: ${messages}`
+      );
+    }
+
+    if (!payload.data) {
+      throw new Error(`Hasura request for chain ${chainId} returned no data`);
+    }
+
+    return payload.data;
   }
 
-  if (!response.ok) {
-    throw new Error(
-      `Hasura request for chain ${chainId} failed with HTTP ${response.status}`
-    );
-  }
-
-  const payload = (await response.json()) as GraphqlResponse;
-  if (payload.errors?.length) {
-    throw new Error(
-      `Hasura request for chain ${chainId} returned errors: ${payload.errors
-        .map((error) => error.message)
-        .join("; ")}`
-    );
-  }
-
-  if (!payload.data) {
-    throw new Error(`Hasura request for chain ${chainId} returned no data`);
-  }
-
-  return payload.data;
+  throw new Error(
+    `Hasura request for chain ${chainId} returned schema errors for all query naming modes: ${queryErrors.join(
+      " | "
+    )}`
+  );
 }
 
 const normalizeTimestamp = (value: unknown): string => {

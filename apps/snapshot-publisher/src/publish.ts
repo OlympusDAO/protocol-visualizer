@@ -134,6 +134,7 @@ export async function runPublisher() {
       await writeLocalFile(outputDir, file);
     }
     console.log(`Wrote ${files.length} snapshot files to ${outputDir}`);
+    console.log("Snapshot publisher completed successfully; exiting");
     return;
   }
 
@@ -142,6 +143,7 @@ export async function runPublisher() {
   await uploadSnapshotFiles(client, bucket, files);
 
   console.log(`Published ${files.length} snapshot files to ${bucket}`);
+  console.log("Snapshot publisher completed successfully; exiting");
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

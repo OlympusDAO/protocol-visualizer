@@ -104,19 +104,24 @@ const isSchemaFieldError = (errors: Array<{ message: string }>): boolean =>
 
 export async function fetchProtocolData(
   hasuraGraphqlUrl: string,
-  chainId: number
+  chainId: number,
+  adminSecret?: string
 ): Promise<ProtocolGraphqlData> {
   const queryErrors: string[] = [];
+  const headers: Record<string, string> = {
+    accept: "application/json",
+    "content-type": "application/json",
+  };
+  if (adminSecret) {
+    headers["x-hasura-admin-secret"] = adminSecret;
+  }
 
   for (const query of PROTOCOL_VISUALIZER_QUERIES) {
     let response: Response;
     try {
       response = await fetch(hasuraGraphqlUrl, {
         method: "POST",
-        headers: {
-          accept: "application/json",
-          "content-type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           query: query.query,
           variables: { chainId },

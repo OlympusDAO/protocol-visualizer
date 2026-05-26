@@ -89,7 +89,11 @@ export async function runPublisher() {
     source === "sample"
       ? (chainId: number) => getSampleProtocolData(chainId)
       : (chainId: number) =>
-          fetchProtocolData(getRequiredEnv("HASURA_GRAPHQL_URL"), chainId);
+          fetchProtocolData(
+            getRequiredEnv("HASURA_GRAPHQL_URL"),
+            chainId,
+            process.env.HASURA_GRAPHQL_ADMIN_SECRET?.trim()
+          );
 
   const files = await createSnapshotFiles({
     chains,

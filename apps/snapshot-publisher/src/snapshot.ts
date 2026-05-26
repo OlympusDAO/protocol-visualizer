@@ -99,17 +99,28 @@ export async function fetchProtocolData(
   hasuraGraphqlUrl: string,
   chainId: number
 ): Promise<ProtocolGraphqlData> {
-  const response = await fetch(hasuraGraphqlUrl, {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      query: PROTOCOL_VISUALIZER_QUERY,
-      variables: { chainId },
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(hasuraGraphqlUrl, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        query: PROTOCOL_VISUALIZER_QUERY,
+        variables: { chainId },
+      }),
+    });
+  } catch (error) {
+    const cause =
+      error instanceof Error && error.cause instanceof Error
+        ? `: ${error.cause.message}`
+        : "";
+    throw new Error(
+      `Hasura request for chain ${chainId} failed before response${cause}`
+    );
+  }
 
   if (!response.ok) {
     throw new Error(

@@ -13,9 +13,21 @@ object key in the private bucket.
 Allowed public paths:
 
 ```text
+GET  /
+HEAD /
+OPTIONS /
+GET  /v1/
+HEAD /v1/
+OPTIONS /v1/
 GET  /v1/index.html
 HEAD /v1/index.html
 OPTIONS /v1/index.html
+GET  /robots.txt
+HEAD /robots.txt
+OPTIONS /robots.txt
+GET  /sitemap.xml
+HEAD /sitemap.xml
+OPTIONS /sitemap.xml
 GET  /v1/manifest.json
 HEAD /v1/manifest.json
 OPTIONS /v1/manifest.json
@@ -72,7 +84,8 @@ The gateway sets stable content types and cache headers:
 
 - `/v1/chain/*/protocol.json`: `public, s-maxage=3600, stale-while-revalidate=86400`
 - `/v1/manifest.json`: `public, s-maxage=300, stale-while-revalidate=3600`
-- `/v1/index.html`: `public, s-maxage=300, stale-while-revalidate=3600`
+- `/`, `/v1/`, `/v1/index.html`: `public, s-maxage=300, stale-while-revalidate=3600`
+- `/robots.txt`, `/sitemap.xml`: `public, s-maxage=300, stale-while-revalidate=3600`
 - `/v1/schemas/*`: `public, max-age=86400, immutable`
 
 It also sets `X-Content-Type-Options: nosniff`.

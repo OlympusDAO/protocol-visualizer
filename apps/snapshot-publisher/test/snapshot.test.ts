@@ -56,12 +56,23 @@ test("creates manifest last", async () => {
     chains: supportedChains,
     loadProtocolData: (chainId) => getSampleProtocolData(chainId),
     now: new Date("2026-05-25T00:00:00.000Z"),
+    publicOrigin: "https://snapshots.example.com",
   });
 
   assert.equal(files.at(-1)?.key, "v1/manifest.json");
   assert.equal(files.at(-1)?.publishLast, true);
   assert(files.some((file) => file.key === "v1/index.html"));
+  assert(files.some((file) => file.key === "sitemap.xml"));
+  assert(files.some((file) => file.key === "robots.txt"));
   assert(files.some((file) => file.key === "v1/chain/1/protocol.json"));
+  assert.match(
+    files.find((file) => file.key === "sitemap.xml")?.body ?? "",
+    /https:\/\/snapshots\.example\.com\/v1\/chain\/1\/protocol\.json/
+  );
+  assert.match(
+    files.find((file) => file.key === "robots.txt")?.body ?? "",
+    /Sitemap: https:\/\/snapshots\.example\.com\/sitemap\.xml/
+  );
 });
 
 test("chain selection is allowlisted", () => {

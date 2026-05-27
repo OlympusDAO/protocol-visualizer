@@ -149,12 +149,14 @@ Optional publisher variables:
 
 ```bash
 SNAPSHOT_PUBLIC_BASE_PATH=/v1
+SNAPSHOT_PUBLIC_ORIGIN=https://protocol-visualizer-api.olympusdao.finance
 SNAPSHOT_CHAIN_IDS=1,10,42161,8453,80094,11155111
 ```
 
-`SNAPSHOT_PUBLIC_BASE_PATH` defaults to `/v1`. `SNAPSHOT_CHAIN_IDS` should only
-be used to publish a subset of the shared chain list; every chain ID must exist
-in `protocol-chains.json`.
+`SNAPSHOT_PUBLIC_BASE_PATH` defaults to `/v1`. `SNAPSHOT_PUBLIC_ORIGIN` is used
+for absolute URLs in `sitemap.xml`, `robots.txt`, and the index page canonical
+link. `SNAPSHOT_CHAIN_IDS` should only be used to publish a subset of the shared
+chain list; every chain ID must exist in `protocol-chains.json`.
 
 Local-only publisher variables:
 
@@ -210,7 +212,11 @@ VITE_PROTOCOL_SNAPSHOT_BASE_URL=https://protocol-visualizer-api.olympusdao.finan
 The snapshot gateway exposes only these public paths:
 
 ```text
+GET /
+GET /v1/
 GET /v1/index.html
+GET /robots.txt
+GET /sitemap.xml
 GET /v1/manifest.json
 GET /v1/schemas/manifest-v1.schema.json
 GET /v1/schemas/protocol-snapshot-v1.schema.json
@@ -283,7 +289,10 @@ Use this cache rule expression:
 
 ```text
 http.host eq "protocol-visualizer-api.olympusdao.finance"
-and http.request.uri.path starts_with "/v1/"
+and (
+  http.request.uri.path starts_with "/v1/"
+  or http.request.uri.path in {"/" "/robots.txt" "/sitemap.xml"}
+)
 and http.request.method in {"GET" "HEAD"}
 ```
 
@@ -292,7 +301,8 @@ sets route-specific `Cache-Control` headers:
 
 - `/v1/chain/*/protocol.json`: `public, s-maxage=3600, stale-while-revalidate=86400`
 - `/v1/manifest.json`: `public, s-maxage=300, stale-while-revalidate=3600`
-- `/v1/index.html`: `public, s-maxage=300, stale-while-revalidate=3600`
+- `/`, `/v1/`, `/v1/index.html`: `public, s-maxage=300, stale-while-revalidate=3600`
+- `/robots.txt`, `/sitemap.xml`: `public, s-maxage=300, stale-while-revalidate=3600`
 - `/v1/schemas/*`: `public, max-age=86400, immutable`
 
 Suggested WAF rules:
@@ -304,7 +314,10 @@ and not http.request.method in {"GET" "HEAD" "OPTIONS"}
 
 ```text
 http.host eq "protocol-visualizer-api.olympusdao.finance"
-and not http.request.uri.path starts_with "/v1/"
+and not (
+  http.request.uri.path starts_with "/v1/"
+  or http.request.uri.path in {"/" "/robots.txt" "/sitemap.xml"}
+)
 ```
 
 ## Validation
@@ -329,6 +342,7 @@ Deployment smoke checks:
 ```bash
 curl -I https://<snapshot-gateway-domain>/v1/manifest.json
 curl -I https://<snapshot-gateway-domain>/v1/chain/1/protocol.json
+curl -I https://<snapshot-gateway-domain>/sitemap.xml
 curl https://<snapshot-gateway-domain>/v1/manifest.json
 ```
 

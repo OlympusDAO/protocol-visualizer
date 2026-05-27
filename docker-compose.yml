@@ -139,6 +139,7 @@ services:
       HASURA_GRAPHQL_URL: http://hasura:8080/v1/graphql
       HASURA_GRAPHQL_ADMIN_SECRET: *hasura-admin-secret
       SNAPSHOT_PUBLIC_BASE_PATH: /v1
+      SNAPSHOT_PUBLIC_ORIGIN: ${SNAPSHOT_PUBLIC_ORIGIN:-http://localhost:8082}
       SNAPSHOT_SOURCE: hasura
       SNAPSHOT_CHAIN_IDS: ${SNAPSHOT_CHAIN_IDS:-}
     depends_on:
@@ -157,6 +158,7 @@ services:
     environment:
       <<: *snapshot-s3-env
       SNAPSHOT_PUBLIC_BASE_PATH: /v1
+      SNAPSHOT_PUBLIC_ORIGIN: ${SNAPSHOT_PUBLIC_ORIGIN:-http://localhost:8082}
       SNAPSHOT_SOURCE: sample
       SNAPSHOT_CHAIN_IDS: ${SNAPSHOT_CHAIN_IDS:-}
     depends_on:

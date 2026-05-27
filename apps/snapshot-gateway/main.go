@@ -227,10 +227,22 @@ func (s server) handleReady(w http.ResponseWriter, r *http.Request) {
 
 func resolveRoute(path string, allowedChains map[int]struct{}) (route, bool) {
 	switch path {
-	case "/v1/index.html":
+	case "/", "/v1/", "/v1/index.html":
 		return route{
 			key:          bucketRoot + "/index.html",
 			contentType:  "text/html; charset=utf-8",
+			cacheControl: "public, s-maxage=300, stale-while-revalidate=3600",
+		}, true
+	case "/robots.txt":
+		return route{
+			key:          "robots.txt",
+			contentType:  "text/plain; charset=utf-8",
+			cacheControl: "public, s-maxage=300, stale-while-revalidate=3600",
+		}, true
+	case "/sitemap.xml":
+		return route{
+			key:          "sitemap.xml",
+			contentType:  "application/xml",
 			cacheControl: "public, s-maxage=300, stale-while-revalidate=3600",
 		}, true
 	case "/v1/manifest.json":

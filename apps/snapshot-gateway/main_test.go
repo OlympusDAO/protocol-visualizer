@@ -55,8 +55,12 @@ func (f *fakeS3) HeadObject(_ context.Context, input *s3.HeadObjectInput, _ ...f
 
 func TestResolveRouteAllowsOnlyKnownPaths(t *testing.T) {
 	testCases := map[string]string{
+		"/":                                             "v1/index.html",
+		"/v1/":                                         "v1/index.html",
 		"/v1/index.html":                               "v1/index.html",
 		"/v1/manifest.json":                            "v1/manifest.json",
+		"/robots.txt":                                  "robots.txt",
+		"/sitemap.xml":                                 "sitemap.xml",
 		"/v1/schemas/manifest-v1.schema.json":          "v1/schemas/manifest-v1.schema.json",
 		"/v1/schemas/protocol-snapshot-v1.schema.json": "v1/schemas/protocol-snapshot-v1.schema.json",
 		"/v1/chain/1/protocol.json":                    "v1/chain/1/protocol.json",
@@ -78,7 +82,6 @@ func TestResolveRouteAllowsOnlyKnownPaths(t *testing.T) {
 
 func TestResolveRouteRejectsUnknownPaths(t *testing.T) {
 	for _, path := range []string{
-		"/",
 		"/v1",
 		"/v1/chain/999/protocol.json",
 		"/v1/chain/1/other.json",
@@ -87,6 +90,49 @@ func TestResolveRouteRejectsUnknownPaths(t *testing.T) {
 		t.Run(path, func(t *testing.T) {
 			if _, ok := resolveRoute(path, testAllowedChains); ok {
 				t.Fatalf("expected route to be rejected")
+			}
+		})
+	}
+}
+
+func TestGatewayServesRootAsIndex(t *testing.T) {
+	fake := &fakeS3{}
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/", nil)
+	server{bucket: "bucket", s3: fake, allowedChains: testAllowedChains}.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", recorder.Code)
+	}
+	if fake.key != "v1/index.html" {
+		t.Fatalf("unexpected object key %s", fake.key)
+	}
+	if recorder.Header().Get("Content-Type") != "text/html; charset=utf-8" {
+		t.Fatalf("unexpected content type %s", recorder.Header().Get("Content-Type"))
+	}
+}
+
+func TestGatewayServesSitemapAndRobots(t *testing.T) {
+	testCases := map[string]string{
+		"/sitemap.xml": "application/xml",
+		"/robots.txt":  "text/plain; charset=utf-8",
+	}
+
+	for path, contentType := range testCases {
+		t.Run(path, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodGet, path, nil)
+			server{
+				bucket:        "bucket",
+				s3:            &fakeS3{},
+				allowedChains: testAllowedChains,
+			}.ServeHTTP(recorder, request)
+
+			if recorder.Code != http.StatusOK {
+				t.Fatalf("expected 200, got %d", recorder.Code)
+			}
+			if recorder.Header().Get("Content-Type") != contentType {
+				t.Fatalf("unexpected content type %s", recorder.Header().Get("Content-Type"))
 			}
 		})
 	}

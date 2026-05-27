@@ -95,6 +95,7 @@ const writeLocalFile = async (outputDir: string, file: SnapshotFile) => {
 export async function runPublisher() {
   const publicBasePath =
     process.env.SNAPSHOT_PUBLIC_BASE_PATH || DEFAULT_PUBLIC_BASE_PATH;
+  const publicOrigin = process.env.SNAPSHOT_PUBLIC_ORIGIN;
   const supportedChains = await loadSupportedChains();
   const chainIds = parseChainIds(
     process.env.SNAPSHOT_CHAIN_IDS,
@@ -124,6 +125,7 @@ export async function runPublisher() {
     chains,
     loadProtocolData,
     publicBasePath,
+    publicOrigin,
   });
 
   const regularFiles = files.filter((file) => !file.publishLast);

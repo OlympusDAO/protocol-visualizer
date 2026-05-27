@@ -12,7 +12,7 @@ private Hasura for the public frontend. On each run it:
 1. Queries private Hasura once per supported chain.
 2. Normalizes the GraphQL result into the public snapshot shape.
 3. Generates per-chain `protocol.json` files, schema files, `manifest.json`,
-   and `index.html`.
+   `index.html`, `sitemap.xml`, and `robots.txt`.
 4. Validates each protocol snapshot before upload.
 5. Uploads and verifies every non-manifest file with S3 `HeadObject`.
 6. Uploads and verifies `manifest.json` last.
@@ -26,6 +26,8 @@ The generated object keys match the public gateway paths:
 
 ```text
 v1/index.html
+robots.txt
+sitemap.xml
 v1/manifest.json
 v1/schemas/manifest-v1.schema.json
 v1/schemas/protocol-snapshot-v1.schema.json
@@ -77,12 +79,15 @@ Optional variables:
 
 ```bash
 SNAPSHOT_PUBLIC_BASE_PATH=/v1
+SNAPSHOT_PUBLIC_ORIGIN=https://protocol-visualizer-api.olympusdao.finance
 SNAPSHOT_CHAIN_IDS=1,10,42161,8453,80094,11155111
 PROTOCOL_CHAINS_CONFIG_PATH=/app/config/protocol-chains.json
 ```
 
-`SNAPSHOT_PUBLIC_BASE_PATH` defaults to `/v1`. `PROTOCOL_CHAINS_CONFIG_PATH` is
-set by the Docker image and usually does not need to be configured manually.
+`SNAPSHOT_PUBLIC_BASE_PATH` defaults to `/v1`. `SNAPSHOT_PUBLIC_ORIGIN` is used
+for absolute URLs in `sitemap.xml`, `robots.txt`, and the index page canonical
+link. `PROTOCOL_CHAINS_CONFIG_PATH` is set by the Docker image and usually does
+not need to be configured manually.
 
 Local-only variables:
 

@@ -72,7 +72,9 @@ After publishing, verify the gateway:
 
 ```bash
 curl -I http://localhost:8082/ready
+curl -I http://localhost:8082/
 curl -I http://localhost:8082/v1/manifest.json
+curl -I http://localhost:8082/sitemap.xml
 curl http://localhost:8082/v1/chain/1/protocol.json
 ```
 

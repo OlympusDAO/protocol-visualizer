@@ -1,6 +1,7 @@
 import {
   CACHE_CONTROL,
   DEFAULT_PUBLIC_BASE_PATH,
+  DEFAULT_PUBLIC_ORIGIN,
   SCHEMA_VERSION,
 } from "./constants.js";
 import { PROTOCOL_VISUALIZER_QUERIES } from "./protocol-query.js";
@@ -44,6 +45,7 @@ type CreateSnapshotFilesInput = {
   ) => Promise<ProtocolGraphqlData> | ProtocolGraphqlData;
   now?: Date;
   publicBasePath?: string;
+  publicOrigin?: string;
 };
 
 const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
@@ -57,6 +59,25 @@ const normalizeBasePath = (basePath = DEFAULT_PUBLIC_BASE_PATH): string => {
 };
 
 const publicPathToKey = (publicPath: string) => publicPath.replace(/^\/+/, "");
+
+const normalizePublicOrigin = (origin = DEFAULT_PUBLIC_ORIGIN): string => {
+  const trimmed = origin.trim();
+  if (!trimmed) {
+    return DEFAULT_PUBLIC_ORIGIN;
+  }
+  return trimmed.replace(/\/+$/g, "");
+};
+
+const absoluteUrl = (origin: string, path: string) =>
+  `${origin}${path.startsWith("/") ? path : `/${path}`}`;
+
+const escapeXml = (value: string) =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
 
 export function parseChainIds(
   value: string | undefined,
@@ -390,16 +411,20 @@ const createIndexHtml = ({
   generatedAt,
   manifest,
   basePath,
+  publicOrigin,
 }: {
   generatedAt: string;
   manifest: Manifest;
   basePath: string;
+  publicOrigin: string;
 }) => `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Protocol Visualizer Snapshots</title>
+    <link rel="canonical" href="${absoluteUrl(publicOrigin, `${basePath}/index.html`)}">
+    <link rel="sitemap" type="application/xml" href="${absoluteUrl(publicOrigin, "/sitemap.xml")}">
   </head>
   <body>
     <main>
@@ -409,6 +434,8 @@ const createIndexHtml = ({
         <li><a href="${basePath}/manifest.json">manifest.json</a></li>
         <li><a href="${basePath}/schemas/manifest-v1.schema.json">manifest schema</a></li>
         <li><a href="${basePath}/schemas/protocol-snapshot-v1.schema.json">protocol snapshot schema</a></li>
+        <li><a href="/sitemap.xml">sitemap.xml</a></li>
+        <li><a href="/robots.txt">robots.txt</a></li>
       </ul>
       <h2>Chains</h2>
       <ul>
@@ -424,14 +451,77 @@ const createIndexHtml = ({
 </html>
 `;
 
+const createSitemapXml = ({
+  generatedAt,
+  manifest,
+  basePath,
+  publicOrigin,
+}: {
+  generatedAt: string;
+  manifest: Manifest;
+  basePath: string;
+  publicOrigin: string;
+}) => {
+  const urls = [
+    { loc: absoluteUrl(publicOrigin, "/"), lastmod: generatedAt },
+    {
+      loc: absoluteUrl(publicOrigin, `${basePath}/index.html`),
+      lastmod: generatedAt,
+    },
+    {
+      loc: absoluteUrl(publicOrigin, `${basePath}/manifest.json`),
+      lastmod: manifest.generatedAt,
+    },
+    {
+      loc: absoluteUrl(
+        publicOrigin,
+        `${basePath}/schemas/manifest-v1.schema.json`
+      ),
+      lastmod: generatedAt,
+    },
+    {
+      loc: absoluteUrl(
+        publicOrigin,
+        `${basePath}/schemas/protocol-snapshot-v1.schema.json`
+      ),
+      lastmod: generatedAt,
+    },
+    ...manifest.chains.map((chain) => ({
+      loc: absoluteUrl(publicOrigin, chain.path),
+      lastmod: chain.generatedAt,
+    })),
+  ];
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls
+  .map(
+    (url) => `  <url>
+    <loc>${escapeXml(url.loc)}</loc>
+    <lastmod>${escapeXml(url.lastmod)}</lastmod>
+  </url>`
+  )
+  .join("\n")}
+</urlset>
+`;
+};
+
+const createRobotsTxt = (publicOrigin: string) => `User-agent: *
+Allow: /
+
+Sitemap: ${absoluteUrl(publicOrigin, "/sitemap.xml")}
+`;
+
 export async function createSnapshotFiles({
   chains,
   loadProtocolData,
   now = new Date(),
   publicBasePath = DEFAULT_PUBLIC_BASE_PATH,
+  publicOrigin = DEFAULT_PUBLIC_ORIGIN,
 }: CreateSnapshotFilesInput): Promise<SnapshotFile[]> {
   const generatedAt = now.toISOString();
   const basePath = normalizeBasePath(publicBasePath);
+  const origin = normalizePublicOrigin(publicOrigin);
   const chainSnapshots: ChainSnapshot[] = [];
 
   for (const chain of chains) {
@@ -457,9 +547,33 @@ export async function createSnapshotFiles({
     chains: chainSnapshots,
     basePath,
   });
-  const indexHtml = createIndexHtml({ generatedAt, manifest, basePath });
+  const indexHtml = createIndexHtml({
+    generatedAt,
+    manifest,
+    basePath,
+    publicOrigin: origin,
+  });
+  const sitemapXml = createSitemapXml({
+    generatedAt,
+    manifest,
+    basePath,
+    publicOrigin: origin,
+  });
+  const robotsTxt = createRobotsTxt(origin);
 
   const files: Omit<SnapshotFile, "key">[] = [
+    {
+      publicPath: "/robots.txt",
+      contentType: "text/plain; charset=utf-8",
+      cacheControl: CACHE_CONTROL.robots,
+      body: robotsTxt,
+    },
+    {
+      publicPath: "/sitemap.xml",
+      contentType: "application/xml",
+      cacheControl: CACHE_CONTROL.sitemap,
+      body: sitemapXml,
+    },
     {
       publicPath: `${basePath}/index.html`,
       contentType: "text/html; charset=utf-8",

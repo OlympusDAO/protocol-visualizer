@@ -37,6 +37,16 @@ names, and explorer URLs do not drift.
 The indexer is designed to be self-hosted with Postgres and Hasura. The default
 indexer config is RPC-only and does not require `ENVIO_API_TOKEN`.
 
+For local end-to-end testing, Docker Compose can run Postgres, Hasura, the
+indexer, a local S3-compatible bucket, the snapshot gateway, and the frontend:
+
+```bash
+pnpm run stack:up
+pnpm run stack:publish:sample
+```
+
+The full local stack guide is in `docs/local-stack.md`.
+
 Railway self-hosting is documented in `docs/railway-self-hosting.md`. The
 deployable Railway services are defined by `railway-indexer.json`,
 `railway-hasura.json`, `railway-snapshot-publisher.json`,

@@ -92,3 +92,11 @@ pnpm run docker:build:snapshot-gateway
 The tests cover route allowlisting, chain allowlisting, request-body rejection,
 method rejection, CORS headers, cache headers, HEAD support, and
 manifest-based readiness.
+
+For local end-to-end testing, run the gateway through Docker Compose:
+
+```bash
+pnpm run stack:up
+pnpm run stack:publish:sample
+curl -I http://localhost:8082/v1/manifest.json
+```

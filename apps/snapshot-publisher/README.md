@@ -126,6 +126,17 @@ To write live Hasura data locally, set `HASURA_GRAPHQL_URL`,
 `HASURA_GRAPHQL_ADMIN_SECRET`, `SNAPSHOT_OUTPUT_DIR`, and
 `SNAPSHOT_SOURCE=hasura`.
 
+To publish into the local Docker Compose bucket, use the one-shot Compose jobs:
+
+```bash
+pnpm run stack:publish:sample
+pnpm run stack:publish
+```
+
+`stack:publish:sample` writes deterministic sample data to MinIO. `stack:publish`
+reads from the local Hasura service and should be run after the indexer is
+ready.
+
 ## Validation
 
 ```bash

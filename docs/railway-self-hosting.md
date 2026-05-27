@@ -28,6 +28,10 @@ Railway references:
 - [Storage Buckets](https://docs.railway.com/storage-buckets)
 - [Cron Jobs](https://docs.railway.com/reference/cron-jobs)
 
+For a local Railway-like stack with Docker Compose, see
+`docs/local-stack.md`. It uses MinIO as the local S3-compatible replacement for
+the private Railway Bucket while keeping the same publisher and gateway images.
+
 ## Architecture
 
 ```mermaid

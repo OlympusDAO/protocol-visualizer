@@ -87,7 +87,7 @@ test("Compose includes the Railway-like snapshot services", () => {
   assert(compose.includes("http://localhost:8082"));
 });
 
-test("Compose requires Envio API token for local indexer runs", () => {
+test("Compose requires Envio API token and RPC URLs for local indexer runs", () => {
   const compose = readFileSync("docker-compose.yml", "utf8");
   const sampleEnv = readFileSync(".env.compose.sample", "utf8");
   const localDocs = readFileSync("docs/local-stack.md", "utf8");
@@ -95,10 +95,17 @@ test("Compose requires Envio API token for local indexer runs", () => {
   const railwayDocs = readFileSync("docs/railway-self-hosting.md", "utf8");
 
   assert(compose.includes("ENVIO_API_TOKEN: ${ENVIO_API_TOKEN:?"));
+  for (const chainId of ["1", "10", "42161", "8453", "80094", "11155111"]) {
+    assert(compose.includes(`ENVIO_RPC_URL_${chainId}: $`));
+    assert(compose.includes(`Set ENVIO_RPC_URL_${chainId} in .env`));
+    assert(sampleEnv.includes(`ENVIO_RPC_URL_${chainId}=`));
+    assert(localDocs.includes(`ENVIO_RPC_URL_${chainId}`));
+  }
   assert(compose.includes("ENVIO_RPC_MODE: ${ENVIO_RPC_MODE:-}"));
   assert(sampleEnv.includes("ENVIO_API_TOKEN=CHANGEME"));
   assert(sampleEnv.includes("# ENVIO_RPC_MODE="));
-  assert(localDocs.includes("fails early without the token"));
+  assert(localDocs.includes("fails early"));
+  assert(localDocs.includes("token and RPC URLs"));
   assert(indexerDocs.includes("required by the local Docker"));
   assert(railwayDocs.includes("ENVIO_API_TOKEN=<envio-api-token>"));
 });

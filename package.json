@@ -26,7 +26,7 @@
     "lint": "turbo run lint && biome format --write .",
     "openapi:check": "pnpm --filter snapshot-gateway run openapi:check",
     "railway:iac:check": "node --no-warnings scripts/check-railway-iac.mjs",
-    "railway:iac:plan": "node scripts/railway-iac-plan.mjs",
+    "railway:iac:plan": "railway config plan --file .railway/railway.ts --runner ./node_modules/.bin/railway-iac-ts --verbose",
     "snapshots:generate:local": "pnpm --filter snapshot-publisher run build && env SNAPSHOT_OUTPUT_DIR=/tmp/protocol-visualizer-snapshots SNAPSHOT_SOURCE=sample pnpm --filter snapshot-publisher start",
     "stack:config": "docker compose config",
     "stack:down": "docker compose down",

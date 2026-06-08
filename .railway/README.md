@@ -18,6 +18,14 @@ Select the Railway environment before planning or applying IaC changes:
 railway environment <environment-name>
 ```
 
+Make sure the local checkout is on the Git branch this environment should
+build, then push the changes:
+
+```bash
+git branch --show-current
+git push
+```
+
 Evaluate the TypeScript graph locally:
 
 ```bash
@@ -62,18 +70,15 @@ If `.railway/railway.ts` has pending project changes, `railway up` previews them
 - `railway config apply` asks before applying unless you pass `--yes`.
 - Run `railway environment <environment-name>` first so the plan/apply targets
   the intended environment.
+- The GitHub source branch is one value shared by every service in the
+  environment. `.railway/railway.ts` derives it from the local Git checkout, so
+  run plan/apply from the branch Railway should build.
 - `railway up` deploys this directory when the service has no GitHub or image
   source.
 - The old per-service `railway-*.json` files have been removed. This directory
   is the only repo-owned Railway configuration.
-- The GitHub source branch is one value per environment and is read from
-  Railway's `RAILWAY_GIT_BRANCH` Git variable.
 - `.railway/railway.ts` fails fast if Railway does not provide an environment
-  name or `RAILWAY_GIT_BRANCH`. The offline `railway:iac:check` script supplies
-  `local` explicitly for local graph validation.
-- `railway:iac:plan` reads the linked Railway environment's PR branch metadata
-  and passes it to the IaC runner as `RAILWAY_GIT_BRANCH`, matching the branch
-  Railway uses for GitHub-triggered deployments.
+  name or if the source branch cannot be determined from the local Git checkout.
 - The snapshot bucket resource name is generated per environment as
   `snapshots-<environment-slug>-<stable-id>`.
 - Use `replicas` for scaling; advanced placement can still specify region names.

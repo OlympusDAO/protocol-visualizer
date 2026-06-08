@@ -13,7 +13,7 @@ per-service `railway-*.json` files and is the single source of truth for:
 - services, groups, Postgres, and the snapshot bucket
 - Dockerfile paths and root-anchored watch patterns
 - healthchecks, restart policies, resource limits, and cron schedules
-- environment-derived source branches, snapshot bucket names, Railway variable
+- local Git source branch, environment-derived bucket names, Railway variable
   references, and preserved secrets
 
 Local checks:
@@ -32,8 +32,9 @@ create services or change live Railway settings.
 Railway IaC apply flow:
 
 1. Select the target environment with `railway environment <environment-name>`.
-2. Push the code changes that contain the new `.railway/railway.ts` state.
-3. Run `railway config apply` after reviewing the plan.
+2. Check out the Git branch this environment should build.
+3. Push the code changes that contain the new `.railway/railway.ts` state.
+4. Run `railway config apply` after reviewing the plan.
 
 This is only necessary when the service, bucket, variable, build, deploy,
 healthcheck, cron, or resource-limit setup changes. Ordinary application code
@@ -43,13 +44,10 @@ The project pins `railway@3.1.1` for the TypeScript IaC SDK and has a narrow
 `minimumReleaseAgeExclude` entry for that exact package version.
 
 The GitHub source branch is one value per environment and is shared by every
-service. It is read from Railway's `RAILWAY_GIT_BRANCH` Git variable, which
-Railway provides for GitHub-triggered deployments.
-The IaC fails fast if Railway does not provide an environment name or
-`RAILWAY_GIT_BRANCH`; the offline `railway:iac:check` script supplies `local`
-explicitly for local validation.
-For local planning, `railway:iac:plan` reads the linked Railway environment's PR
-branch metadata and passes it to the IaC runner as `RAILWAY_GIT_BRANCH`.
+service. `.railway/railway.ts` derives it from the local Git checkout when you
+run `railway config plan` or `railway config apply`, so run those commands from
+the branch Railway should build. The IaC fails fast if Railway does not provide
+an environment name or if the local source branch cannot be determined.
 
 ## Services
 
@@ -234,17 +232,18 @@ Healthchecks:
 ## Deployment
 
 1. Select the target environment with `railway environment <environment-name>`.
-2. Push the code changes that contain the intended `.railway/railway.ts` state.
-3. Run `pnpm run railway:iac:plan` and review the planned changes.
-4. Apply the reviewed plan with `railway config apply` only when service or
+2. Check out the Git branch this environment should build.
+3. Push the code changes that contain the intended `.railway/railway.ts` state.
+4. Run `pnpm run railway:iac:plan` and review the planned changes.
+5. Apply the reviewed plan with `railway config apply` only when service or
    variable setup changed.
-5. Set preserved secrets and environment-specific values that are intentionally
+6. Set preserved secrets and environment-specific values that are intentionally
    not committed to code.
-6. Deploy Hasura and indexer.
-7. Manually run `snapshot-publisher` once.
-8. Confirm `GET /ready`, `GET /v1/bounds`, and
+7. Deploy Hasura and indexer.
+8. Manually run `snapshot-publisher` once.
+9. Confirm `GET /ready`, `GET /v1/bounds`, and
    `GET /v1/chains/1/protocol` through the gateway.
-9. Point the frontend at the Cloudflare-proxied gateway domain.
+10. Point the frontend at the Cloudflare-proxied gateway domain.
 
 ## Cloudflare
 

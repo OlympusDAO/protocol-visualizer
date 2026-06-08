@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 import { evaluateRailwayFile, validateGraph } from "railway/iac";
@@ -7,29 +8,40 @@ const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 
 const dockerfileContent = (path) => readFileSync(path, "utf8");
 
-const withRailwayGitBranch = async (branch, callback) => {
-  const originalBranch = process.env.RAILWAY_GIT_BRANCH;
-  process.env.RAILWAY_GIT_BRANCH = branch;
-
+const gitOutput = (args) => {
   try {
-    return await callback();
-  } finally {
-    if (originalBranch === undefined) {
-      delete process.env.RAILWAY_GIT_BRANCH;
-    } else {
-      process.env.RAILWAY_GIT_BRANCH = originalBranch;
-    }
+    return execFileSync("git", args, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return "";
   }
 };
 
+const currentGitBranch = () => {
+  const gitBranch =
+    gitOutput(["branch", "--show-current"]) ||
+    gitOutput(["rev-parse", "--abbrev-ref", "HEAD"]);
+  if (gitBranch && gitBranch !== "HEAD") {
+    return gitBranch;
+  }
+
+  const fallbackBranch =
+    process.env.GITHUB_HEAD_REF?.trim() || process.env.GITHUB_REF_NAME?.trim();
+  if (!fallbackBranch) {
+    throw new Error("Unable to determine current Git branch for config tests");
+  }
+
+  return fallbackBranch;
+};
+
 const railwayProject = async (context) => {
-  const result = await withRailwayGitBranch("feature/railway-iac", () => {
-    return evaluateRailwayFile(".railway/railway.ts", {
-      context: context ?? {
-        environment: "local",
-        environmentName: "local",
-      },
-    });
+  const result = await evaluateRailwayFile(".railway/railway.ts", {
+    context: context ?? {
+      environment: "local",
+      environmentName: "local",
+    },
   });
   const graphErrors = validateGraph(result.graph);
   assert.deepEqual(graphErrors, []);
@@ -152,35 +164,9 @@ test("Railway IaC defines expected services, Dockerfiles, watch patterns, and po
 
 test("Railway IaC fails when the environment name is missing", async () => {
   await assert.rejects(
-    () =>
-      withRailwayGitBranch("feature/railway-iac", () =>
-        evaluateRailwayFile(".railway/railway.ts", { context: {} })
-      ),
+    () => evaluateRailwayFile(".railway/railway.ts", { context: {} }),
     /Railway environment name is required/
   );
-});
-
-test("Railway IaC fails when the Git branch is missing", async () => {
-  const originalBranch = process.env.RAILWAY_GIT_BRANCH;
-  try {
-    delete process.env.RAILWAY_GIT_BRANCH;
-    await assert.rejects(
-      () =>
-        evaluateRailwayFile(".railway/railway.ts", {
-          context: {
-            environment: "protocol-visualizer-pr-50",
-            environmentName: "protocol-visualizer-pr-50",
-          },
-        }),
-      /RAILWAY_GIT_BRANCH is required/
-    );
-  } finally {
-    if (originalBranch === undefined) {
-      delete process.env.RAILWAY_GIT_BRANCH;
-    } else {
-      process.env.RAILWAY_GIT_BRANCH = originalBranch;
-    }
-  }
 });
 
 test("Railway IaC derives bucket names and uses one source branch per environment", async () => {
@@ -200,14 +186,25 @@ test("Railway IaC derives bucket names and uses one source branch per environmen
     "snapshots-protocol-visualizer-pr-50-910d0da5",
   ]);
 
-  assert.equal(
-    production.desiredConfig.services.hasura.source.branch,
-    "feature/railway-iac"
-  );
-  assert.equal(
-    preview.desiredConfig.services.hasura.source.branch,
-    "feature/railway-iac"
-  );
+  const expectedBranch = currentGitBranch();
+  for (const serviceName of Object.keys(production.desiredConfig.services)) {
+    if (!production.desiredConfig.services[serviceName].source?.branch) {
+      continue;
+    }
+    assert.equal(
+      production.desiredConfig.services[serviceName].source.branch,
+      expectedBranch
+    );
+  }
+  for (const serviceName of Object.keys(preview.desiredConfig.services)) {
+    if (!preview.desiredConfig.services[serviceName].source?.branch) {
+      continue;
+    }
+    assert.equal(
+      preview.desiredConfig.services[serviceName].source.branch,
+      expectedBranch
+    );
+  }
 });
 
 test("CI scans every Dockerfile and local image", () => {

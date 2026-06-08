@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import {
   bucket,
   defineRailway,
@@ -26,7 +27,7 @@ const environmentNameFor = (ctx: RailwayContext) => {
   const environmentName = ctx.environmentName ?? ctx.environment;
   if (!environmentName) {
     throw new Error(
-      "Railway environment name is required to derive the GitHub source branch and snapshot bucket name."
+      "Railway environment name is required to derive the snapshot bucket name."
     );
   }
   return environmentName;
@@ -37,13 +38,38 @@ const bucketNameForEnvironment = (ctx: RailwayContext) => {
   return `snapshots-${slug}-${ctx.randomString("snapshot-bucket", 4)}`;
 };
 
-const githubBranchForEnvironment = () => {
-  const branch = process.env.RAILWAY_GIT_BRANCH?.trim();
-  if (branch) {
+const gitOutput = (args: string[]) => {
+  try {
+    return execFileSync("git", args, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return "";
+  }
+};
+
+const localGitBranch = () => {
+  const branch =
+    gitOutput(["branch", "--show-current"]) ||
+    gitOutput(["rev-parse", "--abbrev-ref", "HEAD"]);
+
+  if (branch && branch !== "HEAD") {
     return branch;
   }
+
+  const githubHeadRef = process.env.GITHUB_HEAD_REF?.trim();
+  if (githubHeadRef) {
+    return githubHeadRef;
+  }
+
+  const githubRefName = process.env.GITHUB_REF_NAME?.trim();
+  if (githubRefName) {
+    return githubRefName;
+  }
+
   throw new Error(
-    "RAILWAY_GIT_BRANCH is required to derive the GitHub source branch for Railway IaC."
+    "Unable to determine the GitHub source branch from the local Git checkout."
   );
 };
 
@@ -78,7 +104,7 @@ const requiredExisting = (description: string): VariableConfig => ({
 
 export default defineRailway((ctx) => {
   const environmentName = environmentNameFor(ctx);
-  const githubBranch = githubBranchForEnvironment();
+  const githubBranch = localGitBranch();
   const source = github(REPOSITORY, {
     branch: githubBranch,
     checkSuites: true,

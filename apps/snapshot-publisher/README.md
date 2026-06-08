@@ -71,6 +71,9 @@ schema response.
 `INDEXER_METRICS_URL` is the private Envio metrics endpoint. The publisher uses
 `hyperindex_synced_to_head` and per-chain `envio_progress_ready` metrics as the
 handover gate before reading Hasura or writing bucket objects.
+The indexer Railway service must expose the same port used here. With the
+documented setup, set `indexer.PORT=9898` and keep
+`INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics`.
 The `indexingProgress` values in the published manifest come from this metrics
 endpoint: `date` and `timestamp` are the metrics scrape time, and `block` is the
 latest Envio progress block for that chain. They are not derived from the newest

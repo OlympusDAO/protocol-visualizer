@@ -40,6 +40,7 @@ services:
       HASURA_GRAPHQL_ADMIN_SECRET: *hasura-admin-secret
       HASURA_GRAPHQL_ENABLE_CONSOLE: ${HASURA_GRAPHQL_ENABLE_CONSOLE:-true}
       HASURA_GRAPHQL_DEV_MODE: ${HASURA_GRAPHQL_DEV_MODE:-true}
+      PORT: "8080"
     ports:
       - "${HASURA_HOST_PORT:-8080}:8080"
     depends_on:

@@ -55,13 +55,20 @@ commented.
 Set on `hasura`:
 
 ```bash
+PORT=8080
 HASURA_GRAPHQL_DATABASE_URL=${{Postgres.DATABASE_URL}}
 HASURA_GRAPHQL_ADMIN_SECRET=${{shared.HASURA_GRAPHQL_ADMIN_SECRET}}
 ```
 
+Hasura should stay on `PORT=8080` because the private URLs used by the indexer
+and publisher target `hasura.railway.internal:8080`. If this port changes,
+update `HASURA_GRAPHQL_ENDPOINT` on `indexer` and `HASURA_GRAPHQL_URL` on
+`snapshot-publisher`.
+
 Set on `indexer`:
 
 ```bash
+PORT=9898
 DATABASE_URL=${{Postgres.DATABASE_URL}}
 HASURA_GRAPHQL_ENDPOINT=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/metadata
 HASURA_GRAPHQL_ADMIN_SECRET=${{shared.HASURA_GRAPHQL_ADMIN_SECRET}}
@@ -88,9 +95,11 @@ set. Railway start commands run `envio start -r`; public handover is handled by
 the publisher manifest, not database schemas.
 
 The publisher and monitor read Envio's private `/metrics` endpoint to decide
-whether a deployment is ready. The examples below use `9898` because the indexer
-Railway service should set `PORT=9898`; if that port is changed, update
-`INDEXER_METRICS_URL` to match the indexer's `PORT`.
+whether a deployment is ready. The indexer Railway service must set `PORT=9898`
+so the health wrapper exposes `/healthz`, `/ready`, and proxied `/metrics` on
+`indexer.railway.internal:9898`. If that port is changed, update
+`INDEXER_METRICS_URL` on both `snapshot-publisher` and `snapshot-monitor` to
+match the indexer's `PORT`.
 
 Set on `snapshot-publisher`:
 

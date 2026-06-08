@@ -35,6 +35,10 @@ REGION=${{<bucket-service>.REGION}}
 ENDPOINT=${{<bucket-service>.ENDPOINT}}
 ```
 
+The indexer Railway service must expose the same port used in
+`INDEXER_METRICS_URL`. With the documented setup, set `indexer.PORT=9898` so the
+monitor can reach `http://indexer.railway.internal:9898/metrics`.
+
 Optional:
 
 ```bash

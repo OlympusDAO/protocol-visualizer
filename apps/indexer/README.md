@@ -69,6 +69,7 @@ For production wrapper runs, also set the database and private Hasura metadata
 endpoint:
 
 ```bash
+PORT=9898
 DATABASE_URL=
 HASURA_GRAPHQL_ENDPOINT=
 HASURA_GRAPHQL_ADMIN_SECRET=
@@ -269,6 +270,10 @@ Railway-style environment variables. It maps:
   an internal port, proxies normal requests through, returns `200` from
   `/healthz` for process-level Railway health, and keeps `/ready` data-aware for
   manual checks.
+- Railway deployments must set `PORT=9898` so sibling services can reach the
+  proxied metrics endpoint at `http://indexer.railway.internal:9898/metrics`.
+  Keep `snapshot-publisher.INDEXER_METRICS_URL` and
+  `snapshot-monitor.INDEXER_METRICS_URL` aligned with this value.
 - `PORT` to `ENVIO_INDEXER_PORT`, when no indexer port is explicitly set and the
   healthcheck wrapper is disabled or not used
 

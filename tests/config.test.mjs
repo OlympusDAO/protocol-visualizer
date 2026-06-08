@@ -126,6 +126,7 @@ test("Compose requires Envio API token, Etherscan key, and RPC URLs for local in
   assert(compose.includes("ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY:?"));
   assert(compose.includes("Set ETHERSCAN_API_KEY in .env"));
   assert(compose.includes("ENVIO_RPC_MODE: ${ENVIO_RPC_MODE:-}"));
+  assert(compose.includes('PORT: "8080"'));
   assert(sampleEnv.includes("ENVIO_API_TOKEN=CHANGEME"));
   assert(sampleEnv.includes("ETHERSCAN_API_KEY="));
   assert(sampleEnv.includes("# ENVIO_RPC_MODE="));
@@ -133,8 +134,16 @@ test("Compose requires Envio API token, Etherscan key, and RPC URLs for local in
   assert(localDocs.includes("token, Etherscan key, and RPC URLs"));
   assert(indexerDocs.includes("required by the local Docker"));
   assert(indexerDocs.includes("repository root `.env`"));
+  assert(indexerDocs.includes("PORT=9898"));
+  assert(indexerDocs.includes("indexer.railway.internal:9898/metrics"));
+  assert(sampleEnv.includes("PORT=9898"));
   assert(railwayDocs.includes("ENVIO_API_TOKEN=<envio-api-token>"));
   assert(railwayDocs.includes("ETHERSCAN_API_KEY=<etherscan-api-key>"));
+  assert(railwayDocs.includes("PORT=8080"));
+  assert(railwayDocs.includes("hasura.railway.internal:8080"));
+  assert(railwayDocs.includes("PORT=9898"));
+  assert(railwayDocs.includes("INDEXER_METRICS_URL"));
+  assert(railwayDocs.includes("indexer.railway.internal:9898"));
 });
 
 test("Env samples and docs keep optional variables commented", () => {
@@ -168,7 +177,9 @@ test("Env samples and docs keep optional variables commented", () => {
   assert(indexerSample.includes("# ENVIO_PG_SCHEMA="));
   assert(publisherDocs.includes("# INDEXER_DEPLOYMENT_ID="));
   assert(publisherDocs.includes("# DISCORD_WEBHOOK_URL="));
+  assert(publisherDocs.includes("indexer.PORT=9898"));
   assert(gatewayDocs.includes("# PORT=8080"));
+  assert(monitorDocs.includes("indexer.PORT=9898"));
   assert(monitorDocs.includes("# MONITOR_STALE_CHAIN_HOURS=24"));
   assert(railwayDocs.includes("# ENVIO_RPC_MODE="));
   assert(railwayDocs.includes("# DISCORD_WEBHOOK_URL=<discord webhook url>"));

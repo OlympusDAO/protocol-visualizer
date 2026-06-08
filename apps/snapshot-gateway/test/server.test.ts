@@ -180,10 +180,10 @@ test("does not expose deployment ids or object keys in public manifest", async (
 test("reports bounds with indexing progress", async () => {
   const { response, text } = await request("/v1/bounds");
   assert.equal(response.status, 200);
-  assert.equal(
-    JSON.parse(text).data.indexingProgress.chains.Mainnet.block,
-    123
-  );
+  const body = JSON.parse(text);
+  assert.equal(body.data.generatedAt, manifest.generatedAt);
+  assert.equal(body.data.activeDeployment, undefined);
+  assert.equal(body.data.indexingProgress.chains.Mainnet.block, 123);
 });
 
 test("rejects request bodies and unsupported methods", async () => {

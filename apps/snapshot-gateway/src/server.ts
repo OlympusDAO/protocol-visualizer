@@ -284,7 +284,6 @@ export function createSnapshotGateway(config: GatewayConfig) {
       if (url.pathname === "/v1/bounds") {
         const bounds: BoundsResponse = {
           generatedAt: manifest.generatedAt,
-          activeDeployment: { generatedAt: manifest.generatedAt },
           ...(manifest.indexingProgress
             ? { indexingProgress: manifest.indexingProgress }
             : {}),

@@ -63,9 +63,6 @@ export type PublicSnapshotManifest = Omit<
 
 export type BoundsResponse = {
   generatedAt: string;
-  activeDeployment: {
-    generatedAt: string;
-  };
   indexingProgress?: IndexingProgress;
 };
 
@@ -497,16 +494,9 @@ export function createOpenApiDocument(): OpenApiDocument {
           properties: {
             data: {
               type: "object",
-              required: ["generatedAt", "activeDeployment"],
+              required: ["generatedAt"],
               properties: {
                 generatedAt: { type: "string", format: "date-time" },
-                activeDeployment: {
-                  type: "object",
-                  required: ["generatedAt"],
-                  properties: {
-                    generatedAt: { type: "string", format: "date-time" },
-                  },
-                },
                 indexingProgress: indexingProgressSchema,
               },
             },

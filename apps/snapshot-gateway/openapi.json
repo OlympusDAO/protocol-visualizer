@@ -164,21 +164,11 @@
         "properties": {
           "data": {
             "type": "object",
-            "required": ["generatedAt", "activeDeployment"],
+            "required": ["generatedAt"],
             "properties": {
               "generatedAt": {
                 "type": "string",
                 "format": "date-time"
-              },
-              "activeDeployment": {
-                "type": "object",
-                "required": ["generatedAt"],
-                "properties": {
-                  "generatedAt": {
-                    "type": "string",
-                    "format": "date-time"
-                  }
-                }
               },
               "indexingProgress": {
                 "type": "object",

@@ -12,6 +12,12 @@ policies, resource limits, and environment variables.
 
 ## Common commands
 
+Select the Railway environment before planning or applying IaC changes:
+
+```bash
+railway environment <environment-name>
+```
+
 Evaluate the TypeScript graph locally:
 
 ```bash
@@ -29,6 +35,11 @@ Apply the planned changes after reviewing the plan:
 ```bash
 railway config apply
 ```
+
+Use `railway config apply` only when `.railway/railway.ts` changes service,
+bucket, variable, build, deploy, healthcheck, cron, or resource-limit
+configuration. Ordinary application code changes should be pushed and deployed
+by Railway from GitHub; they do not need a config apply.
 
 Import the linked Railway project's current configuration if the SDK supports
 the live resource shape:
@@ -49,6 +60,8 @@ If `.railway/railway.ts` has pending project changes, `railway up` previews them
 
 - `railway config plan` is safe and does not change Railway.
 - `railway config apply` asks before applying unless you pass `--yes`.
+- Run `railway environment <environment-name>` first so the plan/apply targets
+  the intended environment.
 - `railway up` deploys this directory when the service has no GitHub or image
   source.
 - The old per-service `railway-*.json` files have been removed. This directory

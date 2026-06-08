@@ -20,6 +20,7 @@ Local checks:
 
 ```bash
 pnpm run railway:iac:check
+railway environment <environment-name>
 pnpm run railway:iac:plan
 ```
 
@@ -27,6 +28,16 @@ pnpm run railway:iac:plan
 requires a logged-in Railway CLI and previews changes without applying them. Do
 not run `railway config apply` until the plan has been reviewed, because it can
 create services or change live Railway settings.
+
+Railway IaC apply flow:
+
+1. Select the target environment with `railway environment <environment-name>`.
+2. Push the code changes that contain the new `.railway/railway.ts` state.
+3. Run `railway config apply` after reviewing the plan.
+
+This is only necessary when the service, bucket, variable, build, deploy,
+healthcheck, cron, or resource-limit setup changes. Ordinary application code
+changes should deploy from GitHub without running `railway config apply`.
 
 The project pins `railway@3.1.1` for the TypeScript IaC SDK and has a narrow
 `minimumReleaseAgeExclude` entry for that exact package version.
@@ -222,16 +233,18 @@ Healthchecks:
 
 ## Deployment
 
-1. Create Postgres and Railway Bucket.
-2. Run `pnpm run railway:iac:plan` and review the planned changes.
-3. Apply the reviewed plan with `railway config apply` when ready.
-4. Set preserved secrets and environment-specific values that are intentionally
+1. Select the target environment with `railway environment <environment-name>`.
+2. Push the code changes that contain the intended `.railway/railway.ts` state.
+3. Run `pnpm run railway:iac:plan` and review the planned changes.
+4. Apply the reviewed plan with `railway config apply` only when service or
+   variable setup changed.
+5. Set preserved secrets and environment-specific values that are intentionally
    not committed to code.
-5. Deploy Hasura and indexer.
-6. Manually run `snapshot-publisher` once.
-7. Confirm `GET /ready`, `GET /v1/bounds`, and
+6. Deploy Hasura and indexer.
+7. Manually run `snapshot-publisher` once.
+8. Confirm `GET /ready`, `GET /v1/bounds`, and
    `GET /v1/chains/1/protocol` through the gateway.
-8. Point the frontend at the Cloudflare-proxied gateway domain.
+9. Point the frontend at the Cloudflare-proxied gateway domain.
 
 ## Cloudflare
 

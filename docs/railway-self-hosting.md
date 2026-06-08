@@ -5,18 +5,57 @@ snapshot publisher, snapshot monitor, public REST API, and frontend on Railway.
 Hasura, Postgres, the indexer, publisher, monitor, and bucket stay private. The
 only public data service is `snapshot-gateway`.
 
+## Infrastructure as Code
+
+Railway infrastructure is defined in `.railway/railway.ts`. It replaces the old
+per-service `railway-*.json` files and is the single source of truth for:
+
+- services, groups, Postgres, and the snapshot bucket
+- Dockerfile paths and root-anchored watch patterns
+- healthchecks, restart policies, resource limits, and cron schedules
+- environment-derived source branches, snapshot bucket names, Railway variable
+  references, and preserved secrets
+
+Local checks:
+
+```bash
+pnpm run railway:iac:check
+pnpm run railway:iac:plan
+```
+
+`railway:iac:check` evaluates the TypeScript graph locally. `railway:iac:plan`
+requires a logged-in Railway CLI and previews changes without applying them. Do
+not run `railway config apply` until the plan has been reviewed, because it can
+create services or change live Railway settings.
+
+The project pins `railway@3.1.1` for the TypeScript IaC SDK and has a narrow
+`minimumReleaseAgeExclude` entry for that exact package version.
+
+The GitHub source branch is one value per environment and is shared by every
+service. It is derived automatically from the Railway environment name, so keep
+Railway environment names aligned with the branch they should deploy.
+The IaC fails fast if Railway does not provide an environment name; the offline
+`railway:iac:check` script supplies `local` explicitly for local validation.
+
 ## Services
 
-| Service              | Railway config                    | Role                                      |
+| Service              | IaC resource                      | Role                                      |
 | -------------------- | --------------------------------- | ----------------------------------------- |
-| `Postgres`           | Railway template                  | Envio data and Hasura metadata            |
-| `hasura`             | `/railway-hasura.json`            | Private GraphQL for publisher/monitor     |
-| `indexer`            | `/railway-indexer.json`           | Private Envio indexer                     |
-| `snapshot-publisher` | `/railway-snapshot-publisher.json`| Hourly bucket publisher                   |
-| `snapshot-monitor`   | `/railway-snapshot-monitor.json`  | Daily Discord indexing monitor            |
-| `snapshot-gateway`   | `/railway-snapshot-gateway.json`  | Public Node REST API                      |
-| `frontend`           | `/railway-frontend.json`          | Public UI                                 |
-| Railway Bucket       | Railway storage bucket            | Private S3-compatible snapshot storage    |
+| `Postgres`           | `postgres("Postgres")`            | Envio data and Hasura metadata            |
+| `hasura`             | `service("hasura")`               | Private GraphQL for publisher/monitor     |
+| `indexer`            | `service("indexer")`              | Private Envio indexer                     |
+| `snapshot-publisher` | `service("snapshot-publisher")`   | Hourly bucket publisher                   |
+| `snapshot-monitor`   | `service("snapshot-monitor")`     | Daily Discord indexing monitor            |
+| `snapshot-gateway`   | `service("snapshot-gateway")`     | Public Node REST API                      |
+| `frontend`           | `service("frontend")`             | Public UI                                 |
+| Railway Bucket       | `bucket(snapshot bucket name)`     | Private S3-compatible snapshot storage    |
+
+The snapshot bucket resource name is generated per Railway environment:
+`snapshots-<environment-slug>-<stable-id>`. For example, production evaluates to
+a `snapshots-production-...` bucket, while a preview environment gets its own
+`snapshots-<preview-environment>-...` bucket. Run `pnpm run railway:iac:check`
+or `pnpm run railway:iac:plan` to see the exact resource name for the linked
+environment.
 
 ## Handover Model
 
@@ -50,21 +89,24 @@ timestamp, block }`. Static JSON paths such as `/v1/manifest.json` and
 ## Railway Variables
 
 Required variables are uncommented in the examples below. Optional variables are
-commented.
+commented. Required secrets and external service values are configured with
+`preserveExisting: true` in `.railway/railway.ts`: Railway keeps the current
+value instead of overwriting it, but the IaC still marks the variable as
+required.
 
-Set on `hasura`:
+Defined on `hasura` by `.railway/railway.ts`:
 
 ```bash
 HASURA_GRAPHQL_DATABASE_URL=${{Postgres.DATABASE_URL}}
-HASURA_GRAPHQL_ADMIN_SECRET=${{shared.HASURA_GRAPHQL_ADMIN_SECRET}}
+HASURA_GRAPHQL_ADMIN_SECRET=<preserve existing secret>
 ```
 
-Set on `indexer`:
+Defined on `indexer` by `.railway/railway.ts`:
 
 ```bash
 DATABASE_URL=${{Postgres.DATABASE_URL}}
 HASURA_GRAPHQL_ENDPOINT=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/metadata
-HASURA_GRAPHQL_ADMIN_SECRET=${{shared.HASURA_GRAPHQL_ADMIN_SECRET}}
+HASURA_GRAPHQL_ADMIN_SECRET=${{hasura.HASURA_GRAPHQL_ADMIN_SECRET}}
 ENVIO_RPC_URL_1=<ethereum RPC>
 ENVIO_RPC_URL_10=<optimism RPC>
 ENVIO_RPC_URL_42161=<arbitrum RPC>
@@ -92,48 +134,52 @@ whether a deployment is ready. The examples below use `9898` because the indexer
 Railway service should set `PORT=9898`; if that port is changed, update
 `INDEXER_METRICS_URL` to match the indexer's `PORT`.
 
-Set on `snapshot-publisher`:
+Defined on `snapshot-publisher` by `.railway/railway.ts`:
 
 ```bash
 HASURA_GRAPHQL_URL=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql
 HASURA_GRAPHQL_ADMIN_SECRET=${{hasura.HASURA_GRAPHQL_ADMIN_SECRET}}
 INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
-BUCKET=${{<bucket-service>.BUCKET}}
-ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
-SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
-REGION=${{<bucket-service>.REGION}}
-ENDPOINT=${{<bucket-service>.ENDPOINT}}
-# INDEXER_DEPLOYMENT_ID=${{shared.INDEXER_DEPLOYMENT_ID}}
+BUCKET=${{<generated-snapshot-bucket>.BUCKET}}
+ACCESS_KEY_ID=${{<generated-snapshot-bucket>.ACCESS_KEY_ID}}
+SECRET_ACCESS_KEY=${{<generated-snapshot-bucket>.SECRET_ACCESS_KEY}}
+REGION=${{<generated-snapshot-bucket>.REGION}}
+ENDPOINT=${{<generated-snapshot-bucket>.ENDPOINT}}
+INDEXER_DEPLOYMENT_ID=${{indexer.RAILWAY_DEPLOYMENT_ID}}
 # DISCORD_WEBHOOK_URL=<discord webhook url>
 # MONITOR_STALE_CHAIN_HOURS=24
 ```
 
-Set on `snapshot-monitor`:
+`INDEXER_DEPLOYMENT_ID` is required and should reference the indexer service's
+`RAILWAY_DEPLOYMENT_ID`. This makes the publisher's deployment-scoped snapshot
+keys match the indexer deployment that produced the data.
+
+Defined on `snapshot-monitor` by `.railway/railway.ts`:
 
 ```bash
 DISCORD_WEBHOOK_URL=<discord webhook url>
 INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
-BUCKET=${{<bucket-service>.BUCKET}}
-ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
-SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
-REGION=${{<bucket-service>.REGION}}
-ENDPOINT=${{<bucket-service>.ENDPOINT}}
-# INDEXER_DEPLOYMENT_ID=${{shared.INDEXER_DEPLOYMENT_ID}}
+BUCKET=${{<generated-snapshot-bucket>.BUCKET}}
+ACCESS_KEY_ID=${{<generated-snapshot-bucket>.ACCESS_KEY_ID}}
+SECRET_ACCESS_KEY=${{<generated-snapshot-bucket>.SECRET_ACCESS_KEY}}
+REGION=${{<generated-snapshot-bucket>.REGION}}
+ENDPOINT=${{<generated-snapshot-bucket>.ENDPOINT}}
+INDEXER_DEPLOYMENT_ID=${{indexer.RAILWAY_DEPLOYMENT_ID}}
 # MONITOR_STATE_KEY=v1/monitor-state.json
 # MONITOR_STALE_CHAIN_HOURS=24
 ```
 
-Set on `snapshot-gateway`:
+Defined on `snapshot-gateway` by `.railway/railway.ts`:
 
 ```bash
-BUCKET=${{<bucket-service>.BUCKET}}
-ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
-SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
-REGION=${{<bucket-service>.REGION}}
-ENDPOINT=${{<bucket-service>.ENDPOINT}}
+BUCKET=${{<generated-snapshot-bucket>.BUCKET}}
+ACCESS_KEY_ID=${{<generated-snapshot-bucket>.ACCESS_KEY_ID}}
+SECRET_ACCESS_KEY=${{<generated-snapshot-bucket>.SECRET_ACCESS_KEY}}
+REGION=${{<generated-snapshot-bucket>.REGION}}
+ENDPOINT=${{<generated-snapshot-bucket>.ENDPOINT}}
 ```
 
-Set on `frontend`:
+Defined on `frontend` by `.railway/railway.ts`:
 
 ```bash
 VITE_PROTOCOL_SNAPSHOT_BASE_URL=https://protocol-visualizer-api.olympusdao.finance
@@ -152,6 +198,18 @@ Cron services use `restartPolicyType: NEVER`:
 - `snapshot-publisher`: `0 * * * *`
 - `snapshot-monitor`: `5 0 * * *`
 
+Resource limits are defined directly in `.railway/railway.ts` for every
+service:
+
+| Service              | vCPU | Memory |
+| -------------------- | ---: | -----: |
+| `hasura`             | 1    | 2 GB   |
+| `indexer`            | 1    | 2 GB   |
+| `snapshot-publisher` | 1    | 1 GB   |
+| `snapshot-monitor`   | 0.25 | 512 MB |
+| `snapshot-gateway`   | 1    | 1 GB   |
+| `frontend`           | 0.5  | 1 GB   |
+
 Healthchecks:
 
 - `hasura`: `/healthz`
@@ -162,14 +220,15 @@ Healthchecks:
 ## Deployment
 
 1. Create Postgres and Railway Bucket.
-2. Create Hasura, indexer, publisher, monitor, gateway, and frontend services
-   with their config-as-code files.
-3. Configure variables using Railway references.
-4. Deploy Hasura and indexer.
-5. Manually run `snapshot-publisher` once.
-6. Confirm `GET /ready`, `GET /v1/bounds`, and
+2. Run `pnpm run railway:iac:plan` and review the planned changes.
+3. Apply the reviewed plan with `railway config apply` when ready.
+4. Set preserved secrets and environment-specific values that are intentionally
+   not committed to code.
+5. Deploy Hasura and indexer.
+6. Manually run `snapshot-publisher` once.
+7. Confirm `GET /ready`, `GET /v1/bounds`, and
    `GET /v1/chains/1/protocol` through the gateway.
-7. Point the frontend at the Cloudflare-proxied gateway domain.
+8. Point the frontend at the Cloudflare-proxied gateway domain.
 
 ## Cloudflare
 
@@ -181,3 +240,5 @@ paths outside the public REST surface. Let Cloudflare handle edge compression.
 
 Run the repository validation sequence from `AGENTS.md`. The local
 `validate:local` script also checks generated OpenAPI and the monitor build.
+Run `pnpm run railway:iac:check` for an offline Railway IaC graph check and
+`pnpm run railway:iac:plan` before applying infrastructure changes.

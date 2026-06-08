@@ -33,12 +33,16 @@ ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
 SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
 REGION=${{<bucket-service>.REGION}}
 ENDPOINT=${{<bucket-service>.ENDPOINT}}
+INDEXER_DEPLOYMENT_ID=${{indexer.RAILWAY_DEPLOYMENT_ID}}
 ```
+
+`INDEXER_DEPLOYMENT_ID` should reference the indexer service's
+`RAILWAY_DEPLOYMENT_ID` in Railway so monitor state and handover checks are tied
+to the active indexer deployment.
 
 Optional:
 
 ```bash
-# INDEXER_DEPLOYMENT_ID=
 # RAILWAY_GIT_COMMIT_SHA=
 # MONITOR_STATE_KEY=v1/monitor-state.json
 # MONITOR_STALE_CHAIN_HOURS=24

@@ -62,6 +62,7 @@ ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
 SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
 REGION=${{<bucket-service>.REGION}}
 ENDPOINT=${{<bucket-service>.ENDPOINT}}
+INDEXER_DEPLOYMENT_ID=${{indexer.RAILWAY_DEPLOYMENT_ID}}
 ```
 
 Use `BUCKET` as the S3 bucket name. Do not use `RAILWAY_BUCKET_NAME`.
@@ -75,14 +76,16 @@ The `indexingProgress` values in the published manifest come from this metrics
 endpoint: `date` and `timestamp` are the metrics scrape time, and `block` is the
 latest Envio progress block for that chain. They are not derived from the newest
 protocol record timestamp.
-`INDEXER_DEPLOYMENT_ID` is optional when Railway provides `RAILWAY_GIT_COMMIT_SHA`,
-but one of those values must be present in production. The deployment id is
-validated before any Hasura read or bucket write.
+`INDEXER_DEPLOYMENT_ID` should reference the indexer service's
+`RAILWAY_DEPLOYMENT_ID` in Railway. This ties the publisher's deployment-scoped
+snapshot keys to the indexer deployment that produced the data. The deployment
+id is validated before any Hasura read or bucket write. Local and non-Railway
+runs may still fall back to `RAILWAY_GIT_COMMIT_SHA` when
+`INDEXER_DEPLOYMENT_ID` is absent.
 
 Optional variables:
 
 ```bash
-# INDEXER_DEPLOYMENT_ID=
 # SNAPSHOT_PUBLIC_BASE_PATH=/v1
 # SNAPSHOT_PUBLIC_ORIGIN=https://protocol-visualizer-api.olympusdao.finance
 # SNAPSHOT_CHAIN_IDS=1,10,42161,8453,80094,11155111
@@ -110,7 +113,7 @@ live Hasura data to a local output directory.
 
 ## Railway Cron
 
-The Railway service uses `/railway-snapshot-publisher.json`, which configures:
+The Railway service is defined in `../../.railway/railway.ts`, which configures:
 
 ```text
 cronSchedule: 0 * * * *

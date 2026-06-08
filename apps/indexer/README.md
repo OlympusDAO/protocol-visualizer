@@ -68,9 +68,9 @@ is not currently enabled in `config.yaml`.
 
 For Railway or any externally managed Postgres database, set `DATABASE_URL`.
 `scripts/start-envio.mjs` maps it to Envio's `ENVIO_PG_*` variables at startup.
-If `RAILWAY_DEPLOYMENT_ID` is present and `ENVIO_PG_SCHEMA` is not set, the
-script also derives a schema name from the deployment id so preview deployments
-do not share one schema.
+Do not set `ENVIO_PG_SCHEMA` on Railway. Railway starts use `envio start -r`,
+and public blue/green handover is handled by the snapshot publisher manifest
+rather than deployment-scoped database schemas.
 
 ## Code Generation
 
@@ -205,12 +205,10 @@ Railway-style environment variables. It maps:
   startup race where Envio can attempt table tracking before Hasura is accepting
   metadata requests. Local `envio dev` skips this wait because Envio owns the
   local stack lifecycle.
-- `RAILWAY_DEPLOYMENT_ID` to `ENVIO_PG_SCHEMA`, when no schema is explicitly set
 - production readiness on `PORT`, when `PORT` is set. The wrapper moves Envio to
-  an internal port, proxies normal requests through, and returns `503` from
-  `/ready` until `hyperindex_synced_to_head` is `1` or all
-  `envio_progress_ready{chainId="..."}` metrics are `1`. `/healthz` is proxied
-  to Envio as a normal liveness endpoint.
+  an internal port, proxies normal requests through, returns `200` from
+  `/healthz` for process-level Railway health, and keeps `/ready` data-aware for
+  manual checks.
 - `PORT` to `ENVIO_INDEXER_PORT`, when no indexer port is explicitly set and the
   healthcheck wrapper is disabled or not used
 

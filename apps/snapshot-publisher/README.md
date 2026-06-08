@@ -1,7 +1,7 @@
 # Snapshot Publisher
 
-This package generates the public protocol visualizer snapshot files and writes
-them to a private Railway Bucket. It is a short-lived TypeScript/Node.js process
+This package generates protocol visualizer snapshot files and writes them to a
+private Railway Bucket. It is a short-lived TypeScript/Node.js process
 intended to run as a Railway cron job.
 
 ## Runtime Role
@@ -11,36 +11,28 @@ private Hasura for the public frontend. On each run it:
 
 1. Queries private Hasura once per supported chain.
 2. Normalizes the GraphQL result into the public snapshot shape.
-3. Generates per-chain `protocol.json` files, schema files, `manifest.json`,
-   `index.html`, `sitemap.xml`, and `robots.txt`.
+3. Generates deployment-scoped per-chain snapshot files and an active manifest.
 4. Validates each protocol snapshot before upload.
-5. Uploads and verifies every non-manifest file with S3 `HeadObject`.
-6. Uploads and verifies `manifest.json` last.
+5. Uses `v1/publisher.lock` to avoid overlapping runs.
+6. Uploads and verifies every deployment-scoped chain file with S3 `HeadObject`.
+7. Uploads and verifies `v1/manifest.json` last.
 
 If any fetch, validation, upload, or verification fails, the process exits
 non-zero so Railway records a failed cron run.
 
-## Public Files
+## Bucket Files
 
-The generated object keys match the public gateway paths:
+The generated object keys are internal. The public REST API is served by
+`snapshot-gateway`.
 
 ```text
-v1/index.html
-robots.txt
-sitemap.xml
+v1/deployments/<deploymentId>/chain/<chainId>/protocol.json
 v1/manifest.json
-v1/schemas/manifest-v1.schema.json
-v1/schemas/protocol-snapshot-v1.schema.json
-v1/chain/1/protocol.json
-v1/chain/10/protocol.json
-v1/chain/42161/protocol.json
-v1/chain/8453/protocol.json
-v1/chain/80094/protocol.json
-v1/chain/11155111/protocol.json
+v1/publisher.lock
 ```
 
-The public schema version is `1.0.0`. Future JSON file types should get their
-own schema files under `v1/schemas/`.
+The active manifest is the handover boundary. While a new indexer deployment is
+reindexing, the gateway continues serving the previous complete manifest.
 
 ## Chain Configuration
 
@@ -68,12 +60,16 @@ ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
 SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
 REGION=${{<bucket-service>.REGION}}
 ENDPOINT=${{<bucket-service>.ENDPOINT}}
+INDEXER_DEPLOYMENT_ID=
 ```
 
 Use `BUCKET` as the S3 bucket name. Do not use `RAILWAY_BUCKET_NAME`.
 `HASURA_GRAPHQL_ADMIN_SECRET` should reference the same value configured on the
 private Hasura service; without it, Hasura may return an unauthorized or empty
 schema response.
+`INDEXER_DEPLOYMENT_ID` is optional when Railway provides
+`RAILWAY_GIT_COMMIT_SHA`, but one of those values must be present in production.
+The deployment id is validated before any Hasura read or bucket write.
 
 Optional variables:
 
@@ -82,12 +78,14 @@ SNAPSHOT_PUBLIC_BASE_PATH=/v1
 SNAPSHOT_PUBLIC_ORIGIN=https://protocol-visualizer-api.olympusdao.finance
 SNAPSHOT_CHAIN_IDS=1,10,42161,8453,80094,11155111
 PROTOCOL_CHAINS_CONFIG_PATH=/app/config/protocol-chains.json
+PUBLISHER_LOCK_TTL_MS=3300000
+DISCORD_WEBHOOK_URL=
 ```
 
 `SNAPSHOT_PUBLIC_BASE_PATH` defaults to `/v1`. `SNAPSHOT_PUBLIC_ORIGIN` is used
-for absolute URLs in `sitemap.xml`, `robots.txt`, and the index page canonical
-link. `PROTOCOL_CHAINS_CONFIG_PATH` is set by the Docker image and usually does
-not need to be configured manually.
+for generated REST paths. `PROTOCOL_CHAINS_CONFIG_PATH` is set by the Docker
+image and usually does not need to be configured manually. `DISCORD_WEBHOOK_URL`
+enables immediate handover messages when a new manifest is published.
 
 Local-only variables:
 
@@ -110,8 +108,14 @@ cronSchedule: 0 * * * *
 restartPolicyType: NEVER
 ```
 
-Each cron invocation starts the container, publishes one snapshot batch, logs
-`Snapshot publisher completed successfully; exiting` on success, and exits.
+Each cron invocation starts the container, publishes one snapshot batch, logs one
+structured JSON result, logs `Snapshot publisher completed successfully; exiting`
+on success, and exits.
+
+The structured result includes `deploymentId`, `published`, `skipReason`,
+`manifestPublishedLast`, and `indexingProgress`. If a new deployment is not
+ready, the publisher exits successfully with `skipReason: "not_data_ready"` and
+leaves the current manifest untouched.
 
 ## Local Generation
 

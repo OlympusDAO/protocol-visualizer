@@ -19,10 +19,13 @@ The project is made up of these components:
   - This uses Envio HyperIndex to index blockchain events
 - Snapshot publisher
   - A short-lived Railway cron job that reads private Hasura data and writes
-    per-chain JSON snapshots to a private Railway Bucket
+    deployment-scoped per-chain JSON snapshots to a private Railway Bucket
 - Snapshot gateway
-  - A small public Go service that serves allowlisted JSON snapshot files from
-    the private Railway Bucket with cache headers for Cloudflare
+  - A small public Node REST API that reads the active bucket manifest and serves
+    cacheable snapshot responses
+- Snapshot monitor
+  - A short-lived Railway cron job that reports indexing progress and handovers
+    to Discord
 - Frontend
   - A static frontend that retrieves per-chain protocol snapshots and renders
     them in a diagram
@@ -50,7 +53,8 @@ The full local stack guide is in `docs/local-stack.md`.
 Railway self-hosting is documented in `docs/railway-self-hosting.md`. The
 deployable Railway services are defined by `railway-indexer.json`,
 `railway-hasura.json`, `railway-snapshot-publisher.json`,
-`railway-snapshot-gateway.json`, and `railway-frontend.json`.
+`railway-snapshot-monitor.json`, `railway-snapshot-gateway.json`, and
+`railway-frontend.json`.
 
 The frontend is a static build that points at the public snapshot gateway. The
 publisher talks to Hasura over Railway private networking and writes snapshots
@@ -77,6 +81,7 @@ pnpm run docker:build:frontend
 pnpm run docker:build:hasura
 pnpm run docker:build:snapshot-gateway
 pnpm run docker:build:snapshot-publisher
+pnpm run docker:build:snapshot-monitor
 ```
 
 ## Indexer
@@ -94,7 +99,8 @@ pnpm run indexer:metrics
 
 ## Frontend
 
-The frontend reads per-chain protocol snapshots from the public snapshot gateway.
+The frontend reads per-chain protocol snapshots from the public REST snapshot
+gateway.
 Configure it at build time with:
 
 ```bash

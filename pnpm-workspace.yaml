@@ -9,6 +9,7 @@ minimumReleaseAgeExclude:
   - "hono@4.12.18"
   - "kysely@0.28.17"
   - "postcss@8.5.14"
+  - "railway@3.1.1"
   - "turbo@2.9.14"
   - "@turbo/darwin-64@2.9.14"
   - "@turbo/darwin-arm64@2.9.14"

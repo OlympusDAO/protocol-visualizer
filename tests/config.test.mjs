@@ -1,59 +1,169 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { test } from "node:test";
+import { evaluateRailwayFile, validateGraph } from "railway/iac";
 
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 
 const dockerfileContent = (path) => readFileSync(path, "utf8");
 
-test("Railway configs use root-anchored watch patterns and expected restart policies", () => {
+const railwayProject = async (context) => {
+  const result = await evaluateRailwayFile(".railway/railway.ts", {
+    context: context ?? {
+      environment: "local",
+      environmentName: "local",
+    },
+  });
+  const graphErrors = validateGraph(result.graph);
+  assert.deepEqual(graphErrors, []);
+  return result;
+};
+
+test("Railway IaC defines expected services, Dockerfiles, watch patterns, and policies", async () => {
+  const { desiredConfig } = await railwayProject();
+  const services = desiredConfig.services ?? {};
+  const buckets = desiredConfig.buckets ?? {};
+  const groups = desiredConfig.groups ?? {};
+
+  assert(existsSync(".railway/railway.ts"));
+  for (const removedConfig of [
+    "railway-hasura.json",
+    "railway-indexer.json",
+    "railway-frontend.json",
+    "railway-snapshot-gateway.json",
+    "railway-snapshot-publisher.json",
+    "railway-snapshot-monitor.json",
+  ]) {
+    assert(!existsSync(removedConfig), `${removedConfig} should be removed`);
+  }
+
   const configs = [
-    ["railway-hasura.json", "Dockerfile-hasura", "ON_FAILURE"],
-    ["railway-indexer.json", "Dockerfile-indexer", "ON_FAILURE"],
-    ["railway-frontend.json", "Dockerfile-frontend", "ON_FAILURE"],
-    [
-      "railway-snapshot-gateway.json",
-      "Dockerfile-snapshot-gateway",
-      "ON_FAILURE",
-    ],
-    [
-      "railway-snapshot-publisher.json",
-      "Dockerfile-snapshot-publisher",
-      "NEVER",
-    ],
-    ["railway-snapshot-monitor.json", "Dockerfile-snapshot-monitor", "NEVER"],
+    ["hasura", "Dockerfile-hasura", "ON_FAILURE"],
+    ["indexer", "Dockerfile-indexer", "ON_FAILURE"],
+    ["frontend", "Dockerfile-frontend", "ON_FAILURE"],
+    ["snapshot-gateway", "Dockerfile-snapshot-gateway", "ON_FAILURE"],
+    ["snapshot-publisher", "Dockerfile-snapshot-publisher", "NEVER"],
+    ["snapshot-monitor", "Dockerfile-snapshot-monitor", "NEVER"],
   ];
 
-  for (const [configPath, dockerfilePath, restartPolicy] of configs) {
-    const config = readJson(configPath);
+  for (const [serviceName, dockerfilePath, restartPolicy] of configs) {
+    const config = services[serviceName];
+    assert(config, `${serviceName} should be defined in Railway IaC`);
     assert.equal(config.build.dockerfilePath, dockerfilePath);
     assert(
       config.build.watchPatterns.every((pattern) => pattern.startsWith("/"))
     );
     assert(config.build.watchPatterns.includes(`/${dockerfilePath}`));
-    assert(config.build.watchPatterns.includes(`/${configPath}`));
+    assert(config.build.watchPatterns.includes("/.railway/railway.ts"));
     assert(existsSync(dockerfilePath));
     assert.equal(config.deploy.restartPolicyType, restartPolicy);
     if (restartPolicy === "ON_FAILURE") {
       assert.equal(config.deploy.restartPolicyMaxRetries, 1);
     }
+    assert(
+      config.deploy.limitOverride?.containers?.cpu,
+      `${serviceName} should define a vCPU limit`
+    );
+    assert(
+      config.deploy.limitOverride?.containers?.memoryBytes,
+      `${serviceName} should define a memory limit`
+    );
+  }
+
+  assert.equal(services.indexer.deploy.healthcheckPath, "/healthz");
+  assert.equal(services["snapshot-gateway"].deploy.healthcheckPath, "/ready");
+  assert.equal(services["snapshot-publisher"].deploy.cronSchedule, "0 * * * *");
+  assert.equal(services["snapshot-monitor"].deploy.cronSchedule, "5 0 * * *");
+  assert.deepEqual(
+    Object.fromEntries(
+      configs.map(([serviceName]) => [
+        serviceName,
+        services[serviceName].deploy.limitOverride.containers,
+      ])
+    ),
+    {
+      frontend: { cpu: 0.5, memoryBytes: 1_000_000_000 },
+      hasura: { cpu: 1, memoryBytes: 2_000_000_000 },
+      indexer: { cpu: 1, memoryBytes: 2_000_000_000 },
+      "snapshot-gateway": { cpu: 1, memoryBytes: 1_000_000_000 },
+      "snapshot-monitor": { cpu: 0.25, memoryBytes: 512_000_000 },
+      "snapshot-publisher": { cpu: 1, memoryBytes: 1_000_000_000 },
+    }
+  );
+  const [bucketName] = Object.keys(buckets);
+  assert.match(bucketName, /^snapshots-local-[a-f0-9]{8}$/);
+  assert.equal(buckets[bucketName].region, "sjc");
+  assert.deepEqual(Object.keys(groups).sort(), [
+    "Data",
+    "Private Indexing",
+    "Public",
+    "Snapshot Jobs",
+  ]);
+
+  for (const [serviceName, variableName] of [
+    ["hasura", "HASURA_GRAPHQL_ADMIN_SECRET"],
+    ["indexer", "ENVIO_RPC_URL_1"],
+    ["indexer", "ENVIO_RPC_URL_10"],
+    ["indexer", "ENVIO_RPC_URL_42161"],
+    ["indexer", "ENVIO_RPC_URL_8453"],
+    ["indexer", "ENVIO_RPC_URL_80094"],
+    ["indexer", "ENVIO_RPC_URL_11155111"],
+    ["indexer", "ENVIO_API_TOKEN"],
+    ["indexer", "ETHERSCAN_API_KEY"],
+    ["snapshot-monitor", "DISCORD_WEBHOOK_URL"],
+    ["frontend", "VITE_PROTOCOL_SNAPSHOT_BASE_URL"],
+  ]) {
+    const variable = services[serviceName].variables[variableName];
+    assert.equal(variable.isOptional, false, `${variableName} is required`);
+    assert.equal(
+      variable.preserveExisting,
+      true,
+      `${variableName} preserves existing Railway value`
+    );
+    assert.match(variable.description, /Required/);
   }
 
   assert.equal(
-    readJson("railway-indexer.json").deploy.healthcheckPath,
-    "/healthz"
+    services["snapshot-publisher"].variables.INDEXER_DEPLOYMENT_ID.value,
+    "${{indexer.RAILWAY_DEPLOYMENT_ID}}"
   );
   assert.equal(
-    readJson("railway-snapshot-gateway.json").deploy.healthcheckPath,
-    "/ready"
+    services["snapshot-monitor"].variables.INDEXER_DEPLOYMENT_ID.value,
+    "${{indexer.RAILWAY_DEPLOYMENT_ID}}"
+  );
+});
+
+test("Railway IaC fails when the environment name is missing", async () => {
+  await assert.rejects(
+    () => evaluateRailwayFile(".railway/railway.ts", { context: {} }),
+    /Railway environment name is required/
+  );
+});
+
+test("Railway IaC derives bucket names and uses one source branch per environment", async () => {
+  const production = await railwayProject({
+    environment: "production",
+    environmentName: "production",
+  });
+  const preview = await railwayProject({
+    environment: "protocol-visualizer-pr-49",
+    environmentName: "protocol-visualizer-pr-49",
+  });
+
+  assert.deepEqual(Object.keys(production.desiredConfig.buckets ?? {}), [
+    "snapshots-production-d9746c8d",
+  ]);
+  assert.deepEqual(Object.keys(preview.desiredConfig.buckets ?? {}), [
+    "snapshots-protocol-visualizer-pr-49-8ff3b568",
+  ]);
+
+  assert.equal(
+    production.desiredConfig.services.hasura.source.branch,
+    "production"
   );
   assert.equal(
-    readJson("railway-snapshot-publisher.json").deploy.cronSchedule,
-    "0 * * * *"
-  );
-  assert.equal(
-    readJson("railway-snapshot-monitor.json").deploy.cronSchedule,
-    "5 0 * * *"
+    preview.desiredConfig.services.hasura.source.branch,
+    "protocol-visualizer-pr-49"
   );
 });
 
@@ -166,12 +276,26 @@ test("Env samples and docs keep optional variables commented", () => {
   assert(indexerSample.includes("HASURA_GRAPHQL_ENDPOINT="));
   assert(indexerSample.includes("# ENVIO_API_TOKEN="));
   assert(indexerSample.includes("# ENVIO_PG_SCHEMA="));
-  assert(publisherDocs.includes("# INDEXER_DEPLOYMENT_ID="));
+  assert(
+    publisherDocs.includes(
+      "INDEXER_DEPLOYMENT_ID=${{indexer.RAILWAY_DEPLOYMENT_ID}}"
+    )
+  );
   assert(publisherDocs.includes("# DISCORD_WEBHOOK_URL="));
   assert(gatewayDocs.includes("# PORT=8080"));
+  assert(
+    monitorDocs.includes(
+      "INDEXER_DEPLOYMENT_ID=${{indexer.RAILWAY_DEPLOYMENT_ID}}"
+    )
+  );
   assert(monitorDocs.includes("# MONITOR_STALE_CHAIN_HOURS=24"));
   assert(railwayDocs.includes("# ENVIO_RPC_MODE="));
   assert(railwayDocs.includes("# DISCORD_WEBHOOK_URL=<discord webhook url>"));
+  assert(
+    railwayDocs.includes(
+      "INDEXER_DEPLOYMENT_ID=${{indexer.RAILWAY_DEPLOYMENT_ID}}"
+    )
+  );
 });
 
 test("Compose third-party images are pinned by digest", () => {

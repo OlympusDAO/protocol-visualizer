@@ -25,6 +25,8 @@
     "lint:check": "turbo run lint:check",
     "lint": "turbo run lint && biome format --write .",
     "openapi:check": "pnpm --filter snapshot-gateway run openapi:check",
+    "railway:iac:check": "node --no-warnings scripts/check-railway-iac.mjs",
+    "railway:iac:plan": "railway config plan --file .railway/railway.ts --runner ./node_modules/.bin/railway-iac-ts --verbose",
     "snapshots:generate:local": "pnpm --filter snapshot-publisher run build && env SNAPSHOT_OUTPUT_DIR=/tmp/protocol-visualizer-snapshots SNAPSHOT_SOURCE=sample pnpm --filter snapshot-publisher start",
     "stack:config": "docker compose config",
     "stack:down": "docker compose down",
@@ -40,6 +42,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.15",
     "@types/node": "^24.0.0",
+    "railway": "3.1.1",
     "semver": "^7.7.4",
     "turbo": "^2.9.14",
     "typescript": "^5.9.3"

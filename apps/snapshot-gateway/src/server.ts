@@ -12,6 +12,7 @@ import {
   deploymentArtifactKey,
   restProtocolPath,
   sanitizeManifestForPublic,
+  SCHEMA_VERSION,
   type BoundsResponse,
   type SnapshotManifest,
 } from "@protocol-visualizer/snapshot-artifacts";
@@ -173,6 +174,86 @@ const readManifest = async (reader: ObjectReader): Promise<SnapshotManifest> =>
     (await reader.getObject(ACTIVE_MANIFEST_KEY)).body
   ) as SnapshotManifest;
 
+class ActiveManifestNotReadyError extends Error {
+  constructor(readonly issues: string[]) {
+    super("active manifest is not ready");
+  }
+}
+
+const activeManifestIssues = (manifest: SnapshotManifest): string[] => {
+  const issues: string[] = [];
+
+  if (manifest.schemaVersion !== SCHEMA_VERSION) {
+    issues.push("manifest schemaVersion is unsupported");
+  }
+  if (!manifest.generatedAt || Number.isNaN(Date.parse(manifest.generatedAt))) {
+    issues.push("manifest generatedAt is invalid");
+  }
+  if (!manifest.indexerDeploymentId) {
+    issues.push("manifest is missing indexerDeploymentId");
+  }
+  if (!manifest.indexingProgress) {
+    issues.push("manifest is missing indexingProgress");
+  }
+  if (manifest.schemas?.openapi !== "/v1/openapi.json") {
+    issues.push("manifest is missing REST OpenAPI schema URL");
+  }
+  if (manifest.schemas?.manifest !== "/v1/manifest") {
+    issues.push("manifest is missing REST manifest schema URL");
+  }
+  if (manifest.schemas?.protocolSnapshot !== "/v1/chains/{chainId}/protocol") {
+    issues.push("manifest is missing REST protocol snapshot schema URL");
+  }
+  if (!manifest.artifacts || Object.keys(manifest.artifacts).length === 0) {
+    issues.push("manifest is missing deployment artifact references");
+  }
+  if (!Array.isArray(manifest.chains) || manifest.chains.length === 0) {
+    issues.push("manifest chains are missing");
+    return issues;
+  }
+
+  for (const chain of manifest.chains) {
+    if (chain.path !== restProtocolPath(chain.chainId)) {
+      issues.push(`chain ${chain.chainId} path is not a REST route`);
+    }
+    if (!activeArtifactKeyForChain(manifest, chain.chainId)) {
+      issues.push(`chain ${chain.chainId} artifact is missing`);
+    }
+  }
+
+  return issues;
+};
+
+const assertActiveManifest = (manifest: SnapshotManifest) => {
+  const issues = activeManifestIssues(manifest);
+  if (issues.length > 0) {
+    throw new ActiveManifestNotReadyError(issues);
+  }
+};
+
+const verifyActiveManifestArtifacts = async (
+  reader: ObjectReader,
+  manifest: SnapshotManifest
+): Promise<string[]> => {
+  const issues = activeManifestIssues(manifest);
+  if (issues.length > 0) return issues;
+
+  for (const chain of manifest.chains) {
+    const key = activeArtifactKeyForChain(manifest, chain.chainId);
+    if (!key) {
+      issues.push(`chain ${chain.chainId} artifact is missing`);
+      continue;
+    }
+    try {
+      await reader.headObject(key);
+    } catch {
+      issues.push(`chain ${chain.chainId} artifact is not accessible`);
+    }
+  }
+
+  return issues;
+};
+
 const activeArtifactKeyForChain = (
   manifest: SnapshotManifest,
   chainId: number
@@ -252,7 +333,19 @@ export function createSnapshotGateway(config: GatewayConfig) {
       }
 
       if (url.pathname === "/ready") {
-        await config.reader.headObject(ACTIVE_MANIFEST_KEY);
+        const manifest = await readManifest(config.reader);
+        const issues = await verifyActiveManifestArtifacts(
+          config.reader,
+          manifest
+        );
+        if (issues.length > 0) {
+          sendJson(request, response, 503, {
+            ok: false,
+            error: "active manifest is not ready",
+            issues,
+          });
+          return;
+        }
         sendJson(request, response, 200, { ok: true });
         return;
       }
@@ -281,6 +374,7 @@ export function createSnapshotGateway(config: GatewayConfig) {
       }
 
       const manifest = await readManifest(config.reader);
+      assertActiveManifest(manifest);
       if (url.pathname === "/v1/bounds") {
         const bounds: BoundsResponse = {
           generatedAt: manifest.generatedAt,
@@ -349,7 +443,14 @@ export function createSnapshotGateway(config: GatewayConfig) {
       }
 
       sendJson(request, response, 404, { error: "not found" });
-    } catch {
+    } catch (error) {
+      if (error instanceof ActiveManifestNotReadyError) {
+        sendJson(request, response, 503, {
+          error: "active manifest is not ready",
+          issues: error.issues,
+        });
+        return;
+      }
       if (url.pathname === "/ready") {
         sendJson(request, response, 503, {
           ok: false,

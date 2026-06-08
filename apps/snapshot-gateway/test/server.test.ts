@@ -46,6 +46,24 @@ const manifest: SnapshotManifest = {
   ],
 };
 
+const legacyManifest = {
+  schemaVersion: SCHEMA_VERSION,
+  generatedAt: "2026-06-05T00:00:00.000Z",
+  schemas: {
+    manifest: "/v1/schemas/manifest-v1.schema.json",
+    protocolSnapshot: "/v1/schemas/protocol-snapshot-v1.schema.json",
+  },
+  chains: [
+    {
+      chainId: 1,
+      name: "Mainnet",
+      path: "/v1/chain/1/protocol.json",
+      generatedAt: "2026-06-05T00:00:00.000Z",
+      recordCounts: { contracts: 1, roles: 1, roleAssignments: 1 },
+    },
+  ],
+} as SnapshotManifest;
+
 class FakeReader implements ObjectReader {
   keys: string[] = [];
   constructor(private readonly objects: Record<string, string>) {}
@@ -205,4 +223,32 @@ test("ready requires manifest access", async () => {
     (await request("/ready", { reader: missing })).response.status,
     503
   );
+});
+
+test("ready rejects legacy manifests without handover artifacts", async () => {
+  const legacy = new FakeReader({
+    [ACTIVE_MANIFEST_KEY]: JSON.stringify(legacyManifest),
+  });
+
+  const { response, text } = await request("/ready", { reader: legacy });
+
+  assert.equal(response.status, 503);
+  const body = JSON.parse(text);
+  assert.equal(body.ok, false);
+  assert.match(body.issues.join("; "), /indexerDeploymentId/);
+  assert.match(body.issues.join("; "), /indexingProgress/);
+  assert.match(body.issues.join("; "), /REST/);
+});
+
+test("public data routes reject legacy manifests instead of returning partial data", async () => {
+  const legacy = new FakeReader({
+    [ACTIVE_MANIFEST_KEY]: JSON.stringify(legacyManifest),
+  });
+
+  for (const path of ["/v1/bounds", "/v1/manifest", "/v1/chains"]) {
+    const { response, text } = await request(path, { reader: legacy });
+
+    assert.equal(response.status, 503);
+    assert.equal(JSON.parse(text).error, "active manifest is not ready");
+  }
 });

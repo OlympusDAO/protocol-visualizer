@@ -1,33 +1,58 @@
-# Build stage
-# Pinned image: golang:1.25-alpine
-FROM golang:1.25-alpine@sha256:8d22e29d960bc50cd025d93d5b7c7d220b1ee9aa7a239b3c8f55a57e987e8d45 AS builder
+# Dependency stage
+# Pinned image: node:24-alpine (Node v24.14.1)
+FROM node:24-alpine@sha256:01743339035a5c3c11a373cd7c83aeab6ed1457b55da6a69e014a95ac4e4700b AS deps
 
-RUN apk add --no-cache ca-certificates
+RUN apk upgrade --no-cache musl musl-utils zlib libssl3 libcrypto3 nghttp2-libs xz-libs
 
-WORKDIR /src
-
-COPY apps/snapshot-gateway/go.mod apps/snapshot-gateway/go.sum* ./
-COPY packages/protocol-config/protocol-chains.json ./config/protocol-chains.json
-RUN go mod download
-
-COPY apps/snapshot-gateway/ ./
-RUN go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /snapshot-gateway .
-
-# Runtime stage
-# Pinned image: alpine:3.22
-FROM alpine:3.22@sha256:310c62b5e7ca5b08167e4384c68db0fd2905dd9c7493756d356e893909057601
-
-RUN apk upgrade --no-cache ca-certificates
-
-RUN addgroup -S app && adduser -S app -G app
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 WORKDIR /app
-COPY --from=builder /src/config/protocol-chains.json ./config/protocol-chains.json
-COPY --from=builder /snapshot-gateway /usr/local/bin/snapshot-gateway
 
-ENV PORT=8080
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/snapshot-gateway/package.json ./apps/snapshot-gateway/
+COPY packages/snapshot-artifacts/package.json ./packages/snapshot-artifacts/
+COPY packages/protocol-config/protocol-chains.json ./config/protocol-chains.json
+
+RUN pnpm install --frozen-lockfile --filter snapshot-gateway...
+
+COPY apps/snapshot-gateway/ ./apps/snapshot-gateway/
+COPY packages/snapshot-artifacts/ ./packages/snapshot-artifacts/
+
+RUN pnpm --filter @protocol-visualizer/snapshot-artifacts run build \
+    && pnpm --filter snapshot-gateway run build \
+    && pnpm deploy --legacy --filter snapshot-gateway --prod /deploy/snapshot-gateway \
+    && rm -rf \
+        /deploy/snapshot-gateway/node_modules/.modules.yaml \
+        /deploy/snapshot-gateway/node_modules/.pnpm/lock.yaml \
+    && find /deploy/snapshot-gateway -type f -name "*.d.ts" -delete
+
+# Runtime stage
+FROM node:24-alpine@sha256:01743339035a5c3c11a373cd7c83aeab6ed1457b55da6a69e014a95ac4e4700b AS runtime
+
+RUN apk upgrade --no-cache musl musl-utils zlib libssl3 libcrypto3 nghttp2-libs xz-libs
+
+WORKDIR /app
+
+COPY --from=deps /deploy/snapshot-gateway ./apps/snapshot-gateway
+COPY --from=deps /app/config/protocol-chains.json ./config/protocol-chains.json
+
+RUN rm -rf \
+    /root/.cache/node/corepack \
+    /usr/local/lib/node_modules/corepack \
+    /usr/local/lib/node_modules/npm \
+    /usr/local/bin/corepack \
+    /usr/local/bin/npm \
+    /usr/local/bin/npx \
+    /usr/local/bin/pnpm \
+    /usr/local/bin/pnpx
+
+ENV NODE_ENV=production
 ENV PROTOCOL_CHAINS_CONFIG_PATH=/app/config/protocol-chains.json
-EXPOSE 8080
+ENV PORT=8080
 
+RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
+
+WORKDIR /app/apps/snapshot-gateway
+EXPOSE 8080
 USER app
-CMD ["/usr/local/bin/snapshot-gateway"]
+CMD ["node", "dist/src/index.js"]

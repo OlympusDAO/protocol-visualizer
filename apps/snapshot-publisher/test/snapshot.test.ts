@@ -55,24 +55,27 @@ test("creates manifest last", async () => {
   const files = await createSnapshotFiles({
     chains: supportedChains,
     loadProtocolData: (chainId) => getSampleProtocolData(chainId),
+    deploymentId: "deployment-a",
     now: new Date("2026-05-25T00:00:00.000Z"),
     publicOrigin: "https://snapshots.example.com",
   });
 
   assert.equal(files.at(-1)?.key, "v1/manifest.json");
   assert.equal(files.at(-1)?.publishLast, true);
-  assert(files.some((file) => file.key === "v1/index.html"));
-  assert(files.some((file) => file.key === "sitemap.xml"));
-  assert(files.some((file) => file.key === "robots.txt"));
-  assert(files.some((file) => file.key === "v1/chain/1/protocol.json"));
-  assert.match(
-    files.find((file) => file.key === "sitemap.xml")?.body ?? "",
-    /https:\/\/snapshots\.example\.com\/v1\/chain\/1\/protocol\.json/
+  assert(
+    files.some(
+      (file) =>
+        file.key === "v1/deployments/deployment-a/chain/1/protocol.json"
+    )
   );
-  assert.match(
-    files.find((file) => file.key === "robots.txt")?.body ?? "",
-    /Sitemap: https:\/\/snapshots\.example\.com\/sitemap\.xml/
+  const manifest = JSON.parse(files.at(-1)?.body ?? "{}");
+  assert.equal(manifest.indexerDeploymentId, "deployment-a");
+  assert.equal(
+    manifest.artifacts["1"],
+    "v1/deployments/deployment-a/chain/1/protocol.json"
   );
+  assert.equal(manifest.chains[0].path, "/v1/chains/1/protocol");
+  assert.equal(manifest.indexingProgress.chains.Mainnet.chainId, 1);
 });
 
 test("chain selection is allowlisted", () => {

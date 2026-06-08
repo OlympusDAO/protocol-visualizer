@@ -1,5 +1,5 @@
 {
-  "name": "snapshot-publisher",
+  "name": "snapshot-monitor",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -7,7 +7,7 @@
     "dist/src"
   ],
   "scripts": {
-    "start": "node dist/src/publish.js",
+    "start": "node dist/src/index.js",
     "build": "tsc && node --test dist/test/*.test.js",
     "lint": "biome lint --write . --error-on-warnings",
     "lint:check": "biome lint . --error-on-warnings"

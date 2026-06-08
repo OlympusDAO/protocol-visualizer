@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import http from "node:http";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const RPC_MODES = new Set(["sync", "fallback"]);
 const DEFAULT_HASURA_STARTUP_TIMEOUT_MS = 180_000;
@@ -66,10 +67,27 @@ setDefaultEnv("HASURA_GRAPHQL_ROLE", "admin");
 setDefaultEnv("ENVIO_THROTTLE_CHAIN_METADATA_INTERVAL_MILLIS", "500");
 setDefaultEnv("ENVIO_THROTTLE_PRUNE_STALE_DATA_INTERVAL_MILLIS", "30000");
 
-const envioArgs = process.argv.slice(2);
-if (envioArgs.length === 0) {
-  envioArgs.push("start");
-}
+export const isRailwayRuntime = (env = process.env) =>
+  Object.entries(env).some(
+    ([key, value]) => key.startsWith("RAILWAY_") && value?.trim()
+  );
+
+export const hasResetFlag = (args) =>
+  args.includes("-r") || args.includes("--reset");
+
+export const resolveEnvioArgs = (args, env = process.env) => {
+  const resolvedArgs = args.length === 0 ? ["start"] : [...args];
+  if (
+    isRailwayRuntime(env) &&
+    resolvedArgs[0] === "start" &&
+    !hasResetFlag(resolvedArgs)
+  ) {
+    resolvedArgs.push("-r");
+  }
+  return resolvedArgs;
+};
+
+const envioArgs = resolveEnvioArgs(process.argv.slice(2));
 
 const isStartCommand = () => {
   const [command] = envioArgs;
@@ -110,12 +128,67 @@ const getBooleanEnv = (key, defaultValue) => {
 const sleep = (durationMs) =>
   new Promise((resolveSleep) => setTimeout(resolveSleep, durationMs));
 
-if (process.env.RAILWAY_DEPLOYMENT_ID && !process.env.ENVIO_PG_SCHEMA) {
-  process.env.ENVIO_PG_SCHEMA = process.env.RAILWAY_DEPLOYMENT_ID.replace(
-    /[^a-zA-Z0-9_]/g,
-    "_"
-  );
-}
+const isBlank = (value) => value === undefined || value.trim() === "";
+
+const isUrl = (value) => {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
+export const prepareIndexerEnv = (env = process.env) => {
+  if (env.PORT && !env.ENVIO_INDEXER_PORT) {
+    env.ENVIO_INDEXER_PORT = env.PORT;
+  }
+  return env;
+};
+
+export const validateIndexerEnv = (env = process.env) => {
+  const required = [
+    "DATABASE_URL",
+    "HASURA_GRAPHQL_ENDPOINT",
+    "HASURA_GRAPHQL_ADMIN_SECRET",
+    "ENVIO_RPC_URL_1",
+    "ENVIO_RPC_URL_10",
+    "ENVIO_RPC_URL_8453",
+    "ENVIO_RPC_URL_80094",
+    "ENVIO_RPC_URL_11155111",
+  ];
+  const missing = required.filter((key) => isBlank(env[key]));
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
+  }
+
+  const urlVars = [
+    "HASURA_GRAPHQL_ENDPOINT",
+    "ENVIO_RPC_URL_1",
+    "ENVIO_RPC_URL_10",
+    "ENVIO_RPC_URL_8453",
+    "ENVIO_RPC_URL_80094",
+    "ENVIO_RPC_URL_11155111",
+  ];
+  const invalidUrls = urlVars.filter((key) => !isUrl(env[key] ?? ""));
+  if (invalidUrls.length > 0) {
+    throw new Error(`Invalid URL environment variables: ${invalidUrls.join(", ")}`);
+  }
+
+  if (isRailwayRuntime(env) && !isBlank(env.ENVIO_PG_SCHEMA)) {
+    throw new Error("ENVIO_PG_SCHEMA must not be set on Railway");
+  }
+  if (isRailwayRuntime(env) && isBlank(env.PORT)) {
+    throw new Error("PORT must be set when running on Railway");
+  }
+  if (
+    !isBlank(env.PORT) &&
+    !isBlank(env.ENVIO_INDEXER_PORT) &&
+    env.PORT !== env.ENVIO_INDEXER_PORT
+  ) {
+    throw new Error("ENVIO_INDEXER_PORT must match PORT when PORT is set");
+  }
+};
 
 if (!process.env.ENVIO_RPC_MODE) {
   process.env.ENVIO_RPC_MODE = process.env.ENVIO_API_TOKEN?.trim()
@@ -140,9 +213,8 @@ const shouldUseHealthcheckWrapper = () =>
 
 const useHealthcheckWrapper = shouldUseHealthcheckWrapper();
 
-if (process.env.PORT && !process.env.ENVIO_INDEXER_PORT) {
-  process.env.ENVIO_INDEXER_PORT = process.env.PORT;
-}
+prepareIndexerEnv(process.env);
+validateIndexerEnv(process.env);
 
 if (useHealthcheckWrapper) {
   const externalPort = getPositiveIntegerEnv("PORT", 9898);
@@ -339,7 +411,16 @@ const startHealthcheckWrapper = () => {
   const internalPort = getPositiveIntegerEnv("ENVIO_INDEXER_PORT");
 
   const server = http.createServer(async (request, response) => {
-    if (request.url?.split("?")[0] !== "/ready") {
+    const pathname = request.url?.split("?")[0];
+    if (pathname === "/healthz") {
+      response.writeHead(200, {
+        "content-type": "application/json",
+      });
+      response.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    if (pathname !== "/ready") {
       proxyToIndexer(request, response, internalPort);
       return;
     }
@@ -367,27 +448,40 @@ const startHealthcheckWrapper = () => {
   return server;
 };
 
-await waitForHasura();
-
-const wrapperServer = startHealthcheckWrapper();
-
-const child = spawn("./node_modules/.bin/envio", envioArgs, {
-  env: process.env,
-  stdio: "inherit",
-});
-
-child.on("error", (error) => {
-  console.error(`Failed to start Envio: ${error.message}`);
-  process.exit(1);
-});
-
-child.on("exit", (code, signal) => {
-  wrapperServer?.close();
-
-  if (signal) {
-    process.kill(process.pid, signal);
-    return;
+export const formatEnvioSpawnError = (error) => {
+  if (error?.code === "ENOENT") {
+    return `Failed to start Envio: envio binary was not found in PATH (${error.message})`;
   }
+  return `Failed to start Envio: ${error.message}`;
+};
 
-  process.exit(code ?? 1);
-});
+export const run = async () => {
+  await waitForHasura();
+
+  const wrapperServer = startHealthcheckWrapper();
+
+  const child = spawn("./node_modules/.bin/envio", envioArgs, {
+    env: process.env,
+    stdio: "inherit",
+  });
+
+  child.on("error", (error) => {
+    console.error(formatEnvioSpawnError(error));
+    process.exit(1);
+  });
+
+  child.on("exit", (code, signal) => {
+    wrapperServer?.close();
+
+    if (signal) {
+      process.kill(process.pid, signal);
+      return;
+    }
+
+    process.exit(code ?? 1);
+  });
+};
+
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  await run();
+}

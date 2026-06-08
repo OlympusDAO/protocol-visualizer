@@ -15,7 +15,7 @@ x-snapshot-s3-env: &snapshot-s3-env
 
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:17-alpine@sha256:979c4379dd698aba0b890599a6104e082035f98ef31d9b9291ec22f2b13059ca
     environment: *postgres-env
     ports:
       - "${POSTGRES_HOST_PORT:-5432}:5432"
@@ -75,7 +75,7 @@ services:
         condition: service_started
 
   minio:
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${ACCESS_KEY_ID:-minioadmin}
@@ -87,7 +87,7 @@ services:
       - minio-data:/data
 
   minio-create-bucket:
-    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
     environment:
       BUCKET: ${BUCKET:-protocol-visualizer-snapshots}
       MINIO_ROOT_USER: ${ACCESS_KEY_ID:-minioadmin}
@@ -116,6 +116,26 @@ services:
       minio-create-bucket:
         condition: service_completed_successfully
 
+  snapshot-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile-snapshot-monitor
+    profiles:
+      - jobs
+    environment:
+      <<: *snapshot-s3-env
+      HASURA_GRAPHQL_URL: http://hasura:8080/v1/graphql
+      HASURA_GRAPHQL_ADMIN_SECRET: *hasura-admin-secret
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      INDEXER_DEPLOYMENT_ID: ${INDEXER_DEPLOYMENT_ID:-local-compose}
+      MONITOR_STATE_KEY: ${MONITOR_STATE_KEY:-v1/monitor-state.json}
+    depends_on:
+      hasura:
+        condition: service_started
+      minio-create-bucket:
+        condition: service_completed_successfully
+    restart: "no"
+
   frontend:
     build:
       context: .
@@ -138,6 +158,8 @@ services:
       <<: *snapshot-s3-env
       HASURA_GRAPHQL_URL: http://hasura:8080/v1/graphql
       HASURA_GRAPHQL_ADMIN_SECRET: *hasura-admin-secret
+      INDEXER_DEPLOYMENT_ID: ${INDEXER_DEPLOYMENT_ID:-local-compose}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
       SNAPSHOT_PUBLIC_BASE_PATH: /v1
       SNAPSHOT_PUBLIC_ORIGIN: ${SNAPSHOT_PUBLIC_ORIGIN:-http://localhost:8082}
       SNAPSHOT_SOURCE: hasura
@@ -160,6 +182,8 @@ services:
       SNAPSHOT_PUBLIC_BASE_PATH: /v1
       SNAPSHOT_PUBLIC_ORIGIN: ${SNAPSHOT_PUBLIC_ORIGIN:-http://localhost:8082}
       SNAPSHOT_SOURCE: sample
+      INDEXER_DEPLOYMENT_ID: ${INDEXER_DEPLOYMENT_ID:-local-sample}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
       SNAPSHOT_CHAIN_IDS: ${SNAPSHOT_CHAIN_IDS:-}
     depends_on:
       minio-create-bucket:

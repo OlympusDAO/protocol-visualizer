@@ -85,12 +85,6 @@ export type RoleAssignment = {
   isGranted: boolean;
 };
 
-export type RecordCounts = {
-  contracts: number;
-  roles: number;
-  roleAssignments: number;
-};
-
 export type ProtocolSnapshot = {
   schemaVersion: "1.0.0";
   generatedAt: string;
@@ -103,20 +97,13 @@ export type ProtocolSnapshot = {
   };
 };
 
-export type Manifest = {
-  schemaVersion: "1.0.0";
-  generatedAt: string;
-  schemas: {
-    manifest: string;
-    protocolSnapshot: string;
-  };
-  chains: Array<{
-    chainId: number;
-    name: string;
-    path: string;
-    generatedAt: string;
-    recordCounts: RecordCounts;
-  }>;
+export type Manifest = SnapshotManifest;
+
+export type SnapshotBatch = {
+  files: SnapshotFile[];
+  manifest: Manifest;
+  indexingProgress: IndexingProgress;
+  ready: boolean;
 };
 
 export type SnapshotFile = {
@@ -127,3 +114,8 @@ export type SnapshotFile = {
   body: string;
   publishLast?: boolean;
 };
+import type {
+  IndexingProgress,
+  RecordCounts,
+  SnapshotManifest,
+} from "@protocol-visualizer/snapshot-artifacts";

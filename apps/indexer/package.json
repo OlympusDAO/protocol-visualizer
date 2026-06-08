@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "node --test scripts/*.test.mjs",
     "dev": "envio dev",
     "start": "envio start",
     "codegen": "envio codegen",

@@ -64,3 +64,6 @@ jobs:
 
       - name: Build snapshot publisher Docker image
         run: pnpm run docker:build:snapshot-publisher
+
+      - name: Build snapshot monitor Docker image
+        run: pnpm run docker:build:snapshot-monitor

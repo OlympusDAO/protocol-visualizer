@@ -1,11 +1,17 @@
 import {
+  deploymentArtifactKey,
+  type IndexingProgress,
+  restProtocolPath,
+  type SnapshotManifest,
+  SCHEMA_VERSION,
+  ACTIVE_MANIFEST_KEY,
+  type ChainIndexingProgress,
+} from "@protocol-visualizer/snapshot-artifacts";
+import {
   CACHE_CONTROL,
   DEFAULT_PUBLIC_BASE_PATH,
-  DEFAULT_PUBLIC_ORIGIN,
-  SCHEMA_VERSION,
 } from "./constants.js";
 import { PROTOCOL_VISUALIZER_QUERIES } from "./protocol-query.js";
-import { manifestSchema, protocolSnapshotSchema } from "./schema.js";
 import type {
   ChainConfig,
   Contract,
@@ -13,11 +19,11 @@ import type {
   GraphqlContract,
   GraphqlRole,
   GraphqlRoleAssignment,
-  Manifest,
   ProtocolGraphqlData,
   ProtocolSnapshot,
   Role,
   RoleAssignment,
+  SnapshotBatch,
   SnapshotFile,
 } from "./types.js";
 
@@ -30,6 +36,7 @@ const CONTRACT_TYPE_MAP: Record<EnvioContractType, Contract["type"]> = {
 type ChainSnapshot = {
   chain: ChainConfig;
   snapshot: ProtocolSnapshot;
+  progress: ChainIndexingProgress;
 };
 
 type CreateProtocolSnapshotInput = {
@@ -43,6 +50,7 @@ type CreateSnapshotFilesInput = {
   loadProtocolData: (
     chainId: number
   ) => Promise<ProtocolGraphqlData> | ProtocolGraphqlData;
+  deploymentId?: string;
   now?: Date;
   publicBasePath?: string;
   publicOrigin?: string;
@@ -59,25 +67,6 @@ const normalizeBasePath = (basePath = DEFAULT_PUBLIC_BASE_PATH): string => {
 };
 
 const publicPathToKey = (publicPath: string) => publicPath.replace(/^\/+/, "");
-
-const normalizePublicOrigin = (origin = DEFAULT_PUBLIC_ORIGIN): string => {
-  const trimmed = origin.trim();
-  if (!trimmed) {
-    return DEFAULT_PUBLIC_ORIGIN;
-  }
-  return trimmed.replace(/\/+$/g, "");
-};
-
-const absoluteUrl = (origin: string, path: string) =>
-  `${origin}${path.startsWith("/") ? path : `/${path}`}`;
-
-const escapeXml = (value: string) =>
-  value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&apos;");
 
 export function parseChainIds(
   value: string | undefined,
@@ -383,145 +372,91 @@ export function validateProtocolSnapshot(snapshot: ProtocolSnapshot): string[] {
   return errors;
 }
 
+const maxNumericString = (values: string[]): number =>
+  values.reduce((max, value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > max ? parsed : max;
+  }, 0);
+
+const progressFromSnapshot = (
+  chain: ChainConfig,
+  snapshot: ProtocolSnapshot
+): ChainIndexingProgress => {
+  const timestamps = [
+    ...snapshot.data.contracts.map((contract) => contract.lastUpdatedTimestamp),
+    ...snapshot.data.roleAssignments.map(
+      (assignment) => assignment.lastUpdatedTimestamp
+    ),
+  ];
+  const blocks = [
+    ...snapshot.data.contracts.map((contract) => contract.lastUpdatedBlockNumber),
+    ...snapshot.data.roleAssignments.map(
+      (assignment) => assignment.lastUpdatedBlockNumber
+    ),
+  ];
+  const timestamp = maxNumericString(timestamps);
+  const block = maxNumericString(blocks);
+  const date =
+    timestamp > 0
+      ? new Date(timestamp * 1000).toISOString().slice(0, 10)
+      : snapshot.generatedAt.slice(0, 10);
+
+  return {
+    chainId: chain.chainId,
+    date,
+    timestamp,
+    block,
+  };
+};
+
 const createManifest = ({
   generatedAt,
   chains,
   basePath,
+  deploymentId,
+  indexingProgress,
 }: {
   generatedAt: string;
   chains: ChainSnapshot[];
   basePath: string;
-}): Manifest => ({
+  deploymentId?: string;
+  indexingProgress: IndexingProgress;
+}): SnapshotManifest => ({
   schemaVersion: SCHEMA_VERSION,
   generatedAt,
   schemas: {
-    manifest: `${basePath}/schemas/manifest-v1.schema.json`,
-    protocolSnapshot: `${basePath}/schemas/protocol-snapshot-v1.schema.json`,
+    openapi: `${basePath}/openapi.json`,
+    manifest: `${basePath}/manifest`,
+    protocolSnapshot: `${basePath}/chains/{chainId}/protocol`,
   },
+  ...(deploymentId ? { indexerDeploymentId: deploymentId } : {}),
+  indexingProgress,
+  artifacts: deploymentId
+    ? Object.fromEntries(
+        chains.map(({ chain }) => [
+          String(chain.chainId),
+          deploymentArtifactKey(deploymentId, chain.chainId),
+        ])
+      )
+    : undefined,
   chains: chains.map(({ chain, snapshot }) => ({
     chainId: chain.chainId,
     name: chain.name,
-    path: `${basePath}/chain/${chain.chainId}/protocol.json`,
+    path: restProtocolPath(chain.chainId),
     generatedAt: snapshot.generatedAt,
     recordCounts: snapshot.recordCounts,
   })),
 });
 
-const createIndexHtml = ({
-  generatedAt,
-  manifest,
-  basePath,
-  publicOrigin,
-}: {
-  generatedAt: string;
-  manifest: Manifest;
-  basePath: string;
-  publicOrigin: string;
-}) => `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Protocol Visualizer Snapshots</title>
-    <link rel="canonical" href="${absoluteUrl(publicOrigin, `${basePath}/index.html`)}">
-    <link rel="sitemap" type="application/xml" href="${absoluteUrl(publicOrigin, "/sitemap.xml")}">
-  </head>
-  <body>
-    <main>
-      <h1>Protocol Visualizer Snapshots</h1>
-      <p>Generated at ${generatedAt}</p>
-      <ul>
-        <li><a href="${basePath}/manifest.json">manifest.json</a></li>
-        <li><a href="${basePath}/schemas/manifest-v1.schema.json">manifest schema</a></li>
-        <li><a href="${basePath}/schemas/protocol-snapshot-v1.schema.json">protocol snapshot schema</a></li>
-        <li><a href="/sitemap.xml">sitemap.xml</a></li>
-        <li><a href="/robots.txt">robots.txt</a></li>
-      </ul>
-      <h2>Chains</h2>
-      <ul>
-        ${manifest.chains
-          .map(
-            (chain) =>
-              `<li><a href="${chain.path}">${chain.name} (${chain.chainId})</a></li>`
-          )
-          .join("\n        ")}
-      </ul>
-    </main>
-  </body>
-</html>
-`;
-
-const createSitemapXml = ({
-  generatedAt,
-  manifest,
-  basePath,
-  publicOrigin,
-}: {
-  generatedAt: string;
-  manifest: Manifest;
-  basePath: string;
-  publicOrigin: string;
-}) => {
-  const urls = [
-    { loc: absoluteUrl(publicOrigin, "/"), lastmod: generatedAt },
-    {
-      loc: absoluteUrl(publicOrigin, `${basePath}/index.html`),
-      lastmod: generatedAt,
-    },
-    {
-      loc: absoluteUrl(publicOrigin, `${basePath}/manifest.json`),
-      lastmod: manifest.generatedAt,
-    },
-    {
-      loc: absoluteUrl(
-        publicOrigin,
-        `${basePath}/schemas/manifest-v1.schema.json`
-      ),
-      lastmod: generatedAt,
-    },
-    {
-      loc: absoluteUrl(
-        publicOrigin,
-        `${basePath}/schemas/protocol-snapshot-v1.schema.json`
-      ),
-      lastmod: generatedAt,
-    },
-    ...manifest.chains.map((chain) => ({
-      loc: absoluteUrl(publicOrigin, chain.path),
-      lastmod: chain.generatedAt,
-    })),
-  ];
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls
-  .map(
-    (url) => `  <url>
-    <loc>${escapeXml(url.loc)}</loc>
-    <lastmod>${escapeXml(url.lastmod)}</lastmod>
-  </url>`
-  )
-  .join("\n")}
-</urlset>
-`;
-};
-
-const createRobotsTxt = (publicOrigin: string) => `User-agent: *
-Allow: /
-
-Sitemap: ${absoluteUrl(publicOrigin, "/sitemap.xml")}
-`;
-
-export async function createSnapshotFiles({
+export async function createSnapshotBatch({
   chains,
   loadProtocolData,
+  deploymentId,
   now = new Date(),
   publicBasePath = DEFAULT_PUBLIC_BASE_PATH,
-  publicOrigin = DEFAULT_PUBLIC_ORIGIN,
-}: CreateSnapshotFilesInput): Promise<SnapshotFile[]> {
+}: CreateSnapshotFilesInput): Promise<SnapshotBatch> {
   const generatedAt = now.toISOString();
   const basePath = normalizeBasePath(publicBasePath);
-  const origin = normalizePublicOrigin(publicOrigin);
   const chainSnapshots: ChainSnapshot[] = [];
 
   for (const chain of chains) {
@@ -539,67 +474,49 @@ export async function createSnapshotFiles({
         )}`
       );
     }
-    chainSnapshots.push({ chain, snapshot });
+    chainSnapshots.push({
+      chain,
+      snapshot,
+      progress: progressFromSnapshot(chain, snapshot),
+    });
   }
+
+  const indexingProgress: IndexingProgress = {
+    chains: Object.fromEntries(
+      chainSnapshots.map(({ chain, progress }) => [chain.key, progress])
+    ),
+  };
+  const ready = chainSnapshots.every(
+    ({ snapshot, progress }) =>
+      snapshot.recordCounts.contracts +
+        snapshot.recordCounts.roles +
+        snapshot.recordCounts.roleAssignments >
+        0 &&
+      progress.block > 0 &&
+      progress.timestamp > 0
+  );
 
   const manifest = createManifest({
     generatedAt,
     chains: chainSnapshots,
     basePath,
+    deploymentId,
+    indexingProgress,
   });
-  const indexHtml = createIndexHtml({
-    generatedAt,
-    manifest,
-    basePath,
-    publicOrigin: origin,
-  });
-  const sitemapXml = createSitemapXml({
-    generatedAt,
-    manifest,
-    basePath,
-    publicOrigin: origin,
-  });
-  const robotsTxt = createRobotsTxt(origin);
 
-  const files: Omit<SnapshotFile, "key">[] = [
-    {
-      publicPath: "/robots.txt",
-      contentType: "text/plain; charset=utf-8",
-      cacheControl: CACHE_CONTROL.robots,
-      body: robotsTxt,
-    },
-    {
-      publicPath: "/sitemap.xml",
-      contentType: "application/xml",
-      cacheControl: CACHE_CONTROL.sitemap,
-      body: sitemapXml,
-    },
-    {
-      publicPath: `${basePath}/index.html`,
-      contentType: "text/html; charset=utf-8",
-      cacheControl: CACHE_CONTROL.index,
-      body: indexHtml,
-    },
-    {
-      publicPath: `${basePath}/schemas/manifest-v1.schema.json`,
-      contentType: "application/schema+json",
-      cacheControl: CACHE_CONTROL.schema,
-      body: json(manifestSchema),
-    },
-    {
-      publicPath: `${basePath}/schemas/protocol-snapshot-v1.schema.json`,
-      contentType: "application/schema+json",
-      cacheControl: CACHE_CONTROL.schema,
-      body: json(protocolSnapshotSchema),
-    },
+  const files: SnapshotFile[] = [
     ...chainSnapshots.map(({ chain, snapshot }) => ({
-      publicPath: `${basePath}/chain/${chain.chainId}/protocol.json`,
+      publicPath: restProtocolPath(chain.chainId),
+      key: deploymentId
+        ? deploymentArtifactKey(deploymentId, chain.chainId)
+        : publicPathToKey(`${basePath}/chain/${chain.chainId}/protocol.json`),
       contentType: "application/json",
       cacheControl: CACHE_CONTROL.protocol,
       body: json(snapshot),
     })),
     {
-      publicPath: `${basePath}/manifest.json`,
+      publicPath: `${basePath}/manifest`,
+      key: ACTIVE_MANIFEST_KEY,
       contentType: "application/json",
       cacheControl: CACHE_CONTROL.manifest,
       body: json(manifest),
@@ -607,8 +524,11 @@ export async function createSnapshotFiles({
     },
   ];
 
-  return files.map((file) => ({
-    ...file,
-    key: publicPathToKey(file.publicPath),
-  }));
+  return { files, manifest, indexingProgress, ready };
+}
+
+export async function createSnapshotFiles(
+  input: CreateSnapshotFilesInput
+): Promise<SnapshotFile[]> {
+  return (await createSnapshotBatch(input)).files;
 }

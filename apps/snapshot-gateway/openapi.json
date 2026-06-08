@@ -1,0 +1,450 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Protocol Visualizer Snapshot API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/ready": {
+      "get": {
+        "summary": "Readiness check",
+        "responses": {
+          "200": {
+            "description": "JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ready"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bounds": {
+      "get": {
+        "summary": "Published snapshot bounds and indexing progress",
+        "responses": {
+          "200": {
+            "description": "JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Bounds"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/manifest": {
+      "get": {
+        "summary": "Published snapshot manifest",
+        "responses": {
+          "200": {
+            "description": "JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Manifest"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chains": {
+      "get": {
+        "summary": "Supported chains",
+        "responses": {
+          "200": {
+            "description": "JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Chains"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chains/{chainId}/protocol": {
+      "get": {
+        "summary": "Protocol snapshot for a chain",
+        "parameters": [
+          {
+            "name": "chainId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProtocolSnapshot"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/openapi.json": {
+      "get": {
+        "summary": "OpenAPI document",
+        "responses": {
+          "200": {
+            "description": "JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Ready": {
+        "type": "object",
+        "required": [
+          "ok"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "Bounds": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "generatedAt",
+              "activeDeployment"
+            ],
+            "properties": {
+              "generatedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "activeDeployment": {
+                "type": "object",
+                "required": [
+                  "generatedAt"
+                ],
+                "properties": {
+                  "generatedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              },
+              "indexingProgress": {
+                "type": "object",
+                "required": [
+                  "chains"
+                ],
+                "properties": {
+                  "chains": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object",
+                      "required": [
+                        "chainId",
+                        "date",
+                        "timestamp",
+                        "block"
+                      ],
+                      "properties": {
+                        "chainId": {
+                          "type": "integer"
+                        },
+                        "date": {
+                          "type": "string"
+                        },
+                        "timestamp": {
+                          "type": "integer"
+                        },
+                        "block": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Manifest": {
+        "type": "object",
+        "required": [
+          "schemaVersion",
+          "generatedAt",
+          "schemas",
+          "chains"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "schemas": {
+            "type": "object",
+            "required": [
+              "openapi",
+              "manifest",
+              "protocolSnapshot"
+            ],
+            "properties": {
+              "openapi": {
+                "type": "string"
+              },
+              "manifest": {
+                "type": "string"
+              },
+              "protocolSnapshot": {
+                "type": "string"
+              }
+            }
+          },
+          "chains": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "chainId",
+                "name",
+                "path",
+                "generatedAt",
+                "recordCounts"
+              ],
+              "properties": {
+                "chainId": {
+                  "type": "integer"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "generatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "recordCounts": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "indexingProgress": {
+            "type": "object",
+            "required": [
+              "chains"
+            ],
+            "properties": {
+              "chains": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "required": [
+                    "chainId",
+                    "date",
+                    "timestamp",
+                    "block"
+                  ],
+                  "properties": {
+                    "chainId": {
+                      "type": "integer"
+                    },
+                    "date": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "integer"
+                    },
+                    "block": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Chains": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "chainId",
+                "name",
+                "path"
+              ],
+              "properties": {
+                "chainId": {
+                  "type": "integer"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "generatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "recordCounts": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ProtocolSnapshot": {
+        "type": "object",
+        "required": [
+          "schemaVersion",
+          "generatedAt",
+          "chainId",
+          "recordCounts",
+          "data"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "chainId": {
+            "type": "integer"
+          },
+          "recordCounts": {
+            "type": "object",
+            "required": [
+              "contracts",
+              "roles",
+              "roleAssignments"
+            ],
+            "properties": {
+              "contracts": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "roles": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "roleAssignments": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "contracts",
+              "roles",
+              "roleAssignments"
+            ],
+            "properties": {
+              "contracts": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "roles": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "roleAssignments": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "OpenApi": {
+        "type": "object"
+      }
+    }
+  }
+}

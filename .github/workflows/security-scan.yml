@@ -55,6 +55,12 @@ jobs:
       - name: Tag snapshot publisher image for scan
         run: pnpm run docker:tag:scan:snapshot-publisher
 
+      - name: Build snapshot monitor Docker image
+        run: pnpm run docker:build:snapshot-monitor
+
+      - name: Tag snapshot monitor image for scan
+        run: pnpm run docker:tag:scan:snapshot-monitor
+
       - name: Scan indexer Dockerfile for misconfigurations
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
@@ -100,6 +106,15 @@ jobs:
           severity: MEDIUM,HIGH,CRITICAL
           exit-code: "1"
 
+      - name: Scan snapshot monitor Dockerfile for misconfigurations
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          scan-type: config
+          scan-ref: Dockerfile-snapshot-monitor
+          scanners: misconfig
+          severity: MEDIUM,HIGH,CRITICAL
+          exit-code: "1"
+
       - name: Scan indexer image for vulnerabilities
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
@@ -141,6 +156,15 @@ jobs:
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
           image-ref: protocol-visualizer/snapshot-publisher:scan
+          format: table
+          severity: MEDIUM,HIGH,CRITICAL
+          trivyignores: .trivyignore
+          exit-code: "1"
+
+      - name: Scan snapshot monitor image for vulnerabilities
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: protocol-visualizer/snapshot-monitor:scan
           format: table
           severity: MEDIUM,HIGH,CRITICAL
           trivyignores: .trivyignore

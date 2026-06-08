@@ -75,7 +75,7 @@ async function protocolSnapshotRequest(
 ): Promise<ProtocolSnapshot> {
   const baseUrl = getProtocolSnapshotBaseUrl().replace(/\/+$/, "");
   const url = new URL(
-    `${baseUrl}/v1/chain/${chainId}/protocol.json`,
+    `${baseUrl}/v1/chains/${chainId}/protocol`,
     window.location.origin
   );
 

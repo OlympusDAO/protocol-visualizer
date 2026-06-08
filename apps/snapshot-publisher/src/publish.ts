@@ -2,22 +2,48 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import {
+  DeleteObjectCommand,
+  GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
+import {
+  ACTIVE_MANIFEST_KEY,
+  parseDeploymentId,
+  PUBLISHER_LOCK_KEY,
+  type IndexingProgress,
+} from "@protocol-visualizer/snapshot-artifacts";
 import { loadSupportedChains } from "./chains.js";
 import { DEFAULT_PUBLIC_BASE_PATH } from "./constants.js";
 import {
-  createSnapshotFiles,
+  createSnapshotBatch,
   fetchProtocolData,
   parseChainIds,
   selectChains,
 } from "./snapshot.js";
 import { getSampleProtocolData } from "./sample-data.js";
-import type { SnapshotFile } from "./types.js";
+import type { Manifest, SnapshotFile } from "./types.js";
 
 type SnapshotSource = "hasura" | "sample";
+type SkipReason = "lock_held" | "not_data_ready";
+
+type PublisherResult = {
+  deploymentId: string;
+  published: boolean;
+  manifestPublishedLast: boolean;
+  indexingProgress?: IndexingProgress;
+  skipReason?: SkipReason;
+};
+
+type PublisherLock = {
+  runId: string;
+  deploymentId: string;
+  createdAt: string;
+  expiresAt: string;
+};
+
+const DEFAULT_LOCK_TTL_MS = 55 * 60 * 1000;
 
 const getRequiredEnv = (key: string): string => {
   const value = process.env[key]?.trim();
@@ -42,6 +68,8 @@ export type SnapshotS3Client = {
   send: S3Client["send"];
   destroy: () => void;
 };
+
+const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
 
 const uploadAndVerify = async (
   client: SnapshotS3Client,
@@ -86,6 +114,156 @@ export const uploadSnapshotFiles = async (
   }
 };
 
+const objectBodyToString = async (body: unknown): Promise<string> => {
+  if (typeof body === "string") return body;
+  if (body instanceof Uint8Array) return Buffer.from(body).toString("utf8");
+  if (
+    body &&
+    typeof body === "object" &&
+    "transformToString" in body &&
+    typeof body.transformToString === "function"
+  ) {
+    return body.transformToString();
+  }
+  if (
+    body &&
+    typeof body === "object" &&
+    Symbol.asyncIterator in body
+  ) {
+    const chunks: Buffer[] = [];
+    for await (const chunk of body as AsyncIterable<Uint8Array | string>) {
+      chunks.push(Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks).toString("utf8");
+  }
+  return "";
+};
+
+const getJsonObject = async <T>(
+  client: SnapshotS3Client,
+  bucket: string,
+  key: string
+): Promise<T | undefined> => {
+  try {
+    const output = await client.send(
+      new GetObjectCommand({ Bucket: bucket, Key: key })
+    );
+    return JSON.parse(await objectBodyToString(output.Body)) as T;
+  } catch {
+    return undefined;
+  }
+};
+
+const putJsonObject = async (
+  client: SnapshotS3Client,
+  bucket: string,
+  key: string,
+  value: unknown
+) => {
+  await client.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: json(value),
+      ContentType: "application/json",
+      CacheControl: "no-store",
+    })
+  );
+};
+
+const deleteObject = async (
+  client: SnapshotS3Client,
+  bucket: string,
+  key: string
+) => {
+  await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+};
+
+const resolveDeploymentId = (source: SnapshotSource, outputDir?: string) => {
+  const value =
+    process.env.INDEXER_DEPLOYMENT_ID?.trim() ||
+    process.env.RAILWAY_GIT_COMMIT_SHA?.trim() ||
+    (source === "sample" || outputDir ? "local-sample" : "");
+  return parseDeploymentId(value);
+};
+
+const lockTtlMs = () => {
+  const raw = process.env.PUBLISHER_LOCK_TTL_MS?.trim();
+  if (!raw) return DEFAULT_LOCK_TTL_MS;
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`PUBLISHER_LOCK_TTL_MS must be a positive integer`);
+  }
+  return parsed;
+};
+
+const acquireLock = async (
+  client: SnapshotS3Client,
+  bucket: string,
+  deploymentId: string,
+  now = new Date()
+): Promise<{ acquired: boolean; lock: PublisherLock }> => {
+  const existing = await getJsonObject<PublisherLock>(
+    client,
+    bucket,
+    PUBLISHER_LOCK_KEY
+  );
+  if (existing && Date.parse(existing.expiresAt) > now.getTime()) {
+    return { acquired: false, lock: existing };
+  }
+
+  const ttlMs = lockTtlMs();
+  const lock: PublisherLock = {
+    runId: `${deploymentId}-${now.getTime()}`,
+    deploymentId,
+    createdAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + ttlMs).toISOString(),
+  };
+  await putJsonObject(client, bucket, PUBLISHER_LOCK_KEY, lock);
+  return { acquired: true, lock };
+};
+
+const releaseLock = async (
+  client: SnapshotS3Client,
+  bucket: string,
+  lock: PublisherLock
+) => {
+  const current = await getJsonObject<PublisherLock>(
+    client,
+    bucket,
+    PUBLISHER_LOCK_KEY
+  );
+  if (current?.runId === lock.runId) {
+    await deleteObject(client, bucket, PUBLISHER_LOCK_KEY);
+  }
+};
+
+export const sendDiscordMessage = async (
+  webhookUrl: string | undefined,
+  content: string
+) => {
+  const url = webhookUrl?.trim();
+  if (!url) return;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+  if (!response.ok) {
+    throw new Error(`Discord webhook returned HTTP ${response.status}`);
+  }
+};
+
+const notifyHandover = async (manifest: Manifest) => {
+  const chainSummary = manifest.chains
+    .map((chain) => `${chain.name}: ${chain.recordCounts.contracts} contracts`)
+    .join(", ");
+  await sendDiscordMessage(
+    process.env.DISCORD_WEBHOOK_URL,
+    `Protocol visualizer snapshot handover completed at ${manifest.generatedAt}. ${chainSummary}`
+  );
+};
+
 const writeLocalFile = async (outputDir: string, file: SnapshotFile) => {
   const filePath = path.join(outputDir, file.key);
   await mkdir(path.dirname(filePath), { recursive: true });
@@ -121,12 +299,15 @@ export async function runPublisher() {
             process.env.HASURA_GRAPHQL_ADMIN_SECRET?.trim()
           );
 
-  const files = await createSnapshotFiles({
+  const deploymentId = resolveDeploymentId(source, outputDir);
+  const batch = await createSnapshotBatch({
     chains,
     loadProtocolData,
+    deploymentId,
     publicBasePath,
     publicOrigin,
   });
+  const files = batch.files;
 
   const regularFiles = files.filter((file) => !file.publishLast);
   const publishLastFiles = files.filter((file) => file.publishLast);
@@ -136,16 +317,93 @@ export async function runPublisher() {
       await writeLocalFile(outputDir, file);
     }
     console.log(`Wrote ${files.length} snapshot files to ${outputDir}`);
+    const result: PublisherResult = {
+      deploymentId,
+      published: batch.ready,
+      manifestPublishedLast:
+        batch.ready && files.at(-1)?.key === ACTIVE_MANIFEST_KEY,
+      indexingProgress: batch.indexingProgress,
+      ...(batch.ready ? {} : { skipReason: "not_data_ready" }),
+    };
+    console.log(JSON.stringify(result));
     console.log("Snapshot publisher completed successfully; exiting");
     return;
   }
 
   const bucket = getRequiredEnv("BUCKET");
   const client = createS3Client();
-  await uploadSnapshotFiles(client, bucket, files);
+  let lock: PublisherLock | undefined;
 
-  console.log(`Published ${files.length} snapshot files to ${bucket}`);
-  console.log("Snapshot publisher completed successfully; exiting");
+  try {
+    const acquiredLock = await acquireLock(client, bucket, deploymentId);
+    lock = acquiredLock.lock;
+    if (!acquiredLock.acquired) {
+      const result: PublisherResult = {
+        deploymentId,
+        published: false,
+        manifestPublishedLast: false,
+        indexingProgress: batch.indexingProgress,
+        skipReason: "lock_held",
+      };
+      console.log(JSON.stringify(result));
+      console.log("Snapshot publisher completed successfully; exiting");
+      return;
+    }
+
+    if (!batch.ready) {
+      const existingManifest = await getJsonObject<Manifest>(
+        client,
+        bucket,
+        ACTIVE_MANIFEST_KEY
+      );
+      const result: PublisherResult = {
+        deploymentId,
+        published: false,
+        manifestPublishedLast: false,
+        indexingProgress: batch.indexingProgress,
+        skipReason: "not_data_ready",
+      };
+      if (!existingManifest) {
+        console.log("No existing snapshot manifest is active yet");
+      }
+      console.log(JSON.stringify(result));
+      console.log("Snapshot publisher completed successfully; exiting");
+      return;
+    }
+
+    await uploadSnapshotFiles(
+      {
+        send: client.send.bind(client),
+        destroy: () => undefined,
+      },
+      bucket,
+      files
+    );
+    try {
+      await notifyHandover(batch.manifest);
+    } catch (error) {
+      console.error(
+        `Discord handover notification failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+
+    const result: PublisherResult = {
+      deploymentId,
+      published: true,
+      manifestPublishedLast: files.at(-1)?.key === ACTIVE_MANIFEST_KEY,
+      indexingProgress: batch.indexingProgress,
+    };
+    console.log(JSON.stringify(result));
+    console.log(`Published ${files.length} snapshot files to ${bucket}`);
+    console.log("Snapshot publisher completed successfully; exiting");
+  } finally {
+    if (lock) {
+      await releaseLock(client, bucket, lock);
+    }
+    client.destroy();
+  }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

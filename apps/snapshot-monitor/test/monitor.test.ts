@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { SCHEMA_VERSION, type SnapshotManifest } from "@protocol-visualizer/snapshot-artifacts";
 import {
   evaluateMonitor,
-  fetchHasuraIndexingProgress,
+  fetchIndexerMetricsReadiness,
   shortId,
 } from "../src/monitor.js";
 
@@ -91,36 +91,42 @@ test("warns when chain progress stops advancing beyond the threshold", () => {
   assert.equal(result.state.chainProgress?.Mainnet?.observedAt, "2026-06-04T00:00:00.000Z");
 });
 
-test("fetches current indexing progress from Hasura", async () => {
-  let requestBody: { query?: string; variables?: { chainId: number } } | undefined;
+test("warns when Envio metrics report a chain is not ready", () => {
+  const result = evaluateMonitor({
+    deploymentId: "deployment-e",
+    manifest: manifest("2026-06-05T00:00:00.000Z"),
+    notReadyChainIds: [1],
+    state: { lastDailySummaryAt: "2026-06-05" },
+    now: new Date("2026-06-05T01:00:00.000Z"),
+    staleThresholdMs: Number.MAX_SAFE_INTEGER,
+  });
+  assert.match(result.messages.join("\n"), /is not synced to head/);
+});
+
+test("fetches current indexing readiness from Envio metrics", async () => {
+  let requestedUrl = "";
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = (async (_url, init) => {
-    requestBody = JSON.parse(String(init?.body));
+  globalThis.fetch = (async (url) => {
+    requestedUrl = String(url);
     return new Response(
-      JSON.stringify({
-        data: {
-          Contract: [
-            {
-              lastUpdatedTimestamp: "1780272000",
-              lastUpdatedBlockNumber: "123",
-            },
-          ],
-          RoleAssignment: [],
-        },
-      }),
-      { status: 200, headers: { "content-type": "application/json" } }
+      `
+        hyperindex_synced_to_head 1
+        envio_progress_ready{chainId="1"} 1
+        envio_progress_block{chainId="1"} 123
+      `,
+      { status: 200, headers: { "content-type": "text/plain" } }
     );
   }) as typeof fetch;
 
   try {
-    const progress = await fetchHasuraIndexingProgress({
-      endpoint: "http://hasura.internal/v1/graphql",
-      adminSecret: "secret",
+    const readiness = await fetchIndexerMetricsReadiness({
+      metricsUrl: "http://indexer.internal/metrics",
       chains: [{ key: "Mainnet", chainId: 1, name: "Mainnet" }],
     });
-    assert.equal(progress.chains.Mainnet?.block, 123);
-    assert.equal(requestBody?.variables?.chainId, 1);
-    assert.match(requestBody?.query ?? "", /LatestProtocolVisualizerProgress/);
+    assert.equal(readiness.ready, true);
+    assert.deepEqual(readiness.readyChainIds, [1]);
+    assert.equal(readiness.indexingProgress.chains.Mainnet?.block, 123);
+    assert.equal(requestedUrl, "http://indexer.internal/metrics");
   } finally {
     globalThis.fetch = originalFetch;
   }

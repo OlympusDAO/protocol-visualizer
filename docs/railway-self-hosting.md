@@ -84,11 +84,17 @@ Do not set `ENVIO_PG_SCHEMA` on Railway. The indexer wrapper fails fast if it is
 set. Railway start commands run `envio start -r`; public handover is handled by
 the publisher manifest, not database schemas.
 
+The publisher and monitor read Envio's private `/metrics` endpoint to decide
+whether a deployment is ready. The examples below use `9898` because the indexer
+Railway service should set `PORT=9898`; if that port is changed, update
+`INDEXER_METRICS_URL` to match the indexer's `PORT`.
+
 Set on `snapshot-publisher`:
 
 ```bash
 HASURA_GRAPHQL_URL=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql
 HASURA_GRAPHQL_ADMIN_SECRET=${{hasura.HASURA_GRAPHQL_ADMIN_SECRET}}
+INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
 BUCKET=${{<bucket-service>.BUCKET}}
 ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
 SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
@@ -103,8 +109,7 @@ Set on `snapshot-monitor`:
 
 ```bash
 DISCORD_WEBHOOK_URL=<discord webhook url>
-HASURA_GRAPHQL_URL=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql
-HASURA_GRAPHQL_ADMIN_SECRET=${{hasura.HASURA_GRAPHQL_ADMIN_SECRET}}
+INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
 BUCKET=${{<bucket-service>.BUCKET}}
 ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
 SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}

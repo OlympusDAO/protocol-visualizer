@@ -8,6 +8,7 @@ import {
   ACTIVE_MANIFEST_KEY,
   DEFAULT_MONITOR_STATE_KEY,
   parseDeploymentId,
+  parseEnvioMetricsReadiness,
   type IndexingProgress,
   type SnapshotManifest,
 } from "@protocol-visualizer/snapshot-artifacts";
@@ -31,11 +32,6 @@ type ChainConfig = {
   name: string;
 };
 
-type ProgressRow = {
-  lastUpdatedTimestamp?: unknown;
-  lastUpdatedBlockNumber?: unknown;
-};
-
 type MonitorStore = {
   getJson: <T>(key: string) => Promise<T | undefined>;
   putJson: (key: string, value: unknown) => Promise<void>;
@@ -45,6 +41,7 @@ type MonitorInput = {
   deploymentId: string;
   manifest?: SnapshotManifest;
   progress?: IndexingProgress;
+  notReadyChainIds?: number[];
   state: MonitorState;
   now: Date;
   staleThresholdMs?: number;
@@ -122,12 +119,6 @@ const resolveDeploymentId = () =>
 export const shortId = (value: string): string =>
   value.length > 12 ? value.slice(0, 12) : value;
 
-const maxRowNumber = (rows: ProgressRow[], key: keyof ProgressRow): number =>
-  rows.reduce((max, row) => {
-    const parsed = Number(row[key]);
-    return Number.isFinite(parsed) && parsed > max ? parsed : max;
-  }, 0);
-
 async function loadChains(
   configPath = process.env.PROTOCOL_CHAINS_CONFIG_PATH ||
     "config/protocol-chains.json"
@@ -135,107 +126,18 @@ async function loadChains(
   return JSON.parse(await readFile(configPath, "utf8")) as ChainConfig[];
 }
 
-async function graphqlRequest(
-  endpoint: string,
-  adminSecret: string,
-  query: string,
-  chainId: number
-): Promise<{ Contract?: ProgressRow[]; RoleAssignment?: ProgressRow[]; contract?: ProgressRow[]; roleAssignment?: ProgressRow[] }> {
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
-      "x-hasura-admin-secret": adminSecret,
-    },
-    body: JSON.stringify({ query, variables: { chainId } }),
+export async function fetchIndexerMetricsReadiness(input: {
+  metricsUrl: string;
+  chains: ChainConfig[];
+}) {
+  const response = await fetch(input.metricsUrl, {
+    method: "GET",
+    headers: { accept: "text/plain" },
   });
   if (!response.ok) {
-    throw new Error(`Hasura progress request failed with HTTP ${response.status}`);
+    throw new Error(`Indexer metrics request failed with HTTP ${response.status}`);
   }
-  const payload = (await response.json()) as {
-    data?: {
-      Contract?: ProgressRow[];
-      RoleAssignment?: ProgressRow[];
-      contract?: ProgressRow[];
-      roleAssignment?: ProgressRow[];
-    };
-    errors?: Array<{ message: string }>;
-  };
-  if (payload.errors?.length) {
-    throw new Error(payload.errors.map((error) => error.message).join("; "));
-  }
-  return payload.data ?? {};
-}
-
-const progressQueries = [
-  `
-    query LatestProtocolVisualizerProgress($chainId: Int!) {
-      Contract(where: { chainId: { _eq: $chainId } }, order_by: { lastUpdatedTimestamp: desc }, limit: 1) {
-        lastUpdatedTimestamp
-        lastUpdatedBlockNumber
-      }
-      RoleAssignment(where: { chainId: { _eq: $chainId } }, order_by: { lastUpdatedTimestamp: desc }, limit: 1) {
-        lastUpdatedTimestamp
-        lastUpdatedBlockNumber
-      }
-    }
-  `,
-  `
-    query LatestProtocolVisualizerProgress($chainId: Int!) {
-      contract(where: { chainId: { _eq: $chainId } }, order_by: { lastUpdatedTimestamp: desc }, limit: 1) {
-        lastUpdatedTimestamp
-        lastUpdatedBlockNumber
-      }
-      roleAssignment(where: { chainId: { _eq: $chainId } }, order_by: { lastUpdatedTimestamp: desc }, limit: 1) {
-        lastUpdatedTimestamp
-        lastUpdatedBlockNumber
-      }
-    }
-  `,
-] as const;
-
-export async function fetchHasuraIndexingProgress(input: {
-  endpoint: string;
-  adminSecret: string;
-  chains: ChainConfig[];
-}): Promise<IndexingProgress> {
-  const entries: Array<[string, IndexingProgress["chains"][string]]> = [];
-  for (const chain of input.chains) {
-    let rows: ProgressRow[] = [];
-    for (const query of progressQueries) {
-      try {
-        const data = await graphqlRequest(
-          input.endpoint,
-          input.adminSecret,
-          query,
-          chain.chainId
-        );
-        rows = [
-          ...(data.Contract ?? data.contract ?? []),
-          ...(data.RoleAssignment ?? data.roleAssignment ?? []),
-        ];
-        break;
-      } catch (error) {
-        if (query === progressQueries.at(-1)) throw error;
-      }
-    }
-    const timestamp = maxRowNumber(rows, "lastUpdatedTimestamp");
-    const block = maxRowNumber(rows, "lastUpdatedBlockNumber");
-    entries.push([
-      chain.key,
-      {
-        chainId: chain.chainId,
-        date:
-          timestamp > 0
-            ? new Date(timestamp * 1000).toISOString().slice(0, 10)
-            : "unknown",
-        timestamp,
-        block,
-      },
-    ]);
-  }
-  return { chains: Object.fromEntries(entries) };
+  return parseEnvioMetricsReadiness(await response.text(), input.chains);
 }
 
 export function evaluateMonitor(input: MonitorInput): MonitorResult {
@@ -281,8 +183,7 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
 
   for (const [name, chain] of Object.entries(progress?.chains ?? {})) {
     const previous = input.state.chainProgress?.[name];
-    const unchanged =
-      previous?.block === chain.block && previous.timestamp === chain.timestamp;
+    const unchanged = previous?.block === chain.block;
     const observedAt =
       unchanged && previous?.observedAt ? previous.observedAt : input.now.toISOString();
     nextChainProgress[name] = {
@@ -301,12 +202,9 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
       );
     }
 
-    if (
-      chain.timestamp > 0 &&
-      input.now.getTime() - chain.timestamp * 1000 >= staleThresholdMs
-    ) {
+    if (input.notReadyChainIds?.includes(chain.chainId)) {
       messages.push(
-        `Protocol visualizer indexing warning: ${name} indexed data is stale as of ${chain.date} at block ${chain.block}.`
+        `Protocol visualizer indexing warning: ${name} is not synced to head at block ${chain.block}.`
       );
     }
   }
@@ -332,6 +230,7 @@ export async function runMonitor(input: {
   stateKey: string;
   deploymentId: string;
   progress?: IndexingProgress;
+  notReadyChainIds?: number[];
   now?: Date;
   staleThresholdMs?: number;
 }) {
@@ -343,6 +242,7 @@ export async function runMonitor(input: {
     deploymentId: input.deploymentId,
     manifest,
     progress: input.progress,
+    notReadyChainIds: input.notReadyChainIds,
     state: state ?? {},
     now: input.now ?? new Date(),
     staleThresholdMs: input.staleThresholdMs,
@@ -367,9 +267,8 @@ export async function runMonitorFromEnv() {
     throw new Error("MONITOR_STALE_CHAIN_HOURS must be a positive number");
   }
   const chains = await loadChains();
-  const progress = await fetchHasuraIndexingProgress({
-    endpoint: requiredEnv("HASURA_GRAPHQL_URL"),
-    adminSecret: requiredEnv("HASURA_GRAPHQL_ADMIN_SECRET"),
+  const readiness = await fetchIndexerMetricsReadiness({
+    metricsUrl: requiredEnv("INDEXER_METRICS_URL"),
     chains,
   });
   await runMonitor({
@@ -377,7 +276,8 @@ export async function runMonitorFromEnv() {
     webhookUrl: requiredEnv("DISCORD_WEBHOOK_URL"),
     stateKey: process.env.MONITOR_STATE_KEY || DEFAULT_MONITOR_STATE_KEY,
     deploymentId: resolveDeploymentId(),
-    progress,
+    progress: readiness.indexingProgress,
+    notReadyChainIds: readiness.notReadyChainIds,
     staleThresholdMs: staleThresholdHours * 60 * 60 * 1000,
   });
 }

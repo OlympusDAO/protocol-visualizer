@@ -124,13 +124,12 @@ services:
       - jobs
     environment:
       <<: *snapshot-s3-env
-      HASURA_GRAPHQL_URL: http://hasura:8080/v1/graphql
-      HASURA_GRAPHQL_ADMIN_SECRET: *hasura-admin-secret
+      INDEXER_METRICS_URL: http://indexer:9898/metrics
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
       INDEXER_DEPLOYMENT_ID: ${INDEXER_DEPLOYMENT_ID:-local-compose}
       MONITOR_STATE_KEY: ${MONITOR_STATE_KEY:-v1/monitor-state.json}
     depends_on:
-      hasura:
+      indexer:
         condition: service_started
       minio-create-bucket:
         condition: service_completed_successfully
@@ -158,6 +157,7 @@ services:
       <<: *snapshot-s3-env
       HASURA_GRAPHQL_URL: http://hasura:8080/v1/graphql
       HASURA_GRAPHQL_ADMIN_SECRET: *hasura-admin-secret
+      INDEXER_METRICS_URL: http://indexer:9898/metrics
       INDEXER_DEPLOYMENT_ID: ${INDEXER_DEPLOYMENT_ID:-local-compose}
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
       SNAPSHOT_PUBLIC_BASE_PATH: /v1
@@ -166,6 +166,8 @@ services:
       SNAPSHOT_CHAIN_IDS: ${SNAPSHOT_CHAIN_IDS:-}
     depends_on:
       hasura:
+        condition: service_started
+      indexer:
         condition: service_started
       minio-create-bucket:
         condition: service_completed_successfully

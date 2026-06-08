@@ -54,6 +54,7 @@ type CreateSnapshotFilesInput = {
   now?: Date;
   publicBasePath?: string;
   publicOrigin?: string;
+  indexingProgressOverride?: IndexingProgress;
 };
 
 const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
@@ -454,6 +455,7 @@ export async function createSnapshotBatch({
   deploymentId,
   now = new Date(),
   publicBasePath = DEFAULT_PUBLIC_BASE_PATH,
+  indexingProgressOverride,
 }: CreateSnapshotFilesInput): Promise<SnapshotBatch> {
   const generatedAt = now.toISOString();
   const basePath = normalizeBasePath(publicBasePath);
@@ -481,11 +483,12 @@ export async function createSnapshotBatch({
     });
   }
 
-  const indexingProgress: IndexingProgress = {
-    chains: Object.fromEntries(
-      chainSnapshots.map(({ chain, progress }) => [chain.key, progress])
-    ),
-  };
+  const indexingProgress: IndexingProgress =
+    indexingProgressOverride ?? {
+      chains: Object.fromEntries(
+        chainSnapshots.map(({ chain, progress }) => [chain.key, progress])
+      ),
+    };
   const ready = chainSnapshots.every(
     ({ snapshot, progress }) =>
       snapshot.recordCounts.contracts +

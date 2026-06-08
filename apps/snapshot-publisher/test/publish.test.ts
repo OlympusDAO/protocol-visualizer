@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { HeadObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import {
+  runPublisher,
   type SnapshotS3Client,
   uploadSnapshotFiles,
 } from "../src/publish.js";
@@ -69,4 +70,55 @@ test("destroys the S3 client when upload verification fails", async () => {
     /head failed/
   );
   assert.equal(destroyed, true);
+});
+
+test("publisher skips before Hasura reads when indexer metrics are not ready", async () => {
+  const originalEnv = { ...process.env };
+  const originalFetch = globalThis.fetch;
+  const originalLog = console.log;
+  const logs: string[] = [];
+
+  process.env = {
+    ...originalEnv,
+    SNAPSHOT_SOURCE: "hasura",
+    SNAPSHOT_CHAIN_IDS: "1,10",
+    INDEXER_DEPLOYMENT_ID: "deployment-a",
+    INDEXER_METRICS_URL: "http://indexer:9898/metrics",
+  };
+  delete process.env.HASURA_GRAPHQL_URL;
+  delete process.env.BUCKET;
+
+  globalThis.fetch = async (url) => {
+    assert.equal(String(url), "http://indexer:9898/metrics");
+    return new Response(
+      `
+        hyperindex_synced_to_head 0
+        envio_progress_ready{chainId="1"} 1
+        envio_progress_block{chainId="1"} 25272069
+        envio_progress_ready{chainId="10"} 0
+        envio_progress_block{chainId="10"} 152657692
+      `,
+      { status: 200 }
+    );
+  };
+  console.log = (message?: unknown) => {
+    logs.push(String(message));
+  };
+
+  try {
+    await runPublisher();
+  } finally {
+    process.env = originalEnv;
+    globalThis.fetch = originalFetch;
+    console.log = originalLog;
+  }
+
+  const result = JSON.parse(logs.find((line) => line.startsWith("{")) ?? "{}");
+  assert.equal(result.published, false);
+  assert.equal(result.skipReason, "not_data_ready");
+  assert.equal(result.readiness.syncedToHead, false);
+  assert.deepEqual(result.readiness.readyChainIds, [1]);
+  assert.deepEqual(result.readiness.notReadyChainIds, [10]);
+  assert.equal(result.indexingProgress.chains.Mainnet.block, 25272069);
+  assert.equal(result.indexingProgress.chains.Optimism.block, 152657692);
 });

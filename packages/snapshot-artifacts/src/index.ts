@@ -20,6 +20,20 @@ export type IndexingProgress = {
   chains: Record<string, ChainIndexingProgress>;
 };
 
+export type EnvioMetricsChainConfig = {
+  key: string;
+  chainId: number;
+};
+
+export type EnvioMetricsReadiness = {
+  ready: boolean;
+  syncedToHead: boolean;
+  missingChainIds: number[];
+  notReadyChainIds: number[];
+  readyChainIds: number[];
+  indexingProgress: IndexingProgress;
+};
+
 export type SnapshotManifestChain = {
   chainId: number;
   name: string;
@@ -94,6 +108,106 @@ export function sanitizeManifestForPublic(
   const { indexerDeploymentId: _deploymentId, artifacts: _artifacts, ...publicManifest } =
     manifest;
   return publicManifest;
+}
+
+const parsePrometheusLabels = (value: string): Record<string, string> => {
+  const labels: Record<string, string> = {};
+  const pattern = /([A-Za-z_][A-Za-z0-9_]*)="([^"]*)"/g;
+  for (const match of value.matchAll(pattern)) {
+    const key = match[1];
+    const labelValue = match[2];
+    if (key && labelValue !== undefined) {
+      labels[key] = labelValue;
+    }
+  }
+  return labels;
+};
+
+const parsePrometheusNumber = (value: string): number | undefined => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+export function parseEnvioMetricsReadiness(
+  metricsText: string,
+  chains: EnvioMetricsChainConfig[],
+  observedAt = new Date()
+): EnvioMetricsReadiness {
+  const readyByChainId = new Map<number, number>();
+  const blockByChainId = new Map<number, number>();
+  let syncedToHead = false;
+
+  for (const rawLine of metricsText.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+
+    const match = line.match(
+      /^([A-Za-z_:][A-Za-z0-9_:]*)(?:\{([^}]*)\})?\s+([-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?)$/i
+    );
+    if (!match) continue;
+
+    const [, metricName, rawLabels = "", rawValue] = match;
+    if (!metricName || rawValue === undefined) continue;
+    const value = parsePrometheusNumber(rawValue);
+    if (value === undefined) continue;
+
+    if (metricName === "hyperindex_synced_to_head") {
+      syncedToHead = value === 1;
+      continue;
+    }
+
+    const chainId = Number(parsePrometheusLabels(rawLabels).chainId);
+    if (!Number.isInteger(chainId)) continue;
+
+    if (metricName === "envio_progress_ready") {
+      readyByChainId.set(chainId, value);
+    } else if (metricName === "envio_progress_block") {
+      blockByChainId.set(chainId, value);
+    }
+  }
+
+  const timestamp = Math.floor(observedAt.getTime() / 1000);
+  const date = observedAt.toISOString().slice(0, 10);
+  const missingChainIds: number[] = [];
+  const notReadyChainIds: number[] = [];
+  const readyChainIds: number[] = [];
+  const progressEntries: Array<[string, ChainIndexingProgress]> = [];
+
+  for (const chain of chains) {
+    const readyMetric = readyByChainId.get(chain.chainId);
+    const block = blockByChainId.get(chain.chainId);
+    const chainReady = readyMetric === 1 && typeof block === "number" && block > 0;
+    if (readyMetric === undefined || block === undefined) {
+      missingChainIds.push(chain.chainId);
+    }
+    if (!chainReady) {
+      notReadyChainIds.push(chain.chainId);
+    } else {
+      readyChainIds.push(chain.chainId);
+    }
+
+    progressEntries.push([
+      chain.key,
+      {
+        chainId: chain.chainId,
+        date,
+        timestamp,
+        block: Math.trunc(block ?? 0),
+      },
+    ]);
+  }
+
+  return {
+    ready:
+      syncedToHead &&
+      missingChainIds.length === 0 &&
+      notReadyChainIds.length === 0,
+    syncedToHead,
+    missingChainIds,
+    notReadyChainIds,
+    readyChainIds,
+    indexingProgress: { chains: Object.fromEntries(progressEntries) },
+  };
 }
 
 export const protocolSnapshotSchema = {

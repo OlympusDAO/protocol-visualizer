@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   createOpenApiDocument,
   deploymentArtifactKey,
+  parseEnvioMetricsReadiness,
   parseDeploymentId,
   restProtocolPath,
   sanitizeManifestForPublic,
@@ -58,4 +59,55 @@ test("generates the REST OpenAPI document", () => {
     "/v1/manifest",
     "/v1/openapi.json",
   ]);
+});
+
+test("parses Envio metrics readiness for supported chains", () => {
+  const readiness = parseEnvioMetricsReadiness(
+    `
+      hyperindex_synced_to_head 1
+      envio_progress_ready{chainId="1"} 1
+      envio_progress_block{chainId="1"} 25272069
+      envio_progress_events{chainId="1"} 193
+      envio_progress_ready{chainId="10"} 1
+      envio_progress_block{chainId="10"} 152657692
+    `,
+    [
+      { key: "Mainnet", chainId: 1 },
+      { key: "Optimism", chainId: 10 },
+    ],
+    new Date("2026-06-08T00:00:00.000Z")
+  );
+
+  assert.equal(readiness.ready, true);
+  assert.equal(readiness.syncedToHead, true);
+  assert.deepEqual(readiness.missingChainIds, []);
+  assert.deepEqual(readiness.notReadyChainIds, []);
+  assert.deepEqual(readiness.readyChainIds, [1, 10]);
+  const mainnetProgress = readiness.indexingProgress.chains.Mainnet;
+  assert.ok(mainnetProgress);
+  assert.equal(mainnetProgress.block, 25272069);
+  assert.equal(mainnetProgress.timestamp, 1780876800);
+});
+
+test("blocks readiness when Envio metrics are missing or not ready", () => {
+  const readiness = parseEnvioMetricsReadiness(
+    `
+      hyperindex_synced_to_head 0
+      envio_progress_ready{chainId="1"} 1
+      envio_progress_block{chainId="1"} 25272069
+      envio_progress_ready{chainId="10"} 0
+      envio_progress_block{chainId="10"} 152657692
+    `,
+    [
+      { key: "Mainnet", chainId: 1 },
+      { key: "Optimism", chainId: 10 },
+      { key: "Arbitrum", chainId: 42161 },
+    ]
+  );
+
+  assert.equal(readiness.ready, false);
+  assert.equal(readiness.syncedToHead, false);
+  assert.deepEqual(readiness.missingChainIds, [42161]);
+  assert.deepEqual(readiness.notReadyChainIds, [10, 42161]);
+  assert.deepEqual(readiness.readyChainIds, [1]);
 });

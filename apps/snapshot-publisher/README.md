@@ -56,6 +56,7 @@ Railway service:
 ```bash
 HASURA_GRAPHQL_URL=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql
 HASURA_GRAPHQL_ADMIN_SECRET=${{hasura.HASURA_GRAPHQL_ADMIN_SECRET}}
+INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
 BUCKET=${{<bucket-service>.BUCKET}}
 ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
 SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
@@ -67,6 +68,13 @@ Use `BUCKET` as the S3 bucket name. Do not use `RAILWAY_BUCKET_NAME`.
 `HASURA_GRAPHQL_ADMIN_SECRET` should reference the same value configured on the
 private Hasura service; without it, Hasura may return an unauthorized or empty
 schema response.
+`INDEXER_METRICS_URL` is the private Envio metrics endpoint. The publisher uses
+`hyperindex_synced_to_head` and per-chain `envio_progress_ready` metrics as the
+handover gate before reading Hasura or writing bucket objects.
+The `indexingProgress` values in the published manifest come from this metrics
+endpoint: `date` and `timestamp` are the metrics scrape time, and `block` is the
+latest Envio progress block for that chain. They are not derived from the newest
+protocol record timestamp.
 `INDEXER_DEPLOYMENT_ID` is optional when Railway provides `RAILWAY_GIT_COMMIT_SHA`,
 but one of those values must be present in production. The deployment id is
 validated before any Hasura read or bucket write.
@@ -114,8 +122,9 @@ structured JSON result, logs `Snapshot publisher completed successfully; exiting
 on success, and exits.
 
 The structured result includes `deploymentId`, `published`, `skipReason`,
-`manifestPublishedLast`, and `indexingProgress`. If a new deployment is not
-ready, the publisher exits successfully with `skipReason: "not_data_ready"` and
+`manifestPublishedLast`, and `indexingProgress`. If Envio metrics show that the
+indexer is not synced to head for every supported chain, the publisher exits
+successfully with `skipReason: "not_data_ready"`, does not read Hasura, and
 leaves the current manifest untouched.
 
 ## Local Generation
@@ -133,7 +142,7 @@ That writes files to:
 ```
 
 To write live Hasura data locally, set `HASURA_GRAPHQL_URL`,
-`HASURA_GRAPHQL_ADMIN_SECRET`, `SNAPSHOT_OUTPUT_DIR`, and
+`HASURA_GRAPHQL_ADMIN_SECRET`, `INDEXER_METRICS_URL`, `SNAPSHOT_OUTPUT_DIR`, and
 `SNAPSHOT_SOURCE=hasura`.
 
 To publish into the local Docker Compose bucket, use the one-shot Compose jobs:

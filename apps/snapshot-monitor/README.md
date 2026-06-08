@@ -3,13 +3,18 @@
 `snapshot-monitor` is a short-lived TypeScript cron job that reports protocol
 visualizer indexing progress to Discord.
 
-It reads the active bucket manifest, reads current Hasura progress per chain,
+It reads the active bucket manifest, reads current Envio metrics per chain,
 stores monitor state in the private bucket, and sends Discord messages for:
 
 - one daily indexing summary;
 - manifest handover detection;
 - missing active manifest state;
 - stale chain progress beyond the configured threshold.
+
+The monitor treats Envio `/metrics` as the indexing source of truth. Per-chain
+`date` and `timestamp` values are observation times, while `block` is the Envio
+progress block. Stalled-chain warnings compare block advancement across monitor
+runs.
 
 The publisher also sends a Discord handover message immediately when it writes a
 new active manifest.
@@ -22,8 +27,7 @@ Required production variables:
 
 ```bash
 DISCORD_WEBHOOK_URL=<discord webhook url>
-HASURA_GRAPHQL_URL=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql
-HASURA_GRAPHQL_ADMIN_SECRET=${{hasura.HASURA_GRAPHQL_ADMIN_SECRET}}
+INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
 BUCKET=${{<bucket-service>.BUCKET}}
 ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
 SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}

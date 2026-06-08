@@ -11,6 +11,7 @@ import {
 import {
   ACTIVE_MANIFEST_KEY,
   parseDeploymentId,
+  parseEnvioMetricsReadiness,
   PUBLISHER_LOCK_KEY,
   type IndexingProgress,
 } from "@protocol-visualizer/snapshot-artifacts";
@@ -33,6 +34,12 @@ type PublisherResult = {
   published: boolean;
   manifestPublishedLast: boolean;
   indexingProgress?: IndexingProgress;
+  readiness?: {
+    syncedToHead: boolean;
+    missingChainIds: number[];
+    notReadyChainIds: number[];
+    readyChainIds: number[];
+  };
   skipReason?: SkipReason;
 };
 
@@ -270,6 +277,20 @@ const writeLocalFile = async (outputDir: string, file: SnapshotFile) => {
   await writeFile(filePath, file.body);
 };
 
+const fetchIndexerReadiness = async (
+  url: string,
+  chains: Array<{ key: string; chainId: number }>
+) => {
+  const response = await fetch(url, {
+    method: "GET",
+    headers: { accept: "text/plain" },
+  });
+  if (!response.ok) {
+    throw new Error(`Indexer metrics request failed with HTTP ${response.status}`);
+  }
+  return parseEnvioMetricsReadiness(await response.text(), chains);
+};
+
 export async function runPublisher() {
   const publicBasePath =
     process.env.SNAPSHOT_PUBLIC_BASE_PATH || DEFAULT_PUBLIC_BASE_PATH;
@@ -289,6 +310,30 @@ export async function runPublisher() {
     );
   }
 
+  const deploymentId = resolveDeploymentId(source, outputDir);
+  const indexerReadiness =
+    source === "hasura"
+      ? await fetchIndexerReadiness(getRequiredEnv("INDEXER_METRICS_URL"), chains)
+      : undefined;
+  if (indexerReadiness && !indexerReadiness.ready) {
+    const result: PublisherResult = {
+      deploymentId,
+      published: false,
+      manifestPublishedLast: false,
+      indexingProgress: indexerReadiness.indexingProgress,
+      readiness: {
+        syncedToHead: indexerReadiness.syncedToHead,
+        missingChainIds: indexerReadiness.missingChainIds,
+        notReadyChainIds: indexerReadiness.notReadyChainIds,
+        readyChainIds: indexerReadiness.readyChainIds,
+      },
+      skipReason: "not_data_ready",
+    };
+    console.log(JSON.stringify(result));
+    console.log("Snapshot publisher completed successfully; exiting");
+    return;
+  }
+
   const loadProtocolData =
     source === "sample"
       ? (chainId: number) => getSampleProtocolData(chainId)
@@ -299,13 +344,13 @@ export async function runPublisher() {
             process.env.HASURA_GRAPHQL_ADMIN_SECRET?.trim()
           );
 
-  const deploymentId = resolveDeploymentId(source, outputDir);
   const batch = await createSnapshotBatch({
     chains,
     loadProtocolData,
     deploymentId,
     publicBasePath,
     publicOrigin,
+    indexingProgressOverride: indexerReadiness?.indexingProgress,
   });
   const files = batch.files;
 

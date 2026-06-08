@@ -7,12 +7,29 @@ const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 
 const dockerfileContent = (path) => readFileSync(path, "utf8");
 
+const withRailwayGitBranch = async (branch, callback) => {
+  const originalBranch = process.env.RAILWAY_GIT_BRANCH;
+  process.env.RAILWAY_GIT_BRANCH = branch;
+
+  try {
+    return await callback();
+  } finally {
+    if (originalBranch === undefined) {
+      delete process.env.RAILWAY_GIT_BRANCH;
+    } else {
+      process.env.RAILWAY_GIT_BRANCH = originalBranch;
+    }
+  }
+};
+
 const railwayProject = async (context) => {
-  const result = await evaluateRailwayFile(".railway/railway.ts", {
-    context: context ?? {
-      environment: "local",
-      environmentName: "local",
-    },
+  const result = await withRailwayGitBranch("feature/railway-iac", () => {
+    return evaluateRailwayFile(".railway/railway.ts", {
+      context: context ?? {
+        environment: "local",
+        environmentName: "local",
+      },
+    });
   });
   const graphErrors = validateGraph(result.graph);
   assert.deepEqual(graphErrors, []);
@@ -135,9 +152,35 @@ test("Railway IaC defines expected services, Dockerfiles, watch patterns, and po
 
 test("Railway IaC fails when the environment name is missing", async () => {
   await assert.rejects(
-    () => evaluateRailwayFile(".railway/railway.ts", { context: {} }),
+    () =>
+      withRailwayGitBranch("feature/railway-iac", () =>
+        evaluateRailwayFile(".railway/railway.ts", { context: {} })
+      ),
     /Railway environment name is required/
   );
+});
+
+test("Railway IaC fails when the Git branch is missing", async () => {
+  const originalBranch = process.env.RAILWAY_GIT_BRANCH;
+  try {
+    delete process.env.RAILWAY_GIT_BRANCH;
+    await assert.rejects(
+      () =>
+        evaluateRailwayFile(".railway/railway.ts", {
+          context: {
+            environment: "protocol-visualizer-pr-50",
+            environmentName: "protocol-visualizer-pr-50",
+          },
+        }),
+      /RAILWAY_GIT_BRANCH is required/
+    );
+  } finally {
+    if (originalBranch === undefined) {
+      delete process.env.RAILWAY_GIT_BRANCH;
+    } else {
+      process.env.RAILWAY_GIT_BRANCH = originalBranch;
+    }
+  }
 });
 
 test("Railway IaC derives bucket names and uses one source branch per environment", async () => {
@@ -146,24 +189,24 @@ test("Railway IaC derives bucket names and uses one source branch per environmen
     environmentName: "production",
   });
   const preview = await railwayProject({
-    environment: "protocol-visualizer-pr-49",
-    environmentName: "protocol-visualizer-pr-49",
+    environment: "protocol-visualizer-pr-50",
+    environmentName: "protocol-visualizer-pr-50",
   });
 
   assert.deepEqual(Object.keys(production.desiredConfig.buckets ?? {}), [
     "snapshots-production-d9746c8d",
   ]);
   assert.deepEqual(Object.keys(preview.desiredConfig.buckets ?? {}), [
-    "snapshots-protocol-visualizer-pr-49-8ff3b568",
+    "snapshots-protocol-visualizer-pr-50-910d0da5",
   ]);
 
   assert.equal(
     production.desiredConfig.services.hasura.source.branch,
-    "production"
+    "feature/railway-iac"
   );
   assert.equal(
     preview.desiredConfig.services.hasura.source.branch,
-    "protocol-visualizer-pr-49"
+    "feature/railway-iac"
   );
 });
 

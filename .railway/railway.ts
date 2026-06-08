@@ -37,6 +37,16 @@ const bucketNameForEnvironment = (ctx: RailwayContext) => {
   return `snapshots-${slug}-${ctx.randomString("snapshot-bucket", 4)}`;
 };
 
+const githubBranchForEnvironment = () => {
+  const branch = process.env.RAILWAY_GIT_BRANCH?.trim();
+  if (branch) {
+    return branch;
+  }
+  throw new Error(
+    "RAILWAY_GIT_BRANCH is required to derive the GitHub source branch for Railway IaC."
+  );
+};
+
 const dockerBuild = (dockerfilePath: string, watchPatterns: string[]) => ({
   builder: "DOCKERFILE" as const,
   dockerfilePath,
@@ -68,7 +78,7 @@ const requiredExisting = (description: string): VariableConfig => ({
 
 export default defineRailway((ctx) => {
   const environmentName = environmentNameFor(ctx);
-  const githubBranch = environmentName;
+  const githubBranch = githubBranchForEnvironment();
   const source = github(REPOSITORY, {
     branch: githubBranch,
     checkSuites: true,

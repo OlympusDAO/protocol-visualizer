@@ -1,5 +1,7 @@
 import { evaluateRailwayFile, validateGraph } from "railway/iac";
 
+process.env.RAILWAY_GIT_BRANCH ??= "local";
+
 const result = await evaluateRailwayFile(".railway/railway.ts", {
   context: {
     environment: "local",

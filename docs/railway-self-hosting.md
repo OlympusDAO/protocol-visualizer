@@ -32,10 +32,13 @@ The project pins `railway@3.1.1` for the TypeScript IaC SDK and has a narrow
 `minimumReleaseAgeExclude` entry for that exact package version.
 
 The GitHub source branch is one value per environment and is shared by every
-service. It is derived automatically from the Railway environment name, so keep
-Railway environment names aligned with the branch they should deploy.
-The IaC fails fast if Railway does not provide an environment name; the offline
-`railway:iac:check` script supplies `local` explicitly for local validation.
+service. It is read from Railway's `RAILWAY_GIT_BRANCH` Git variable, which
+Railway provides for GitHub-triggered deployments.
+The IaC fails fast if Railway does not provide an environment name or
+`RAILWAY_GIT_BRANCH`; the offline `railway:iac:check` script supplies `local`
+explicitly for local validation.
+For local planning, `railway:iac:plan` reads the linked Railway environment's PR
+branch metadata and passes it to the IaC runner as `RAILWAY_GIT_BRANCH`.
 
 ## Services
 

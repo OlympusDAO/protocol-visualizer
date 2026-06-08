@@ -53,11 +53,14 @@ If `.railway/railway.ts` has pending project changes, `railway up` previews them
   source.
 - The old per-service `railway-*.json` files have been removed. This directory
   is the only repo-owned Railway configuration.
-- The GitHub source branch is one value per environment and is derived from the
-  Railway environment name.
+- The GitHub source branch is one value per environment and is read from
+  Railway's `RAILWAY_GIT_BRANCH` Git variable.
 - `.railway/railway.ts` fails fast if Railway does not provide an environment
-  name. The offline `railway:iac:check` script supplies `local` explicitly for
-  local graph validation.
+  name or `RAILWAY_GIT_BRANCH`. The offline `railway:iac:check` script supplies
+  `local` explicitly for local graph validation.
+- `railway:iac:plan` reads the linked Railway environment's PR branch metadata
+  and passes it to the IaC runner as `RAILWAY_GIT_BRANCH`, matching the branch
+  Railway uses for GitHub-triggered deployments.
 - The snapshot bucket resource name is generated per environment as
   `snapshots-<environment-slug>-<stable-id>`.
 - Use `replicas` for scaling; advanced placement can still specify region names.

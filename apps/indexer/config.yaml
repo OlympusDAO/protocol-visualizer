@@ -46,6 +46,25 @@ chains:
           - "0xb216d714d91eeC4F7120a732c11428857C659eC8"
         start_block: 15998137
 
+  - id: 42161
+    start_block: 85886527
+    rpc:
+      - url: ${ENVIO_RPC_URL_42161:-https://arb1.arbitrum.io/rpc}
+        for: ${ENVIO_RPC_MODE:-sync}
+    contracts:
+      - name: Kernel
+        address:
+          - "0xeac3eC0CC130f4826715187805d1B50e861F2DaC"
+        start_block: 85886527
+      - name: OlympusRoles
+        address:
+          - "0xFF5F09D5efE13A9a424F30EC2e1af89D867834d6"
+        start_block: 85886592
+      - name: RolesAdmin
+        address:
+          - "0x69168c08AcF66f002fd02E1B169f38C022c93b70"
+        start_block: 85886660
+
   - id: 8453
     start_block: 13204831
     rpc:

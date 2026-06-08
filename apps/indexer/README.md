@@ -51,6 +51,7 @@ Set one RPC URL for each enabled chain:
 ```bash
 ENVIO_RPC_URL_1=
 ENVIO_RPC_URL_10=
+ENVIO_RPC_URL_42161=
 ENVIO_RPC_URL_8453=
 ENVIO_RPC_URL_80094=
 ENVIO_RPC_URL_11155111=
@@ -80,8 +81,8 @@ deliberately testing RPC-only ingestion.
 
 Effect-handler RPC reads also support `ENVIO_RPC_URL_FALLBACK_<chainId>`.
 
-`ENVIO_RPC_URL_42161` is still present in the sample for Arbitrum, but Arbitrum
-is not currently enabled in `config.yaml`.
+Arbitrum is enabled in `config.yaml`, so `ENVIO_RPC_URL_42161` is required with
+the other enabled-chain RPC URLs.
 
 For Railway or any externally managed Postgres database, set `DATABASE_URL`.
 `scripts/start-envio.mjs` maps it to Envio's `ENVIO_PG_*` variables at startup.

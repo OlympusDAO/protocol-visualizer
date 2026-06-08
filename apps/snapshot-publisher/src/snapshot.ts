@@ -114,6 +114,8 @@ type QueryRootIntrospectionResponse = {
   };
 };
 
+const HASURA_FETCH_TIMEOUT_MS = 15_000;
+
 const isSchemaFieldError = (errors: Array<{ message: string }>): boolean =>
   errors.some(
     (error) =>
@@ -121,13 +123,22 @@ const isSchemaFieldError = (errors: Array<{ message: string }>): boolean =>
       error.message.includes("field 'Contract' not found")
   );
 
+const fetchHasura = (
+  hasuraGraphqlUrl: string,
+  init: RequestInit
+): Promise<Response> =>
+  fetch(hasuraGraphqlUrl, {
+    ...init,
+    signal: AbortSignal.timeout(HASURA_FETCH_TIMEOUT_MS),
+  });
+
 const fetchRelevantQueryRootFields = async (
   hasuraGraphqlUrl: string,
   headers: Record<string, string>
 ): Promise<string[]> => {
   let response: Response;
   try {
-    response = await fetch(hasuraGraphqlUrl, {
+    response = await fetchHasura(hasuraGraphqlUrl, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -185,7 +196,7 @@ export async function fetchProtocolData(
   for (const query of PROTOCOL_VISUALIZER_QUERIES) {
     let response: Response;
     try {
-      response = await fetch(hasuraGraphqlUrl, {
+      response = await fetchHasura(hasuraGraphqlUrl, {
         method: "POST",
         headers,
         body: JSON.stringify({

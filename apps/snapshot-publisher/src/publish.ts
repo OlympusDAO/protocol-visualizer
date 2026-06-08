@@ -51,6 +51,11 @@ type PublisherLock = {
   expiresAt: string;
 };
 
+type PublisherDependencies = {
+  createS3Client?: () => SnapshotS3Client;
+  notifyHandover?: (manifest: Manifest) => Promise<void>;
+};
+
 const DEFAULT_LOCK_TTL_MS = 55 * 60 * 1000;
 
 const getRequiredEnv = (key: string): string => {
@@ -105,8 +110,10 @@ const uploadAndVerify = async (
 export const uploadSnapshotFiles = async (
   client: SnapshotS3Client,
   bucket: string,
-  files: SnapshotFile[]
+  files: SnapshotFile[],
+  options: { destroyClient?: boolean } = {}
 ) => {
+  const destroyClient = options.destroyClient ?? true;
   const regularFiles = files.filter((file) => !file.publishLast);
   const publishLastFiles = files.filter((file) => file.publishLast);
 
@@ -118,7 +125,9 @@ export const uploadSnapshotFiles = async (
       await uploadAndVerify(client, bucket, file);
     }
   } finally {
-    client.destroy();
+    if (destroyClient) {
+      client.destroy();
+    }
   }
 };
 
@@ -239,6 +248,12 @@ const releaseLock = async (
   );
   if (current?.runId === lock.runId) {
     await deleteObject(client, bucket, PUBLISHER_LOCK_KEY);
+  } else {
+    console.warn(
+      `Lock release skipped for ${PUBLISHER_LOCK_KEY}: current lock runId ${
+        current?.runId ?? "<none>"
+      } does not match expected ${lock.runId}. Publish may have exceeded TTL.`
+    );
   }
 };
 
@@ -304,7 +319,7 @@ const fetchIndexerReadiness = async (
   return parseEnvioMetricsReadiness(await response.text(), chains);
 };
 
-export async function runPublisher() {
+export async function runPublisher(deps: PublisherDependencies = {}) {
   const publicBasePath =
     process.env.SNAPSHOT_PUBLIC_BASE_PATH || DEFAULT_PUBLIC_BASE_PATH;
   const publicOrigin = process.env.SNAPSHOT_PUBLIC_ORIGIN;
@@ -392,7 +407,7 @@ export async function runPublisher() {
   }
 
   const bucket = getRequiredEnv("BUCKET");
-  const client = createS3Client();
+  const client = (deps.createS3Client ?? createS3Client)();
   let lock: PublisherLock | undefined;
 
   try {
@@ -432,16 +447,9 @@ export async function runPublisher() {
       return;
     }
 
-    await uploadSnapshotFiles(
-      {
-        send: client.send.bind(client),
-        destroy: () => undefined,
-      },
-      bucket,
-      files
-    );
+    await uploadSnapshotFiles(client, bucket, files, { destroyClient: false });
     try {
-      await notifyHandover(batch.manifest);
+      await (deps.notifyHandover ?? notifyHandover)(batch.manifest);
     } catch (error) {
       console.error(
         `Discord handover notification failed: ${
@@ -460,10 +468,26 @@ export async function runPublisher() {
     console.log(`Published ${files.length} snapshot files to ${bucket}`);
     console.log("Snapshot publisher completed successfully; exiting");
   } finally {
-    if (lock) {
-      await releaseLock(client, bucket, lock);
+    try {
+      if (lock) {
+        await releaseLock(client, bucket, lock);
+      }
+    } catch (error) {
+      console.error(
+        `Lock release failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     }
-    client.destroy();
+    try {
+      client.destroy();
+    } catch (error) {
+      console.error(
+        `S3 client destroy failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
   }
 }
 

@@ -96,7 +96,9 @@ test("loads shared protocol chain config", async () => {
 
 test("reports Hasura network failures with safe context", async () => {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => {
+  let sawAbortSignal = false;
+  globalThis.fetch = async (_url, init) => {
+    sawAbortSignal = init?.signal instanceof AbortSignal;
     throw new Error("fetch failed");
   };
 
@@ -122,6 +124,7 @@ test("reports Hasura network failures with safe context", async () => {
         return true;
       }
     );
+    assert.equal(sawAbortSignal, true);
   } finally {
     globalThis.fetch = originalFetch;
   }

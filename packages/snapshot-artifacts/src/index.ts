@@ -113,18 +113,127 @@ export function sanitizeManifestForPublic(
   return publicManifest;
 }
 
-const parsePrometheusLabels = (value: string): Record<string, string> => {
-  const labels: Record<string, string> = {};
-  const pattern = /([A-Za-z_][A-Za-z0-9_]*)="([^"]*)"/g;
-  for (const match of value.matchAll(pattern)) {
-    const key = match[1];
-    const labelValue = match[2];
-    if (key && labelValue !== undefined) {
-      labels[key] = labelValue;
+const parsePrometheusChainIdLabel = (value: string): number | undefined => {
+  const labelName = 'chainId="';
+  const labelStart = value.indexOf(labelName);
+  if (labelStart === -1) {
+    return undefined;
+  }
+
+  const valueStart = labelStart + labelName.length;
+  const valueEnd = value.indexOf('"', valueStart);
+  if (valueEnd === -1) {
+    return undefined;
+  }
+
+  const chainId = Number(value.slice(valueStart, valueEnd));
+  return Number.isInteger(chainId) ? chainId : undefined;
+};
+
+const isPrometheusMetricName = (value: string): boolean => {
+  if (!value) {
+    return false;
+  }
+
+  const firstCode = value.charCodeAt(0);
+  if (
+    !(
+      firstCode === 58 ||
+      firstCode === 95 ||
+      (firstCode >= 65 && firstCode <= 90) ||
+      (firstCode >= 97 && firstCode <= 122)
+    )
+  ) {
+    return false;
+  }
+
+  for (let index = 1; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (
+      code !== 58 &&
+      code !== 95 &&
+      !(code >= 48 && code <= 57) &&
+      !(code >= 65 && code <= 90) &&
+      !(code >= 97 && code <= 122)
+    ) {
+      return false;
     }
   }
-  return labels;
+
+  return true;
 };
+
+const parsePrometheusMetricLine = (
+  line: string
+): { metricName: string; rawLabels: string; rawValue: string } | undefined => {
+  let valueSeparator = -1;
+  for (let index = 0; index < line.length; index += 1) {
+    const code = line.charCodeAt(index);
+    if (
+      code === 9 ||
+      code === 10 ||
+      code === 11 ||
+      code === 12 ||
+      code === 13 ||
+      code === 32
+    ) {
+      valueSeparator = index;
+      break;
+    }
+  }
+
+  if (valueSeparator <= 0) {
+    return undefined;
+  }
+
+  const metricAndLabels = line.slice(0, valueSeparator);
+  const rawValue = line.slice(valueSeparator).trim();
+  if (!rawValue) {
+    return undefined;
+  }
+
+  const labelStart = metricAndLabels.indexOf("{");
+  if (labelStart === -1) {
+    return isPrometheusMetricName(metricAndLabels)
+      ? { metricName: metricAndLabels, rawLabels: "", rawValue }
+      : undefined;
+  }
+
+  if (!metricAndLabels.endsWith("}")) {
+    return undefined;
+  }
+
+  const metricName = metricAndLabels.slice(0, labelStart);
+  if (!isPrometheusMetricName(metricName)) {
+    return undefined;
+  }
+
+  return {
+    metricName,
+    rawLabels: metricAndLabels.slice(labelStart + 1, -1),
+    rawValue,
+  };
+};
+
+function* iterateLines(value: string): Generator<string> {
+  let lineStart = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    if (value.charCodeAt(index) !== 10) {
+      continue;
+    }
+
+    const lineEnd =
+      index > lineStart && value.charCodeAt(index - 1) === 13
+        ? index - 1
+        : index;
+    yield value.slice(lineStart, lineEnd);
+    lineStart = index + 1;
+  }
+
+  if (lineStart <= value.length) {
+    yield value.slice(lineStart);
+  }
+}
 
 const parsePrometheusNumber = (value: string): number | undefined => {
   const parsed = Number(value);
@@ -140,17 +249,14 @@ export function parseEnvioMetricsReadiness(
   const blockByChainId = new Map<number, number>();
   let syncedToHead = false;
 
-  for (const rawLine of metricsText.split(/\r?\n/)) {
+  for (const rawLine of iterateLines(metricsText)) {
     const line = rawLine.trim();
     if (!line || line.startsWith("#")) continue;
 
-    const match = line.match(
-      /^([A-Za-z_:][A-Za-z0-9_:]*)(?:\{([^}]*)\})?\s+([-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?)$/i
-    );
-    if (!match) continue;
+    const parsedLine = parsePrometheusMetricLine(line);
+    if (!parsedLine) continue;
 
-    const [, metricName, rawLabels = "", rawValue] = match;
-    if (!metricName || rawValue === undefined) continue;
+    const { metricName, rawLabels, rawValue } = parsedLine;
     const value = parsePrometheusNumber(rawValue);
     if (value === undefined) continue;
 
@@ -159,8 +265,8 @@ export function parseEnvioMetricsReadiness(
       continue;
     }
 
-    const chainId = Number(parsePrometheusLabels(rawLabels).chainId);
-    if (!Number.isInteger(chainId)) continue;
+    const chainId = parsePrometheusChainIdLabel(rawLabels);
+    if (chainId === undefined) continue;
 
     if (metricName === "envio_progress_ready") {
       readyByChainId.set(chainId, value);

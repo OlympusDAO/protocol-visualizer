@@ -111,3 +111,19 @@ test("blocks readiness when Envio metrics are missing or not ready", () => {
   assert.deepEqual(readiness.notReadyChainIds, [10, 42161]);
   assert.deepEqual(readiness.readyChainIds, [1]);
 });
+
+test("ignores long malformed metrics without regex backtracking", () => {
+  const readiness = parseEnvioMetricsReadiness(
+    `
+      ${"A".repeat(20_000)}{chainId="${"A".repeat(20_000)}"} ${"0".repeat(20_000)}
+      envio_progress_ready{chainId="${"00".repeat(20_000)}"} 1
+      envio_progress_block{chainId="1"} 123
+      envio_progress_ready{chainId="1"} 1
+      hyperindex_synced_to_head 1
+    `,
+    [{ key: "Mainnet", chainId: 1 }]
+  );
+
+  assert.equal(readiness.ready, true);
+  assert.equal(readiness.indexingProgress.chains.Mainnet?.block, 123);
+});

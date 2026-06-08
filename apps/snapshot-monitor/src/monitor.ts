@@ -135,7 +135,9 @@ export async function fetchIndexerMetricsReadiness(input: {
     headers: { accept: "text/plain" },
   });
   if (!response.ok) {
-    throw new Error(`Indexer metrics request failed with HTTP ${response.status}`);
+    throw new Error(
+      `Indexer metrics request failed with HTTP ${response.status}`
+    );
   }
   return parseEnvioMetricsReadiness(await response.text(), input.chains);
 }
@@ -185,7 +187,9 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
     const previous = input.state.chainProgress?.[name];
     const unchanged = previous?.block === chain.block;
     const observedAt =
-      unchanged && previous?.observedAt ? previous.observedAt : input.now.toISOString();
+      unchanged && previous?.observedAt
+        ? previous.observedAt
+        : input.now.toISOString();
     nextChainProgress[name] = {
       block: chain.block,
       timestamp: chain.timestamp,
@@ -262,7 +266,9 @@ export async function runMonitor(input: {
 }
 
 export async function runMonitorFromEnv() {
-  const staleThresholdHours = Number(process.env.MONITOR_STALE_CHAIN_HOURS ?? "24");
+  const staleThresholdHours = Number(
+    process.env.MONITOR_STALE_CHAIN_HOURS ?? "24"
+  );
   if (!Number.isFinite(staleThresholdHours) || staleThresholdHours <= 0) {
     throw new Error("MONITOR_STALE_CHAIN_HOURS must be a positive number");
   }

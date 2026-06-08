@@ -64,8 +64,7 @@ test("creates manifest last", async () => {
   assert.equal(files.at(-1)?.publishLast, true);
   assert(
     files.some(
-      (file) =>
-        file.key === "v1/deployments/deployment-a/chain/1/protocol.json"
+      (file) => file.key === "v1/deployments/deployment-a/chain/1/protocol.json"
     )
   );
   const manifest = JSON.parse(files.at(-1)?.body ?? "{}");

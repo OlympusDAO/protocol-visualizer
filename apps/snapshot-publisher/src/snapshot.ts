@@ -7,10 +7,7 @@ import {
   ACTIVE_MANIFEST_KEY,
   type ChainIndexingProgress,
 } from "@protocol-visualizer/snapshot-artifacts";
-import {
-  CACHE_CONTROL,
-  DEFAULT_PUBLIC_BASE_PATH,
-} from "./constants.js";
+import { CACHE_CONTROL, DEFAULT_PUBLIC_BASE_PATH } from "./constants.js";
 import { PROTOCOL_VISUALIZER_QUERIES } from "./protocol-query.js";
 import type {
   ChainConfig,
@@ -390,7 +387,9 @@ const progressFromSnapshot = (
     ),
   ];
   const blocks = [
-    ...snapshot.data.contracts.map((contract) => contract.lastUpdatedBlockNumber),
+    ...snapshot.data.contracts.map(
+      (contract) => contract.lastUpdatedBlockNumber
+    ),
     ...snapshot.data.roleAssignments.map(
       (assignment) => assignment.lastUpdatedBlockNumber
     ),
@@ -483,12 +482,11 @@ export async function createSnapshotBatch({
     });
   }
 
-  const indexingProgress: IndexingProgress =
-    indexingProgressOverride ?? {
-      chains: Object.fromEntries(
-        chainSnapshots.map(({ chain, progress }) => [chain.key, progress])
-      ),
-    };
+  const indexingProgress: IndexingProgress = indexingProgressOverride ?? {
+    chains: Object.fromEntries(
+      chainSnapshots.map(({ chain, progress }) => [chain.key, progress])
+    ),
+  };
   const ready = chainSnapshots.every(
     ({ snapshot, progress }) =>
       snapshot.recordCounts.contracts +

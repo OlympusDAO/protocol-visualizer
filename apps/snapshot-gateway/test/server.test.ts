@@ -156,12 +156,17 @@ test("serves REST protocol snapshots through active manifest artifact keys", asy
   const { response, text, reader } = await request("/v1/chains/1/protocol");
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("x-content-type-options"), "nosniff");
-  assert(reader.keys.includes("v1/deployments/deployment-a/chain/1/protocol.json"));
+  assert(
+    reader.keys.includes("v1/deployments/deployment-a/chain/1/protocol.json")
+  );
   assert.equal(JSON.parse(text).chainId, 1);
 });
 
 test("rejects old static routes and unsupported query params", async () => {
-  assert.equal((await request("/v1/chain/1/protocol.json")).response.status, 404);
+  assert.equal(
+    (await request("/v1/chain/1/protocol.json")).response.status,
+    404
+  );
   assert.equal((await request("/v1/manifest.json")).response.status, 404);
   assert.equal((await request("/v1/chains?x=1")).response.status, 400);
 });
@@ -175,7 +180,10 @@ test("does not expose deployment ids or object keys in public manifest", async (
 test("reports bounds with indexing progress", async () => {
   const { response, text } = await request("/v1/bounds");
   assert.equal(response.status, 200);
-  assert.equal(JSON.parse(text).data.indexingProgress.chains.Mainnet.block, 123);
+  assert.equal(
+    JSON.parse(text).data.indexingProgress.chains.Mainnet.block,
+    123
+  );
 });
 
 test("rejects request bodies and unsupported methods", async () => {
@@ -184,7 +192,8 @@ test("rejects request bodies and unsupported methods", async () => {
     400
   );
   assert.equal(
-    (await request("/v1/chains/1/protocol", { method: "POST" })).response.status,
+    (await request("/v1/chains/1/protocol", { method: "POST" })).response
+      .status,
     405
   );
 });
@@ -192,5 +201,8 @@ test("rejects request bodies and unsupported methods", async () => {
 test("ready requires manifest access", async () => {
   assert.equal((await request("/ready")).response.status, 200);
   const missing = new FakeReader({});
-  assert.equal((await request("/ready", { reader: missing })).response.status, 503);
+  assert.equal(
+    (await request("/ready", { reader: missing })).response.status,
+    503
+  );
 });

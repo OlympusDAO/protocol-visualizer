@@ -94,8 +94,12 @@ export function createS3Reader(): ObjectReader {
   };
 }
 
-export async function loadChains(configPath = process.env.PROTOCOL_CHAINS_CONFIG_PATH || defaultChainsPath) {
-  const chains = JSON.parse(await readFile(configPath, "utf8")) as ChainConfig[];
+export async function loadChains(
+  configPath = process.env.PROTOCOL_CHAINS_CONFIG_PATH || defaultChainsPath
+) {
+  const chains = JSON.parse(
+    await readFile(configPath, "utf8")
+  ) as ChainConfig[];
   if (!Array.isArray(chains) || chains.length === 0) {
     throw new Error("protocol chain config is empty");
   }
@@ -165,7 +169,9 @@ const parseUrl = (request: IncomingMessage): URL => {
 };
 
 const readManifest = async (reader: ObjectReader): Promise<SnapshotManifest> =>
-  JSON.parse((await reader.getObject(ACTIVE_MANIFEST_KEY)).body) as SnapshotManifest;
+  JSON.parse(
+    (await reader.getObject(ACTIVE_MANIFEST_KEY)).body
+  ) as SnapshotManifest;
 
 const activeArtifactKeyForChain = (
   manifest: SnapshotManifest,
@@ -195,7 +201,9 @@ const publicIndexHtml = `<!doctype html>
 `;
 
 export function createSnapshotGateway(config: GatewayConfig) {
-  const allowedChains = new Map(config.chains.map((chain) => [chain.chainId, chain]));
+  const allowedChains = new Map(
+    config.chains.map((chain) => [chain.chainId, chain])
+  );
 
   return async (request: IncomingMessage, response: ServerResponse) => {
     if (!isAllowedMethod(request.method)) {
@@ -261,7 +269,13 @@ export function createSnapshotGateway(config: GatewayConfig) {
           );
           return;
         } catch {
-          sendJson(request, response, 200, createOpenApiDocument(), "public, max-age=300");
+          sendJson(
+            request,
+            response,
+            200,
+            createOpenApiDocument(),
+            "public, max-age=300"
+          );
           return;
         }
       }
@@ -275,7 +289,13 @@ export function createSnapshotGateway(config: GatewayConfig) {
             ? { indexingProgress: manifest.indexingProgress }
             : {}),
         };
-        sendJson(request, response, 200, { data: bounds }, "public, s-maxage=300, stale-while-revalidate=3600");
+        sendJson(
+          request,
+          response,
+          200,
+          { data: bounds },
+          "public, s-maxage=300, stale-while-revalidate=3600"
+        );
         return;
       }
 
@@ -338,7 +358,9 @@ export function createSnapshotGateway(config: GatewayConfig) {
         });
         return;
       }
-      sendJson(request, response, 502, { error: "snapshot backend unavailable" });
+      sendJson(request, response, 502, {
+        error: "snapshot backend unavailable",
+      });
     }
   };
 }

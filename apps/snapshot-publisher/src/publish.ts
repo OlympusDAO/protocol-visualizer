@@ -132,11 +132,7 @@ const objectBodyToString = async (body: unknown): Promise<string> => {
   ) {
     return body.transformToString();
   }
-  if (
-    body &&
-    typeof body === "object" &&
-    Symbol.asyncIterator in body
-  ) {
+  if (body && typeof body === "object" && Symbol.asyncIterator in body) {
     const chunks: Buffer[] = [];
     for await (const chunk of body as AsyncIterable<Uint8Array | string>) {
       chunks.push(Buffer.from(chunk));
@@ -286,7 +282,9 @@ const fetchIndexerReadiness = async (
     headers: { accept: "text/plain" },
   });
   if (!response.ok) {
-    throw new Error(`Indexer metrics request failed with HTTP ${response.status}`);
+    throw new Error(
+      `Indexer metrics request failed with HTTP ${response.status}`
+    );
   }
   return parseEnvioMetricsReadiness(await response.text(), chains);
 };
@@ -313,7 +311,10 @@ export async function runPublisher() {
   const deploymentId = resolveDeploymentId(source, outputDir);
   const indexerReadiness =
     source === "hasura"
-      ? await fetchIndexerReadiness(getRequiredEnv("INDEXER_METRICS_URL"), chains)
+      ? await fetchIndexerReadiness(
+          getRequiredEnv("INDEXER_METRICS_URL"),
+          chains
+        )
       : undefined;
   if (indexerReadiness && !indexerReadiness.ready) {
     const result: PublisherResult = {

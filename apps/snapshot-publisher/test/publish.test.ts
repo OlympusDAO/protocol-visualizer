@@ -8,10 +8,7 @@ import {
 } from "../src/publish.js";
 import type { SnapshotFile } from "../src/types.js";
 
-const snapshotFile = (
-  key: string,
-  publishLast = false
-): SnapshotFile => ({
+const snapshotFile = (key: string, publishLast = false): SnapshotFile => ({
   publicPath: `/${key}`,
   key,
   body: "{}",
@@ -66,7 +63,8 @@ test("destroys the S3 client when upload verification fails", async () => {
   } satisfies SnapshotS3Client;
 
   await assert.rejects(
-    () => uploadSnapshotFiles(client, "bucket", [snapshotFile("v1/index.html")]),
+    () =>
+      uploadSnapshotFiles(client, "bucket", [snapshotFile("v1/index.html")]),
     /head failed/
   );
   assert.equal(destroyed, true);

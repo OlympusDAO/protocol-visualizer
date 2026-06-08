@@ -142,9 +142,7 @@
     "schemas": {
       "Ready": {
         "type": "object",
-        "required": [
-          "ok"
-        ],
+        "required": ["ok"],
         "properties": {
           "ok": {
             "type": "boolean"
@@ -153,9 +151,7 @@
       },
       "Error": {
         "type": "object",
-        "required": [
-          "error"
-        ],
+        "required": ["error"],
         "properties": {
           "error": {
             "type": "string"
@@ -164,16 +160,11 @@
       },
       "Bounds": {
         "type": "object",
-        "required": [
-          "data"
-        ],
+        "required": ["data"],
         "properties": {
           "data": {
             "type": "object",
-            "required": [
-              "generatedAt",
-              "activeDeployment"
-            ],
+            "required": ["generatedAt", "activeDeployment"],
             "properties": {
               "generatedAt": {
                 "type": "string",
@@ -181,9 +172,7 @@
               },
               "activeDeployment": {
                 "type": "object",
-                "required": [
-                  "generatedAt"
-                ],
+                "required": ["generatedAt"],
                 "properties": {
                   "generatedAt": {
                     "type": "string",
@@ -193,20 +182,13 @@
               },
               "indexingProgress": {
                 "type": "object",
-                "required": [
-                  "chains"
-                ],
+                "required": ["chains"],
                 "properties": {
                   "chains": {
                     "type": "object",
                     "additionalProperties": {
                       "type": "object",
-                      "required": [
-                        "chainId",
-                        "date",
-                        "timestamp",
-                        "block"
-                      ],
+                      "required": ["chainId", "date", "timestamp", "block"],
                       "properties": {
                         "chainId": {
                           "type": "integer"
@@ -231,12 +213,7 @@
       },
       "Manifest": {
         "type": "object",
-        "required": [
-          "schemaVersion",
-          "generatedAt",
-          "schemas",
-          "chains"
-        ],
+        "required": ["schemaVersion", "generatedAt", "schemas", "chains"],
         "additionalProperties": false,
         "properties": {
           "schemaVersion": {
@@ -248,11 +225,7 @@
           },
           "schemas": {
             "type": "object",
-            "required": [
-              "openapi",
-              "manifest",
-              "protocolSnapshot"
-            ],
+            "required": ["openapi", "manifest", "protocolSnapshot"],
             "properties": {
               "openapi": {
                 "type": "string"
@@ -298,20 +271,13 @@
           },
           "indexingProgress": {
             "type": "object",
-            "required": [
-              "chains"
-            ],
+            "required": ["chains"],
             "properties": {
               "chains": {
                 "type": "object",
                 "additionalProperties": {
                   "type": "object",
-                  "required": [
-                    "chainId",
-                    "date",
-                    "timestamp",
-                    "block"
-                  ],
+                  "required": ["chainId", "date", "timestamp", "block"],
                   "properties": {
                     "chainId": {
                       "type": "integer"
@@ -334,19 +300,13 @@
       },
       "Chains": {
         "type": "object",
-        "required": [
-          "data"
-        ],
+        "required": ["data"],
         "properties": {
           "data": {
             "type": "array",
             "items": {
               "type": "object",
-              "required": [
-                "chainId",
-                "name",
-                "path"
-              ],
+              "required": ["chainId", "name", "path"],
               "properties": {
                 "chainId": {
                   "type": "integer"
@@ -392,11 +352,7 @@
           },
           "recordCounts": {
             "type": "object",
-            "required": [
-              "contracts",
-              "roles",
-              "roleAssignments"
-            ],
+            "required": ["contracts", "roles", "roleAssignments"],
             "properties": {
               "contracts": {
                 "type": "integer",
@@ -414,11 +370,7 @@
           },
           "data": {
             "type": "object",
-            "required": [
-              "contracts",
-              "roles",
-              "roleAssignments"
-            ],
+            "required": ["contracts", "roles", "roleAssignments"],
             "properties": {
               "contracts": {
                 "type": "array",

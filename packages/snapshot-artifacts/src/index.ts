@@ -105,8 +105,11 @@ export function parseDeploymentId(value: string): string {
 export function sanitizeManifestForPublic(
   manifest: SnapshotManifest
 ): PublicSnapshotManifest {
-  const { indexerDeploymentId: _deploymentId, artifacts: _artifacts, ...publicManifest } =
-    manifest;
+  const {
+    indexerDeploymentId: _deploymentId,
+    artifacts: _artifacts,
+    ...publicManifest
+  } = manifest;
   return publicManifest;
 }
 
@@ -176,7 +179,8 @@ export function parseEnvioMetricsReadiness(
   for (const chain of chains) {
     const readyMetric = readyByChainId.get(chain.chainId);
     const block = blockByChainId.get(chain.chainId);
-    const chainReady = readyMetric === 1 && typeof block === "number" && block > 0;
+    const chainReady =
+      readyMetric === 1 && typeof block === "number" && block > 0;
     if (readyMetric === undefined || block === undefined) {
       missingChainIds.push(chain.chainId);
     }

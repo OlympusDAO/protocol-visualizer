@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { SCHEMA_VERSION, type SnapshotManifest } from "@protocol-visualizer/snapshot-artifacts";
+import {
+  SCHEMA_VERSION,
+  type SnapshotManifest,
+} from "@protocol-visualizer/snapshot-artifacts";
 import {
   evaluateMonitor,
   fetchIndexerMetricsReadiness,
@@ -88,7 +91,10 @@ test("warns when chain progress stops advancing beyond the threshold", () => {
     staleThresholdMs: 24 * 60 * 60 * 1000,
   });
   assert.match(result.messages.join("\n"), /has not advanced/);
-  assert.equal(result.state.chainProgress?.Mainnet?.observedAt, "2026-06-04T00:00:00.000Z");
+  assert.equal(
+    result.state.chainProgress?.Mainnet?.observedAt,
+    "2026-06-04T00:00:00.000Z"
+  );
 });
 
 test("warns when Envio metrics report a chain is not ready", () => {

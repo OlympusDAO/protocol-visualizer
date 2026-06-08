@@ -8,6 +8,7 @@ import {
   type ChainIndexingProgress,
 } from "@protocol-visualizer/snapshot-artifacts";
 import { CACHE_CONTROL, DEFAULT_PUBLIC_BASE_PATH } from "./constants.js";
+import { describeFetchError, safeUrlForLog } from "./network-errors.js";
 import { PROTOCOL_VISUALIZER_QUERIES } from "./protocol-query.js";
 import type {
   ChainConfig,
@@ -124,25 +125,39 @@ const fetchRelevantQueryRootFields = async (
   hasuraGraphqlUrl: string,
   headers: Record<string, string>
 ): Promise<string[]> => {
-  const response = await fetch(hasuraGraphqlUrl, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      query: `
-        query SnapshotPublisherQueryRootFields {
-          __schema {
-            queryType {
-              fields {
-                name
+  let response: Response;
+  try {
+    response = await fetch(hasuraGraphqlUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        query: `
+          query SnapshotPublisherQueryRootFields {
+            __schema {
+              queryType {
+                fields {
+                  name
+                }
               }
             }
           }
-        }
-      `,
-    }),
-  });
+        `,
+      }),
+    });
+  } catch (error) {
+    return [
+      `introspection request to ${safeUrlForLog(
+        hasuraGraphqlUrl
+      )} failed before response: ${describeFetchError(error)}`,
+    ];
+  }
+
   if (!response.ok) {
-    return [`introspection failed with HTTP ${response.status}`];
+    return [
+      `introspection request to ${safeUrlForLog(
+        hasuraGraphqlUrl
+      )} failed with HTTP ${response.status}`,
+    ];
   }
 
   const payload = (await response.json()) as QueryRootIntrospectionResponse;
@@ -179,18 +194,20 @@ export async function fetchProtocolData(
         }),
       });
     } catch (error) {
-      const cause =
-        error instanceof Error && error.cause instanceof Error
-          ? `: ${error.cause.message}`
-          : "";
       throw new Error(
-        `Hasura request for chain ${chainId} failed before response${cause}`
+        `Hasura GraphQL request to ${safeUrlForLog(
+          hasuraGraphqlUrl
+        )} for chain ${chainId} failed before response: ${describeFetchError(
+          error
+        )}. Check HASURA_GRAPHQL_URL, hasura PORT, and private networking.`
       );
     }
 
     if (!response.ok) {
       throw new Error(
-        `Hasura request for chain ${chainId} failed with HTTP ${response.status}`
+        `Hasura GraphQL request to ${safeUrlForLog(
+          hasuraGraphqlUrl
+        )} for chain ${chainId} failed with HTTP ${response.status}`
       );
     }
 

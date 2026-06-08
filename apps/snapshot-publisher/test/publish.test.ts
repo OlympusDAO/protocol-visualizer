@@ -120,3 +120,40 @@ test("publisher skips before Hasura reads when indexer metrics are not ready", a
   assert.equal(result.indexingProgress.chains.Mainnet.block, 25272069);
   assert.equal(result.indexingProgress.chains.Optimism.block, 152657692);
 });
+
+test("publisher reports indexer metrics network failures with safe context", async () => {
+  const originalEnv = { ...process.env };
+  const originalFetch = globalThis.fetch;
+
+  process.env = {
+    ...originalEnv,
+    SNAPSHOT_SOURCE: "hasura",
+    SNAPSHOT_CHAIN_IDS: "1",
+    INDEXER_DEPLOYMENT_ID: "deployment-a",
+    INDEXER_METRICS_URL:
+      "http://user:password@indexer:9898/metrics?secret=value",
+  };
+
+  globalThis.fetch = async () => {
+    throw new Error("fetch failed");
+  };
+
+  try {
+    await assert.rejects(
+      () => runPublisher(),
+      (error) => {
+        assert(error instanceof Error);
+        assert.match(
+          error.message,
+          /Indexer metrics request to http:\/\/indexer:9898\/metrics failed before response: fetch failed/
+        );
+        assert.match(error.message, /indexer PORT/);
+        assert.doesNotMatch(error.message, /password|secret=value/);
+        return true;
+      }
+    );
+  } finally {
+    process.env = originalEnv;
+    globalThis.fetch = originalFetch;
+  }
+});

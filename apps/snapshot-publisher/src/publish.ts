@@ -23,6 +23,7 @@ import {
   parseChainIds,
   selectChains,
 } from "./snapshot.js";
+import { describeFetchError, safeUrlForLog } from "./network-errors.js";
 import { getSampleProtocolData } from "./sample-data.js";
 import type { Manifest, SnapshotFile } from "./types.js";
 
@@ -277,13 +278,27 @@ const fetchIndexerReadiness = async (
   url: string,
   chains: Array<{ key: string; chainId: number }>
 ) => {
-  const response = await fetch(url, {
-    method: "GET",
-    headers: { accept: "text/plain" },
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: "GET",
+      headers: { accept: "text/plain" },
+    });
+  } catch (error) {
+    throw new Error(
+      `Indexer metrics request to ${safeUrlForLog(
+        url
+      )} failed before response: ${describeFetchError(
+        error
+      )}. Check INDEXER_METRICS_URL, indexer PORT, and private networking.`
+    );
+  }
+
   if (!response.ok) {
     throw new Error(
-      `Indexer metrics request failed with HTTP ${response.status}`
+      `Indexer metrics request to ${safeUrlForLog(
+        url
+      )} failed with HTTP ${response.status}`
     );
   }
   return parseEnvioMetricsReadiness(await response.text(), chains);

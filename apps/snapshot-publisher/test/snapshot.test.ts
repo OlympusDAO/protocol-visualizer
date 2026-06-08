@@ -5,6 +5,7 @@ import { loadSupportedChains } from "../src/chains.js";
 import {
   createProtocolSnapshot,
   createSnapshotFiles,
+  fetchProtocolData,
   parseChainIds,
   selectChains,
   validateProtocolSnapshot,
@@ -91,4 +92,37 @@ test("loads shared protocol chain config", async () => {
 
   assert(chains.some((chain) => chain.chainId === 1));
   assert(chains.some((chain) => chain.chainId === 80094));
+});
+
+test("reports Hasura network failures with safe context", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error("fetch failed");
+  };
+
+  try {
+    await assert.rejects(
+      () =>
+        fetchProtocolData(
+          "http://user:password@hasura:8080/v1/graphql?secret=value",
+          1,
+          "admin-secret"
+        ),
+      (error) => {
+        assert(error instanceof Error);
+        assert.match(
+          error.message,
+          /Hasura GraphQL request to http:\/\/hasura:8080\/v1\/graphql for chain 1 failed before response: fetch failed/
+        );
+        assert.match(error.message, /hasura PORT/);
+        assert.doesNotMatch(
+          error.message,
+          /password|secret=value|admin-secret/
+        );
+        return true;
+      }
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

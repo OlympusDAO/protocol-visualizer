@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { test } from "node:test";
 import {
   DeleteObjectCommand,
@@ -23,12 +24,21 @@ const snapshotFile = (key: string, publishLast = false): SnapshotFile => ({
   publishLast,
 });
 
+const etagFor = (body: string) =>
+  `"${createHash("sha256").update(body).digest("hex")}"`;
+
+const preconditionFailed = () => {
+  const error = new Error("precondition failed");
+  error.name = "PreconditionFailed";
+  return error;
+};
+
 class MemoryS3Client implements SnapshotS3Client {
   calls: string[] = [];
   destroyed = false;
   failDelete = false;
 
-  constructor(private readonly objects: Record<string, string> = {}) {}
+  constructor(readonly objects: Record<string, string> = {}) {}
 
   async send(command: Parameters<SnapshotS3Client["send"]>[0]) {
     if (command instanceof GetObjectCommand) {
@@ -36,11 +46,27 @@ class MemoryS3Client implements SnapshotS3Client {
       this.calls.push(`get:${key}`);
       const body = this.objects[key];
       if (body === undefined) throw new Error(`missing ${key}`);
-      return { Body: body };
+      return { Body: body, ETag: etagFor(body) };
     }
     if (command instanceof PutObjectCommand) {
       const key = String(command.input.Key);
-      this.calls.push(`put:${key}`);
+      const callPrefix = command.input.IfNoneMatch
+        ? "put-if-none-match"
+        : command.input.IfMatch
+          ? "put-if-match"
+          : "put";
+      this.calls.push(`${callPrefix}:${key}`);
+      const currentBody = this.objects[key];
+      if (command.input.IfNoneMatch === "*" && currentBody !== undefined) {
+        throw preconditionFailed();
+      }
+      if (
+        command.input.IfMatch &&
+        (currentBody === undefined ||
+          etagFor(currentBody) !== command.input.IfMatch)
+      ) {
+        throw preconditionFailed();
+      }
       this.objects[key] = String(command.input.Body ?? "");
       return {};
     }
@@ -52,8 +78,17 @@ class MemoryS3Client implements SnapshotS3Client {
     }
     if (command instanceof DeleteObjectCommand) {
       const key = String(command.input.Key);
-      this.calls.push(`delete:${key}`);
+      const callPrefix = command.input.IfMatch ? "delete-if-match" : "delete";
+      this.calls.push(`${callPrefix}:${key}`);
       if (this.failDelete) throw new Error("delete failed");
+      const currentBody = this.objects[key];
+      if (
+        command.input.IfMatch &&
+        (currentBody === undefined ||
+          etagFor(currentBody) !== command.input.IfMatch)
+      ) {
+        throw preconditionFailed();
+      }
       delete this.objects[key];
       return {};
     }
@@ -323,12 +358,168 @@ test("publisher uploads snapshots, publishes manifest last, and releases lock", 
   assert.equal(result.published, true);
   assert.equal(result.manifestPublishedLast, true);
   assert.equal(client.destroyed, true);
-  assert(client.calls.includes(`delete:${PUBLISHER_LOCK_KEY}`));
+  assert(client.calls.includes(`delete-if-match:${PUBLISHER_LOCK_KEY}`));
   const putCalls = client.calls.filter((call) => call.startsWith("put:"));
   assert.equal(putCalls.at(-1), "put:v1/manifest.json");
   assert(
     putCalls.some(
       (call) => call === "put:v1/deployments/deployment-a/chain/1/protocol.json"
+    )
+  );
+});
+
+test("publisher takes over a stale lock with conditional replacement", async () => {
+  const consoleCapture = captureConsole();
+  const now = Date.now();
+  const client = new MemoryS3Client({
+    [PUBLISHER_LOCK_KEY]: JSON.stringify({
+      runId: "stale-run",
+      deploymentId: "old-deployment",
+      createdAt: new Date(now - 120_000).toISOString(),
+      expiresAt: new Date(now - 60_000).toISOString(),
+    }),
+  });
+
+  try {
+    await withPublisherEnv(
+      {
+        SNAPSHOT_SOURCE: "sample",
+        SNAPSHOT_CHAIN_IDS: "1",
+        INDEXER_DEPLOYMENT_ID: "deployment-a",
+        BUCKET: "bucket",
+      },
+      () =>
+        runPublisher({
+          createS3Client: () => client,
+          notifyHandover: async () => undefined,
+        })
+    );
+  } finally {
+    consoleCapture.restore();
+  }
+
+  const result = JSON.parse(
+    consoleCapture.logs.find((line) => line.startsWith("{")) ?? "{}"
+  );
+  assert.equal(result.published, true);
+  assert(client.calls.includes(`put-if-match:${PUBLISHER_LOCK_KEY}`));
+  assert(client.calls.includes(`delete-if-match:${PUBLISHER_LOCK_KEY}`));
+});
+
+test("publisher treats failed stale-lock replacement as lock_held", async () => {
+  const consoleCapture = captureConsole();
+  const now = Date.now();
+
+  class RacingLockClient extends MemoryS3Client {
+    private raced = false;
+
+    async send(command: Parameters<SnapshotS3Client["send"]>[0]) {
+      if (
+        command instanceof PutObjectCommand &&
+        command.input.Key === PUBLISHER_LOCK_KEY &&
+        command.input.IfMatch &&
+        !this.raced
+      ) {
+        this.raced = true;
+        this.objects[PUBLISHER_LOCK_KEY] = JSON.stringify({
+          runId: "other-fresh-run",
+          deploymentId: "other-deployment",
+          createdAt: new Date(now).toISOString(),
+          expiresAt: new Date(now + 60_000).toISOString(),
+        });
+      }
+      return super.send(command);
+    }
+  }
+
+  const client = new RacingLockClient({
+    [PUBLISHER_LOCK_KEY]: JSON.stringify({
+      runId: "stale-run",
+      deploymentId: "old-deployment",
+      createdAt: new Date(now - 120_000).toISOString(),
+      expiresAt: new Date(now - 60_000).toISOString(),
+    }),
+  });
+
+  try {
+    await withPublisherEnv(
+      {
+        SNAPSHOT_SOURCE: "sample",
+        SNAPSHOT_CHAIN_IDS: "1",
+        INDEXER_DEPLOYMENT_ID: "deployment-a",
+        BUCKET: "bucket",
+      },
+      () =>
+        runPublisher({
+          createS3Client: () => client,
+          notifyHandover: async () => undefined,
+        })
+    );
+  } finally {
+    consoleCapture.restore();
+  }
+
+  const result = JSON.parse(
+    consoleCapture.logs.find((line) => line.startsWith("{")) ?? "{}"
+  );
+  assert.equal(result.published, false);
+  assert.equal(result.skipReason, "lock_held");
+  assert(client.calls.includes(`put-if-match:${PUBLISHER_LOCK_KEY}`));
+  assert.deepEqual(
+    client.calls.filter((call) => call.startsWith("put:")),
+    []
+  );
+});
+
+test("publisher skips conditional lock release when lock changes", async () => {
+  const consoleCapture = captureConsole();
+
+  class ReleaseRaceClient extends MemoryS3Client {
+    private raced = false;
+
+    async send(command: Parameters<SnapshotS3Client["send"]>[0]) {
+      if (
+        command instanceof DeleteObjectCommand &&
+        command.input.Key === PUBLISHER_LOCK_KEY &&
+        command.input.IfMatch &&
+        !this.raced
+      ) {
+        this.raced = true;
+        this.objects[PUBLISHER_LOCK_KEY] = JSON.stringify({
+          runId: "other-fresh-run",
+          deploymentId: "other-deployment",
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        });
+      }
+      return super.send(command);
+    }
+  }
+
+  const client = new ReleaseRaceClient();
+
+  try {
+    await withPublisherEnv(
+      {
+        SNAPSHOT_SOURCE: "sample",
+        SNAPSHOT_CHAIN_IDS: "1",
+        INDEXER_DEPLOYMENT_ID: "deployment-a",
+        BUCKET: "bucket",
+      },
+      () =>
+        runPublisher({
+          createS3Client: () => client,
+          notifyHandover: async () => undefined,
+        })
+    );
+  } finally {
+    consoleCapture.restore();
+  }
+
+  assert.equal(client.destroyed, true);
+  assert(
+    consoleCapture.warnings.some((message) =>
+      message.includes("lock changed before conditional delete")
     )
   );
 });

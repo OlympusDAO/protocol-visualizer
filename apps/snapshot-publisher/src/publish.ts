@@ -152,36 +152,85 @@ const objectBodyToString = async (body: unknown): Promise<string> => {
   return "";
 };
 
-const getJsonObject = async <T>(
+const isConditionalWriteFailure = (error: unknown) =>
+  error instanceof Error &&
+  ["PreconditionFailed", "ConditionalRequestConflict", "NotModified"].includes(
+    error.name
+  );
+
+const getJsonObjectWithMetadata = async <T>(
   client: SnapshotS3Client,
   bucket: string,
   key: string
-): Promise<T | undefined> => {
+): Promise<{ value: T; etag?: string } | undefined> => {
   try {
     const output = await client.send(
       new GetObjectCommand({ Bucket: bucket, Key: key })
     );
-    return JSON.parse(await objectBodyToString(output.Body)) as T;
+    return {
+      value: JSON.parse(await objectBodyToString(output.Body)) as T,
+      etag: typeof output.ETag === "string" ? output.ETag : undefined,
+    };
   } catch {
     return undefined;
   }
 };
 
-const putJsonObject = async (
+const getJsonObject = async <T>(
+  client: SnapshotS3Client,
+  bucket: string,
+  key: string
+): Promise<T | undefined> => {
+  return (await getJsonObjectWithMetadata<T>(client, bucket, key))?.value;
+};
+
+const putJsonObjectIfAbsent = async (
   client: SnapshotS3Client,
   bucket: string,
   key: string,
   value: unknown
 ) => {
-  await client.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: json(value),
-      ContentType: "application/json",
-      CacheControl: "no-store",
-    })
-  );
+  try {
+    await client.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: json(value),
+        ContentType: "application/json",
+        CacheControl: "no-store",
+        IfNoneMatch: "*",
+      })
+    );
+    return true;
+  } catch (error) {
+    if (isConditionalWriteFailure(error)) return false;
+    throw error;
+  }
+};
+
+const putJsonObjectIfMatch = async (
+  client: SnapshotS3Client,
+  bucket: string,
+  key: string,
+  value: unknown,
+  etag: string
+) => {
+  try {
+    await client.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: json(value),
+        ContentType: "application/json",
+        CacheControl: "no-store",
+        IfMatch: etag,
+      })
+    );
+    return true;
+  } catch (error) {
+    if (isConditionalWriteFailure(error)) return false;
+    throw error;
+  }
 };
 
 const deleteObject = async (
@@ -190,6 +239,23 @@ const deleteObject = async (
   key: string
 ) => {
   await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+};
+
+const deleteObjectIfMatch = async (
+  client: SnapshotS3Client,
+  bucket: string,
+  key: string,
+  etag: string
+) => {
+  try {
+    await client.send(
+      new DeleteObjectCommand({ Bucket: bucket, Key: key, IfMatch: etag })
+    );
+    return true;
+  } catch (error) {
+    if (isConditionalWriteFailure(error)) return false;
+    throw error;
+  }
 };
 
 const resolveDeploymentId = (source: SnapshotSource, outputDir?: string) => {
@@ -216,15 +282,6 @@ const acquireLock = async (
   deploymentId: string,
   now = new Date()
 ): Promise<{ acquired: boolean; lock: PublisherLock }> => {
-  const existing = await getJsonObject<PublisherLock>(
-    client,
-    bucket,
-    PUBLISHER_LOCK_KEY
-  );
-  if (existing && Date.parse(existing.expiresAt) > now.getTime()) {
-    return { acquired: false, lock: existing };
-  }
-
   const ttlMs = lockTtlMs();
   const lock: PublisherLock = {
     runId: `${deploymentId}-${now.getTime()}`,
@@ -232,8 +289,46 @@ const acquireLock = async (
     createdAt: now.toISOString(),
     expiresAt: new Date(now.getTime() + ttlMs).toISOString(),
   };
-  await putJsonObject(client, bucket, PUBLISHER_LOCK_KEY, lock);
-  return { acquired: true, lock };
+
+  if (await putJsonObjectIfAbsent(client, bucket, PUBLISHER_LOCK_KEY, lock)) {
+    return { acquired: true, lock };
+  }
+
+  const existing = await getJsonObjectWithMetadata<PublisherLock>(
+    client,
+    bucket,
+    PUBLISHER_LOCK_KEY
+  );
+  if (!existing || Date.parse(existing.value.expiresAt) > now.getTime()) {
+    return { acquired: false, lock: existing?.value ?? lock };
+  }
+
+  const replaced = existing.etag
+    ? await putJsonObjectIfMatch(
+        client,
+        bucket,
+        PUBLISHER_LOCK_KEY,
+        lock,
+        existing.etag
+      )
+    : await putJsonObjectIfAbsent(client, bucket, PUBLISHER_LOCK_KEY, lock);
+  if (!replaced) {
+    const current = await getJsonObject<PublisherLock>(
+      client,
+      bucket,
+      PUBLISHER_LOCK_KEY
+    );
+    return { acquired: false, lock: current ?? lock };
+  }
+
+  const verified = await getJsonObject<PublisherLock>(
+    client,
+    bucket,
+    PUBLISHER_LOCK_KEY
+  );
+  return verified?.runId === lock.runId
+    ? { acquired: true, lock }
+    : { acquired: false, lock: verified ?? lock };
 };
 
 const releaseLock = async (
@@ -241,17 +336,31 @@ const releaseLock = async (
   bucket: string,
   lock: PublisherLock
 ) => {
-  const current = await getJsonObject<PublisherLock>(
+  const current = await getJsonObjectWithMetadata<PublisherLock>(
     client,
     bucket,
     PUBLISHER_LOCK_KEY
   );
-  if (current?.runId === lock.runId) {
+  if (current?.value.runId === lock.runId) {
+    if (current.etag) {
+      const deleted = await deleteObjectIfMatch(
+        client,
+        bucket,
+        PUBLISHER_LOCK_KEY,
+        current.etag
+      );
+      if (!deleted) {
+        console.warn(
+          `Lock release skipped for ${PUBLISHER_LOCK_KEY}: lock changed before conditional delete. Publish may have exceeded TTL.`
+        );
+      }
+      return;
+    }
     await deleteObject(client, bucket, PUBLISHER_LOCK_KEY);
   } else {
     console.warn(
       `Lock release skipped for ${PUBLISHER_LOCK_KEY}: current lock runId ${
-        current?.runId ?? "<none>"
+        current?.value.runId ?? "<none>"
       } does not match expected ${lock.runId}. Publish may have exceeded TTL.`
     );
   }

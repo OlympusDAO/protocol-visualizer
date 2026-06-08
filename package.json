@@ -31,7 +31,7 @@
     "stack:monitor": "docker compose --profile jobs run --rm snapshot-monitor",
     "stack:publish": "docker compose run --rm snapshot-publisher",
     "stack:publish:sample": "docker compose run --rm snapshot-publisher-sample",
-    "stack:up": "docker compose up --build -d postgres hasura minio minio-create-bucket indexer snapshot-gateway frontend",
+    "stack:up": "docker compose up --build postgres hasura minio minio-create-bucket indexer snapshot-gateway frontend",
     "test:config": "node --test tests/*.test.mjs",
     "validate:local": "pnpm run check:runtime-versions && pnpm install --frozen-lockfile && pnpm run lint:check && pnpm run build && pnpm run openapi:check && pnpm run snapshots:generate:local && pnpm run docker:build:indexer && pnpm run docker:build:frontend && pnpm run docker:build:hasura && pnpm run docker:build:snapshot-gateway && pnpm run docker:build:snapshot-publisher && pnpm run docker:build:snapshot-monitor",
     "format": "biome format --write ."

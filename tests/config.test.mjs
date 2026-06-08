@@ -60,6 +60,10 @@ test("CI scans every Dockerfile and local image", () => {
   ]) {
     assert(workflow.includes(dockerfile));
   }
+  assert.match(
+    workflow,
+    /image-ref: protocol-visualizer\/indexer:scan[\s\S]*?ignore-unfixed: true/
+  );
 });
 
 test("Compose includes the Railway-like snapshot services", () => {
@@ -81,6 +85,56 @@ test("Compose includes the Railway-like snapshot services", () => {
   assert(compose.includes("Dockerfile-snapshot-monitor"));
   assert(compose.includes("http://hasura:8080/v1/graphql"));
   assert(compose.includes("http://localhost:8082"));
+});
+
+test("Compose requires Envio API token for local indexer runs", () => {
+  const compose = readFileSync("docker-compose.yml", "utf8");
+  const sampleEnv = readFileSync(".env.compose.sample", "utf8");
+  const localDocs = readFileSync("docs/local-stack.md", "utf8");
+  const indexerDocs = readFileSync("apps/indexer/README.md", "utf8");
+  const railwayDocs = readFileSync("docs/railway-self-hosting.md", "utf8");
+
+  assert(compose.includes("ENVIO_API_TOKEN: ${ENVIO_API_TOKEN:?"));
+  assert(compose.includes("ENVIO_RPC_MODE: ${ENVIO_RPC_MODE:-}"));
+  assert(sampleEnv.includes("ENVIO_API_TOKEN=CHANGEME"));
+  assert(sampleEnv.includes("# ENVIO_RPC_MODE="));
+  assert(localDocs.includes("fails early without the token"));
+  assert(indexerDocs.includes("required by the local Docker"));
+  assert(railwayDocs.includes("ENVIO_API_TOKEN=<envio-api-token>"));
+});
+
+test("Env samples and docs keep optional variables commented", () => {
+  const composeSample = readFileSync(".env.compose.sample", "utf8");
+  const indexerSample = readFileSync("apps/indexer/.env.sample", "utf8");
+  const publisherDocs = readFileSync("apps/snapshot-publisher/README.md", "utf8");
+  const gatewayDocs = readFileSync("apps/snapshot-gateway/README.md", "utf8");
+  const monitorDocs = readFileSync("apps/snapshot-monitor/README.md", "utf8");
+  const railwayDocs = readFileSync("docs/railway-self-hosting.md", "utf8");
+
+  for (const content of [
+    composeSample,
+    indexerSample,
+    publisherDocs,
+    gatewayDocs,
+    monitorDocs,
+    railwayDocs,
+  ]) {
+    assert(content.includes("Required"));
+    assert(content.includes("Optional"));
+  }
+
+  assert(composeSample.includes("ENVIO_API_TOKEN=CHANGEME"));
+  assert(composeSample.includes("# DISCORD_WEBHOOK_URL="));
+  assert(composeSample.includes("# SNAPSHOT_CHAIN_IDS="));
+  assert(indexerSample.includes("HASURA_GRAPHQL_ENDPOINT="));
+  assert(indexerSample.includes("# ENVIO_API_TOKEN="));
+  assert(indexerSample.includes("# ENVIO_PG_SCHEMA="));
+  assert(publisherDocs.includes("# INDEXER_DEPLOYMENT_ID="));
+  assert(publisherDocs.includes("# DISCORD_WEBHOOK_URL="));
+  assert(gatewayDocs.includes("# PORT=8080"));
+  assert(monitorDocs.includes("# MONITOR_STALE_CHAIN_HOURS=24"));
+  assert(railwayDocs.includes("# ENVIO_RPC_MODE="));
+  assert(railwayDocs.includes("# DISCORD_WEBHOOK_URL=<discord webhook url>"));
 });
 
 test("Compose third-party images are pinned by digest", () => {
@@ -138,7 +192,6 @@ test("Snapshot packages publish only runtime files", () => {
 
 test("Dockerfiles remove package managers from runtime images", () => {
   for (const dockerfile of [
-    "Dockerfile-indexer",
     "Dockerfile-snapshot-gateway",
     "Dockerfile-snapshot-publisher",
     "Dockerfile-snapshot-monitor",
@@ -158,6 +211,10 @@ test("Dockerfiles remove package managers from runtime images", () => {
     }
     assert(!content.includes('CMD ["pnpm"'), `${dockerfile} should not use pnpm as runtime command`);
   }
+
+  const indexer = dockerfileContent("Dockerfile-indexer");
+  assert(indexer.includes("gcr.io/distroless/nodejs24-debian13@sha256:"));
+  assert(!indexer.includes('CMD ["pnpm"'), "Dockerfile-indexer should not use pnpm as runtime command");
 });
 
 test("Snapshot service Dockerfiles prune source and test artifacts", () => {

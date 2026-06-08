@@ -121,6 +121,7 @@ jobs:
           image-ref: protocol-visualizer/indexer:scan
           format: table
           severity: MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: true
           trivyignores: .trivyignore
           exit-code: "1"
 

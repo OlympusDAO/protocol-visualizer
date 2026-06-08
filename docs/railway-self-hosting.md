@@ -49,6 +49,9 @@ timestamp, block }`. Static JSON paths such as `/v1/manifest.json` and
 
 ## Railway Variables
 
+Required variables are uncommented in the examples below. Optional variables are
+commented.
+
 Set on `hasura`:
 
 ```bash
@@ -67,9 +70,14 @@ ENVIO_RPC_URL_10=<optimism RPC>
 ENVIO_RPC_URL_8453=<base RPC>
 ENVIO_RPC_URL_80094=<berachain RPC>
 ENVIO_RPC_URL_11155111=<sepolia RPC>
-ENVIO_API_TOKEN=
-ENVIO_RPC_MODE=
+ENVIO_API_TOKEN=<envio-api-token>
+# ENVIO_RPC_MODE=
 ```
+
+`ENVIO_API_TOKEN` should be set for production deployments. When
+`ENVIO_RPC_MODE` is left blank, the indexer wrapper derives `fallback` from the
+token so Envio uses HyperSync with RPC fallback. Running without a token falls
+back to RPC-only indexing and is materially slower for cold backfills.
 
 Do not set `ENVIO_PG_SCHEMA` on Railway. The indexer wrapper fails fast if it is
 set. Railway start commands run `envio start -r`; public handover is handled by
@@ -85,8 +93,9 @@ ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
 SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
 REGION=${{<bucket-service>.REGION}}
 ENDPOINT=${{<bucket-service>.ENDPOINT}}
-DISCORD_WEBHOOK_URL=<discord webhook url>
-MONITOR_STALE_CHAIN_HOURS=24
+# INDEXER_DEPLOYMENT_ID=${{shared.INDEXER_DEPLOYMENT_ID}}
+# DISCORD_WEBHOOK_URL=<discord webhook url>
+# MONITOR_STALE_CHAIN_HOURS=24
 ```
 
 Set on `snapshot-monitor`:
@@ -100,6 +109,9 @@ ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
 SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
 REGION=${{<bucket-service>.REGION}}
 ENDPOINT=${{<bucket-service>.ENDPOINT}}
+# INDEXER_DEPLOYMENT_ID=${{shared.INDEXER_DEPLOYMENT_ID}}
+# MONITOR_STATE_KEY=v1/monitor-state.json
+# MONITOR_STALE_CHAIN_HOURS=24
 ```
 
 Set on `snapshot-gateway`:

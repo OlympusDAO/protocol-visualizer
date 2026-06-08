@@ -49,8 +49,9 @@ config.
 ## Configuration
 
 Production bucket publishing reads from Hasura and uploads to the private
-Railway Bucket. Configure these variables on the `snapshot-publisher` Railway
-service:
+Railway Bucket. Required variables are uncommented; optional variables are
+commented. Configure these required variables on the `snapshot-publisher`
+Railway service:
 
 ```bash
 HASURA_GRAPHQL_URL=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql
@@ -60,26 +61,26 @@ ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
 SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
 REGION=${{<bucket-service>.REGION}}
 ENDPOINT=${{<bucket-service>.ENDPOINT}}
-INDEXER_DEPLOYMENT_ID=
 ```
 
 Use `BUCKET` as the S3 bucket name. Do not use `RAILWAY_BUCKET_NAME`.
 `HASURA_GRAPHQL_ADMIN_SECRET` should reference the same value configured on the
 private Hasura service; without it, Hasura may return an unauthorized or empty
 schema response.
-`INDEXER_DEPLOYMENT_ID` is optional when Railway provides
-`RAILWAY_GIT_COMMIT_SHA`, but one of those values must be present in production.
-The deployment id is validated before any Hasura read or bucket write.
+`INDEXER_DEPLOYMENT_ID` is optional when Railway provides `RAILWAY_GIT_COMMIT_SHA`,
+but one of those values must be present in production. The deployment id is
+validated before any Hasura read or bucket write.
 
 Optional variables:
 
 ```bash
-SNAPSHOT_PUBLIC_BASE_PATH=/v1
-SNAPSHOT_PUBLIC_ORIGIN=https://protocol-visualizer-api.olympusdao.finance
-SNAPSHOT_CHAIN_IDS=1,10,42161,8453,80094,11155111
-PROTOCOL_CHAINS_CONFIG_PATH=/app/config/protocol-chains.json
-PUBLISHER_LOCK_TTL_MS=3300000
-DISCORD_WEBHOOK_URL=
+# INDEXER_DEPLOYMENT_ID=
+# SNAPSHOT_PUBLIC_BASE_PATH=/v1
+# SNAPSHOT_PUBLIC_ORIGIN=https://protocol-visualizer-api.olympusdao.finance
+# SNAPSHOT_CHAIN_IDS=1,10,42161,8453,80094,11155111
+# PROTOCOL_CHAINS_CONFIG_PATH=/app/config/protocol-chains.json
+# PUBLISHER_LOCK_TTL_MS=3300000
+# DISCORD_WEBHOOK_URL=
 ```
 
 `SNAPSHOT_PUBLIC_BASE_PATH` defaults to `/v1`. `SNAPSHOT_PUBLIC_ORIGIN` is used
@@ -90,8 +91,8 @@ enables immediate handover messages when a new manifest is published.
 Local-only variables:
 
 ```bash
-SNAPSHOT_OUTPUT_DIR=/tmp/protocol-visualizer-snapshots
-SNAPSHOT_SOURCE=sample
+# SNAPSHOT_OUTPUT_DIR=/tmp/protocol-visualizer-snapshots
+# SNAPSHOT_SOURCE=sample
 ```
 
 When `SNAPSHOT_OUTPUT_DIR` is set and `SNAPSHOT_SOURCE` is omitted, the

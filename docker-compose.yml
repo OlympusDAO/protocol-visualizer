@@ -54,8 +54,8 @@ services:
       DATABASE_URL: *database-url
       HASURA_GRAPHQL_ENDPOINT: http://hasura:8080/v1/metadata
       HASURA_GRAPHQL_ADMIN_SECRET: *hasura-admin-secret
-      ENVIO_RPC_MODE: ${ENVIO_RPC_MODE:-sync}
-      ENVIO_API_TOKEN: ${ENVIO_API_TOKEN:-}
+      ENVIO_RPC_MODE: ${ENVIO_RPC_MODE:-}
+      ENVIO_API_TOKEN: ${ENVIO_API_TOKEN:?Set ENVIO_API_TOKEN in .env to run the compose stack}
       ENVIO_RPC_URL_1: ${ENVIO_RPC_URL_1:-https://eth.llamarpc.com}
       ENVIO_RPC_URL_10: ${ENVIO_RPC_URL_10:-https://optimism.llamarpc.com}
       ENVIO_RPC_URL_42161: ${ENVIO_RPC_URL_42161:-https://arb1.arbitrum.io/rpc}

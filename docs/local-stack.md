@@ -25,8 +25,12 @@ Use Docker Compose to run the Railway-like topology locally:
 | `minio` console    | `http://localhost:9001` | Bucket inspection UI         |
 | `postgres`         | `localhost:5432`        | Local database               |
 
-Defaults are defined in `docker-compose.yml`. To override them, copy
-`.env.compose.sample` to `.env`.
+Defaults are defined in `docker-compose.yml`. Copy `.env.compose.sample` to
+`.env` and set `ENVIO_API_TOKEN` before starting the indexer. Required values in
+the sample are uncommented; optional overrides are commented. The compose stack
+fails early without the token because HyperSync is the expected local ingestion
+path; RPC-only indexing is much slower and is mainly useful for deliberate
+fallback testing.
 
 ## Start And Publish
 
@@ -35,8 +39,10 @@ pnpm run stack:up
 pnpm run stack:publish:sample
 ```
 
-`stack:up` starts the long-running services. Publisher and monitor jobs are not
-started by default because they mirror Railway cron/manual runs.
+`stack:up` runs the long-running services in the foreground. Keep that terminal
+attached for logs and stop it with `Ctrl-C`; run publisher and monitor jobs from
+another terminal when needed. Publisher and monitor jobs are not started by
+default because they mirror Railway cron/manual runs.
 
 Use sample snapshots for a fast smoke test. Use live local Hasura data after the
 indexer has caught up:
@@ -85,3 +91,6 @@ pnpm run validate:local
 
 `validate:local` builds production images. It does not require the local indexer
 to complete a full backfill.
+
+`stack:config` and `stack:up` require `ENVIO_API_TOKEN` to be present in `.env`
+or the shell environment.

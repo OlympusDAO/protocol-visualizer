@@ -24,8 +24,9 @@ surface effect metrics for those reads.
 - pnpm 10.33.0
 - Docker Desktop, for the local Envio Postgres/Hasura stack
 - RPC URLs for the enabled chains
-- `ENVIO_API_TOKEN` is optional. It is only needed if `config.yaml` is changed
-  to use HyperSync as the primary data source.
+- `ENVIO_API_TOKEN` is strongly recommended and required by the local Docker
+  Compose stack. Without it, the wrapper can run RPC-only indexing, but cold
+  backfills are slower and more likely to hit public RPC limits.
 
 Install dependencies from the repository root:
 
@@ -42,6 +43,9 @@ URLs:
 cp apps/indexer/.env.sample apps/indexer/.env
 ```
 
+Required variables in `.env.sample` are uncommented. Optional overrides are
+commented.
+
 Set one RPC URL for each enabled chain:
 
 ```bash
@@ -52,6 +56,15 @@ ENVIO_RPC_URL_80094=
 ENVIO_RPC_URL_11155111=
 ```
 
+For production wrapper runs, also set the database and private Hasura metadata
+endpoint:
+
+```bash
+DATABASE_URL=
+HASURA_GRAPHQL_ENDPOINT=
+HASURA_GRAPHQL_ADMIN_SECRET=
+```
+
 `config.yaml` uses `ENVIO_RPC_MODE` for each RPC source. The startup wrapper
 sets it automatically:
 
@@ -60,6 +73,10 @@ sets it automatically:
 
 You can explicitly set `ENVIO_RPC_MODE=sync` or `fallback` to override that
 derived default. Any other value fails at startup.
+
+Local Docker Compose intentionally requires `ENVIO_API_TOKEN` so the default
+path is HyperSync with RPC fallback. Set `ENVIO_RPC_MODE=sync` only when you are
+deliberately testing RPC-only ingestion.
 
 Effect-handler RPC reads also support `ENVIO_RPC_URL_FALLBACK_<chainId>`.
 
@@ -85,6 +102,11 @@ Envio rewrites `envio-env.d.ts`; that generated file is ignored by the repo
 ESLint config.
 
 ## Local Development
+
+The indexer Docker build installs dependencies on Debian slim/glibc and runs on
+distroless Node.js. Envio's Hypersync native dependency publishes
+`linux-arm64-gnu`, but not `linux-arm64-musl`, so Alpine ARM builds cannot load
+the required binding.
 
 For the quickest local loop, run Envio's built-in local stack and indexer from
 the repository root:

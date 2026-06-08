@@ -37,6 +37,8 @@ manifest-backed deployment.
 
 ## Configuration
 
+Required production variables are uncommented; optional variables are commented.
+
 Required production variables:
 
 ```bash
@@ -50,8 +52,8 @@ ENDPOINT=${{<bucket-service>.ENDPOINT}}
 Optional:
 
 ```bash
-PORT=8080
-PROTOCOL_CHAINS_CONFIG_PATH=/app/config/protocol-chains.json
+# PORT=8080
+# PROTOCOL_CHAINS_CONFIG_PATH=/app/config/protocol-chains.json
 ```
 
 ## OpenAPI

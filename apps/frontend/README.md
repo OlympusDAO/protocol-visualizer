@@ -5,7 +5,8 @@ This package contains the Vite/React protocol visualizer frontend.
 ## Environment
 
 The frontend reads per-chain protocol snapshots from the public snapshot
-gateway. Configure the endpoint at build time:
+gateway. Required variables are uncommented; optional variables are commented.
+Configure this endpoint at build time:
 
 ```bash
 VITE_PROTOCOL_SNAPSHOT_BASE_URL=http://localhost:8082

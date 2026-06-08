@@ -16,6 +16,8 @@ new active manifest.
 
 ## Configuration
 
+Required production variables are uncommented; optional variables are commented.
+
 Required production variables:
 
 ```bash
@@ -32,11 +34,11 @@ ENDPOINT=${{<bucket-service>.ENDPOINT}}
 Optional:
 
 ```bash
-INDEXER_DEPLOYMENT_ID=
-RAILWAY_GIT_COMMIT_SHA=
-MONITOR_STATE_KEY=v1/monitor-state.json
-MONITOR_STALE_CHAIN_HOURS=24
-PROTOCOL_CHAINS_CONFIG_PATH=/app/config/protocol-chains.json
+# INDEXER_DEPLOYMENT_ID=
+# RAILWAY_GIT_COMMIT_SHA=
+# MONITOR_STATE_KEY=v1/monitor-state.json
+# MONITOR_STALE_CHAIN_HOURS=24
+# PROTOCOL_CHAINS_CONFIG_PATH=/app/config/protocol-chains.json
 ```
 
 Railway runs this service as a cron job with `restartPolicyType: NEVER`.

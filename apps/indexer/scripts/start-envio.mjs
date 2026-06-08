@@ -1,8 +1,8 @@
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import http from "node:http";
-import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const RPC_MODES = new Set(["sync", "fallback"]);
 const DEFAULT_HASURA_STARTUP_TIMEOUT_MS = 180_000;
@@ -11,8 +11,12 @@ const HASURA_STARTUP_REQUEST_TIMEOUT_MS = 5_000;
 const DEFAULT_INDEXER_INTERNAL_PORT_OFFSET = 1;
 const HEALTHCHECK_REQUEST_TIMEOUT_MS = 5_000;
 
-const loadDotEnv = () => {
-  const envPath = resolve(process.cwd(), ".env");
+const shellEnvKeys = new Set(Object.keys(process.env));
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+const indexerDir = resolve(scriptDir, "..");
+const repoRoot = resolve(indexerDir, "../..");
+
+const loadDotEnv = (envPath) => {
   if (!existsSync(envPath)) return;
 
   for (const rawLine of readFileSync(envPath, "utf8").split(/\r?\n/)) {
@@ -24,7 +28,7 @@ const loadDotEnv = () => {
 
     const key = line.slice(0, separatorIndex).trim();
     let value = line.slice(separatorIndex + 1).trim();
-    if (!key || process.env[key] !== undefined) continue;
+    if (!key || shellEnvKeys.has(key)) continue;
 
     if (
       (value.startsWith('"') && value.endsWith('"')) ||
@@ -37,7 +41,13 @@ const loadDotEnv = () => {
   }
 };
 
-loadDotEnv();
+for (const envPath of new Set([
+  resolve(repoRoot, ".env"),
+  resolve(indexerDir, ".env"),
+  resolve(process.cwd(), ".env"),
+])) {
+  loadDotEnv(envPath);
+}
 
 const setDefaultEnv = (key, value) => {
   if (process.env[key] === undefined || process.env[key] === "") {
@@ -154,11 +164,12 @@ export const prepareIndexerEnv = (env = process.env) => {
   return env;
 };
 
-export const validateIndexerEnv = (env = process.env) => {
+export const validateIndexerEnv = (
+  env = process.env,
+  { requireManagedRuntimeEnv = true } = {}
+) => {
   const required = [
-    "DATABASE_URL",
-    "HASURA_GRAPHQL_ENDPOINT",
-    "HASURA_GRAPHQL_ADMIN_SECRET",
+    "ETHERSCAN_API_KEY",
     "ENVIO_RPC_URL_1",
     "ENVIO_RPC_URL_10",
     "ENVIO_RPC_URL_42161",
@@ -166,13 +177,21 @@ export const validateIndexerEnv = (env = process.env) => {
     "ENVIO_RPC_URL_80094",
     "ENVIO_RPC_URL_11155111",
   ];
+  if (requireManagedRuntimeEnv) {
+    required.unshift(
+      "DATABASE_URL",
+      "HASURA_GRAPHQL_ENDPOINT",
+      "HASURA_GRAPHQL_ADMIN_SECRET"
+    );
+  }
   const missing = required.filter((key) => isBlank(env[key]));
   if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
+    throw new Error(
+      `Missing required environment variables: ${missing.join(", ")}`
+    );
   }
 
   const urlVars = [
-    "HASURA_GRAPHQL_ENDPOINT",
     "ENVIO_RPC_URL_1",
     "ENVIO_RPC_URL_10",
     "ENVIO_RPC_URL_42161",
@@ -180,9 +199,14 @@ export const validateIndexerEnv = (env = process.env) => {
     "ENVIO_RPC_URL_80094",
     "ENVIO_RPC_URL_11155111",
   ];
+  if (requireManagedRuntimeEnv) {
+    urlVars.unshift("HASURA_GRAPHQL_ENDPOINT");
+  }
   const invalidUrls = urlVars.filter((key) => !isUrl(env[key] ?? ""));
   if (invalidUrls.length > 0) {
-    throw new Error(`Invalid URL environment variables: ${invalidUrls.join(", ")}`);
+    throw new Error(
+      `Invalid URL environment variables: ${invalidUrls.join(", ")}`
+    );
   }
 
   if (isRailwayRuntime(env) && !isBlank(env.ENVIO_PG_SCHEMA)) {
@@ -224,7 +248,9 @@ const shouldUseHealthcheckWrapper = () =>
 const useHealthcheckWrapper = shouldUseHealthcheckWrapper();
 
 prepareIndexerEnv(process.env);
-validateIndexerEnv(process.env);
+validateIndexerEnv(process.env, {
+  requireManagedRuntimeEnv: isStartCommand(),
+});
 
 if (useHealthcheckWrapper) {
   const externalPort = getPositiveIntegerEnv("PORT", 9898);

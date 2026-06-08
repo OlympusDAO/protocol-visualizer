@@ -26,12 +26,14 @@ Use Docker Compose to run the Railway-like topology locally:
 | `postgres`         | `localhost:5432`        | Local database               |
 
 Defaults are defined in `docker-compose.yml`. Copy `.env.compose.sample` to
-`.env` and set `ENVIO_API_TOKEN` plus the enabled-chain `ENVIO_RPC_URL_*`
-variables before starting the indexer. Required values in the sample are
-uncommented; optional overrides are commented. The compose stack fails early
-without the token and RPC URLs because HyperSync with RPC fallback is the
-expected local ingestion path; RPC-only indexing is much slower and is mainly
-useful for deliberate fallback testing.
+`.env` and set `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY`, plus the enabled-chain
+`ENVIO_RPC_URL_*` variables before starting the indexer. Required values in the
+sample are uncommented; optional overrides are commented. The compose stack
+fails early without the token, Etherscan key, and RPC URLs because HyperSync
+with RPC fallback is the expected local ingestion path, and the indexer needs
+Etherscan for contract metadata that is not already precomputed or local.
+RPC-only indexing is much slower and is mainly useful for deliberate fallback
+testing.
 
 ## Start And Publish
 
@@ -93,7 +95,7 @@ pnpm run validate:local
 `validate:local` builds production images. It does not require the local indexer
 to complete a full backfill.
 
-`stack:config` and `stack:up` require `ENVIO_API_TOKEN`,
+`stack:config` and `stack:up` require `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY`,
 `ENVIO_RPC_URL_1`, `ENVIO_RPC_URL_10`, `ENVIO_RPC_URL_42161`,
 `ENVIO_RPC_URL_8453`, `ENVIO_RPC_URL_80094`, and `ENVIO_RPC_URL_11155111` to be
 present in `.env` or the shell environment.

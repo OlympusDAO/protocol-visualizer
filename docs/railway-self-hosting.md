@@ -72,6 +72,7 @@ ENVIO_RPC_URL_8453=<base RPC>
 ENVIO_RPC_URL_80094=<berachain RPC>
 ENVIO_RPC_URL_11155111=<sepolia RPC>
 ENVIO_API_TOKEN=<envio-api-token>
+ETHERSCAN_API_KEY=<etherscan-api-key>
 # ENVIO_RPC_MODE=
 ```
 
@@ -79,6 +80,8 @@ ENVIO_API_TOKEN=<envio-api-token>
 `ENVIO_RPC_MODE` is left blank, the indexer wrapper derives `fallback` from the
 token so Envio uses HyperSync with RPC fallback. Running without a token falls
 back to RPC-only indexing and is materially slower for cold backfills.
+`ETHERSCAN_API_KEY` is required so the indexer can fetch contract metadata that
+is not already precomputed or available in local ABI/source-code files.
 
 Do not set `ENVIO_PG_SCHEMA` on Railway. The indexer wrapper fails fast if it is
 set. Railway start commands run `envio start -r`; public handover is handled by

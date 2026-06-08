@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 const validEnv = {
-  DATABASE_URL: "postgres://postgres:postgres@localhost:5432/protocol_visualizer",
+  DATABASE_URL:
+    "postgres://postgres:postgres@localhost:5432/protocol_visualizer",
   HASURA_GRAPHQL_ENDPOINT: "http://hasura:8080/v1/metadata",
   HASURA_GRAPHQL_ADMIN_SECRET: "secret",
   ENVIO_RPC_URL_1: "https://example.com/1",
@@ -11,6 +12,7 @@ const validEnv = {
   ENVIO_RPC_URL_8453: "https://example.com/8453",
   ENVIO_RPC_URL_80094: "https://example.com/80094",
   ENVIO_RPC_URL_11155111: "https://example.com/11155111",
+  ETHERSCAN_API_KEY: "etherscan-api-key",
 };
 
 async function loadModule() {
@@ -25,10 +27,10 @@ test("adds reset flag for Railway start commands", async () => {
     "start",
     "-r",
   ]);
-  assert.deepEqual(resolveEnvioArgs(["start", "-r"], { RAILWAY_SERVICE_ID: "svc" }), [
-    "start",
-    "-r",
-  ]);
+  assert.deepEqual(
+    resolveEnvioArgs(["start", "-r"], { RAILWAY_SERVICE_ID: "svc" }),
+    ["start", "-r"]
+  );
   assert.deepEqual(resolveEnvioArgs(["dev"], { RAILWAY_SERVICE_ID: "svc" }), [
     "dev",
   ]);
@@ -56,6 +58,37 @@ test("rejects Railway schema configuration and port mismatches", async () => {
         ENVIO_INDEXER_PORT: "9899",
       }),
     /ENVIO_INDEXER_PORT must match PORT/
+  );
+});
+
+test("allows local dev validation without managed database variables", async () => {
+  const { validateIndexerEnv } = await loadModule();
+  const {
+    DATABASE_URL,
+    HASURA_GRAPHQL_ENDPOINT,
+    HASURA_GRAPHQL_ADMIN_SECRET,
+    ...devEnv
+  } = validEnv;
+
+  assert.doesNotThrow(() =>
+    validateIndexerEnv(devEnv, { requireManagedRuntimeEnv: false })
+  );
+  assert.throws(
+    () => validateIndexerEnv(devEnv, { requireManagedRuntimeEnv: true }),
+    /DATABASE_URL, HASURA_GRAPHQL_ENDPOINT, HASURA_GRAPHQL_ADMIN_SECRET/
+  );
+});
+
+test("requires Etherscan API key for contract metadata", async () => {
+  const { validateIndexerEnv } = await loadModule();
+  const { ETHERSCAN_API_KEY, ...envWithoutEtherscan } = validEnv;
+
+  assert.throws(
+    () =>
+      validateIndexerEnv(envWithoutEtherscan, {
+        requireManagedRuntimeEnv: false,
+      }),
+    /ETHERSCAN_API_KEY/
   );
 });
 

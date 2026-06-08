@@ -10,6 +10,7 @@ enabled chains in `config.yaml`:
 
 - Ethereum mainnet
 - Optimism
+- Arbitrum
 - Base
 - Berachain
 - Sepolia
@@ -37,7 +38,7 @@ pnpm install --frozen-lockfile
 ## Environment
 
 Create `apps/indexer/.env` from `apps/indexer/.env.sample` and fill in the RPC
-URLs:
+URLs and Etherscan API key:
 
 ```bash
 cp apps/indexer/.env.sample apps/indexer/.env
@@ -55,6 +56,13 @@ ENVIO_RPC_URL_42161=
 ENVIO_RPC_URL_8453=
 ENVIO_RPC_URL_80094=
 ENVIO_RPC_URL_11155111=
+```
+
+Set the Etherscan API key used when contract metadata is not already
+precomputed or present in local ABI/source-code files:
+
+```bash
+ETHERSCAN_API_KEY=
 ```
 
 For production wrapper runs, also set the database and private Hasura metadata
@@ -102,6 +110,27 @@ pnpm --filter indexer run codegen
 Envio rewrites `envio-env.d.ts`; that generated file is ignored by the repo
 ESLint config.
 
+## Contract Metadata
+
+After adding named contracts to `src/ContractNames.ts`, refresh generated
+function-role metadata without reindexing:
+
+```bash
+pnpm run indexer:metadata
+```
+
+The generator reads the repository root `.env` and `apps/indexer/.env`, requires
+`ETHERSCAN_API_KEY`, fetches metadata for named contracts that are missing from
+`src/generated/contract-metadata.json`, and writes the merged generated file.
+It skips addresses that already have generated metadata unless `--force` is
+passed.
+
+Etherscan HTTP `429`, server errors, network failures, and Etherscan rate-limit
+responses are retried with bounded backoff. Tune this with
+`ETHERSCAN_MAX_RETRIES`, `ETHERSCAN_RETRY_BASE_DELAY_MS`,
+`ETHERSCAN_RATE_LIMIT_DELAY_MS`, and `ETHERSCAN_MIN_REQUEST_INTERVAL_MS` when
+needed.
+
 ## Local Development
 
 The indexer Docker build installs dependencies on Debian slim/glibc and runs on
@@ -109,12 +138,20 @@ distroless Node.js. Envio's Hypersync native dependency publishes
 `linux-arm64-gnu`, but not `linux-arm64-musl`, so Alpine ARM builds cannot load
 the required binding.
 
-For the quickest local loop, run Envio's built-in local stack and indexer from
-the repository root:
+For the quickest local loop, run Envio's built-in local stack and a host
+indexer process from the repository root:
 
 ```bash
 pnpm run indexer:dev
 ```
+
+This loads `apps/indexer/.env`, derives `ENVIO_RPC_MODE=fallback` when
+`ENVIO_API_TOKEN` is set, starts the indexer process outside Docker, and lets
+Envio manage its local Postgres and Hasura support containers.
+
+The wrapper also reads the repository root `.env`, so the same file used by
+Docker Compose can provide `ETHERSCAN_API_KEY`, `ENVIO_API_TOKEN`, and RPC URLs
+for host indexer runs.
 
 For a cold local run that resets Envio's local database state:
 
@@ -122,8 +159,8 @@ For a cold local run that resets Envio's local database state:
 pnpm run indexer:dev:reset
 ```
 
-Use `-r` for benchmarking or debugging startup behavior. Avoid it when you want
-to keep local progress between runs.
+This starts `envio dev -r`, which clears the local Envio database and reindexes
+from scratch. Avoid it when you want to keep local progress between runs.
 
 Stop the dev process with `Ctrl-C`. Envio's Docker services may remain running;
 that is normal for repeated local testing.

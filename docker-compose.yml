@@ -56,6 +56,7 @@ services:
       HASURA_GRAPHQL_ADMIN_SECRET: *hasura-admin-secret
       ENVIO_RPC_MODE: ${ENVIO_RPC_MODE:-}
       ENVIO_API_TOKEN: ${ENVIO_API_TOKEN:?Set ENVIO_API_TOKEN in .env to run the compose stack}
+      ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY:?Set ETHERSCAN_API_KEY in .env to run the compose stack}
       ENVIO_RPC_URL_1: ${ENVIO_RPC_URL_1:?Set ENVIO_RPC_URL_1 in .env to run the compose stack}
       ENVIO_RPC_URL_10: ${ENVIO_RPC_URL_10:?Set ENVIO_RPC_URL_10 in .env to run the compose stack}
       ENVIO_RPC_URL_42161: ${ENVIO_RPC_URL_42161:?Set ENVIO_RPC_URL_42161 in .env to run the compose stack}

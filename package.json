@@ -20,6 +20,7 @@
     "dev": "turbo run dev",
     "indexer:dev": "env ENVIO_TUI=false pnpm --dir apps/indexer exec node scripts/start-envio.mjs dev",
     "indexer:dev:reset": "env ENVIO_TUI=false pnpm --dir apps/indexer exec node scripts/start-envio.mjs dev -r",
+    "indexer:metadata": "node scripts/generate-indexer-contract-metadata.mjs",
     "indexer:metrics": "sh -c 'curl -s \"http://localhost:${ENVIO_INDEXER_PORT:-9898}/metrics\" | rg \"envio_progress_|hyperindex_synced_to_head|envio_effect_\"'",
     "lint:check": "turbo run lint:check",
     "lint": "turbo run lint && biome format --write .",

@@ -1,10 +1,6 @@
 # Dependency stage
-# Pinned image: node:24-alpine (Node v24.14.1)
-FROM node:24-alpine@sha256:01743339035a5c3c11a373cd7c83aeab6ed1457b55da6a69e014a95ac4e4700b AS deps
-
-# Apply Alpine security updates and add glibc compatibility for Envio native bindings.
-RUN apk upgrade --no-cache musl musl-utils zlib libssl3 libcrypto3 libxpm nghttp2-libs xz-libs \
-    && apk add --no-cache libc6-compat
+# Pinned image: node:24-slim (Node v24.14.1, Debian/glibc)
+FROM node:24-slim@sha256:242549cd46785b480c832479a730f4f2a20865d61ea2e404fdb2a5c3d3b73ecf AS deps
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
@@ -23,42 +19,25 @@ RUN pnpm install --frozen-lockfile --prod
 COPY apps/indexer/ ./apps/indexer/
 
 # Runtime stage
-FROM node:24-alpine@sha256:01743339035a5c3c11a373cd7c83aeab6ed1457b55da6a69e014a95ac4e4700b AS runtime
-
-# Apply Alpine security updates and add glibc compatibility for Envio native bindings.
-RUN apk upgrade --no-cache musl musl-utils zlib libssl3 libcrypto3 libxpm nghttp2-libs xz-libs \
-    && apk add --no-cache libc6-compat
+# Pinned image: gcr.io/distroless/nodejs24-debian13
+FROM gcr.io/distroless/nodejs24-debian13@sha256:e7192174b2b2e5db60cb8f8fc3dcb8cb8e0456f961387c4e0556118f09dcb7c8 AS runtime
 
 # Set working directory
 WORKDIR /app
 
 # Copy runtime dependencies and source from dependency stage
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/indexer ./apps/indexer
-COPY --from=deps /app/package.json ./package.json
-COPY --from=deps /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
-
-# Remove package managers from runtime image to reduce toolchain CVE surface.
-RUN rm -rf \
-    /root/.cache/node/corepack \
-    /usr/local/lib/node_modules/corepack \
-    /usr/local/lib/node_modules/npm \
-    /usr/local/bin/corepack \
-    /usr/local/bin/npm \
-    /usr/local/bin/npx \
-    /usr/local/bin/pnpm \
-    /usr/local/bin/pnpx
+COPY --from=deps --chown=nonroot:nonroot /app/node_modules ./node_modules
+COPY --from=deps --chown=nonroot:nonroot /app/apps/indexer ./apps/indexer
+COPY --from=deps --chown=nonroot:nonroot /app/package.json ./package.json
+COPY --from=deps --chown=nonroot:nonroot /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
 # Set environment variables
 ENV NODE_ENV=production
-
-# Use non-root user
-RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
 
 # Expose the Envio indexer metrics/API port.
 EXPOSE 9898
 
 # Start the application
 WORKDIR /app/apps/indexer
-USER app
-CMD ["node", "scripts/start-envio.mjs"]
+USER nonroot
+CMD ["scripts/start-envio.mjs"]

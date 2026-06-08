@@ -64,6 +64,16 @@ test("formats spawn failures loudly", async () => {
     formatEnvioSpawnError(
       Object.assign(new Error("spawn envio ENOENT"), { code: "ENOENT" })
     ),
-    /envio binary was not found/
+    /Envio entrypoint was not found/
   );
+});
+
+test("spawns Envio through node instead of the pnpm shell shim", async () => {
+  const { resolveEnvioCommand } = await loadModule();
+  const command = resolveEnvioCommand("/app/apps/indexer");
+  assert.equal(command.command, process.execPath);
+  assert.deepEqual(command.args, [
+    "/app/apps/indexer/node_modules/envio/bin.mjs",
+    "start",
+  ]);
 });

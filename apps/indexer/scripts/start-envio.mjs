@@ -89,6 +89,14 @@ export const resolveEnvioArgs = (args, env = process.env) => {
 
 const envioArgs = resolveEnvioArgs(process.argv.slice(2));
 
+export const resolveEnvioCommand = (cwd = process.cwd()) => {
+  const envioBinPath = resolve(cwd, "node_modules/envio/bin.mjs");
+  return {
+    command: process.execPath,
+    args: [envioBinPath, ...envioArgs],
+  };
+};
+
 const isStartCommand = () => {
   const [command] = envioArgs;
   return command === "start";
@@ -450,7 +458,7 @@ const startHealthcheckWrapper = () => {
 
 export const formatEnvioSpawnError = (error) => {
   if (error?.code === "ENOENT") {
-    return `Failed to start Envio: envio binary was not found in PATH (${error.message})`;
+    return `Failed to start Envio: node or the Envio entrypoint was not found (${error.message})`;
   }
   return `Failed to start Envio: ${error.message}`;
 };
@@ -459,8 +467,9 @@ export const run = async () => {
   await waitForHasura();
 
   const wrapperServer = startHealthcheckWrapper();
+  const envioCommand = resolveEnvioCommand();
 
-  const child = spawn("./node_modules/.bin/envio", envioArgs, {
+  const child = spawn(envioCommand.command, envioCommand.args, {
     env: process.env,
     stdio: "inherit",
   });

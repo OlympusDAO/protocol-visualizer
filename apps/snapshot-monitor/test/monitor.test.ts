@@ -259,7 +259,8 @@ test("reports malformed indexer metrics URLs as invalid", async () => {
 
 test("reports indexer metrics HTTP failures with safe context", async () => {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = (async () => new Response("", { status: 503 })) as typeof fetch;
+  globalThis.fetch = (async () =>
+    new Response("", { status: 503 })) as typeof fetch;
 
   try {
     await assert.rejects(

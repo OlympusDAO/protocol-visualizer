@@ -231,8 +231,8 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
 
   if (!input.manifest) {
     const message = `Protocol visualizer snapshot monitor: no active manifest is published for deployment ${shortId(
-        input.deploymentId
-      )}.`;
+      input.deploymentId
+    )}.`;
     messages.push(message);
     discordMessages.push({ content: message });
   } else if (
@@ -281,8 +281,8 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
       .map(([name, chain]) => `${name}: ${chain.date} / block ${chain.block}`)
       .join("; ");
     const message = `Protocol visualizer indexing summary for ${shortId(
-        input.deploymentId
-      )}: ${chainLines || "no per-chain progress available"}.`;
+      input.deploymentId
+    )}: ${chainLines || "no per-chain progress available"}.`;
     messages.push(message);
     discordMessages.push({
       content: "Protocol visualizer indexing summary",

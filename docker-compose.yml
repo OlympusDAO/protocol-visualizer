@@ -126,6 +126,7 @@ services:
       - jobs
     environment:
       <<: *snapshot-s3-env
+      RAILWAY_ENVIRONMENT_NAME: ${RAILWAY_ENVIRONMENT_NAME:?Set RAILWAY_ENVIRONMENT_NAME in .env to run snapshot jobs}
       INDEXER_METRICS_URL: http://indexer:9898/metrics
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
       INDEXER_DEPLOYMENT_ID: ${INDEXER_DEPLOYMENT_ID:-local-compose}
@@ -159,6 +160,7 @@ services:
       <<: *snapshot-s3-env
       HASURA_GRAPHQL_URL: http://hasura:8080/v1/graphql
       HASURA_GRAPHQL_ADMIN_SECRET: *hasura-admin-secret
+      RAILWAY_ENVIRONMENT_NAME: ${RAILWAY_ENVIRONMENT_NAME:?Set RAILWAY_ENVIRONMENT_NAME in .env to run snapshot jobs}
       INDEXER_METRICS_URL: http://indexer:9898/metrics
       INDEXER_DEPLOYMENT_ID: ${INDEXER_DEPLOYMENT_ID:-local-compose}
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}

@@ -212,6 +212,7 @@ test("publisher skips before Hasura reads when indexer metrics are not ready", a
     SNAPSHOT_SOURCE: "hasura",
     SNAPSHOT_CHAIN_IDS: "1,10",
     INDEXER_DEPLOYMENT_ID: "deployment-a",
+    RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
     INDEXER_METRICS_URL: "http://indexer:9898/metrics",
   };
   delete process.env.HASURA_GRAPHQL_URL;
@@ -260,6 +261,7 @@ test("publisher reports indexer metrics network failures with safe context", asy
     SNAPSHOT_SOURCE: "hasura",
     SNAPSHOT_CHAIN_IDS: "1",
     INDEXER_DEPLOYMENT_ID: "deployment-a",
+    RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
     INDEXER_METRICS_URL:
       "http://user:password@indexer:9898/metrics?secret=value",
   };
@@ -282,6 +284,37 @@ test("publisher reports indexer metrics network failures with safe context", asy
         return true;
       }
     );
+  } finally {
+    process.env = originalEnv;
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("publisher requires Railway environment name for live Hasura runs", async () => {
+  const originalEnv = { ...process.env };
+  const originalFetch = globalThis.fetch;
+  let fetched = false;
+
+  process.env = {
+    ...originalEnv,
+    SNAPSHOT_SOURCE: "hasura",
+    SNAPSHOT_CHAIN_IDS: "1",
+    INDEXER_DEPLOYMENT_ID: "deployment-a",
+    INDEXER_METRICS_URL: "http://indexer:9898/metrics",
+  };
+  delete process.env.RAILWAY_ENVIRONMENT_NAME;
+
+  globalThis.fetch = async () => {
+    fetched = true;
+    return new Response("", { status: 200 });
+  };
+
+  try {
+    await assert.rejects(
+      () => runPublisher(),
+      /RAILWAY_ENVIRONMENT_NAME is required/
+    );
+    assert.equal(fetched, false);
   } finally {
     process.env = originalEnv;
     globalThis.fetch = originalFetch;

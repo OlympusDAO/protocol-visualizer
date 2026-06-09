@@ -27,6 +27,7 @@ Required production variables:
 
 ```bash
 DISCORD_WEBHOOK_URL=<discord webhook url>
+RAILWAY_ENVIRONMENT_NAME=<provided by Railway>
 INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
 BUCKET=${{<bucket-service>.BUCKET}}
 ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
@@ -38,6 +39,8 @@ ENDPOINT=${{<bucket-service>.ENDPOINT}}
 The indexer Railway service must expose the same port used in
 `INDEXER_METRICS_URL`. With the documented setup, set `indexer.PORT=9898` so the
 monitor can reach `http://indexer.railway.internal:9898/metrics`.
+`RAILWAY_ENVIRONMENT_NAME` is provided automatically by Railway and is required;
+the monitor fails before metrics reads or bucket writes if it is missing.
 
 Optional:
 

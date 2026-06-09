@@ -42,8 +42,11 @@ test("shortens deployment ids for Discord output", () => {
 
 test("sends one daily indexing summary", () => {
   const result = evaluateMonitor({
+    environmentName: "protocol-visualizer-pr-49",
     deploymentId: "deployment-a",
-    manifest: manifest("2026-06-05T00:00:00.000Z"),
+    manifest: manifest("2026-06-05T00:00:00.000Z", {
+      indexerDeploymentId: "deployment-active",
+    }),
     state: {},
     now: new Date("2026-06-05T01:00:00.000Z"),
     staleThresholdMs: Number.MAX_SAFE_INTEGER,
@@ -59,7 +62,21 @@ test("sends one daily indexing summary", () => {
     result.discordMessages[0]?.embeds?.[0]?.title,
     "Protocol Visualizer Indexing Summary"
   );
+  assert.equal(
+    result.discordMessages[0]?.embeds?.[0]?.description,
+    "Environment protocol-visualizer-pr-49"
+  );
   assert.deepEqual(result.discordMessages[0]?.embeds?.[0]?.fields, [
+    {
+      name: "Deployment",
+      value: "deployment-a",
+      inline: true,
+    },
+    {
+      name: "Published deployment",
+      value: "deployment-a",
+      inline: true,
+    },
     {
       name: "Chain",
       value: "Mainnet",
@@ -81,10 +98,13 @@ test("sends one daily indexing summary", () => {
 
 test("detects handover when active manifest changes", () => {
   const result = evaluateMonitor({
-    deploymentId: "deployment-b",
-    manifest: manifest("2026-06-05T01:00:00.000Z"),
+    deploymentId: "deployment-indexing",
+    manifest: manifest("2026-06-05T01:00:00.000Z", {
+      indexerDeploymentId: "deployment-new-active",
+    }),
     state: {
       activeGeneratedAt: "2026-06-04T01:00:00.000Z",
+      activeDeploymentId: "deployment-old-active",
       lastDailySummaryAt: "2026-06-05",
     },
     now: new Date("2026-06-05T02:00:00.000Z"),
@@ -92,6 +112,45 @@ test("detects handover when active manifest changes", () => {
   });
   assert.equal(result.messages.length, 1);
   assert.match(result.messages[0] ?? "", /handover detected/);
+  assert.match(result.messages[0] ?? "", /deployment-o/);
+  assert.match(result.messages[0] ?? "", /deployment-n/);
+  assert.match(result.messages[0] ?? "", /deployment-i/);
+  assert.equal(result.state.activeDeploymentId, "deployment-new-active");
+  assert.equal(
+    result.discordMessages[0]?.content,
+    "Protocol visualizer handover detected"
+  );
+  assert.equal(
+    result.discordMessages[0]?.embeds?.[0]?.title,
+    "Protocol Visualizer Snapshot Handover"
+  );
+  assert.deepEqual(result.discordMessages[0]?.embeds?.[0]?.fields, [
+    {
+      name: "Previous published deployment",
+      value: "deployment-o",
+      inline: true,
+    },
+    {
+      name: "New published deployment",
+      value: "deployment-n",
+      inline: true,
+    },
+    {
+      name: "Currently indexing deployment",
+      value: "deployment-i",
+      inline: true,
+    },
+    {
+      name: "Previous active snapshot",
+      value: "2026-06-04T01:00:00.000Z",
+      inline: false,
+    },
+    {
+      name: "New active snapshot",
+      value: "2026-06-05T01:00:00.000Z",
+      inline: false,
+    },
+  ]);
 });
 
 test("warns when no manifest exists", () => {

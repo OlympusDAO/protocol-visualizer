@@ -106,6 +106,7 @@ Set on `snapshot-publisher`:
 ```bash
 HASURA_GRAPHQL_URL=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql
 HASURA_GRAPHQL_ADMIN_SECRET=${{hasura.HASURA_GRAPHQL_ADMIN_SECRET}}
+RAILWAY_ENVIRONMENT_NAME=<provided by Railway>
 INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
 BUCKET=${{<bucket-service>.BUCKET}}
 ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
@@ -116,6 +117,10 @@ ENDPOINT=${{<bucket-service>.ENDPOINT}}
 # DISCORD_WEBHOOK_URL=<discord webhook url>
 # MONITOR_STALE_CHAIN_HOURS=24
 ```
+
+`RAILWAY_ENVIRONMENT_NAME` is provided automatically by Railway. Do not add a
+custom replacement variable; `snapshot-publisher` fails fast if the Railway
+environment name is missing.
 
 `INDEXER_DEPLOYMENT_ID` is a manual artifact namespace override. When it is not
 set, Railway's `RAILWAY_GIT_COMMIT_SHA` is used. The publisher watches
@@ -131,6 +136,7 @@ Set on `snapshot-monitor`:
 
 ```bash
 DISCORD_WEBHOOK_URL=<discord webhook url>
+RAILWAY_ENVIRONMENT_NAME=<provided by Railway>
 INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
 BUCKET=${{<bucket-service>.BUCKET}}
 ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
@@ -141,6 +147,8 @@ ENDPOINT=${{<bucket-service>.ENDPOINT}}
 # MONITOR_STATE_KEY=v1/monitor-state.json
 # MONITOR_STALE_CHAIN_HOURS=24
 ```
+
+`snapshot-monitor` also fails fast if `RAILWAY_ENVIRONMENT_NAME` is missing.
 
 Set on `snapshot-gateway`:
 

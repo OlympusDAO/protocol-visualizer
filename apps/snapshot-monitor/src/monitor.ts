@@ -15,6 +15,7 @@ import {
 
 type MonitorState = {
   activeGeneratedAt?: string;
+  activeDeploymentId?: string;
   lastDailySummaryAt?: string;
   lastIndexingDeploymentId?: string;
   chainProgress?: Record<
@@ -39,6 +40,7 @@ type MonitorStore = {
 };
 
 type MonitorInput = {
+  environmentName?: string;
   deploymentId: string;
   manifest?: SnapshotManifest;
   progress?: IndexingProgress;
@@ -219,6 +221,7 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
   const nextState: MonitorState = {
     ...input.state,
     activeGeneratedAt: input.manifest?.generatedAt,
+    activeDeploymentId: input.manifest?.indexerDeploymentId,
     lastIndexingDeploymentId:
       input.manifest?.indexerDeploymentId &&
       input.manifest.indexerDeploymentId !== input.deploymentId
@@ -228,6 +231,7 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
   const progress = input.progress ?? input.manifest?.indexingProgress;
   const notReadyChainIds = input.notReadyChainIds ?? [];
   const nextChainProgress: MonitorState["chainProgress"] = {};
+  const environmentName = input.environmentName ?? "<unknown>";
 
   if (!input.manifest) {
     const message = `Protocol visualizer snapshot monitor: no active manifest is published for deployment ${shortId(
@@ -239,9 +243,55 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
     input.state.activeGeneratedAt &&
     input.state.activeGeneratedAt !== input.manifest.generatedAt
   ) {
-    const message = `Protocol visualizer handover detected: active snapshots changed from ${input.state.activeGeneratedAt} to ${input.manifest.generatedAt}.`;
+    const previousPublishedDeployment = shortId(
+      input.state.activeDeploymentId ?? "<unknown>"
+    );
+    const newPublishedDeployment = shortId(
+      input.manifest.indexerDeploymentId ?? "<unknown>"
+    );
+    const currentIndexingDeployment = shortId(input.deploymentId);
+    const message = `Protocol visualizer handover detected: active snapshots changed from ${
+      input.state.activeGeneratedAt
+    } (published deployment ${previousPublishedDeployment}) to ${
+      input.manifest.generatedAt
+    } (published deployment ${newPublishedDeployment}). Currently indexing deployment: ${currentIndexingDeployment}.`;
     messages.push(message);
-    discordMessages.push({ content: message });
+    discordMessages.push({
+      content: "Protocol visualizer handover detected",
+      embeds: [
+        {
+          title: "Protocol Visualizer Snapshot Handover",
+          fields: [
+            {
+              name: "Previous published deployment",
+              value: previousPublishedDeployment,
+              inline: true,
+            },
+            {
+              name: "New published deployment",
+              value: newPublishedDeployment,
+              inline: true,
+            },
+            {
+              name: "Currently indexing deployment",
+              value: currentIndexingDeployment,
+              inline: true,
+            },
+            {
+              name: "Previous active snapshot",
+              value: input.state.activeGeneratedAt,
+              inline: false,
+            },
+            {
+              name: "New active snapshot",
+              value: input.manifest.generatedAt,
+              inline: false,
+            },
+          ],
+          timestamp: input.now.toISOString(),
+        },
+      ],
+    });
   }
 
   if (input.manifest) {
@@ -280,7 +330,7 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
     const chainLines = chainEntries
       .map(([name, chain]) => `${name}: ${chain.date} / block ${chain.block}`)
       .join("; ");
-    const message = `Protocol visualizer indexing summary for ${shortId(
+    const message = `Protocol visualizer indexing summary for ${environmentName} / ${shortId(
       input.deploymentId
     )}: ${chainLines || "no per-chain progress available"}.`;
     messages.push(message);
@@ -289,26 +339,40 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
       embeds: [
         {
           title: "Protocol Visualizer Indexing Summary",
-          description: `Deployment ${shortId(input.deploymentId)}`,
+          description: `Environment ${environmentName}`,
           fields:
             chainEntries.length > 0
-              ? chainEntries.flatMap(([name, chain]) => [
+              ? [
                   {
-                    name: "Chain",
-                    value: name,
+                    name: "Deployment",
+                    value: shortId(input.deploymentId),
                     inline: true,
                   },
                   {
-                    name: "Block",
-                    value: String(chain.block),
+                    name: "Published deployment",
+                    value: shortId(
+                      input.manifest?.indexerDeploymentId ?? "<unknown>"
+                    ),
                     inline: true,
                   },
-                  {
-                    name: "Date",
-                    value: `<t:${chain.timestamp}:F>`,
-                    inline: true,
-                  },
-                ])
+                  ...chainEntries.flatMap(([name, chain]) => [
+                    {
+                      name: "Chain",
+                      value: name,
+                      inline: true,
+                    },
+                    {
+                      name: "Block",
+                      value: String(chain.block),
+                      inline: true,
+                    },
+                    {
+                      name: "Date",
+                      value: `<t:${chain.timestamp}:F>`,
+                      inline: true,
+                    },
+                  ]),
+                ]
               : [
                   {
                     name: "Progress",
@@ -379,6 +443,7 @@ export async function runMonitor(input: {
   store: MonitorStore;
   webhookUrl: string;
   stateKey: string;
+  environmentName: string;
   deploymentId: string;
   progress?: IndexingProgress;
   notReadyChainIds?: number[];
@@ -391,6 +456,7 @@ export async function runMonitor(input: {
   ]);
   const result = evaluateMonitor({
     deploymentId: input.deploymentId,
+    environmentName: input.environmentName,
     manifest,
     progress: input.progress,
     notReadyChainIds: input.notReadyChainIds,
@@ -413,6 +479,7 @@ export async function runMonitor(input: {
 }
 
 export async function runMonitorFromEnv() {
+  const environmentName = requiredEnv("RAILWAY_ENVIRONMENT_NAME");
   const staleThresholdHours = Number(
     process.env.MONITOR_STALE_CHAIN_HOURS ?? "24"
   );
@@ -428,6 +495,7 @@ export async function runMonitorFromEnv() {
     store: createS3Store(),
     webhookUrl: requiredEnv("DISCORD_WEBHOOK_URL"),
     stateKey: process.env.MONITOR_STATE_KEY || DEFAULT_MONITOR_STATE_KEY,
+    environmentName,
     deploymentId: resolveDeploymentId(),
     progress: readiness.indexingProgress,
     notReadyChainIds: readiness.notReadyChainIds,

@@ -53,7 +53,10 @@ type PublisherLock = {
 
 type PublisherDependencies = {
   createS3Client?: () => SnapshotS3Client;
-  notifyHandover?: (manifest: Manifest) => Promise<void>;
+  notifyHandover?: (
+    manifest: Manifest,
+    environmentName: string
+  ) => Promise<void>;
 };
 
 const DEFAULT_LOCK_TTL_MS = 55 * 60 * 1000;
@@ -76,6 +79,9 @@ const createS3Client = () =>
       secretAccessKey: getRequiredEnv("SECRET_ACCESS_KEY"),
     },
   });
+
+const getRailwayEnvironmentName = () =>
+  getRequiredEnv("RAILWAY_ENVIRONMENT_NAME");
 
 export type SnapshotS3Client = {
   send: S3Client["send"];
@@ -382,13 +388,13 @@ export const sendDiscordMessage = async (
   }
 };
 
-const notifyHandover = async (manifest: Manifest) => {
+const notifyHandover = async (manifest: Manifest, environmentName: string) => {
   const chainSummary = manifest.chains
     .map((chain) => `${chain.name}: ${chain.recordCounts.contracts} contracts`)
     .join(", ");
   await sendDiscordMessage(
     process.env.DISCORD_WEBHOOK_URL,
-    `Protocol visualizer snapshot handover completed at ${manifest.generatedAt}. ${chainSummary}`
+    `Protocol visualizer snapshot handover completed in ${environmentName} at ${manifest.generatedAt}. ${chainSummary}`
   );
 };
 
@@ -448,6 +454,8 @@ export async function runPublisher(deps: PublisherDependencies = {}) {
   }
 
   const deploymentId = resolveDeploymentId(source, outputDir);
+  const environmentName =
+    source === "hasura" ? getRailwayEnvironmentName() : undefined;
   const indexerReadiness =
     source === "hasura"
       ? await fetchIndexerReadiness(
@@ -558,7 +566,10 @@ export async function runPublisher(deps: PublisherDependencies = {}) {
 
     await uploadSnapshotFiles(client, bucket, files, { destroyClient: false });
     try {
-      await (deps.notifyHandover ?? notifyHandover)(batch.manifest);
+      await (deps.notifyHandover ?? notifyHandover)(
+        batch.manifest,
+        environmentName ?? getRailwayEnvironmentName()
+      );
     } catch (error) {
       console.error(
         `Discord handover notification failed: ${

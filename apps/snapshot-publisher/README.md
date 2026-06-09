@@ -56,6 +56,7 @@ Railway service:
 ```bash
 HASURA_GRAPHQL_URL=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql
 HASURA_GRAPHQL_ADMIN_SECRET=${{hasura.HASURA_GRAPHQL_ADMIN_SECRET}}
+RAILWAY_ENVIRONMENT_NAME=<provided by Railway>
 INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
 BUCKET=${{<bucket-service>.BUCKET}}
 ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
@@ -74,6 +75,8 @@ handover gate before reading Hasura or writing bucket objects.
 The indexer Railway service must expose the same port used here. With the
 documented setup, set `indexer.PORT=9898` and keep
 `INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics`.
+`RAILWAY_ENVIRONMENT_NAME` is provided automatically by Railway and is required;
+the publisher fails before metrics reads or bucket writes if it is missing.
 The `indexingProgress` values in the published manifest come from this metrics
 endpoint: `date` and `timestamp` are the metrics scrape time, and `block` is the
 latest Envio progress block for that chain. They are not derived from the newest

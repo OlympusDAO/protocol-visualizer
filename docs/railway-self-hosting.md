@@ -1,308 +1,210 @@
-# Railway Self-Hosted Envio Architecture
+# Railway Self-Hosted Snapshot Architecture
 
-This project can run the Envio indexer on Railway without Envio Cloud. Railway
-config-as-code is service-level: the repo can define build and deploy settings
-for each service, but the Railway project, service instances, database service,
-domains, and variables still need to exist in Railway.
+This project runs the Envio indexer, private Hasura, private Railway Bucket,
+snapshot publisher, snapshot monitor, public REST API, and frontend on Railway.
+Hasura, Postgres, the indexer, publisher, monitor, and bucket stay private. The
+only public data service is `snapshot-gateway`.
 
 ## Services
 
-Create these Railway services in one project/environment:
+| Service              | Railway config                    | Role                                      |
+| -------------------- | --------------------------------- | ----------------------------------------- |
+| `Postgres`           | Railway template                  | Envio data and Hasura metadata            |
+| `hasura`             | `/railway-hasura.json`            | Private GraphQL for publisher/monitor     |
+| `indexer`            | `/railway-indexer.json`           | Private Envio indexer                     |
+| `snapshot-publisher` | `/railway-snapshot-publisher.json`| Hourly bucket publisher                   |
+| `snapshot-monitor`   | `/railway-snapshot-monitor.json`  | Daily Discord indexing monitor            |
+| `snapshot-gateway`   | `/railway-snapshot-gateway.json`  | Public Node REST API                      |
+| `frontend`           | `/railway-frontend.json`          | Public UI                                 |
+| Railway Bucket       | Railway storage bucket            | Private S3-compatible snapshot storage    |
 
-| Service         | Source                      | Config file                   | Purpose                                        |
-| --------------- | --------------------------- | ----------------------------- | ---------------------------------------------- |
-| `Postgres`      | Railway PostgreSQL template | Railway-managed               | Stores Envio indexed state and Hasura metadata |
-| `hasura`        | GitHub repo                 | `/railway-hasura.json`        | Serves the private Envio GraphQL API           |
-| `graphql-proxy` | GitHub repo                 | `/railway-graphql-proxy.json` | Public GET-only GraphQL proxy                  |
-| `indexer`       | GitHub repo                 | `/railway-indexer.json`       | Runs `envio start` and writes to Postgres      |
-| `frontend`      | GitHub repo                 | `/railway-frontend.json`      | Optional static frontend service               |
+## Handover Model
 
-Keep the GraphQL proxy public if the frontend queries it directly, but expose it
-through a Cloudflare-proxied custom domain rather than the default
-`*.up.railway.app` domain. Hasura can be private because both the indexer and
-proxy use Railway private networking to reach it. The indexer does not need a
-public domain; Railway can still healthcheck `/ready` on the service port.
+The publisher writes snapshots under deployment-scoped internal keys:
 
-The Hasura image binds to `::` so it accepts Railway private-network IPv6
-traffic. This matters for legacy Railway environments where
-`*.railway.internal` resolves only to IPv6 addresses.
-
-## Architecture
-
-```mermaid
-flowchart LR
-  subgraph internet["Public internet"]
-    user["Browser"]
-    rpc["RPC providers\nAlchemy / fallback RPCs"]
-  end
-
-  subgraph cloudflare["Cloudflare proxy layer"]
-    cfFrontend["Frontend custom domain\ncache static assets"]
-    cfGraphql["API custom domain\ncache GET /graphql"]
-  end
-
-  subgraph railwayPublic["Railway public ingress"]
-    frontend["Frontend\nstatic service"]
-    proxy["GraphQL proxy\nGET-only service"]
-  end
-
-  subgraph railwayPrivate["Railway private network"]
-    hasura["Hasura\nprivate GraphQL/metadata API"]
-    indexer["Envio indexer\nprivate service"]
-    postgres["Postgres\nRailway database"]
-  end
-
-  user -->|HTTPS\nfrontend custom domain| cfFrontend
-  cfFrontend -->|HTTPS\ncustom domain only| frontend
-  frontend -->|browser GET /graphql| cfGraphql
-  user -->|direct API HTTPS\noptional tooling| cfGraphql
-  cfGraphql -->|HTTPS\ncustom domain only| proxy
-
-  proxy -->|private Railway network\nPOST /v1/graphql| hasura
-  indexer -->|private Railway network\nPOST /v1/metadata| hasura
-  indexer -->|private Railway network\nwrites indexed data| postgres
-  hasura -->|private Railway network\nSQL reads| postgres
-
-  indexer -->|public egress\nRPC + effect reads| rpc
-  frontend -. build-time .-> proxyUrl["VITE_ENVIO_GRAPHQL_URL\npublic proxy URL"]
-
-  classDef public fill:#e8f4ff,stroke:#3b82f6,color:#0f172a
-  classDef edge fill:#f5f3ff,stroke:#7c3aed,color:#0f172a
-  classDef private fill:#ecfdf5,stroke:#10b981,color:#0f172a
-  classDef external fill:#fff7ed,stroke:#f97316,color:#0f172a
-
-  class frontend,proxy,proxyUrl public
-  class cfFrontend,cfGraphql edge
-  class hasura,indexer,postgres private
-  class user,rpc external
+```text
+v1/deployments/<deploymentId>/chain/<chainId>/protocol.json
 ```
 
-## Variables
+It publishes `v1/manifest.json` last. The manifest is the public blue/green
+handover boundary. While a new indexer deployment reindexes with
+`envio start -r`, `snapshot-gateway` keeps serving the previous active manifest.
+Public REST responses never expose deployment ids or S3 object keys.
 
-Create this shared Railway variable:
+## Public REST API
 
-```bash
-HASURA_GRAPHQL_ADMIN_SECRET=<strong shared secret>
+```text
+GET /
+GET /ready
+GET /v1/openapi.json
+GET /v1/bounds
+GET /v1/manifest
+GET /v1/chains
+GET /v1/chains/{chainId}/protocol
 ```
 
-Set these variables on `hasura`:
+`/v1/bounds` includes `indexingProgress.chains[*] = { chainId, date,
+timestamp, block }`. Static JSON paths such as `/v1/manifest.json` and
+`/v1/chain/{chainId}/protocol.json` are not public routes.
+
+## Railway Variables
+
+Required variables are uncommented in the examples below. Optional variables are
+commented.
+
+Set on `hasura`:
 
 ```bash
+PORT=8080
 HASURA_GRAPHQL_DATABASE_URL=${{Postgres.DATABASE_URL}}
 HASURA_GRAPHQL_ADMIN_SECRET=${{shared.HASURA_GRAPHQL_ADMIN_SECRET}}
 ```
 
-`PORT` does not need to be set for `hasura`; the image defaults to `8080`.
+Hasura should stay on `PORT=8080` because the private URLs used by the indexer
+and publisher target `hasura.railway.internal:8080`. If this port changes,
+update `HASURA_GRAPHQL_ENDPOINT` on `indexer` and `HASURA_GRAPHQL_URL` on
+`snapshot-publisher`.
 
-Set these variables on `graphql-proxy`:
-
-```bash
-HASURA_GRAPHQL_URL=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql
-# Optional. Defaults to public, s-maxage=60, stale-while-revalidate=300.
-GRAPHQL_PROXY_CACHE_CONTROL=
-# Optional. Defaults to *.
-GRAPHQL_PROXY_CORS_ORIGIN=
-# Optional request-size guardrails.
-GRAPHQL_PROXY_MAX_URL_LENGTH=
-GRAPHQL_PROXY_MAX_QUERY_LENGTH=
-GRAPHQL_PROXY_MAX_VARIABLES_LENGTH=
-```
-
-`PORT` does not need to be set for `graphql-proxy`; Railway injects it and the
-proxy defaults to `8080` outside Railway.
-
-Set these variables on `indexer`:
+Set on `indexer`:
 
 ```bash
+PORT=9898
 DATABASE_URL=${{Postgres.DATABASE_URL}}
 HASURA_GRAPHQL_ENDPOINT=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/metadata
 HASURA_GRAPHQL_ADMIN_SECRET=${{shared.HASURA_GRAPHQL_ADMIN_SECRET}}
-# Optional. Defaults to 180000.
-ENVIO_HASURA_STARTUP_TIMEOUT_MS=
-# Optional. Defaults to true when PORT is set for production `envio start`.
-ENVIO_HEALTHCHECK_WRAPPER_ENABLED=
-# Optional. Defaults to PORT + 1 when the wrapper is enabled.
-ENVIO_INDEXER_INTERNAL_PORT=
-# Optional. Leave unset for RPC-only indexing.
-ENVIO_API_TOKEN=
-# Optional. Defaults to sync without ENVIO_API_TOKEN, or fallback with it.
-ENVIO_RPC_MODE=
-# Strongly recommended. Public fallback RPCs are unlikely to support production backfill throughput.
 ENVIO_RPC_URL_1=<ethereum RPC>
 ENVIO_RPC_URL_10=<optimism RPC>
+ENVIO_RPC_URL_42161=<arbitrum RPC>
 ENVIO_RPC_URL_8453=<base RPC>
 ENVIO_RPC_URL_80094=<berachain RPC>
 ENVIO_RPC_URL_11155111=<sepolia RPC>
+ENVIO_API_TOKEN=<envio-api-token>
+ETHERSCAN_API_KEY=<etherscan-api-key>
+# ENVIO_RPC_MODE=
 ```
 
-`PORT` does not need to be set for `indexer`; Railway injects it, and the
-startup wrapper maps it to Envio's internal port handling.
+`ENVIO_API_TOKEN` should be set for production deployments. When
+`ENVIO_RPC_MODE` is left blank, the indexer wrapper derives `fallback` from the
+token so Envio uses HyperSync with RPC fallback. Running without a token falls
+back to RPC-only indexing and is materially slower for cold backfills.
+`ETHERSCAN_API_KEY` is required so the indexer can fetch contract metadata that
+is not already precomputed or available in local ABI/source-code files.
 
-The `ENVIO_RPC_URL_<chainId>` values are technically optional because
-`config.yaml` has public fallback RPCs, but production should set them. Public
-RPC endpoints are unlikely to sustain the request volume needed for fast
-backfills, especially on Berachain and other high-latency chains.
+Do not set `ENVIO_PG_SCHEMA` on Railway. The indexer wrapper fails fast if it is
+set. Railway start commands run `envio start -r`; public handover is handled by
+the publisher manifest, not database schemas.
 
-Set this variable on `frontend` if it is deployed on Railway:
+The publisher and monitor read Envio's private `/metrics` endpoint to decide
+whether a deployment is ready. The indexer Railway service must set `PORT=9898`
+so the health wrapper exposes `/healthz`, `/ready`, and proxied `/metrics` on
+`indexer.railway.internal:9898`. If that port is changed, update
+`INDEXER_METRICS_URL` on both `snapshot-publisher` and `snapshot-monitor` to
+match the indexer's `PORT`.
+
+Set on `snapshot-publisher`:
 
 ```bash
-VITE_ENVIO_GRAPHQL_URL=https://<graphql-proxy-public-domain>/graphql
+HASURA_GRAPHQL_URL=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql
+HASURA_GRAPHQL_ADMIN_SECRET=${{hasura.HASURA_GRAPHQL_ADMIN_SECRET}}
+RAILWAY_ENVIRONMENT_NAME=<provided by Railway>
+INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
+BUCKET=${{<bucket-service>.BUCKET}}
+ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
+SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
+REGION=${{<bucket-service>.REGION}}
+ENDPOINT=${{<bucket-service>.ENDPOINT}}
+# INDEXER_DEPLOYMENT_ID=${{shared.INDEXER_DEPLOYMENT_ID}}
+# DISCORD_WEBHOOK_URL=<discord webhook url>
+# MONITOR_STALE_CHAIN_HOURS=24
 ```
 
-If the frontend is hosted elsewhere, use the same public GraphQL proxy URL in
-that host's build environment.
+`RAILWAY_ENVIRONMENT_NAME` is provided automatically by Railway. Do not add a
+custom replacement variable; `snapshot-publisher` fails fast if the Railway
+environment name is missing.
 
-For production, use the Cloudflare-proxied API endpoint:
+`INDEXER_DEPLOYMENT_ID` is a manual artifact namespace override. When it is not
+set, Railway's `RAILWAY_GIT_COMMIT_SHA` is used. The publisher watches
+`/apps/indexer/**`, so normal indexer code changes redeploy both indexer and
+publisher from the same commit and produce a new namespace. Publisher-only code
+changes also produce a new namespace for the same indexed data; this is
+acceptable and simply creates a fresh snapshot manifest. For a same-commit
+manual indexer redeploy, reset, or backfill, set `INDEXER_DEPLOYMENT_ID` to a new
+safe value before running `snapshot-publisher` if the active manifest should
+handover to a fresh bucket prefix.
+
+Set on `snapshot-monitor`:
 
 ```bash
-VITE_ENVIO_GRAPHQL_URL=https://protocol-visualizer-api.olympusdao.finance/graphql
+DISCORD_WEBHOOK_URL=<discord webhook url>
+RAILWAY_ENVIRONMENT_NAME=<provided by Railway>
+INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
+BUCKET=${{<bucket-service>.BUCKET}}
+ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
+SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
+REGION=${{<bucket-service>.REGION}}
+ENDPOINT=${{<bucket-service>.ENDPOINT}}
+# INDEXER_DEPLOYMENT_ID=${{shared.INDEXER_DEPLOYMENT_ID}}
+# MONITOR_STATE_KEY=v1/monitor-state.json
+# MONITOR_STALE_CHAIN_HOURS=24
 ```
 
-If the frontend is also exposed through Cloudflare, set the proxy CORS allowlist
-to the frontend custom domain instead of using `*`:
+`snapshot-monitor` also fails fast if `RAILWAY_ENVIRONMENT_NAME` is missing.
+
+Set on `snapshot-gateway`:
 
 ```bash
-GRAPHQL_PROXY_CORS_ORIGIN=https://<frontend-custom-domain>
+BUCKET=${{<bucket-service>.BUCKET}}
+ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
+SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
+REGION=${{<bucket-service>.REGION}}
+ENDPOINT=${{<bucket-service>.ENDPOINT}}
 ```
 
-## RPC-Only Indexing
+Set on `frontend`:
 
-`apps/indexer/config.yaml` uses `ENVIO_RPC_MODE` for every RPC source. The
-startup wrapper defaults it to `sync` when `ENVIO_API_TOKEN` is absent, which
-makes external RPC the historical sync source and avoids HyperSync/Envio Cloud
-usage. If `ENVIO_API_TOKEN` is present and `ENVIO_RPC_MODE` is not explicitly
-set, the wrapper uses `fallback`, so HyperSync is primary and RPC is fallback.
-
-A cold local RPC-only run reached head for all enabled chains in about eight
-minutes. The same run emitted Alchemy compute-unit `429` backoffs on Base,
-Optimism, and especially Berachain, so RPC quota and provider throughput are the
-main production constraints.
-
-## Deployment Flow
-
-1. Create or attach the Railway `Postgres` template service.
-2. Create the Hasura service from the repo and point its config-as-code file at
-   `/railway-hasura.json`.
-3. Create the GraphQL proxy service from the repo and point its config-as-code
-   file at `/railway-graphql-proxy.json`.
-4. Create the indexer service from the repo and point its config-as-code file at
-   `/railway-indexer.json`.
-5. Configure the variables above using Railway variable references for
-   `DATABASE_URL`, `HASURA_GRAPHQL_ENDPOINT`, `HASURA_GRAPHQL_URL`, and
-   `HASURA_GRAPHQL_ADMIN_SECRET`.
-6. Deploy Hasura first, then deploy the GraphQL proxy and indexer. The indexer
-   startup wrapper waits for Hasura's metadata endpoint before production
-   `envio start`, because Envio's first table-tracking request is not retried if
-   Hasura is still refusing private-network connections.
-7. Railway healthchecks use the wrapper's `/ready`, which returns `503` until
-   Envio reports full indexing readiness from its metrics. The wrapper proxies
-   `/healthz`, `/metrics`, and other requests to the internal Envio port.
-8. Watch indexer metrics at `/metrics`; readiness is visible through
-   `hyperindex_synced_to_head` and `envio_progress_ready{chainId="..."}`.
-
-The indexer wrapper derives `ENVIO_PG_SCHEMA` from `RAILWAY_DEPLOYMENT_ID` when
-no schema is set. That keeps preview deployments from writing into the same
-schema by accident. For a long-lived production deployment, set
-`ENVIO_PG_SCHEMA=public` or another stable schema if you want data to survive
-normal redeploys in the same schema.
-
-## Public GraphQL Proxy
-
-The proxy exposes `/graphql` for browser reads. It accepts only GET GraphQL
-requests, forwards them to private Hasura as JSON POST requests, supports
-introspection, and sets cache headers so Cloudflare can cache successful
-responses by URL. `POST` and other non-GET GraphQL requests are rejected at the
-proxy. Railway uses `/ready` for proxy healthchecks.
-
-Recommended public networking:
-
-- Remove the default Railway `*.up.railway.app` domain from the GraphQL proxy.
-- Keep only the Cloudflare-proxied custom domain, for example
-  `protocol-visualizer-api.olympusdao.finance`.
-- Keep Hasura private-only on Railway private networking.
-- Keep the indexer without a public domain.
-
-Cloudflare should be configured with a
-[Cache Rule](https://developers.cloudflare.com/cache/how-to/cache-rules/) for
-the proxy GraphQL path, because JSON/API responses are not always cached by
-default even when `Cache-Control` is present.
-
-Use this cache rule expression:
-
-```text
-http.host eq "protocol-visualizer-api.olympusdao.finance"
-and http.request.uri.path eq "/graphql"
-and http.request.method eq "GET"
+```bash
+VITE_PROTOCOL_SNAPSHOT_BASE_URL=https://protocol-visualizer-api.olympusdao.finance
 ```
 
-Set cache eligibility to cache successful responses and keep the query string in
-the [cache key](https://developers.cloudflare.com/cache/how-to/cache-keys/).
-The GraphQL request is encoded into the `query` and `variables` parameters, so
-ignoring query strings would serve incorrect responses.
+Use `BUCKET` for S3 API calls, not `RAILWAY_BUCKET_NAME`.
 
-Suggested
-[WAF custom rule](https://developers.cloudflare.com/waf/custom-rules/) to keep
-the public API surface limited to `/graphql`:
+## Railway Policies
 
-```text
-http.host eq "protocol-visualizer-api.olympusdao.finance"
-and http.request.uri.path ne "/graphql"
-```
+Long-running services use `restartPolicyType: ON_FAILURE` and
+`restartPolicyMaxRetries: 1`: `hasura`, `indexer`, `snapshot-gateway`, and
+`frontend`.
 
-Optionally block oversized URLs at the edge before they reach Railway:
+Cron services use `restartPolicyType: NEVER`:
 
-```text
-http.host eq "protocol-visualizer-api.olympusdao.finance"
-and len(http.request.uri) gt 32768
-```
+- `snapshot-publisher`: `0 * * * *`
+- `snapshot-monitor`: `5 0 * * *`
 
-Suggested API
-[rate limiting rule](https://developers.cloudflare.com/waf/rate-limiting-rules/):
+Healthchecks:
 
-- Expression:
+- `hasura`: `/healthz`
+- `indexer`: `/healthz`
+- `snapshot-gateway`: `/ready`
+- `frontend`: `/`
 
-  ```text
-  (http.request.uri.path eq "/graphql")
-  ```
+## Deployment
 
-- Counting characteristic: `IP`
-- Period: `10 seconds`
-- Threshold: `20 requests`
-- Mitigation timeout: `10 seconds`
-- Action: `Block`
+1. Create Postgres and Railway Bucket.
+2. Create Hasura, indexer, publisher, monitor, gateway, and frontend services
+   with their config-as-code files.
+3. Configure variables using Railway references.
+4. Deploy Hasura and indexer.
+5. Manually run `snapshot-publisher` once.
+6. Confirm `GET /ready`, `GET /v1/bounds`, and
+   `GET /v1/chains/1/protocol` through the gateway.
+7. Point the frontend at the Cloudflare-proxied gateway domain.
 
-Cloudflare Free rate limiting expressions may be path-limited, so the dashboard
-may only allow a path rule such as:
+## Cloudflare
 
-```text
-URI Path equals /graphql
-```
+Cache eligible `GET` and `HEAD` routes under `/v1/` and `/`. Bypass `/ready`.
+Block non-`GET`/`HEAD`/`OPTIONS` methods, request bodies on `GET`/`HEAD`, and
+paths outside the public REST surface. Let Cloudflare handle edge compression.
 
-That applies to any proxied hostname in the `olympusdao.finance` zone using
-`/graphql`. That is acceptable if this is the only public `/graphql` endpoint in
-the zone; otherwise use a plan/rule that can include host matching or move the
-proxy to a more specific path.
+## Validation
 
-The production setup should remove the default Railway public domain, keep
-Hasura private, avoid requiring a proxy-origin-secret header, and rely on
-Cloudflare caching for successful GET responses. A proxy-origin-secret header is
-still a useful defense-in-depth option if the default Railway domain is ever
-reintroduced or another direct-origin route becomes available. Configure that
-with a Cloudflare
-[Request Header Transform Rule](https://developers.cloudflare.com/rules/transform/request-header-modification/).
-
-## Public Frontend
-
-The frontend can also sit behind a Cloudflare-proxied custom domain. This is
-recommended for consistent TLS, static asset caching, and edge-level abuse
-controls.
-
-Suggested frontend configuration:
-
-- Add a Railway custom domain for the frontend service.
-- Add the matching Cloudflare DNS record and keep it proxied.
-- Configure the frontend build with
-  `VITE_ENVIO_GRAPHQL_URL=https://protocol-visualizer-api.olympusdao.finance/graphql`.
-- Cache hashed static assets aggressively, such as `/assets/*`.
-- Avoid long edge TTLs for `index.html` unless delayed deploy visibility is
-  acceptable.
+Run the repository validation sequence from `AGENTS.md`. The local
+`validate:local` script also checks generated OpenAPI and the monitor build.

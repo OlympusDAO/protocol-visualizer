@@ -10,6 +10,7 @@ enabled chains in `config.yaml`:
 
 - Ethereum mainnet
 - Optimism
+- Arbitrum
 - Base
 - Berachain
 - Sepolia
@@ -24,8 +25,9 @@ surface effect metrics for those reads.
 - pnpm 10.33.0
 - Docker Desktop, for the local Envio Postgres/Hasura stack
 - RPC URLs for the enabled chains
-- `ENVIO_API_TOKEN` is optional. It is only needed if `config.yaml` is changed
-  to use HyperSync as the primary data source.
+- `ENVIO_API_TOKEN` is strongly recommended and required by the local Docker
+  Compose stack. Without it, the wrapper can run RPC-only indexing, but cold
+  backfills are slower and more likely to hit public RPC limits.
 
 Install dependencies from the repository root:
 
@@ -36,20 +38,41 @@ pnpm install --frozen-lockfile
 ## Environment
 
 Create `apps/indexer/.env` from `apps/indexer/.env.sample` and fill in the RPC
-URLs:
+URLs and Etherscan API key:
 
 ```bash
 cp apps/indexer/.env.sample apps/indexer/.env
 ```
+
+Required variables in `.env.sample` are uncommented. Optional overrides are
+commented.
 
 Set one RPC URL for each enabled chain:
 
 ```bash
 ENVIO_RPC_URL_1=
 ENVIO_RPC_URL_10=
+ENVIO_RPC_URL_42161=
 ENVIO_RPC_URL_8453=
 ENVIO_RPC_URL_80094=
 ENVIO_RPC_URL_11155111=
+```
+
+Set the Etherscan API key used when contract metadata is not already
+precomputed or present in local ABI/source-code files:
+
+```bash
+ETHERSCAN_API_KEY=
+```
+
+For production wrapper runs, also set the database and private Hasura metadata
+endpoint:
+
+```bash
+PORT=9898
+DATABASE_URL=
+HASURA_GRAPHQL_ENDPOINT=
+HASURA_GRAPHQL_ADMIN_SECRET=
 ```
 
 `config.yaml` uses `ENVIO_RPC_MODE` for each RPC source. The startup wrapper
@@ -61,16 +84,20 @@ sets it automatically:
 You can explicitly set `ENVIO_RPC_MODE=sync` or `fallback` to override that
 derived default. Any other value fails at startup.
 
+Local Docker Compose intentionally requires `ENVIO_API_TOKEN` so the default
+path is HyperSync with RPC fallback. Set `ENVIO_RPC_MODE=sync` only when you are
+deliberately testing RPC-only ingestion.
+
 Effect-handler RPC reads also support `ENVIO_RPC_URL_FALLBACK_<chainId>`.
 
-`ENVIO_RPC_URL_42161` is still present in the sample for Arbitrum, but Arbitrum
-is not currently enabled in `config.yaml`.
+Arbitrum is enabled in `config.yaml`, so `ENVIO_RPC_URL_42161` is required with
+the other enabled-chain RPC URLs.
 
 For Railway or any externally managed Postgres database, set `DATABASE_URL`.
 `scripts/start-envio.mjs` maps it to Envio's `ENVIO_PG_*` variables at startup.
-If `RAILWAY_DEPLOYMENT_ID` is present and `ENVIO_PG_SCHEMA` is not set, the
-script also derives a schema name from the deployment id so preview deployments
-do not share one schema.
+Do not set `ENVIO_PG_SCHEMA` on Railway. Railway starts use `envio start -r`,
+and public blue/green handover is handled by the snapshot publisher manifest
+rather than deployment-scoped database schemas.
 
 ## Code Generation
 
@@ -84,14 +111,48 @@ pnpm --filter indexer run codegen
 Envio rewrites `envio-env.d.ts`; that generated file is ignored by the repo
 ESLint config.
 
+## Contract Metadata
+
+After adding named contracts to `src/ContractNames.ts`, refresh generated
+function-role metadata without reindexing:
+
+```bash
+pnpm run indexer:metadata
+```
+
+The generator reads the repository root `.env` and `apps/indexer/.env`, requires
+`ETHERSCAN_API_KEY`, fetches metadata for named contracts that are missing from
+`src/generated/contract-metadata.json`, and writes the merged generated file.
+It skips addresses that already have generated metadata unless `--force` is
+passed.
+
+Etherscan HTTP `429`, server errors, network failures, and Etherscan rate-limit
+responses are retried with bounded backoff. Tune this with
+`ETHERSCAN_MAX_RETRIES`, `ETHERSCAN_RETRY_BASE_DELAY_MS`,
+`ETHERSCAN_RATE_LIMIT_DELAY_MS`, and `ETHERSCAN_MIN_REQUEST_INTERVAL_MS` when
+needed.
+
 ## Local Development
 
-For the quickest local loop, run Envio's built-in local stack and indexer from
-the repository root:
+The indexer Docker build installs dependencies on Debian slim/glibc and runs on
+distroless Node.js. Envio's Hypersync native dependency publishes
+`linux-arm64-gnu`, but not `linux-arm64-musl`, so Alpine ARM builds cannot load
+the required binding.
+
+For the quickest local loop, run Envio's built-in local stack and a host
+indexer process from the repository root:
 
 ```bash
 pnpm run indexer:dev
 ```
+
+This loads `apps/indexer/.env`, derives `ENVIO_RPC_MODE=fallback` when
+`ENVIO_API_TOKEN` is set, starts the indexer process outside Docker, and lets
+Envio manage its local Postgres and Hasura support containers.
+
+The wrapper also reads the repository root `.env`, so the same file used by
+Docker Compose can provide `ETHERSCAN_API_KEY`, `ENVIO_API_TOKEN`, and RPC URLs
+for host indexer runs.
 
 For a cold local run that resets Envio's local database state:
 
@@ -99,8 +160,8 @@ For a cold local run that resets Envio's local database state:
 pnpm run indexer:dev:reset
 ```
 
-Use `-r` for benchmarking or debugging startup behavior. Avoid it when you want
-to keep local progress between runs.
+This starts `envio dev -r`, which clears the local Envio database and reindexes
+from scratch. Avoid it when you want to keep local progress between runs.
 
 Stop the dev process with `Ctrl-C`. Envio's Docker services may remain running;
 that is normal for repeated local testing.
@@ -205,12 +266,14 @@ Railway-style environment variables. It maps:
   startup race where Envio can attempt table tracking before Hasura is accepting
   metadata requests. Local `envio dev` skips this wait because Envio owns the
   local stack lifecycle.
-- `RAILWAY_DEPLOYMENT_ID` to `ENVIO_PG_SCHEMA`, when no schema is explicitly set
 - production readiness on `PORT`, when `PORT` is set. The wrapper moves Envio to
-  an internal port, proxies normal requests through, and returns `503` from
-  `/ready` until `hyperindex_synced_to_head` is `1` or all
-  `envio_progress_ready{chainId="..."}` metrics are `1`. `/healthz` is proxied
-  to Envio as a normal liveness endpoint.
+  an internal port, proxies normal requests through, returns `200` from
+  `/healthz` for process-level Railway health, and keeps `/ready` data-aware for
+  manual checks.
+- Railway deployments must set `PORT=9898` so sibling services can reach the
+  proxied metrics endpoint at `http://indexer.railway.internal:9898/metrics`.
+  Keep `snapshot-publisher.INDEXER_METRICS_URL` and
+  `snapshot-monitor.INDEXER_METRICS_URL` aligned with this value.
 - `PORT` to `ENVIO_INDEXER_PORT`, when no indexer port is explicitly set and the
   healthcheck wrapper is disabled or not used
 

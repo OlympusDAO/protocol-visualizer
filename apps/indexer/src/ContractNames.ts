@@ -113,6 +113,11 @@ const contractNames: MultiChainContracts = {
       name: "EmissionManager",
       type: "policy",
     },
+    "0x5131654eFCd63f7b797e00118792e0d0dD90B8B0": {
+      name: "V1Migrator",
+      type: "policy",
+      version: "1.0",
+    },
     "0x6417F206a0a6628Da136C0Faa39026d0134D2b52": {
       name: "Operator",
       version: "1.5",

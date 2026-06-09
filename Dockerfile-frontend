@@ -16,12 +16,13 @@ RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY apps/frontend/ ./apps/frontend/
+COPY packages/protocol-config/ ./packages/protocol-config/
 
 WORKDIR /app/apps/frontend
 
 # Environment variables
-ARG VITE_ENVIO_GRAPHQL_URL
-ENV VITE_ENVIO_GRAPHQL_URL=$VITE_ENVIO_GRAPHQL_URL
+ARG VITE_PROTOCOL_SNAPSHOT_BASE_URL
+ENV VITE_PROTOCOL_SNAPSHOT_BASE_URL=$VITE_PROTOCOL_SNAPSHOT_BASE_URL
 
 # Build the application
 RUN pnpm run build
@@ -31,10 +32,19 @@ FROM nginxinc/nginx-unprivileged:alpine@sha256:601c823234c474696ded03d619e67f1e5
 
 # Apply Alpine security updates
 USER root
-RUN apk upgrade --no-cache curl libcurl musl musl-utils zlib libssl3 libcrypto3 libuuid libpng libxpm nghttp2-libs xz-libs
+RUN apk upgrade --no-cache curl libcurl musl musl-utils zlib libssl3 libcrypto3 libuuid libpng libxpm libxml2 nghttp2-libs xz-libs
 
 # Copy the built static files to Nginx's serve directory
 COPY --from=builder /app/apps/frontend/dist /usr/share/nginx/html
+
+# Remove scaffold/default assets that are not referenced by the app.
+RUN rm -f \
+    /usr/share/nginx/html/50x.html \
+    /usr/share/nginx/html/file.svg \
+    /usr/share/nginx/html/globe.svg \
+    /usr/share/nginx/html/next.svg \
+    /usr/share/nginx/html/vercel.svg \
+    /usr/share/nginx/html/window.svg
 
 # Copy Nginx config
 COPY --from=builder /app/apps/frontend/nginx.conf /etc/nginx/conf.d/default.conf

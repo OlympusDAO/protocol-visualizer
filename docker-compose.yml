@@ -1,0 +1,201 @@
+name: protocol-visualizer
+
+x-hasura-admin-secret: &hasura-admin-secret ${HASURA_GRAPHQL_ADMIN_SECRET:-local-hasura-admin-secret}
+x-postgres-env: &postgres-env
+  POSTGRES_DB: ${POSTGRES_DB:-protocol_visualizer}
+  POSTGRES_USER: ${POSTGRES_USER:-postgres}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+x-database-url: &database-url postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-protocol_visualizer}
+x-snapshot-s3-env: &snapshot-s3-env
+  BUCKET: ${BUCKET:-protocol-visualizer-snapshots}
+  ACCESS_KEY_ID: ${ACCESS_KEY_ID:-minioadmin}
+  SECRET_ACCESS_KEY: ${SECRET_ACCESS_KEY:-minioadmin}
+  REGION: ${REGION:-us-east-1}
+  ENDPOINT: http://minio:9000
+
+services:
+  postgres:
+    image: postgres:17-alpine@sha256:979c4379dd698aba0b890599a6104e082035f98ef31d9b9291ec22f2b13059ca
+    environment: *postgres-env
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  hasura:
+    build:
+      context: .
+      dockerfile: Dockerfile-hasura
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: *database-url
+      HASURA_GRAPHQL_ADMIN_SECRET: *hasura-admin-secret
+      HASURA_GRAPHQL_ENABLE_CONSOLE: ${HASURA_GRAPHQL_ENABLE_CONSOLE:-true}
+      HASURA_GRAPHQL_DEV_MODE: ${HASURA_GRAPHQL_DEV_MODE:-true}
+      PORT: "8080"
+    ports:
+      - "${HASURA_HOST_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  indexer:
+    build:
+      context: .
+      dockerfile: Dockerfile-indexer
+    environment:
+      DATABASE_URL: *database-url
+      HASURA_GRAPHQL_ENDPOINT: http://hasura:8080/v1/metadata
+      HASURA_GRAPHQL_ADMIN_SECRET: *hasura-admin-secret
+      ENVIO_RPC_MODE: ${ENVIO_RPC_MODE:-}
+      ENVIO_API_TOKEN: ${ENVIO_API_TOKEN:?Set ENVIO_API_TOKEN in .env to run the compose stack}
+      ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY:?Set ETHERSCAN_API_KEY in .env to run the compose stack}
+      ENVIO_RPC_URL_1: ${ENVIO_RPC_URL_1:?Set ENVIO_RPC_URL_1 in .env to run the compose stack}
+      ENVIO_RPC_URL_10: ${ENVIO_RPC_URL_10:?Set ENVIO_RPC_URL_10 in .env to run the compose stack}
+      ENVIO_RPC_URL_42161: ${ENVIO_RPC_URL_42161:?Set ENVIO_RPC_URL_42161 in .env to run the compose stack}
+      ENVIO_RPC_URL_8453: ${ENVIO_RPC_URL_8453:?Set ENVIO_RPC_URL_8453 in .env to run the compose stack}
+      ENVIO_RPC_URL_80094: ${ENVIO_RPC_URL_80094:?Set ENVIO_RPC_URL_80094 in .env to run the compose stack}
+      ENVIO_RPC_URL_11155111: ${ENVIO_RPC_URL_11155111:?Set ENVIO_RPC_URL_11155111 in .env to run the compose stack}
+      ENVIO_HASURA_STARTUP_TIMEOUT_MS: ${ENVIO_HASURA_STARTUP_TIMEOUT_MS:-180000}
+      ENVIO_HEALTHCHECK_WRAPPER_ENABLED: "true"
+      ENVIO_INDEXER_INTERNAL_PORT: "9899"
+      PORT: "9898"
+    ports:
+      - "${INDEXER_HOST_PORT:-9898}:9898"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      hasura:
+        condition: service_started
+
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${ACCESS_KEY_ID:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${SECRET_ACCESS_KEY:-minioadmin}
+    ports:
+      - "${MINIO_API_HOST_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_HOST_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+
+  minio-create-bucket:
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
+    environment:
+      BUCKET: ${BUCKET:-protocol-visualizer-snapshots}
+      MINIO_ROOT_USER: ${ACCESS_KEY_ID:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${SECRET_ACCESS_KEY:-minioadmin}
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        until mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"; do
+          sleep 2
+        done
+        mc mb --ignore-existing "local/$$BUCKET"
+    depends_on:
+      minio:
+        condition: service_started
+    restart: "no"
+
+  snapshot-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile-snapshot-gateway
+    environment: *snapshot-s3-env
+    ports:
+      - "${SNAPSHOT_GATEWAY_HOST_PORT:-8082}:8080"
+    depends_on:
+      minio-create-bucket:
+        condition: service_completed_successfully
+
+  snapshot-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile-snapshot-monitor
+    profiles:
+      - jobs
+    environment:
+      <<: *snapshot-s3-env
+      RAILWAY_ENVIRONMENT_NAME: ${RAILWAY_ENVIRONMENT_NAME:?Set RAILWAY_ENVIRONMENT_NAME in .env to run snapshot jobs}
+      INDEXER_METRICS_URL: http://indexer:9898/metrics
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      INDEXER_DEPLOYMENT_ID: ${INDEXER_DEPLOYMENT_ID:-local-compose}
+      MONITOR_STATE_KEY: ${MONITOR_STATE_KEY:-v1/monitor-state.json}
+    depends_on:
+      indexer:
+        condition: service_started
+      minio-create-bucket:
+        condition: service_completed_successfully
+    restart: "no"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile-frontend
+      args:
+        VITE_PROTOCOL_SNAPSHOT_BASE_URL: ${VITE_PROTOCOL_SNAPSHOT_BASE_URL:-http://localhost:8082}
+    ports:
+      - "${FRONTEND_HOST_PORT:-3000}:8080"
+    depends_on:
+      snapshot-gateway:
+        condition: service_started
+
+  snapshot-publisher:
+    build:
+      context: .
+      dockerfile: Dockerfile-snapshot-publisher
+    profiles:
+      - jobs
+    environment:
+      <<: *snapshot-s3-env
+      HASURA_GRAPHQL_URL: http://hasura:8080/v1/graphql
+      HASURA_GRAPHQL_ADMIN_SECRET: *hasura-admin-secret
+      RAILWAY_ENVIRONMENT_NAME: ${RAILWAY_ENVIRONMENT_NAME:?Set RAILWAY_ENVIRONMENT_NAME in .env to run snapshot jobs}
+      INDEXER_METRICS_URL: http://indexer:9898/metrics
+      INDEXER_DEPLOYMENT_ID: ${INDEXER_DEPLOYMENT_ID:-local-compose}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      SNAPSHOT_PUBLIC_BASE_PATH: /v1
+      SNAPSHOT_PUBLIC_ORIGIN: ${SNAPSHOT_PUBLIC_ORIGIN:-http://localhost:8082}
+      SNAPSHOT_SOURCE: hasura
+      SNAPSHOT_CHAIN_IDS: ${SNAPSHOT_CHAIN_IDS:-}
+    depends_on:
+      hasura:
+        condition: service_started
+      indexer:
+        condition: service_started
+      minio-create-bucket:
+        condition: service_completed_successfully
+    restart: "no"
+
+  snapshot-publisher-sample:
+    build:
+      context: .
+      dockerfile: Dockerfile-snapshot-publisher
+    profiles:
+      - jobs
+    environment:
+      <<: *snapshot-s3-env
+      SNAPSHOT_PUBLIC_BASE_PATH: /v1
+      SNAPSHOT_PUBLIC_ORIGIN: ${SNAPSHOT_PUBLIC_ORIGIN:-http://localhost:8082}
+      SNAPSHOT_SOURCE: sample
+      INDEXER_DEPLOYMENT_ID: ${INDEXER_DEPLOYMENT_ID:-local-sample}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      SNAPSHOT_CHAIN_IDS: ${SNAPSHOT_CHAIN_IDS:-}
+    depends_on:
+      minio-create-bucket:
+        condition: service_completed_successfully
+    restart: "no"
+
+volumes:
+  postgres-data:
+  minio-data:

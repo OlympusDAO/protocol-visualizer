@@ -8,8 +8,11 @@ When asked to validate this repository, run these commands in order:
 2. `pnpm install --frozen-lockfile`
 3. `pnpm run lint:check`
 4. `pnpm run build`
-5. `pnpm run docker:build:indexer`
-6. `pnpm run docker:build:frontend`
+5. `pnpm run snapshots:generate:local`
+6. `pnpm run docker:build:indexer`
+7. `pnpm run docker:build:frontend`
+8. `pnpm run docker:build:snapshot-gateway`
+9. `pnpm run docker:build:snapshot-publisher`
 
 If a command fails, stop and report the first failure with actionable context.
 

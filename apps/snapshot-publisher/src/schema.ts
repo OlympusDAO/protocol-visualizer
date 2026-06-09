@@ -1,0 +1,148 @@
+export const protocolSnapshotSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "/v1/schemas/protocol-snapshot-v1.schema.json",
+  title: "Protocol Visualizer Protocol Snapshot",
+  type: "object",
+  additionalProperties: false,
+  required: ["schemaVersion", "generatedAt", "chainId", "recordCounts", "data"],
+  properties: {
+    schemaVersion: { const: "1.0.0" },
+    generatedAt: { type: "string", format: "date-time" },
+    chainId: { type: "integer" },
+    recordCounts: {
+      type: "object",
+      additionalProperties: false,
+      required: ["contracts", "roles", "roleAssignments"],
+      properties: {
+        contracts: { type: "integer", minimum: 0 },
+        roles: { type: "integer", minimum: 0 },
+        roleAssignments: { type: "integer", minimum: 0 },
+      },
+    },
+    data: {
+      type: "object",
+      additionalProperties: false,
+      required: ["contracts", "roles", "roleAssignments"],
+      properties: {
+        contracts: { type: "array", items: { $ref: "#/$defs/contract" } },
+        roles: { type: "array", items: { $ref: "#/$defs/role" } },
+        roleAssignments: {
+          type: "array",
+          items: { $ref: "#/$defs/roleAssignment" },
+        },
+      },
+    },
+  },
+  $defs: {
+    jsonValue: true,
+    contract: {
+      type: "object",
+      additionalProperties: false,
+      required: [
+        "id",
+        "chainId",
+        "address",
+        "lastUpdatedTimestamp",
+        "lastUpdatedBlockNumber",
+        "name",
+        "contractType",
+        "type",
+        "isEnabled",
+      ],
+      properties: {
+        id: { type: "string" },
+        chainId: { type: "integer" },
+        address: { type: "string" },
+        lastUpdatedTimestamp: { type: "string" },
+        lastUpdatedBlockNumber: { type: "string" },
+        name: { type: "string" },
+        version: { type: ["string", "null"] },
+        contractType: { enum: ["KERNEL", "MODULE", "POLICY"] },
+        type: { enum: ["kernel", "module", "policy"] },
+        isEnabled: { type: "boolean" },
+        policyPermissions: { $ref: "#/$defs/jsonValue" },
+        policyFunctions: { $ref: "#/$defs/jsonValue" },
+      },
+    },
+    role: {
+      type: "object",
+      additionalProperties: false,
+      required: ["id", "chainId", "role"],
+      properties: {
+        id: { type: "string" },
+        chainId: { type: "integer" },
+        role: { type: "string" },
+      },
+    },
+    roleAssignment: {
+      type: "object",
+      additionalProperties: false,
+      required: [
+        "id",
+        "chainId",
+        "role",
+        "assignee",
+        "assigneeName",
+        "lastUpdatedTimestamp",
+        "lastUpdatedBlockNumber",
+        "isGranted",
+      ],
+      properties: {
+        id: { type: "string" },
+        chainId: { type: "integer" },
+        role: { type: "string" },
+        assignee: { type: "string" },
+        assigneeName: { type: "string" },
+        lastUpdatedTimestamp: { type: "string" },
+        lastUpdatedBlockNumber: { type: "string" },
+        isGranted: { type: "boolean" },
+      },
+    },
+  },
+};
+
+export const manifestSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "/v1/schemas/manifest-v1.schema.json",
+  title: "Protocol Visualizer Snapshot Manifest",
+  type: "object",
+  additionalProperties: false,
+  required: ["schemaVersion", "generatedAt", "schemas", "chains"],
+  properties: {
+    schemaVersion: { const: "1.0.0" },
+    generatedAt: { type: "string", format: "date-time" },
+    schemas: {
+      type: "object",
+      additionalProperties: false,
+      required: ["manifest", "protocolSnapshot"],
+      properties: {
+        manifest: { type: "string" },
+        protocolSnapshot: { type: "string" },
+      },
+    },
+    chains: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["chainId", "name", "path", "generatedAt", "recordCounts"],
+        properties: {
+          chainId: { type: "integer" },
+          name: { type: "string" },
+          path: { type: "string" },
+          generatedAt: { type: "string", format: "date-time" },
+          recordCounts: {
+            type: "object",
+            additionalProperties: false,
+            required: ["contracts", "roles", "roleAssignments"],
+            properties: {
+              contracts: { type: "integer", minimum: 0 },
+              roles: { type: "integer", minimum: 0 },
+              roleAssignments: { type: "integer", minimum: 0 },
+            },
+          },
+        },
+      },
+    },
+  },
+};

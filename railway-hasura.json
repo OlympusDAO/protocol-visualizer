@@ -3,11 +3,12 @@
   "build": {
     "builder": "DOCKERFILE",
     "dockerfilePath": "Dockerfile-hasura",
-    "watchPatterns": ["Dockerfile-hasura", "railway-hasura.json"]
+    "watchPatterns": ["/Dockerfile-hasura", "/railway-hasura.json"]
   },
   "deploy": {
     "healthcheckPath": "/healthz",
     "healthcheckTimeout": 300,
-    "restartPolicyType": "ALWAYS"
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 1
   }
 }

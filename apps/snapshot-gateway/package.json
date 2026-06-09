@@ -1,0 +1,28 @@
+{
+  "name": "snapshot-gateway",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist/src",
+    "openapi.json"
+  ],
+  "scripts": {
+    "start": "node dist/src/index.js",
+    "build": "tsc && node dist/scripts/generate-openapi.js && node --test dist/test/*.test.js",
+    "openapi:check": "tsc && node dist/scripts/generate-openapi.js --check",
+    "lint": "biome lint --write . --error-on-warnings",
+    "lint:check": "biome lint . --error-on-warnings"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.940.0",
+    "@protocol-visualizer/snapshot-artifacts": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

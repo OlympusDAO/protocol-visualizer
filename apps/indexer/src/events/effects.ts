@@ -184,14 +184,33 @@ export const readModuleForKeycodeEffect = createEffect(
     rateLimit: { calls: 25, per: "second" },
     cache: true,
   },
-  async ({ input }) =>
-    getPublicClient(input.chainId).readContract({
-      abi: KernelAbi,
-      address: input.kernelAddress,
-      functionName: "getModuleForKeycode",
-      args: [input.keycodeHex as Hex],
-      blockNumber: input.blockNumber,
-    })
+  async ({ input, context }) => {
+    try {
+      return await getPublicClient(input.chainId).readContract({
+        abi: KernelAbi,
+        address: input.kernelAddress,
+        functionName: "getModuleForKeycode",
+        args: [input.keycodeHex as Hex],
+        blockNumber: input.blockNumber,
+      });
+    } catch (error) {
+      if (!isHistoricalStateUnavailable(error)) {
+        throw error;
+      }
+
+      context.cache = false;
+      context.log.warn(
+        `Historical getModuleForKeycode unavailable for ${input.kernelAddress} on chain ${input.chainId} at block ${input.blockNumber}; retrying at latest block`
+      );
+
+      return getPublicClient(input.chainId).readContract({
+        abi: KernelAbi,
+        address: input.kernelAddress,
+        functionName: "getModuleForKeycode",
+        args: [input.keycodeHex as Hex],
+      });
+    }
+  }
 );
 
 const readKernelExecutorEffect = createEffect(
@@ -206,14 +225,33 @@ const readKernelExecutorEffect = createEffect(
     rateLimit: { calls: 25, per: "second" },
     cache: true,
   },
-  async ({ input }) =>
-    getPublicClient(input.chainId).readContract({
-      abi: KernelAbi,
-      address: input.kernelAddress,
-      functionName: "executor",
-      args: [],
-      ...(input.blockNumber ? { blockNumber: input.blockNumber } : {}),
-    })
+  async ({ input, context }) => {
+    try {
+      return await getPublicClient(input.chainId).readContract({
+        abi: KernelAbi,
+        address: input.kernelAddress,
+        functionName: "executor",
+        args: [],
+        ...(input.blockNumber ? { blockNumber: input.blockNumber } : {}),
+      });
+    } catch (error) {
+      if (!input.blockNumber || !isHistoricalStateUnavailable(error)) {
+        throw error;
+      }
+
+      context.cache = false;
+      context.log.warn(
+        `Historical executor unavailable for ${input.kernelAddress} on chain ${input.chainId} at block ${input.blockNumber}; retrying at latest block`
+      );
+
+      return getPublicClient(input.chainId).readContract({
+        abi: KernelAbi,
+        address: input.kernelAddress,
+        functionName: "executor",
+        args: [],
+      });
+    }
+  }
 );
 
 const readRolesAdminEffect = createEffect(
@@ -228,13 +266,31 @@ const readRolesAdminEffect = createEffect(
     rateLimit: { calls: 25, per: "second" },
     cache: true,
   },
-  async ({ input }) =>
-    getPublicClient(input.chainId).readContract({
-      abi: RolesAdminAbi,
-      address: input.rolesAdminAddress,
-      functionName: "admin",
-      ...(input.blockNumber ? { blockNumber: input.blockNumber } : {}),
-    })
+  async ({ input, context }) => {
+    try {
+      return await getPublicClient(input.chainId).readContract({
+        abi: RolesAdminAbi,
+        address: input.rolesAdminAddress,
+        functionName: "admin",
+        ...(input.blockNumber ? { blockNumber: input.blockNumber } : {}),
+      });
+    } catch (error) {
+      if (!input.blockNumber || !isHistoricalStateUnavailable(error)) {
+        throw error;
+      }
+
+      context.cache = false;
+      context.log.warn(
+        `Historical RolesAdmin admin unavailable for ${input.rolesAdminAddress} on chain ${input.chainId} at block ${input.blockNumber}; retrying at latest block`
+      );
+
+      return getPublicClient(input.chainId).readContract({
+        abi: RolesAdminAbi,
+        address: input.rolesAdminAddress,
+        functionName: "admin",
+      });
+    }
+  }
 );
 
 function getContractProcessor(chainId: number): ContractProcessor {

@@ -4,17 +4,18 @@
     "builder": "DOCKERFILE",
     "dockerfilePath": "Dockerfile-indexer",
     "watchPatterns": [
-      "apps/indexer/**",
-      "package.json",
-      "pnpm-lock.yaml",
-      "pnpm-workspace.yaml",
-      "Dockerfile-indexer",
-      "railway-indexer.json"
+      "/apps/indexer/**",
+      "/package.json",
+      "/pnpm-lock.yaml",
+      "/pnpm-workspace.yaml",
+      "/Dockerfile-indexer",
+      "/railway-indexer.json"
     ]
   },
   "deploy": {
-    "healthcheckPath": "/ready",
-    "healthcheckTimeout": 3600,
-    "restartPolicyType": "ALWAYS"
+    "healthcheckPath": "/healthz",
+    "healthcheckTimeout": 30,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 1
   }
 }

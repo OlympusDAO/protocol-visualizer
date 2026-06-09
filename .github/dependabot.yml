@@ -33,9 +33,9 @@ updates:
       - "dependencies"
     versioning-strategy: increase
 
-  # GraphQL proxy app
+  # Snapshot publisher app
   - package-ecosystem: "npm"
-    directory: "/apps/graphql-proxy"
+    directory: "/apps/snapshot-publisher"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -43,3 +43,13 @@ updates:
     labels:
       - "dependencies"
     versioning-strategy: increase
+
+  # Snapshot gateway app
+  - package-ecosystem: "gomod"
+    directory: "/apps/snapshot-gateway"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"

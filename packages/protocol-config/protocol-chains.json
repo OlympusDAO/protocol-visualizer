@@ -1,0 +1,38 @@
+[
+  {
+    "key": "Mainnet",
+    "chainId": 1,
+    "name": "Ethereum Mainnet",
+    "explorerBaseUrl": "https://etherscan.io"
+  },
+  {
+    "key": "Optimism",
+    "chainId": 10,
+    "name": "Optimism",
+    "explorerBaseUrl": "https://optimistic.etherscan.io"
+  },
+  {
+    "key": "Arbitrum",
+    "chainId": 42161,
+    "name": "Arbitrum",
+    "explorerBaseUrl": "https://arbiscan.io"
+  },
+  {
+    "key": "Base",
+    "chainId": 8453,
+    "name": "Base",
+    "explorerBaseUrl": "https://basescan.org"
+  },
+  {
+    "key": "Berachain",
+    "chainId": 80094,
+    "name": "Berachain",
+    "explorerBaseUrl": "https://berascan.com"
+  },
+  {
+    "key": "Sepolia",
+    "chainId": 11155111,
+    "name": "Sepolia",
+    "explorerBaseUrl": "https://sepolia.etherscan.io"
+  }
+]

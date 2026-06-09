@@ -16,6 +16,7 @@ import {
 type MonitorState = {
   activeGeneratedAt?: string;
   lastDailySummaryAt?: string;
+  lastIndexingDeploymentId?: string;
   chainProgress?: Record<
     string,
     {
@@ -49,7 +50,29 @@ type MonitorInput = {
 
 type MonitorResult = {
   messages: string[];
+  discordMessages: DiscordWebhookPayload[];
   state: MonitorState;
+};
+
+type DiscordEmbedField = {
+  name: string;
+  value: string;
+  inline?: boolean;
+};
+
+type DiscordEmbed = {
+  title: string;
+  description?: string;
+  fields?: DiscordEmbedField[];
+  footer?: {
+    text: string;
+  };
+  timestamp?: string;
+};
+
+type DiscordWebhookPayload = {
+  content: string;
+  embeds?: DiscordEmbed[];
 };
 
 const requiredEnv = (key: string): string => {
@@ -183,44 +206,123 @@ export async function fetchIndexerMetricsReadiness(input: {
   return parseEnvioMetricsReadiness(await response.text(), input.chains);
 }
 
+const ageHours = (from: string, to: Date): number | undefined => {
+  const parsed = Date.parse(from);
+  if (!Number.isFinite(parsed)) return undefined;
+  return Math.floor((to.getTime() - parsed) / (60 * 60 * 1000));
+};
+
 export function evaluateMonitor(input: MonitorInput): MonitorResult {
   const messages: string[] = [];
+  const discordMessages: DiscordWebhookPayload[] = [];
   const staleThresholdMs = input.staleThresholdMs ?? 24 * 60 * 60 * 1000;
   const nextState: MonitorState = {
     ...input.state,
     activeGeneratedAt: input.manifest?.generatedAt,
+    lastIndexingDeploymentId:
+      input.manifest?.indexerDeploymentId &&
+      input.manifest.indexerDeploymentId !== input.deploymentId
+        ? input.deploymentId
+        : undefined,
   };
   const progress = input.progress ?? input.manifest?.indexingProgress;
+  const notReadyChainIds = input.notReadyChainIds ?? [];
   const nextChainProgress: MonitorState["chainProgress"] = {};
 
   if (!input.manifest) {
-    messages.push(
-      `Protocol visualizer snapshot monitor: no active manifest is published for deployment ${shortId(
+    const message = `Protocol visualizer snapshot monitor: no active manifest is published for deployment ${shortId(
         input.deploymentId
-      )}.`
-    );
+      )}.`;
+    messages.push(message);
+    discordMessages.push({ content: message });
   } else if (
     input.state.activeGeneratedAt &&
     input.state.activeGeneratedAt !== input.manifest.generatedAt
   ) {
-    messages.push(
-      `Protocol visualizer handover detected: active snapshots changed from ${input.state.activeGeneratedAt} to ${input.manifest.generatedAt}.`
-    );
+    const message = `Protocol visualizer handover detected: active snapshots changed from ${input.state.activeGeneratedAt} to ${input.manifest.generatedAt}.`;
+    messages.push(message);
+    discordMessages.push({ content: message });
+  }
+
+  if (input.manifest) {
+    const activeAgeHours = ageHours(input.manifest.generatedAt, input.now);
+    if (
+      activeAgeHours !== undefined &&
+      activeAgeHours * 60 * 60 * 1000 >= staleThresholdMs
+    ) {
+      const message = `Protocol visualizer snapshot warning: active snapshots are ${activeAgeHours}h old. Active manifest was generated at ${input.manifest.generatedAt}.`;
+      messages.push(message);
+      discordMessages.push({ content: message });
+    }
+  }
+
+  const activeDeploymentId = input.manifest?.indexerDeploymentId;
+  const newDeploymentIsIndexing =
+    activeDeploymentId &&
+    activeDeploymentId !== input.deploymentId &&
+    notReadyChainIds.length > 0;
+  if (
+    newDeploymentIsIndexing &&
+    input.state.lastIndexingDeploymentId !== input.deploymentId
+  ) {
+    const message = `Protocol visualizer indexing notice: deployment ${shortId(
+      input.deploymentId
+    )} is indexing and has not handed over yet. Active snapshots are still from deployment ${shortId(
+      activeDeploymentId
+    )}. Not ready chains: ${notReadyChainIds.join(", ")}.`;
+    messages.push(message);
+    discordMessages.push({ content: message });
   }
 
   const today = input.now.toISOString().slice(0, 10);
   if (input.state.lastDailySummaryAt !== today) {
-    const chainLines = Object.entries(progress?.chains ?? {})
-      .map(
-        ([name, chain]) =>
-          `${name}: ${chain.date} / block ${chain.block} / timestamp ${chain.timestamp}`
-      )
+    const chainEntries = Object.entries(progress?.chains ?? {});
+    const chainLines = chainEntries
+      .map(([name, chain]) => `${name}: ${chain.date} / block ${chain.block}`)
       .join("; ");
-    messages.push(
-      `Protocol visualizer indexing summary for ${shortId(
+    const message = `Protocol visualizer indexing summary for ${shortId(
         input.deploymentId
-      )}: ${chainLines || "no per-chain progress available"}.`
-    );
+      )}: ${chainLines || "no per-chain progress available"}.`;
+    messages.push(message);
+    discordMessages.push({
+      content: "Protocol visualizer indexing summary",
+      embeds: [
+        {
+          title: "Protocol Visualizer Indexing Summary",
+          description: `Deployment ${shortId(input.deploymentId)}`,
+          fields:
+            chainEntries.length > 0
+              ? chainEntries.flatMap(([name, chain]) => [
+                  {
+                    name: "Chain",
+                    value: name,
+                    inline: true,
+                  },
+                  {
+                    name: "Block",
+                    value: String(chain.block),
+                    inline: true,
+                  },
+                  {
+                    name: "Date",
+                    value: `<t:${chain.timestamp}:F>`,
+                    inline: true,
+                  },
+                ])
+              : [
+                  {
+                    name: "Progress",
+                    value: "No per-chain progress available.",
+                    inline: false,
+                  },
+                ],
+          footer: input.manifest
+            ? { text: `Active manifest: ${input.manifest.generatedAt}` }
+            : undefined,
+          timestamp: input.now.toISOString(),
+        },
+      ],
+    });
     nextState.lastDailySummaryAt = today;
   }
 
@@ -242,27 +344,31 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
       previous?.observedAt &&
       input.now.getTime() - Date.parse(previous.observedAt) >= staleThresholdMs
     ) {
-      messages.push(
-        `Protocol visualizer indexing warning: ${name} has not advanced since ${previous.observedAt} at block ${chain.block}.`
-      );
+      const message = `Protocol visualizer indexing warning: ${name} has not advanced since ${previous.observedAt} at block ${chain.block}.`;
+      messages.push(message);
+      discordMessages.push({ content: message });
     }
 
-    if (input.notReadyChainIds?.includes(chain.chainId)) {
-      messages.push(
-        `Protocol visualizer indexing warning: ${name} is not synced to head at block ${chain.block}.`
-      );
+    if (notReadyChainIds.includes(chain.chainId)) {
+      const message = `Protocol visualizer indexing warning: ${name} is not synced to head at block ${chain.block}.`;
+      messages.push(message);
+      discordMessages.push({ content: message });
     }
   }
   nextState.chainProgress = nextChainProgress;
 
-  return { messages, state: nextState };
+  return { messages, discordMessages, state: nextState };
 }
 
-export async function sendDiscordMessage(webhookUrl: string, content: string) {
+export async function sendDiscordMessage(
+  webhookUrl: string,
+  message: string | DiscordWebhookPayload
+) {
+  const payload = typeof message === "string" ? { content: message } : message;
   const response = await fetch(webhookUrl, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ content }),
+    body: JSON.stringify(payload),
   });
   if (!response.ok) {
     throw new Error(`Discord webhook returned HTTP ${response.status}`);
@@ -293,7 +399,7 @@ export async function runMonitor(input: {
     staleThresholdMs: input.staleThresholdMs,
   });
 
-  for (const message of result.messages) {
+  for (const message of result.discordMessages) {
     await sendDiscordMessage(input.webhookUrl, message);
   }
   await input.store.putJson(input.stateKey, result.state);

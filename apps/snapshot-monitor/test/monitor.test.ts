@@ -7,10 +7,14 @@ import {
 import {
   evaluateMonitor,
   fetchIndexerMetricsReadiness,
+  sendDiscordMessage,
   shortId,
 } from "../src/monitor.js";
 
-const manifest = (generatedAt: string): SnapshotManifest => ({
+const manifest = (
+  generatedAt: string,
+  overrides: Partial<SnapshotManifest> = {}
+): SnapshotManifest => ({
   schemaVersion: SCHEMA_VERSION,
   generatedAt,
   schemas: {
@@ -29,6 +33,7 @@ const manifest = (generatedAt: string): SnapshotManifest => ({
     },
   },
   chains: [],
+  ...overrides,
 });
 
 test("shortens deployment ids for Discord output", () => {
@@ -45,6 +50,32 @@ test("sends one daily indexing summary", () => {
   });
   assert.equal(result.messages.length, 1);
   assert.match(result.messages[0] ?? "", /Mainnet: 2026-06-05/);
+  assert.equal(result.discordMessages.length, 1);
+  assert.equal(
+    result.discordMessages[0]?.content,
+    "Protocol visualizer indexing summary"
+  );
+  assert.equal(
+    result.discordMessages[0]?.embeds?.[0]?.title,
+    "Protocol Visualizer Indexing Summary"
+  );
+  assert.deepEqual(result.discordMessages[0]?.embeds?.[0]?.fields, [
+    {
+      name: "Chain",
+      value: "Mainnet",
+      inline: true,
+    },
+    {
+      name: "Block",
+      value: "123",
+      inline: true,
+    },
+    {
+      name: "Date",
+      value: "<t:1780272000:F>",
+      inline: true,
+    },
+  ]);
   assert.equal(result.state.lastDailySummaryAt, "2026-06-05");
 });
 
@@ -107,6 +138,48 @@ test("warns when Envio metrics report a chain is not ready", () => {
     staleThresholdMs: Number.MAX_SAFE_INTEGER,
   });
   assert.match(result.messages.join("\n"), /is not synced to head/);
+});
+
+test("warns when active snapshots are older than the stale threshold", () => {
+  const result = evaluateMonitor({
+    deploymentId: "deployment-f",
+    manifest: manifest("2026-06-04T00:00:00.000Z"),
+    state: { lastDailySummaryAt: "2026-06-05" },
+    now: new Date("2026-06-05T01:00:00.000Z"),
+    staleThresholdMs: 24 * 60 * 60 * 1000,
+  });
+  assert.match(result.messages.join("\n"), /active snapshots are 25h old/);
+});
+
+test("alerts once when a new deployment is indexing before handover", () => {
+  const result = evaluateMonitor({
+    deploymentId: "deployment-new",
+    manifest: manifest("2026-06-05T00:00:00.000Z", {
+      indexerDeploymentId: "deployment-active",
+    }),
+    notReadyChainIds: [1, 10],
+    state: { lastDailySummaryAt: "2026-06-05" },
+    now: new Date("2026-06-05T01:00:00.000Z"),
+    staleThresholdMs: Number.MAX_SAFE_INTEGER,
+  });
+  assert.match(result.messages.join("\n"), /deployment deployment-n/);
+  assert.match(result.messages.join("\n"), /has not handed over yet/);
+  assert.equal(result.state.lastIndexingDeploymentId, "deployment-new");
+
+  const repeated = evaluateMonitor({
+    deploymentId: "deployment-new",
+    manifest: manifest("2026-06-05T00:00:00.000Z", {
+      indexerDeploymentId: "deployment-active",
+    }),
+    notReadyChainIds: [1, 10],
+    state: {
+      lastDailySummaryAt: "2026-06-05",
+      lastIndexingDeploymentId: "deployment-new",
+    },
+    now: new Date("2026-06-05T02:00:00.000Z"),
+    staleThresholdMs: Number.MAX_SAFE_INTEGER,
+  });
+  assert.doesNotMatch(repeated.messages.join("\n"), /has not handed over yet/);
 });
 
 test("fetches current indexing readiness from Envio metrics", async () => {
@@ -209,4 +282,49 @@ test("reports indexer metrics HTTP failures with safe context", async () => {
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("sends Discord embed payloads", async () => {
+  let body = "";
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async (_url, init) => {
+    body = String(init?.body ?? "");
+    return new Response("", { status: 200 });
+  }) as typeof fetch;
+
+  try {
+    await sendDiscordMessage("http://discord.local/webhook", {
+      content: "Protocol visualizer indexing summary",
+      embeds: [
+        {
+          title: "Protocol Visualizer Indexing Summary",
+          fields: [
+            {
+              name: "Mainnet",
+              value: "Date: 2026-06-05\nBlock: 123",
+              inline: true,
+            },
+          ],
+        },
+      ],
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.deepEqual(JSON.parse(body), {
+    content: "Protocol visualizer indexing summary",
+    embeds: [
+      {
+        title: "Protocol Visualizer Indexing Summary",
+        fields: [
+          {
+            name: "Mainnet",
+            value: "Date: 2026-06-05\nBlock: 123",
+            inline: true,
+          },
+        ],
+      },
+    ],
+  });
 });

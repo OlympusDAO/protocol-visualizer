@@ -129,6 +129,16 @@ handover model used by the metrics publisher. For a same-commit manual reindex,
 set `INDEXER_DEPLOYMENT_ID` to a new explicit value before running the publisher
 if a fresh bucket namespace is required.
 
+Deployment identity behavior:
+
+| Scenario | Artifact id used by default | Result |
+| --- | --- | --- |
+| Indexer code/config changes | New `RAILWAY_GIT_COMMIT_SHA` | Publisher redeploys because it watches `/apps/indexer/**`, writes a new deployment-scoped namespace after the indexer is ready, then publishes `v1/manifest.json` last. |
+| Publisher-only code/config changes | New `RAILWAY_GIT_COMMIT_SHA` | Publisher writes a new namespace for the same indexed data and can publish a new manifest. This is acceptable, but the manifest id represents the artifact namespace, not a distinct indexer reindex. |
+| Hourly cron with no new deploy | Existing deployment id | Publisher refreshes the current namespace. If the active manifest already points at that namespace, object overwrites can be visible before the manifest is rewritten. |
+| Same-commit manual indexer redeploy or reset | Existing `RAILWAY_GIT_COMMIT_SHA` unless overridden | Set `INDEXER_DEPLOYMENT_ID` to a new safe value before the publisher run when a fresh namespace is required. |
+| Manual publisher backfill | Explicit `INDEXER_DEPLOYMENT_ID` if set, otherwise `RAILWAY_GIT_COMMIT_SHA` | Use an explicit id for controlled backfills so the bucket namespace and logs identify the run clearly. |
+
 Each cron invocation starts the container, publishes one snapshot batch, logs one
 structured JSON result, logs `Snapshot publisher completed successfully; exiting`
 on success, and exits.

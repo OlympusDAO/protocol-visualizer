@@ -117,6 +117,16 @@ ENDPOINT=${{<bucket-service>.ENDPOINT}}
 # MONITOR_STALE_CHAIN_HOURS=24
 ```
 
+`INDEXER_DEPLOYMENT_ID` is a manual artifact namespace override. When it is not
+set, Railway's `RAILWAY_GIT_COMMIT_SHA` is used. The publisher watches
+`/apps/indexer/**`, so normal indexer code changes redeploy both indexer and
+publisher from the same commit and produce a new namespace. Publisher-only code
+changes also produce a new namespace for the same indexed data; this is
+acceptable and simply creates a fresh snapshot manifest. For a same-commit
+manual indexer redeploy, reset, or backfill, set `INDEXER_DEPLOYMENT_ID` to a new
+safe value before running `snapshot-publisher` if the active manifest should
+handover to a fresh bucket prefix.
+
 Set on `snapshot-monitor`:
 
 ```bash

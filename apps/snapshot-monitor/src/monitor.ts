@@ -267,16 +267,9 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
             chainEntries.length > 0
               ? [
                   {
-                    name: "Deployment",
+                    name: "Deployment ID",
                     value: shortId(input.deploymentId),
-                    inline: true,
-                  },
-                  {
-                    name: "Published deployment",
-                    value: shortId(
-                      input.manifest?.indexerDeploymentId ?? "<unknown>"
-                    ),
-                    inline: true,
+                    inline: false,
                   },
                   ...chainEntries.flatMap(([name, chain]) => [
                     {
@@ -290,7 +283,7 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
                       inline: true,
                     },
                     {
-                      name: "Date",
+                      name: "Time",
                       value: `<t:${chain.timestamp}:F>`,
                       inline: true,
                     },

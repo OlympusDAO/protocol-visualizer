@@ -635,6 +635,63 @@ test("publisher logs when Discord handover is skipped because webhook is missing
   );
 });
 
+test("publisher sends compact handover Discord embed with chain progress rows", async () => {
+  const originalFetch = globalThis.fetch;
+  const consoleCapture = captureConsole();
+  const client = new MemoryS3Client();
+  const discordBodies: unknown[] = [];
+
+  globalThis.fetch = async (url, init) => {
+    assert.equal(String(url), "https://discord.example/webhook");
+    discordBodies.push(JSON.parse(String(init?.body)));
+    return new Response("", { status: 204 });
+  };
+
+  try {
+    await withPublisherEnv(
+      {
+        SNAPSHOT_SOURCE: "sample",
+        SNAPSHOT_CHAIN_IDS: "1",
+        INDEXER_DEPLOYMENT_ID: "deployment-a",
+        RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
+        DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+        BUCKET: "bucket",
+      },
+      () =>
+        runPublisher({
+          createS3Client: () => client,
+        })
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    consoleCapture.restore();
+  }
+
+  assert.equal(discordBodies.length, 1);
+  const body = discordBodies[0] as {
+    content: string;
+    embeds: Array<{
+      fields: Array<{ name: string; value: string; inline?: boolean }>;
+    }>;
+  };
+  const fields = body.embeds[0]?.fields ?? [];
+  assert.equal(body.content, "Protocol visualizer snapshot handover completed");
+  assert.deepEqual(
+    fields.slice(0, 4).map((field) => field.name),
+    ["Deployment ID", "Chain", "Block", "Time"]
+  );
+  assert.equal(fields[0]?.value, "deployment-a");
+  assert.equal(fields[0]?.inline, false);
+  assert.equal(fields[1]?.value, "Ethereum Mainnet");
+  assert.equal(fields[1]?.inline, true);
+  assert.equal(fields[2]?.inline, true);
+  assert.equal(fields[3]?.inline, true);
+  assert(fields[3]?.value.startsWith("<t:"));
+  assert(!fields.some((field) => field.name === "Generated at"));
+  assert(!fields.some((field) => field.name === "Contracts"));
+  assert(!fields.some((field) => field.name === "Roles"));
+});
+
 test("publisher takes over a stale lock with conditional replacement", async () => {
   const consoleCapture = captureConsole();
   const now = Date.now();

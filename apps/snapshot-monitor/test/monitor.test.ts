@@ -68,14 +68,9 @@ test("sends one daily indexing summary", () => {
   );
   assert.deepEqual(result.discordMessages[0]?.embeds?.[0]?.fields, [
     {
-      name: "Deployment",
+      name: "Deployment ID",
       value: "deployment-a",
-      inline: true,
-    },
-    {
-      name: "Published deployment",
-      value: "deployment-a",
-      inline: true,
+      inline: false,
     },
     {
       name: "Chain",
@@ -88,7 +83,7 @@ test("sends one daily indexing summary", () => {
       inline: true,
     },
     {
-      name: "Date",
+      name: "Time",
       value: "<t:1780272000:F>",
       inline: true,
     },

@@ -599,7 +599,8 @@ const shortId = (value: string | undefined): string =>
   value && value.length > 12 ? value.slice(0, 12) : (value ?? "<none>");
 
 const indexingProgressFields = (
-  progress: IndexingProgress | undefined
+  progress: IndexingProgress | undefined,
+  chainNamesById: Map<number, string> = new Map()
 ): DiscordEmbedField[] => {
   const entries = Object.entries(progress?.chains ?? {});
   if (entries.length === 0) {
@@ -614,7 +615,7 @@ const indexingProgressFields = (
   return entries.flatMap(([name, chain]) => [
     {
       name: "Chain",
-      value: name,
+      value: chainNamesById.get(chain.chainId) ?? name,
       inline: true,
     },
     {
@@ -623,7 +624,7 @@ const indexingProgressFields = (
       inline: true,
     },
     {
-      name: "Date",
+      name: "Time",
       value: `<t:${chain.timestamp}:F>`,
       inline: true,
     },
@@ -634,6 +635,9 @@ const reasonsField = (reasons: string[]) =>
   reasons.length > 0 ? reasons.join(", ") : "No blocking reason recorded.";
 
 const notifyHandover = async (manifest: Manifest, environmentName: string) => {
+  const chainNamesById = new Map(
+    manifest.chains.map((chain) => [chain.chainId, chain.name])
+  );
   const webhookConfigured = Boolean(process.env.DISCORD_WEBHOOK_URL?.trim());
   console.log(
     JSON.stringify({
@@ -657,32 +661,11 @@ const notifyHandover = async (manifest: Manifest, environmentName: string) => {
         description: `Environment ${environmentName}`,
         fields: [
           {
-            name: "Published deployment",
+            name: "Deployment ID",
             value: shortId(manifest.indexerDeploymentId),
-            inline: true,
+            inline: false,
           },
-          {
-            name: "Generated at",
-            value: manifest.generatedAt,
-            inline: true,
-          },
-          ...manifest.chains.flatMap((chain) => [
-            {
-              name: "Chain",
-              value: chain.name,
-              inline: true,
-            },
-            {
-              name: "Contracts",
-              value: String(chain.recordCounts.contracts),
-              inline: true,
-            },
-            {
-              name: "Roles",
-              value: String(chain.recordCounts.roles),
-              inline: true,
-            },
-          ]),
+          ...indexingProgressFields(manifest.indexingProgress, chainNamesById),
         ],
         timestamp: manifest.generatedAt,
       },

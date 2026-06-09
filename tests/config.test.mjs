@@ -51,6 +51,11 @@ test("Railway configs use root-anchored watch patterns and expected restart poli
     readJson("railway-snapshot-publisher.json").deploy.cronSchedule,
     "0 * * * *"
   );
+  assert(
+    readJson("railway-snapshot-publisher.json").build.watchPatterns.includes(
+      "/apps/indexer/**"
+    )
+  );
   assert.equal(
     readJson("railway-snapshot-monitor.json").deploy.cronSchedule,
     "5 0 * * *"

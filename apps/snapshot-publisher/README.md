@@ -120,6 +120,15 @@ cronSchedule: 0 * * * *
 restartPolicyType: NEVER
 ```
 
+The publisher's Railway `watchPatterns` intentionally include `/apps/indexer/**`.
+For normal GitHub deployments, Railway provides `RAILWAY_GIT_COMMIT_SHA`; the
+publisher uses that value as the deployment-scoped artifact id when
+`INDEXER_DEPLOYMENT_ID` is not set. Watching indexer source keeps the publisher
+redeployed from the same commit as indexer code changes, matching the artifact
+handover model used by the metrics publisher. For a same-commit manual reindex,
+set `INDEXER_DEPLOYMENT_ID` to a new explicit value before running the publisher
+if a fresh bucket namespace is required.
+
 Each cron invocation starts the container, publishes one snapshot batch, logs one
 structured JSON result, logs `Snapshot publisher completed successfully; exiting`
 on success, and exits.

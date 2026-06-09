@@ -22,7 +22,7 @@
     "indexer:dev:reset": "env ENVIO_TUI=false pnpm --dir apps/indexer exec node scripts/start-envio.mjs dev -r",
     "indexer:metadata": "node scripts/generate-indexer-contract-metadata.mjs",
     "indexer:metrics": "sh -c 'curl -s \"http://localhost:${ENVIO_INDEXER_PORT:-9898}/metrics\" | rg \"envio_progress_|hyperindex_synced_to_head|envio_effect_\"'",
-    "lint:check": "turbo run lint:check",
+    "lint:check": "turbo run lint:check && biome format .",
     "lint": "turbo run lint && biome format --write .",
     "openapi:check": "pnpm --filter snapshot-gateway run openapi:check",
     "snapshots:generate:local": "pnpm --filter snapshot-publisher run build && env SNAPSHOT_OUTPUT_DIR=/tmp/protocol-visualizer-snapshots SNAPSHOT_SOURCE=sample pnpm --filter snapshot-publisher start",

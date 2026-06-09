@@ -244,6 +244,7 @@ export function parseEnvioMetricsReadiness(
 ): EnvioMetricsReadiness {
   const readyByChainId = new Map<number, number>();
   const blockByChainId = new Map<number, number>();
+  const timestampByChainId = new Map<number, number>();
   let syncedToHead = false;
 
   for (const rawLine of iterateLines(metricsText)) {
@@ -269,11 +270,12 @@ export function parseEnvioMetricsReadiness(
       readyByChainId.set(chainId, value);
     } else if (metricName === "envio_progress_block") {
       blockByChainId.set(chainId, value);
+    } else if (metricName === "envio_progress_timestamp") {
+      timestampByChainId.set(chainId, value);
     }
   }
 
-  const timestamp = Math.floor(observedAt.getTime() / 1000);
-  const date = observedAt.toISOString().slice(0, 10);
+  const fallbackTimestamp = Math.floor(observedAt.getTime() / 1000);
   const missingChainIds: number[] = [];
   const notReadyChainIds: number[] = [];
   const readyChainIds: number[] = [];
@@ -293,12 +295,16 @@ export function parseEnvioMetricsReadiness(
       readyChainIds.push(chain.chainId);
     }
 
+    const chainTimestamp = Math.trunc(
+      timestampByChainId.get(chain.chainId) ?? fallbackTimestamp
+    );
+
     progressEntries.push([
       chain.key,
       {
         chainId: chain.chainId,
-        date,
-        timestamp,
+        date: new Date(chainTimestamp * 1000).toISOString().slice(0, 10),
+        timestamp: chainTimestamp,
         block: Math.trunc(block ?? 0),
       },
     ]);

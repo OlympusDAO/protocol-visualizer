@@ -89,6 +89,36 @@ test("parses Envio metrics readiness for supported chains", () => {
   assert.equal(mainnetProgress.timestamp, 1780876800);
 });
 
+test("uses Envio per-chain progress timestamps when present", () => {
+  const readiness = parseEnvioMetricsReadiness(
+    `
+      hyperindex_synced_to_head 1
+      envio_progress_ready{chainId="1"} 1
+      envio_progress_block{chainId="1"} 25272069
+      envio_progress_timestamp{chainId="1"} 1780491216
+      envio_progress_ready{chainId="10"} 1
+      envio_progress_block{chainId="10"} 152657692
+      envio_progress_timestamp{chainId="10"} 1684540529
+    `,
+    [
+      { key: "Mainnet", chainId: 1 },
+      { key: "Optimism", chainId: 10 },
+    ],
+    new Date("2026-06-08T00:00:00.000Z")
+  );
+
+  assert.equal(
+    readiness.indexingProgress.chains.Mainnet?.timestamp,
+    1780491216
+  );
+  assert.equal(readiness.indexingProgress.chains.Mainnet?.date, "2026-06-03");
+  assert.equal(
+    readiness.indexingProgress.chains.Optimism?.timestamp,
+    1684540529
+  );
+  assert.equal(readiness.indexingProgress.chains.Optimism?.date, "2023-05-19");
+});
+
 test("blocks readiness when Envio metrics are missing or not ready", () => {
   const readiness = parseEnvioMetricsReadiness(
     `

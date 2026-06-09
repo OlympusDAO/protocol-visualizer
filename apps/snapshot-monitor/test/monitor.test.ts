@@ -137,3 +137,76 @@ test("fetches current indexing readiness from Envio metrics", async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+test("reports indexer metrics network failures with safe context", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () => {
+    throw new Error("fetch failed");
+  }) as typeof fetch;
+
+  try {
+    await assert.rejects(
+      () =>
+        fetchIndexerMetricsReadiness({
+          metricsUrl:
+            "http://user:password@indexer.railway.internal:9898/metrics?secret=value",
+          chains: [{ key: "Mainnet", chainId: 1, name: "Mainnet" }],
+        }),
+      (error) => {
+        assert(error instanceof Error);
+        assert.match(
+          error.message,
+          /Indexer metrics request to http:\/\/indexer\.railway\.internal:9898\/metrics failed before response: fetch failed/
+        );
+        assert.match(error.message, /includes http:\/\/ or https:\/\//);
+        assert.doesNotMatch(error.message, /password|secret=value/);
+        return true;
+      }
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("reports malformed indexer metrics URLs as invalid", async () => {
+  await assert.rejects(
+    () =>
+      fetchIndexerMetricsReadiness({
+        metricsUrl: "indexer.railway.internal:9898/metrics",
+        chains: [{ key: "Mainnet", chainId: 1, name: "Mainnet" }],
+      }),
+    (error) => {
+      assert(error instanceof Error);
+      assert.match(error.message, /Indexer metrics request to <invalid-url>/);
+      assert.match(error.message, /includes http:\/\/ or https:\/\//);
+      return true;
+    }
+  );
+});
+
+test("reports indexer metrics HTTP failures with safe context", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () => new Response("", { status: 503 })) as typeof fetch;
+
+  try {
+    await assert.rejects(
+      () =>
+        fetchIndexerMetricsReadiness({
+          metricsUrl:
+            "http://user:password@indexer.railway.internal:9898/metrics?secret=value",
+          chains: [{ key: "Mainnet", chainId: 1, name: "Mainnet" }],
+        }),
+      (error) => {
+        assert(error instanceof Error);
+        assert.match(
+          error.message,
+          /Indexer metrics request to http:\/\/indexer\.railway\.internal:9898\/metrics failed with HTTP 503/
+        );
+        assert.doesNotMatch(error.message, /password|secret=value/);
+        return true;
+      }
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

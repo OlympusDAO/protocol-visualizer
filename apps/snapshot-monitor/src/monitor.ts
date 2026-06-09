@@ -58,6 +58,34 @@ const requiredEnv = (key: string): string => {
   return value;
 };
 
+const safeUrlForLog = (value: string): string => {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return "<invalid-url>";
+    }
+    url.username = "";
+    url.password = "";
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return "<invalid-url>";
+  }
+};
+
+const describeFetchError = (error: unknown): string => {
+  if (!(error instanceof Error)) {
+    return String(error);
+  }
+
+  const cause =
+    error.cause instanceof Error && error.cause.message !== error.message
+      ? `: ${error.cause.message}`
+      : "";
+  return `${error.message}${cause}`;
+};
+
 const objectBodyToString = async (body: unknown): Promise<string> => {
   if (typeof body === "string") return body;
   if (body instanceof Uint8Array) return Buffer.from(body).toString("utf8");
@@ -130,13 +158,26 @@ export async function fetchIndexerMetricsReadiness(input: {
   metricsUrl: string;
   chains: ChainConfig[];
 }) {
-  const response = await fetch(input.metricsUrl, {
-    method: "GET",
-    headers: { accept: "text/plain" },
-  });
+  let response: Response;
+  try {
+    response = await fetch(input.metricsUrl, {
+      method: "GET",
+      headers: { accept: "text/plain" },
+    });
+  } catch (error) {
+    throw new Error(
+      `Indexer metrics request to ${safeUrlForLog(
+        input.metricsUrl
+      )} failed before response: ${describeFetchError(
+        error
+      )}. Check INDEXER_METRICS_URL includes http:// or https://, indexer PORT, and private networking.`
+    );
+  }
   if (!response.ok) {
     throw new Error(
-      `Indexer metrics request failed with HTTP ${response.status}`
+      `Indexer metrics request to ${safeUrlForLog(
+        input.metricsUrl
+      )} failed with HTTP ${response.status}`
     );
   }
   return parseEnvioMetricsReadiness(await response.text(), input.chains);

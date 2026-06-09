@@ -96,7 +96,7 @@ test("sends one daily indexing summary", () => {
   assert.equal(result.state.lastDailySummaryAt, "2026-06-05");
 });
 
-test("detects handover when active manifest changes", () => {
+test("records active manifest changes without sending handover messages", () => {
   const result = evaluateMonitor({
     deploymentId: "deployment-indexing",
     manifest: manifest("2026-06-05T01:00:00.000Z", {
@@ -110,47 +110,10 @@ test("detects handover when active manifest changes", () => {
     now: new Date("2026-06-05T02:00:00.000Z"),
     staleThresholdMs: Number.MAX_SAFE_INTEGER,
   });
-  assert.equal(result.messages.length, 1);
-  assert.match(result.messages[0] ?? "", /handover detected/);
-  assert.match(result.messages[0] ?? "", /deployment-o/);
-  assert.match(result.messages[0] ?? "", /deployment-n/);
-  assert.match(result.messages[0] ?? "", /deployment-i/);
+  assert.equal(result.messages.length, 0);
+  assert.equal(result.discordMessages.length, 0);
   assert.equal(result.state.activeDeploymentId, "deployment-new-active");
-  assert.equal(
-    result.discordMessages[0]?.content,
-    "Protocol visualizer handover detected"
-  );
-  assert.equal(
-    result.discordMessages[0]?.embeds?.[0]?.title,
-    "Protocol Visualizer Snapshot Handover"
-  );
-  assert.deepEqual(result.discordMessages[0]?.embeds?.[0]?.fields, [
-    {
-      name: "Previous published deployment",
-      value: "deployment-o",
-      inline: true,
-    },
-    {
-      name: "New published deployment",
-      value: "deployment-n",
-      inline: true,
-    },
-    {
-      name: "Currently indexing deployment",
-      value: "deployment-i",
-      inline: true,
-    },
-    {
-      name: "Previous active snapshot",
-      value: "2026-06-04T01:00:00.000Z",
-      inline: false,
-    },
-    {
-      name: "New active snapshot",
-      value: "2026-06-05T01:00:00.000Z",
-      inline: false,
-    },
-  ]);
+  assert.equal(result.state.activeGeneratedAt, "2026-06-05T01:00:00.000Z");
 });
 
 test("warns when no manifest exists", () => {
@@ -210,7 +173,7 @@ test("warns when active snapshots are older than the stale threshold", () => {
   assert.match(result.messages.join("\n"), /active snapshots are 25h old/);
 });
 
-test("alerts once when a new deployment is indexing before handover", () => {
+test("does not alert when a new deployment is indexing before handover", () => {
   const result = evaluateMonitor({
     deploymentId: "deployment-new",
     manifest: manifest("2026-06-05T00:00:00.000Z", {
@@ -221,24 +184,8 @@ test("alerts once when a new deployment is indexing before handover", () => {
     now: new Date("2026-06-05T01:00:00.000Z"),
     staleThresholdMs: Number.MAX_SAFE_INTEGER,
   });
-  assert.match(result.messages.join("\n"), /deployment deployment-n/);
-  assert.match(result.messages.join("\n"), /has not handed over yet/);
-  assert.equal(result.state.lastIndexingDeploymentId, "deployment-new");
-
-  const repeated = evaluateMonitor({
-    deploymentId: "deployment-new",
-    manifest: manifest("2026-06-05T00:00:00.000Z", {
-      indexerDeploymentId: "deployment-active",
-    }),
-    notReadyChainIds: [1, 10],
-    state: {
-      lastDailySummaryAt: "2026-06-05",
-      lastIndexingDeploymentId: "deployment-new",
-    },
-    now: new Date("2026-06-05T02:00:00.000Z"),
-    staleThresholdMs: Number.MAX_SAFE_INTEGER,
-  });
-  assert.doesNotMatch(repeated.messages.join("\n"), /has not handed over yet/);
+  assert.doesNotMatch(result.messages.join("\n"), /has not handed over yet/);
+  assert.match(result.messages.join("\n"), /is not synced to head/);
 });
 
 test("fetches current indexing readiness from Envio metrics", async () => {

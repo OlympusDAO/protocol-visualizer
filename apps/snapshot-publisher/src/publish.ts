@@ -10,6 +10,7 @@ import {
 } from "@aws-sdk/client-s3";
 import {
   ACTIVE_MANIFEST_KEY,
+  type EnvioMetricsReadiness,
   parseDeploymentId,
   parseEnvioMetricsReadiness,
   PUBLISHER_LOCK_KEY,
@@ -25,7 +26,7 @@ import {
 } from "./snapshot.js";
 import { describeFetchError, safeUrlForLog } from "./network-errors.js";
 import { getSampleProtocolData } from "./sample-data.js";
-import type { Manifest, SnapshotFile } from "./types.js";
+import type { Manifest, SnapshotBatch, SnapshotFile } from "./types.js";
 
 type SnapshotSource = "hasura" | "sample";
 type SkipReason = "lock_held" | "not_data_ready";
@@ -56,10 +57,54 @@ type PublisherDependencies = {
   notifyHandover?: (
     manifest: Manifest,
     environmentName: string
-  ) => Promise<void>;
+  ) => Promise<DiscordNotificationResult | undefined>;
+};
+
+type DiscordNotificationResult = {
+  configured: boolean;
+  attempted: boolean;
+  delivered: boolean;
+  skipReason?: "missing_webhook_url";
+};
+
+type DiscordEmbedField = {
+  name: string;
+  value: string;
+  inline?: boolean;
+};
+
+type DiscordEmbed = {
+  title: string;
+  description?: string;
+  fields?: DiscordEmbedField[];
+  footer?: {
+    text: string;
+  };
+  timestamp?: string;
+};
+
+type DiscordWebhookPayload = {
+  content: string;
+  embeds?: DiscordEmbed[];
+};
+
+type PublisherNotificationDecision =
+  | "handover_in_progress"
+  | "indexing_continues"
+  | "handover_completed"
+  | "no_notification";
+
+type PublisherNotificationState = {
+  lastObservedDeploymentId?: string;
+  lastActiveDeploymentId?: string;
+  lastActiveGeneratedAt?: string;
+  lastDecision?: PublisherNotificationDecision;
+  updatedAt: string;
 };
 
 const DEFAULT_LOCK_TTL_MS = 55 * 60 * 1000;
+export const PUBLISHER_NOTIFICATION_STATE_KEY =
+  "v1/publisher-notification-state.json";
 
 const getRequiredEnv = (key: string): string => {
   const value = process.env[key]?.trim();
@@ -214,6 +259,23 @@ const putJsonObjectIfAbsent = async (
   }
 };
 
+const putJsonObject = async (
+  client: SnapshotS3Client,
+  bucket: string,
+  key: string,
+  value: unknown
+) => {
+  await client.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: json(value),
+      ContentType: "application/json",
+      CacheControl: "no-store",
+    })
+  );
+};
+
 const putJsonObjectIfMatch = async (
   client: SnapshotS3Client,
   bucket: string,
@@ -270,6 +332,138 @@ const resolveDeploymentId = (source: SnapshotSource, outputDir?: string) => {
     process.env.RAILWAY_GIT_COMMIT_SHA?.trim() ||
     (source === "sample" || outputDir ? "local-sample" : "");
   return parseDeploymentId(value);
+};
+
+const readinessForResult = (readiness: EnvioMetricsReadiness) => ({
+  syncedToHead: readiness.syncedToHead,
+  missingChainIds: readiness.missingChainIds,
+  notReadyChainIds: readiness.notReadyChainIds,
+  readyChainIds: readiness.readyChainIds,
+});
+
+const readinessBlockReasons = (readiness: EnvioMetricsReadiness) => {
+  const reasons: string[] = [];
+  if (!readiness.syncedToHead) reasons.push("indexer_not_synced_to_head");
+  if (readiness.missingChainIds.length > 0) {
+    reasons.push("missing_chain_metrics");
+  }
+  if (readiness.notReadyChainIds.length > 0) {
+    reasons.push("chains_not_ready");
+  }
+  return reasons;
+};
+
+const notificationDecisionForUnreadyIndexer = (
+  deploymentId: string,
+  activeManifest: Manifest | undefined,
+  notificationState: PublisherNotificationState | undefined,
+  readiness: EnvioMetricsReadiness
+) => {
+  const previouslyObservedDeploymentId =
+    notificationState?.lastObservedDeploymentId;
+  const activeDeploymentId = activeManifest?.indexerDeploymentId;
+  const reasons = readinessBlockReasons(readiness);
+
+  if (!activeManifest) {
+    reasons.push("no_active_manifest");
+  } else if (activeDeploymentId === deploymentId) {
+    reasons.push("active_manifest_matches_indexing_deployment");
+  } else {
+    reasons.push("active_manifest_is_previous_deployment");
+  }
+
+  if (previouslyObservedDeploymentId === deploymentId) {
+    reasons.push("indexing_deployment_seen_before");
+    return {
+      decision: "indexing_continues" as const,
+      reasons,
+    };
+  }
+
+  if (previouslyObservedDeploymentId) {
+    reasons.push("indexing_deployment_changed_since_last_run");
+  } else {
+    reasons.push("indexing_deployment_first_seen");
+  }
+  return {
+    decision: "handover_in_progress" as const,
+    reasons,
+  };
+};
+
+const notificationDecisionForReadyBatch = (
+  deploymentId: string,
+  activeManifest: Manifest | undefined
+) => {
+  const activeDeploymentId = activeManifest?.indexerDeploymentId;
+  const reasons = ["all_chains_ready", "manifest_publish_last"];
+  if (!activeManifest) {
+    reasons.push("no_active_manifest");
+    return {
+      decision: "handover_completed" as const,
+      reasons,
+    };
+  }
+  if (activeDeploymentId !== deploymentId) {
+    reasons.push("active_manifest_is_previous_deployment");
+    return {
+      decision: "handover_completed" as const,
+      reasons,
+    };
+  }
+  reasons.push("active_manifest_already_matches_indexing_deployment");
+  return {
+    decision: "no_notification" as const,
+    reasons,
+  };
+};
+
+const logPublisherNotificationDecision = (input: {
+  decision: PublisherNotificationDecision;
+  reasons: string[];
+  deploymentId: string;
+  environmentName?: string;
+  activeManifest?: Manifest;
+  notificationState?: PublisherNotificationState;
+  readiness?: EnvioMetricsReadiness;
+}) => {
+  console.log(
+    JSON.stringify({
+      event: "snapshot_publisher_notification_decision",
+      decision: input.decision,
+      reasons: input.reasons,
+      environmentName: input.environmentName,
+      indexingDeploymentId: input.deploymentId,
+      activeDeploymentId: input.activeManifest?.indexerDeploymentId,
+      activeGeneratedAt: input.activeManifest?.generatedAt,
+      previouslyObservedDeploymentId:
+        input.notificationState?.lastObservedDeploymentId,
+      previousDecision: input.notificationState?.lastDecision,
+      ...(input.readiness
+        ? {
+            readiness: readinessForResult(input.readiness),
+          }
+        : {}),
+    })
+  );
+};
+
+const writePublisherNotificationState = async (
+  client: SnapshotS3Client,
+  bucket: string,
+  input: {
+    deploymentId: string;
+    activeManifest?: Manifest;
+    decision: PublisherNotificationDecision;
+  }
+) => {
+  await putJsonObject(client, bucket, PUBLISHER_NOTIFICATION_STATE_KEY, {
+    lastObservedDeploymentId: input.deploymentId,
+    lastActiveDeploymentId: input.activeManifest?.indexerDeploymentId,
+    lastActiveGeneratedAt: input.activeManifest?.generatedAt,
+    lastDecision: input.decision,
+    updatedAt: new Date().toISOString(),
+  } satisfies PublisherNotificationState);
 };
 
 const lockTtlMs = () => {
@@ -374,28 +568,217 @@ const releaseLock = async (
 
 export const sendDiscordMessage = async (
   webhookUrl: string | undefined,
-  content: string
-) => {
+  message: string | DiscordWebhookPayload
+): Promise<DiscordNotificationResult> => {
   const url = webhookUrl?.trim();
-  if (!url) return;
+  if (!url) {
+    return {
+      configured: false,
+      attempted: false,
+      delivered: false,
+      skipReason: "missing_webhook_url",
+    };
+  }
+  const payload = typeof message === "string" ? { content: message } : message;
   const response = await fetch(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ content }),
+    body: JSON.stringify(payload),
   });
   if (!response.ok) {
     throw new Error(`Discord webhook returned HTTP ${response.status}`);
   }
+  return {
+    configured: true,
+    attempted: true,
+    delivered: true,
+  };
 };
 
+const shortId = (value: string | undefined): string =>
+  value && value.length > 12 ? value.slice(0, 12) : (value ?? "<none>");
+
+const indexingProgressFields = (
+  progress: IndexingProgress | undefined
+): DiscordEmbedField[] => {
+  const entries = Object.entries(progress?.chains ?? {});
+  if (entries.length === 0) {
+    return [
+      {
+        name: "Progress",
+        value: "No per-chain progress available.",
+        inline: false,
+      },
+    ];
+  }
+  return entries.flatMap(([name, chain]) => [
+    {
+      name: "Chain",
+      value: name,
+      inline: true,
+    },
+    {
+      name: "Block",
+      value: String(chain.block),
+      inline: true,
+    },
+    {
+      name: "Date",
+      value: `<t:${chain.timestamp}:F>`,
+      inline: true,
+    },
+  ]);
+};
+
+const reasonsField = (reasons: string[]) =>
+  reasons.length > 0 ? reasons.join(", ") : "No blocking reason recorded.";
+
 const notifyHandover = async (manifest: Manifest, environmentName: string) => {
-  const chainSummary = manifest.chains
-    .map((chain) => `${chain.name}: ${chain.recordCounts.contracts} contracts`)
-    .join(", ");
-  await sendDiscordMessage(
-    process.env.DISCORD_WEBHOOK_URL,
-    `Protocol visualizer snapshot handover completed in ${environmentName} at ${manifest.generatedAt}. ${chainSummary}`
+  const webhookConfigured = Boolean(process.env.DISCORD_WEBHOOK_URL?.trim());
+  console.log(
+    JSON.stringify({
+      event: "snapshot_publisher_discord_decision",
+      notification: "handover",
+      environmentName,
+      deploymentId: manifest.indexerDeploymentId,
+      webhookConfigured,
+    })
   );
+  if (!webhookConfigured) {
+    console.warn(
+      "Discord handover notification skipped: DISCORD_WEBHOOK_URL is blank"
+    );
+  }
+  const result = await sendDiscordMessage(process.env.DISCORD_WEBHOOK_URL, {
+    content: "Protocol visualizer snapshot handover completed",
+    embeds: [
+      {
+        title: "Protocol Visualizer Snapshot Handover",
+        description: `Environment ${environmentName}`,
+        fields: [
+          {
+            name: "Published deployment",
+            value: shortId(manifest.indexerDeploymentId),
+            inline: true,
+          },
+          {
+            name: "Generated at",
+            value: manifest.generatedAt,
+            inline: true,
+          },
+          ...manifest.chains.flatMap((chain) => [
+            {
+              name: "Chain",
+              value: chain.name,
+              inline: true,
+            },
+            {
+              name: "Contracts",
+              value: String(chain.recordCounts.contracts),
+              inline: true,
+            },
+            {
+              name: "Roles",
+              value: String(chain.recordCounts.roles),
+              inline: true,
+            },
+          ]),
+        ],
+        timestamp: manifest.generatedAt,
+      },
+    ],
+  });
+  console.log(
+    JSON.stringify({
+      event: "snapshot_publisher_discord_result",
+      notification: "handover",
+      environmentName,
+      deploymentId: manifest.indexerDeploymentId,
+      ...result,
+    })
+  );
+  return result;
+};
+
+const notifyIndexingProgress = async (input: {
+  decision: "handover_in_progress" | "indexing_continues";
+  deploymentId: string;
+  environmentName: string;
+  activeManifest?: Manifest;
+  readiness: EnvioMetricsReadiness;
+  reasons: string[];
+}) => {
+  const webhookConfigured = Boolean(process.env.DISCORD_WEBHOOK_URL?.trim());
+  const notification = input.decision;
+  console.log(
+    JSON.stringify({
+      event: "snapshot_publisher_discord_decision",
+      notification,
+      environmentName: input.environmentName,
+      indexingDeploymentId: input.deploymentId,
+      activeDeploymentId: input.activeManifest?.indexerDeploymentId,
+      webhookConfigured,
+      reasons: input.reasons,
+    })
+  );
+  if (!webhookConfigured) {
+    console.warn(
+      `Discord ${notification} notification skipped: DISCORD_WEBHOOK_URL is blank`
+    );
+  }
+  const result = await sendDiscordMessage(process.env.DISCORD_WEBHOOK_URL, {
+    content:
+      input.decision === "handover_in_progress"
+        ? "Protocol visualizer new deployment indexing"
+        : "Protocol visualizer indexing continues",
+    embeds: [
+      {
+        title:
+          input.decision === "handover_in_progress"
+            ? "Protocol Visualizer New Deployment Indexing"
+            : "Protocol Visualizer Indexing Continues",
+        description: `Environment ${input.environmentName}`,
+        fields: [
+          {
+            name: "Indexing deployment",
+            value: shortId(input.deploymentId),
+            inline: true,
+          },
+          {
+            name: "Published deployment",
+            value: shortId(input.activeManifest?.indexerDeploymentId),
+            inline: true,
+          },
+          {
+            name: "Synced to head",
+            value: input.readiness.syncedToHead ? "yes" : "no",
+            inline: true,
+          },
+          {
+            name: "Decision reasons",
+            value: reasonsField(input.reasons),
+            inline: false,
+          },
+          ...indexingProgressFields(input.readiness.indexingProgress),
+        ],
+        footer: input.activeManifest
+          ? { text: `Active manifest: ${input.activeManifest.generatedAt}` }
+          : undefined,
+        timestamp: new Date().toISOString(),
+      },
+    ],
+  });
+  console.log(
+    JSON.stringify({
+      event: "snapshot_publisher_discord_result",
+      notification,
+      environmentName: input.environmentName,
+      indexingDeploymentId: input.deploymentId,
+      activeDeploymentId: input.activeManifest?.indexerDeploymentId,
+      ...result,
+    })
+  );
+  return result;
 };
 
 const writeLocalFile = async (outputDir: string, file: SnapshotFile) => {
@@ -463,24 +846,6 @@ export async function runPublisher(deps: PublisherDependencies = {}) {
           chains
         )
       : undefined;
-  if (indexerReadiness && !indexerReadiness.ready) {
-    const result: PublisherResult = {
-      deploymentId,
-      published: false,
-      manifestPublishedLast: false,
-      indexingProgress: indexerReadiness.indexingProgress,
-      readiness: {
-        syncedToHead: indexerReadiness.syncedToHead,
-        missingChainIds: indexerReadiness.missingChainIds,
-        notReadyChainIds: indexerReadiness.notReadyChainIds,
-        readyChainIds: indexerReadiness.readyChainIds,
-      },
-      skipReason: "not_data_ready",
-    };
-    console.log(JSON.stringify(result));
-    console.log("Snapshot publisher completed successfully; exiting");
-    return;
-  }
 
   const loadProtocolData =
     source === "sample"
@@ -492,20 +857,37 @@ export async function runPublisher(deps: PublisherDependencies = {}) {
             process.env.HASURA_GRAPHQL_ADMIN_SECRET?.trim()
           );
 
-  const batch = await createSnapshotBatch({
-    chains,
-    loadProtocolData,
-    deploymentId,
-    publicBasePath,
-    publicOrigin,
-    indexingProgressOverride: indexerReadiness?.indexingProgress,
-  });
-  const files = batch.files;
-
-  const regularFiles = files.filter((file) => !file.publishLast);
-  const publishLastFiles = files.filter((file) => file.publishLast);
+  let batch: SnapshotBatch | undefined;
+  if (!indexerReadiness || indexerReadiness.ready) {
+    batch = await createSnapshotBatch({
+      chains,
+      loadProtocolData,
+      deploymentId,
+      publicBasePath,
+      publicOrigin,
+      indexingProgressOverride: indexerReadiness?.indexingProgress,
+    });
+  }
 
   if (outputDir) {
+    if (!batch) {
+      const result: PublisherResult = {
+        deploymentId,
+        published: false,
+        manifestPublishedLast: false,
+        indexingProgress: indexerReadiness?.indexingProgress,
+        readiness: indexerReadiness
+          ? readinessForResult(indexerReadiness)
+          : undefined,
+        skipReason: "not_data_ready",
+      };
+      console.log(JSON.stringify(result));
+      console.log("Snapshot publisher completed successfully; exiting");
+      return;
+    }
+    const files = batch.files;
+    const regularFiles = files.filter((file) => !file.publishLast);
+    const publishLastFiles = files.filter((file) => file.publishLast);
     for (const file of [...regularFiles, ...publishLastFiles]) {
       await writeLocalFile(outputDir, file);
     }
@@ -535,7 +917,11 @@ export async function runPublisher(deps: PublisherDependencies = {}) {
         deploymentId,
         published: false,
         manifestPublishedLast: false,
-        indexingProgress: batch.indexingProgress,
+        indexingProgress:
+          batch?.indexingProgress ?? indexerReadiness?.indexingProgress,
+        readiness: indexerReadiness
+          ? readinessForResult(indexerReadiness)
+          : undefined,
         skipReason: "lock_held",
       };
       console.log(JSON.stringify(result));
@@ -543,20 +929,63 @@ export async function runPublisher(deps: PublisherDependencies = {}) {
       return;
     }
 
-    if (!batch.ready) {
-      const existingManifest = await getJsonObject<Manifest>(
-        client,
-        bucket,
-        ACTIVE_MANIFEST_KEY
+    const activeManifest = await getJsonObject<Manifest>(
+      client,
+      bucket,
+      ACTIVE_MANIFEST_KEY
+    );
+    const notificationState = await getJsonObject<PublisherNotificationState>(
+      client,
+      bucket,
+      PUBLISHER_NOTIFICATION_STATE_KEY
+    );
+
+    if (indexerReadiness && !indexerReadiness.ready) {
+      const decision = notificationDecisionForUnreadyIndexer(
+        deploymentId,
+        activeManifest,
+        notificationState,
+        indexerReadiness
       );
+      logPublisherNotificationDecision({
+        decision: decision.decision,
+        reasons: decision.reasons,
+        deploymentId,
+        environmentName,
+        activeManifest,
+        notificationState,
+        readiness: indexerReadiness,
+      });
+      await writePublisherNotificationState(client, bucket, {
+        deploymentId,
+        activeManifest,
+        decision: decision.decision,
+      });
+      try {
+        await notifyIndexingProgress({
+          decision: decision.decision,
+          deploymentId,
+          environmentName: environmentName ?? getRailwayEnvironmentName(),
+          activeManifest,
+          readiness: indexerReadiness,
+          reasons: decision.reasons,
+        });
+      } catch (error) {
+        console.error(
+          `Discord indexing notification failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
+      }
       const result: PublisherResult = {
         deploymentId,
         published: false,
         manifestPublishedLast: false,
-        indexingProgress: batch.indexingProgress,
+        indexingProgress: indexerReadiness.indexingProgress,
+        readiness: readinessForResult(indexerReadiness),
         skipReason: "not_data_ready",
       };
-      if (!existingManifest) {
+      if (!activeManifest) {
         console.log("No existing snapshot manifest is active yet");
       }
       console.log(JSON.stringify(result));
@@ -564,19 +993,60 @@ export async function runPublisher(deps: PublisherDependencies = {}) {
       return;
     }
 
-    await uploadSnapshotFiles(client, bucket, files, { destroyClient: false });
-    try {
-      await (deps.notifyHandover ?? notifyHandover)(
-        batch.manifest,
-        environmentName ?? getRailwayEnvironmentName()
-      );
-    } catch (error) {
-      console.error(
-        `Discord handover notification failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
+    if (!batch) {
+      throw new Error("Snapshot batch was not generated");
     }
+
+    if (!batch.ready) {
+      const result: PublisherResult = {
+        deploymentId,
+        published: false,
+        manifestPublishedLast: false,
+        indexingProgress: batch.indexingProgress,
+        skipReason: "not_data_ready",
+      };
+      if (!activeManifest) {
+        console.log("No existing snapshot manifest is active yet");
+      }
+      console.log(JSON.stringify(result));
+      console.log("Snapshot publisher completed successfully; exiting");
+      return;
+    }
+
+    const files = batch.files;
+    const decision = notificationDecisionForReadyBatch(
+      deploymentId,
+      activeManifest
+    );
+    logPublisherNotificationDecision({
+      decision: decision.decision,
+      reasons: decision.reasons,
+      deploymentId,
+      environmentName,
+      activeManifest,
+      notificationState,
+    });
+
+    await uploadSnapshotFiles(client, bucket, files, { destroyClient: false });
+    if (decision.decision === "handover_completed") {
+      try {
+        await (deps.notifyHandover ?? notifyHandover)(
+          batch.manifest,
+          environmentName ?? getRailwayEnvironmentName()
+        );
+      } catch (error) {
+        console.error(
+          `Discord handover notification failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
+      }
+    }
+    await writePublisherNotificationState(client, bucket, {
+      deploymentId,
+      activeManifest: batch.manifest,
+      decision: decision.decision,
+    });
 
     const result: PublisherResult = {
       deploymentId,

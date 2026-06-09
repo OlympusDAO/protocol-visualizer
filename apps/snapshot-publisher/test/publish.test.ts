@@ -7,8 +7,12 @@ import {
   HeadObjectCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
-import { PUBLISHER_LOCK_KEY } from "@protocol-visualizer/snapshot-artifacts";
 import {
+  ACTIVE_MANIFEST_KEY,
+  PUBLISHER_LOCK_KEY,
+} from "@protocol-visualizer/snapshot-artifacts";
+import {
+  PUBLISHER_NOTIFICATION_STATE_KEY,
   runPublisher,
   type SnapshotS3Client,
   uploadSnapshotFiles,
@@ -32,6 +36,22 @@ const preconditionFailed = () => {
   error.name = "PreconditionFailed";
   return error;
 };
+
+const manifestBody = (
+  deploymentId: string,
+  generatedAt = "2026-06-09T08:00:00.000Z"
+) =>
+  JSON.stringify({
+    schemaVersion: "1.0.0",
+    generatedAt,
+    schemas: {
+      openapi: "/v1/openapi.json",
+      manifest: "/v1/manifest",
+      protocolSnapshot: "/v1/schemas/protocol-snapshot-v1.schema.json",
+    },
+    chains: [],
+    indexerDeploymentId: deploymentId,
+  });
 
 class MemoryS3Client implements SnapshotS3Client {
   calls: string[] = [];
@@ -149,6 +169,18 @@ const captureConsole = () => {
   };
 };
 
+const publisherResultFrom = (logs: string[]) => {
+  const line = logs.find((candidate) => {
+    try {
+      const value = JSON.parse(candidate);
+      return "published" in value && "manifestPublishedLast" in value;
+    } catch {
+      return false;
+    }
+  });
+  return JSON.parse(line ?? "{}");
+};
+
 test("uploads publish-last files last and destroys the S3 client", async () => {
   const calls: string[] = [];
   let destroyed = false;
@@ -206,6 +238,9 @@ test("publisher skips before Hasura reads when indexer metrics are not ready", a
   const originalEnv = { ...process.env };
   const originalFetch = globalThis.fetch;
   const consoleCapture = captureConsole();
+  const client = new MemoryS3Client({
+    [ACTIVE_MANIFEST_KEY]: manifestBody("deployment-active"),
+  });
 
   process.env = {
     ...originalEnv,
@@ -214,9 +249,9 @@ test("publisher skips before Hasura reads when indexer metrics are not ready", a
     INDEXER_DEPLOYMENT_ID: "deployment-a",
     RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
     INDEXER_METRICS_URL: "http://indexer:9898/metrics",
+    BUCKET: "bucket",
   };
   delete process.env.HASURA_GRAPHQL_URL;
-  delete process.env.BUCKET;
 
   globalThis.fetch = async (url) => {
     assert.equal(String(url), "http://indexer:9898/metrics");
@@ -233,16 +268,16 @@ test("publisher skips before Hasura reads when indexer metrics are not ready", a
   };
 
   try {
-    await runPublisher();
+    await runPublisher({
+      createS3Client: () => client,
+    });
   } finally {
     process.env = originalEnv;
     globalThis.fetch = originalFetch;
     consoleCapture.restore();
   }
 
-  const result = JSON.parse(
-    consoleCapture.logs.find((line) => line.startsWith("{")) ?? "{}"
-  );
+  const result = publisherResultFrom(consoleCapture.logs);
   assert.equal(result.published, false);
   assert.equal(result.skipReason, "not_data_ready");
   assert.equal(result.readiness.syncedToHead, false);
@@ -250,6 +285,160 @@ test("publisher skips before Hasura reads when indexer metrics are not ready", a
   assert.deepEqual(result.readiness.notReadyChainIds, [10]);
   assert.equal(result.indexingProgress.chains.Mainnet.block, 25272069);
   assert.equal(result.indexingProgress.chains.Optimism.block, 152657692);
+  const decision = JSON.parse(
+    consoleCapture.logs.find((line) =>
+      line.includes('"event":"snapshot_publisher_notification_decision"')
+    ) ?? "{}"
+  );
+  assert.equal(decision.decision, "handover_in_progress");
+  assert.equal(decision.indexingDeploymentId, "deployment-a");
+  assert.equal(decision.activeDeploymentId, "deployment-active");
+  assert.deepEqual(decision.readiness.notReadyChainIds, [10]);
+  assert(decision.reasons.includes("indexing_deployment_first_seen"));
+  assert(decision.reasons.includes("active_manifest_is_previous_deployment"));
+  assert(decision.reasons.includes("indexer_not_synced_to_head"));
+  assert.equal(
+    client.objects[PUBLISHER_NOTIFICATION_STATE_KEY] !== undefined,
+    true
+  );
+});
+
+test("publisher logs continuing indexing for a previously observed deployment", async () => {
+  const originalEnv = { ...process.env };
+  const originalFetch = globalThis.fetch;
+  const consoleCapture = captureConsole();
+  const client = new MemoryS3Client({
+    [ACTIVE_MANIFEST_KEY]: manifestBody("deployment-active"),
+    [PUBLISHER_NOTIFICATION_STATE_KEY]: JSON.stringify({
+      lastObservedDeploymentId: "deployment-a",
+      lastActiveDeploymentId: "deployment-active",
+      lastActiveGeneratedAt: "2026-06-09T08:00:00.000Z",
+      lastDecision: "handover_in_progress",
+      updatedAt: "2026-06-09T08:30:00.000Z",
+    }),
+  });
+
+  process.env = {
+    ...originalEnv,
+    SNAPSHOT_SOURCE: "hasura",
+    SNAPSHOT_CHAIN_IDS: "1",
+    INDEXER_DEPLOYMENT_ID: "deployment-a",
+    RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
+    INDEXER_METRICS_URL: "http://indexer:9898/metrics",
+    BUCKET: "bucket",
+  };
+  delete process.env.HASURA_GRAPHQL_URL;
+
+  globalThis.fetch = async () =>
+    new Response(
+      `
+        hyperindex_synced_to_head 0
+        envio_progress_ready{chainId="1"} 0
+        envio_progress_block{chainId="1"} 25272069
+      `,
+      { status: 200 }
+    );
+
+  try {
+    await runPublisher({
+      createS3Client: () => client,
+    });
+  } finally {
+    process.env = originalEnv;
+    globalThis.fetch = originalFetch;
+    consoleCapture.restore();
+  }
+
+  const decision = JSON.parse(
+    consoleCapture.logs.find((line) =>
+      line.includes('"event":"snapshot_publisher_notification_decision"')
+    ) ?? "{}"
+  );
+  assert.equal(decision.decision, "indexing_continues");
+  assert.equal(decision.indexingDeploymentId, "deployment-a");
+  assert.equal(decision.previouslyObservedDeploymentId, "deployment-a");
+  assert(decision.reasons.includes("indexing_deployment_seen_before"));
+  assert(decision.reasons.includes("chains_not_ready"));
+});
+
+test("publisher sends handover-in-progress Discord embed for an unready new deployment", async () => {
+  const originalEnv = { ...process.env };
+  const originalFetch = globalThis.fetch;
+  const consoleCapture = captureConsole();
+  const client = new MemoryS3Client({
+    [ACTIVE_MANIFEST_KEY]: manifestBody("deployment-active"),
+  });
+  const discordBodies: unknown[] = [];
+
+  process.env = {
+    ...originalEnv,
+    SNAPSHOT_SOURCE: "hasura",
+    SNAPSHOT_CHAIN_IDS: "1",
+    INDEXER_DEPLOYMENT_ID: "deployment-a",
+    RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
+    INDEXER_METRICS_URL: "http://indexer:9898/metrics",
+    DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+    BUCKET: "bucket",
+  };
+  delete process.env.HASURA_GRAPHQL_URL;
+
+  globalThis.fetch = async (url, init) => {
+    if (String(url) === "http://indexer:9898/metrics") {
+      return new Response(
+        `
+          hyperindex_synced_to_head 0
+          envio_progress_ready{chainId="1"} 0
+          envio_progress_block{chainId="1"} 25272069
+          envio_progress_timestamp{chainId="1"} 1780491216
+        `,
+        { status: 200 }
+      );
+    }
+    assert.equal(String(url), "https://discord.example/webhook");
+    discordBodies.push(JSON.parse(String(init?.body)));
+    return new Response("", { status: 204 });
+  };
+
+  try {
+    await runPublisher({
+      createS3Client: () => client,
+    });
+  } finally {
+    process.env = originalEnv;
+    globalThis.fetch = originalFetch;
+    consoleCapture.restore();
+  }
+
+  assert.equal(discordBodies.length, 1);
+  const body = discordBodies[0] as {
+    content: string;
+    embeds: Array<{
+      title: string;
+      fields: Array<{ name: string; value: string }>;
+    }>;
+  };
+  assert.equal(body.content, "Protocol visualizer new deployment indexing");
+  assert.equal(
+    body.embeds[0]?.title,
+    "Protocol Visualizer New Deployment Indexing"
+  );
+  assert(
+    body.embeds[0]?.fields.some(
+      (field) =>
+        field.name === "Indexing deployment" && field.value === "deployment-a"
+    )
+  );
+  assert(
+    body.embeds[0]?.fields.some(
+      (field) =>
+        field.name === "Published deployment" && field.value === "deployment-a"
+    )
+  );
+  assert(
+    body.embeds[0]?.fields.some(
+      (field) => field.name === "Chain" && field.value === "Mainnet"
+    )
+  );
 });
 
 test("publisher reports indexer metrics network failures with safe context", async () => {
@@ -351,9 +540,7 @@ test("publisher exits with lock_held when another publisher owns the lock", asyn
     consoleCapture.restore();
   }
 
-  const result = JSON.parse(
-    consoleCapture.logs.find((line) => line.startsWith("{")) ?? "{}"
-  );
+  const result = publisherResultFrom(consoleCapture.logs);
   assert.equal(result.published, false);
   assert.equal(result.skipReason, "lock_held");
   assert.equal(client.destroyed, true);
@@ -385,18 +572,65 @@ test("publisher uploads snapshots, publishes manifest last, and releases lock", 
     consoleCapture.restore();
   }
 
-  const result = JSON.parse(
-    consoleCapture.logs.find((line) => line.startsWith("{")) ?? "{}"
-  );
+  const result = publisherResultFrom(consoleCapture.logs);
   assert.equal(result.published, true);
   assert.equal(result.manifestPublishedLast, true);
   assert.equal(client.destroyed, true);
   assert(client.calls.includes(`delete-if-match:${PUBLISHER_LOCK_KEY}`));
   const putCalls = client.calls.filter((call) => call.startsWith("put:"));
-  assert.equal(putCalls.at(-1), "put:v1/manifest.json");
+  const snapshotPutCalls = putCalls.filter(
+    (call) => call !== `put:${PUBLISHER_NOTIFICATION_STATE_KEY}`
+  );
+  assert.equal(snapshotPutCalls.at(-1), "put:v1/manifest.json");
+  assert(putCalls.includes(`put:${PUBLISHER_NOTIFICATION_STATE_KEY}`));
   assert(
     putCalls.some(
       (call) => call === "put:v1/deployments/deployment-a/chain/1/protocol.json"
+    )
+  );
+});
+
+test("publisher logs when Discord handover is skipped because webhook is missing", async () => {
+  const consoleCapture = captureConsole();
+  const client = new MemoryS3Client();
+
+  try {
+    await withPublisherEnv(
+      {
+        SNAPSHOT_SOURCE: "sample",
+        SNAPSHOT_CHAIN_IDS: "1",
+        INDEXER_DEPLOYMENT_ID: "deployment-a",
+        RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
+        BUCKET: "bucket",
+        DISCORD_WEBHOOK_URL: undefined,
+      },
+      () =>
+        runPublisher({
+          createS3Client: () => client,
+        })
+    );
+  } finally {
+    consoleCapture.restore();
+  }
+
+  const decision = JSON.parse(
+    consoleCapture.logs.find((line) =>
+      line.includes('"event":"snapshot_publisher_discord_decision"')
+    ) ?? "{}"
+  );
+  const result = JSON.parse(
+    consoleCapture.logs.find((line) =>
+      line.includes('"event":"snapshot_publisher_discord_result"')
+    ) ?? "{}"
+  );
+  assert.equal(decision.webhookConfigured, false);
+  assert.equal(result.configured, false);
+  assert.equal(result.attempted, false);
+  assert.equal(result.delivered, false);
+  assert.equal(result.skipReason, "missing_webhook_url");
+  assert(
+    consoleCapture.warnings.some((message) =>
+      message.includes("DISCORD_WEBHOOK_URL is blank")
     )
   );
 });
@@ -431,9 +665,7 @@ test("publisher takes over a stale lock with conditional replacement", async () 
     consoleCapture.restore();
   }
 
-  const result = JSON.parse(
-    consoleCapture.logs.find((line) => line.startsWith("{")) ?? "{}"
-  );
+  const result = publisherResultFrom(consoleCapture.logs);
   assert.equal(result.published, true);
   assert(client.calls.includes(`put-if-match:${PUBLISHER_LOCK_KEY}`));
   assert(client.calls.includes(`delete-if-match:${PUBLISHER_LOCK_KEY}`));
@@ -492,9 +724,7 @@ test("publisher treats failed stale-lock replacement as lock_held", async () => 
     consoleCapture.restore();
   }
 
-  const result = JSON.parse(
-    consoleCapture.logs.find((line) => line.startsWith("{")) ?? "{}"
-  );
+  const result = publisherResultFrom(consoleCapture.logs);
   assert.equal(result.published, false);
   assert.equal(result.skipReason, "lock_held");
   assert(client.calls.includes(`put-if-match:${PUBLISHER_LOCK_KEY}`));

@@ -17,7 +17,6 @@ type MonitorState = {
   activeGeneratedAt?: string;
   activeDeploymentId?: string;
   lastDailySummaryAt?: string;
-  lastIndexingDeploymentId?: string;
   chainProgress?: Record<
     string,
     {
@@ -222,11 +221,6 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
     ...input.state,
     activeGeneratedAt: input.manifest?.generatedAt,
     activeDeploymentId: input.manifest?.indexerDeploymentId,
-    lastIndexingDeploymentId:
-      input.manifest?.indexerDeploymentId &&
-      input.manifest.indexerDeploymentId !== input.deploymentId
-        ? input.deploymentId
-        : undefined,
   };
   const progress = input.progress ?? input.manifest?.indexingProgress;
   const notReadyChainIds = input.notReadyChainIds ?? [];
@@ -239,59 +233,6 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
     )}.`;
     messages.push(message);
     discordMessages.push({ content: message });
-  } else if (
-    input.state.activeGeneratedAt &&
-    input.state.activeGeneratedAt !== input.manifest.generatedAt
-  ) {
-    const previousPublishedDeployment = shortId(
-      input.state.activeDeploymentId ?? "<unknown>"
-    );
-    const newPublishedDeployment = shortId(
-      input.manifest.indexerDeploymentId ?? "<unknown>"
-    );
-    const currentIndexingDeployment = shortId(input.deploymentId);
-    const message = `Protocol visualizer handover detected: active snapshots changed from ${
-      input.state.activeGeneratedAt
-    } (published deployment ${previousPublishedDeployment}) to ${
-      input.manifest.generatedAt
-    } (published deployment ${newPublishedDeployment}). Currently indexing deployment: ${currentIndexingDeployment}.`;
-    messages.push(message);
-    discordMessages.push({
-      content: "Protocol visualizer handover detected",
-      embeds: [
-        {
-          title: "Protocol Visualizer Snapshot Handover",
-          fields: [
-            {
-              name: "Previous published deployment",
-              value: previousPublishedDeployment,
-              inline: true,
-            },
-            {
-              name: "New published deployment",
-              value: newPublishedDeployment,
-              inline: true,
-            },
-            {
-              name: "Currently indexing deployment",
-              value: currentIndexingDeployment,
-              inline: true,
-            },
-            {
-              name: "Previous active snapshot",
-              value: input.state.activeGeneratedAt,
-              inline: false,
-            },
-            {
-              name: "New active snapshot",
-              value: input.manifest.generatedAt,
-              inline: false,
-            },
-          ],
-          timestamp: input.now.toISOString(),
-        },
-      ],
-    });
   }
 
   if (input.manifest) {
@@ -304,24 +245,6 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
       messages.push(message);
       discordMessages.push({ content: message });
     }
-  }
-
-  const activeDeploymentId = input.manifest?.indexerDeploymentId;
-  const newDeploymentIsIndexing =
-    activeDeploymentId &&
-    activeDeploymentId !== input.deploymentId &&
-    notReadyChainIds.length > 0;
-  if (
-    newDeploymentIsIndexing &&
-    input.state.lastIndexingDeploymentId !== input.deploymentId
-  ) {
-    const message = `Protocol visualizer indexing notice: deployment ${shortId(
-      input.deploymentId
-    )} is indexing and has not handed over yet. Active snapshots are still from deployment ${shortId(
-      activeDeploymentId
-    )}. Not ready chains: ${notReadyChainIds.join(", ")}.`;
-    messages.push(message);
-    discordMessages.push({ content: message });
   }
 
   const today = input.now.toISOString().slice(0, 10);

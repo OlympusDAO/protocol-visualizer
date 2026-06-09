@@ -1,13 +1,13 @@
 # Snapshot Monitor
 
-`snapshot-monitor` is a short-lived TypeScript cron job that reports protocol
-visualizer indexing progress to Discord.
+`snapshot-monitor` is a short-lived TypeScript cron job that sends a daily
+heartbeat confirming that the protocol visualizer indexer is reachable and not
+stale.
 
 It reads the active bucket manifest, reads current Envio metrics per chain,
 stores monitor state in the private bucket, and sends Discord messages for:
 
-- one daily indexing summary;
-- manifest handover detection;
+- one daily indexing heartbeat;
 - missing active manifest state;
 - stale chain progress beyond the configured threshold.
 
@@ -16,8 +16,8 @@ The monitor treats Envio `/metrics` as the indexing source of truth. Per-chain
 progress block. Stalled-chain warnings compare block advancement across monitor
 runs.
 
-The publisher also sends a Discord handover message immediately when it writes a
-new active manifest.
+Deployment lifecycle messages, including new deployment detection, hourly
+pre-handover progress, and completed handovers, belong in `snapshot-publisher`.
 
 ## Configuration
 

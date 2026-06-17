@@ -20,7 +20,7 @@ COPY apps/indexer/ ./apps/indexer/
 
 # Runtime stage
 # Pinned image: gcr.io/distroless/nodejs24-debian13
-FROM gcr.io/distroless/nodejs24-debian13@sha256:e7192174b2b2e5db60cb8f8fc3dcb8cb8e0456f961387c4e0556118f09dcb7c8 AS runtime
+FROM gcr.io/distroless/nodejs24-debian13@sha256:316ac5e888db6e6b593b8c752e0ae88d4a3726de27d9738cc25eb4ca922f0914 AS runtime
 
 # Set working directory
 WORKDIR /app

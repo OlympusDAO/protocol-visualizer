@@ -19,8 +19,8 @@ RUN pnpm install --frozen-lockfile --prod
 COPY apps/indexer/ ./apps/indexer/
 
 # Runtime stage
-# Pinned image: gcr.io/distroless/nodejs24-debian13
-FROM gcr.io/distroless/nodejs24-debian13@sha256:e7192174b2b2e5db60cb8f8fc3dcb8cb8e0456f961387c4e0556118f09dcb7c8 AS runtime
+# Pinned image index: gcr.io/distroless/nodejs24-debian13
+FROM gcr.io/distroless/nodejs24-debian13@sha256:10e262383ceb3a2a5f6f5ceaca5ecebe74951eff21868a055589676eec3a8001 AS runtime
 
 # Set working directory
 WORKDIR /app

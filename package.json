@@ -1,7 +1,7 @@
 {
   "name": "protocol-visualizer",
   "private": true,
-  "packageManager": "pnpm@10.33.0",
+  "packageManager": "pnpm@11.13.0",
   "scripts": {
     "build": "turbo run build && pnpm run test:config",
     "check:runtime-versions": "node scripts/verify-runtime-versions.mjs",
@@ -50,7 +50,7 @@
   ],
   "engines": {
     "node": ">=24",
-    "pnpm": ">=10.33.0",
+    "pnpm": ">=11.13.0",
     "bun": "use-pnpm",
     "npm": "use-pnpm",
     "yarn": "use-pnpm"

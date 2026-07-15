@@ -294,6 +294,11 @@ const contractNames: MultiChainContracts = {
       name: "PriceConfig",
       type: "policy",
     },
+    "0x5c69f61D384e41b55699C3B10523Ed81c5ef9cbd": {
+      name: "PriceConfig",
+      version: "2.0",
+      type: "policy",
+    },
     "0xf7602C0421c283A2fc113172EBDf64C30F21654D": {
       name: "Heart",
       version: "1.6",
@@ -450,6 +455,9 @@ const contractNames: MultiChainContracts = {
     "0x012BBf0481b97170577745D2167ee14f63E2aD4C": {
       name: "DAO MS",
     },
+    "0xa8A6ff2606b24F61AFA986381D8991DFcCCd2D55": {
+      name: "Emergency MS",
+    },
     "0x20B3834091f038Ce04D8686FAC99CA44A0FB285c": {
       name: "CrossChainBridge",
       type: "policy",
@@ -490,6 +498,9 @@ const contractNames: MultiChainContracts = {
     },
     "0x18a390bD45bCc92652b9A91AD51Aed7f1c1358f5": {
       name: "DAO MS",
+    },
+    "0xa8A6ff2606b24F61AFA986381D8991DFcCCd2D55": {
+      name: "Emergency MS",
     },
     "0x22ae99d07584a2ae1af748de573c83f1b9cdb4c0": {
       name: "CrossChainBridge",
@@ -538,6 +549,9 @@ const contractNames: MultiChainContracts = {
       name: "DAO MS",
     },
     "0xa5ea62894027D981D34BB99A04BD36B818b2Aaf0": {
+      name: "Emergency MS (Deprecated)",
+    },
+    "0xa8A6ff2606b24F61AFA986381D8991DFcCCd2D55": {
       name: "Emergency MS",
     },
     "0xBA42BE149e5260EbA4B82418A6306f55D532eA47": {
@@ -585,6 +599,9 @@ const contractNames: MultiChainContracts = {
     "0x559a14a2219Ae81f9a9f857CF31407de2b07F36c": {
       name: "DAO MS",
       type: "external",
+    },
+    "0xa8A6ff2606b24F61AFA986381D8991DFcCCd2D55": {
+      name: "Emergency MS",
     },
     "0x22AE99D07584A2AE1af748De573c83f1B9Cdb4c0": {
       name: "CrossChainBridge",

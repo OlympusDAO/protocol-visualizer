@@ -61,56 +61,14 @@ jobs:
       - name: Tag snapshot monitor image for scan
         run: pnpm run docker:tag:scan:snapshot-monitor
 
-      - name: Scan indexer Dockerfile for misconfigurations
+      - name: Scan Dockerfiles for misconfigurations
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        env:
+          TRIVY_FILE_PATTERNS: dockerfile:Dockerfile-*
+          TRIVY_SKIP_DIRS: node_modules
         with:
           scan-type: config
-          scan-ref: Dockerfile-indexer
-          scanners: misconfig
-          severity: MEDIUM,HIGH,CRITICAL
-          exit-code: "1"
-
-      - name: Scan frontend Dockerfile for misconfigurations
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
-        with:
-          scan-type: config
-          scan-ref: Dockerfile-frontend
-          scanners: misconfig
-          severity: MEDIUM,HIGH,CRITICAL
-          exit-code: "1"
-
-      - name: Scan Hasura Dockerfile for misconfigurations
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
-        with:
-          scan-type: config
-          scan-ref: Dockerfile-hasura
-          scanners: misconfig
-          severity: MEDIUM,HIGH,CRITICAL
-          exit-code: "1"
-
-      - name: Scan snapshot gateway Dockerfile for misconfigurations
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
-        with:
-          scan-type: config
-          scan-ref: Dockerfile-snapshot-gateway
-          scanners: misconfig
-          severity: MEDIUM,HIGH,CRITICAL
-          exit-code: "1"
-
-      - name: Scan snapshot publisher Dockerfile for misconfigurations
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
-        with:
-          scan-type: config
-          scan-ref: Dockerfile-snapshot-publisher
-          scanners: misconfig
-          severity: MEDIUM,HIGH,CRITICAL
-          exit-code: "1"
-
-      - name: Scan snapshot monitor Dockerfile for misconfigurations
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
-        with:
-          scan-type: config
-          scan-ref: Dockerfile-snapshot-monitor
+          scan-ref: .
           scanners: misconfig
           severity: MEDIUM,HIGH,CRITICAL
           exit-code: "1"

@@ -7,6 +7,7 @@ RUN apt-get update \
     && ACCEPT_EULA=Y DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --only-upgrade \
         coreutils \
         curl \
+        gzip \
         libcap2 \
         libcurl4 \
         libexpat1 \
@@ -14,9 +15,11 @@ RUN apt-get update \
         libgnutls30 \
         liblzma5 \
         libnghttp2-14 \
+        libperl5.34 \
         libpq5 \
         libpython3.10-minimal \
         libpython3.10-stdlib \
+        libsqlite3-0 \
         libssh-4 \
         libssl3 \
         libsystemd0 \
@@ -24,10 +27,14 @@ RUN apt-get update \
         libuuid1 \
         msodbcsql18 \
         openssl \
+        perl \
+        perl-base \
+        perl-modules-5.34 \
         postgresql-client-common \
         python3.10 \
         python3.10-minimal \
         sed \
+        tar \
         util-linux \
     && rm -rf /var/lib/apt/lists/* \
     && chown -R hasura:hasura /home/hasura

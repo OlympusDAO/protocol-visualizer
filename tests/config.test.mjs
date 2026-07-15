@@ -85,8 +85,10 @@ test("CI scans every Dockerfile and local image", () => {
     "Dockerfile-snapshot-publisher",
     "Dockerfile-snapshot-monitor",
   ]) {
-    assert(workflow.includes(dockerfile));
+    assert(existsSync(dockerfile));
   }
+  assert.match(workflow, /TRIVY_FILE_PATTERNS: dockerfile:Dockerfile-\*/);
+  assert.match(workflow, /TRIVY_SKIP_DIRS: node_modules/);
   assert.match(
     workflow,
     /image-ref: protocol-visualizer\/indexer:scan[\s\S]*?ignore-unfixed: true/

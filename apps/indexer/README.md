@@ -22,7 +22,7 @@ surface effect metrics for those reads.
 ## Prerequisites
 
 - Node.js 24
-- pnpm 10.33.0
+- pnpm 11.13.0
 - Docker Desktop, for the local Envio Postgres/Hasura stack
 - RPC URLs for the enabled chains
 - `ENVIO_API_TOKEN` is strongly recommended and required by the local Docker

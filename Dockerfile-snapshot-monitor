@@ -4,7 +4,7 @@ FROM node:24-alpine@sha256:01743339035a5c3c11a373cd7c83aeab6ed1457b55da6a69e014a
 
 RUN apk upgrade --no-cache musl musl-utils zlib libssl3 libcrypto3 nghttp2-libs xz-libs
 
-RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.13.0 --activate
 
 WORKDIR /app
 

@@ -63,7 +63,7 @@ overrides:
   "bn.js@>=5.0.0 <5.2.3": "5.2.3"
   "brace-expansion@<1.1.13": "1.1.13"
   "brace-expansion@>=2.0.0 <2.0.3": "2.0.3"
-  "brace-expansion@>=5.0.0 <5.0.6": "5.0.6"
+  "brace-expansion@>=5.0.0 <5.0.7": "5.0.7"
   "drizzle-orm@<0.45.2": "0.45.2"
   "esbuild@>=0.17.0 <0.28.1": "^0.28.1"
   "express@>=4.0.0 <4.22.2": "4.22.2"

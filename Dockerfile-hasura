@@ -8,13 +8,23 @@ RUN apt-get update \
         coreutils \
         curl \
         gzip \
+        libc-bin \
+        libc6 \
         libcap2 \
         libcurl4 \
         libexpat1 \
         libgcrypt20 \
+        libgssapi-krb5-2 \
         libgnutls30 \
+        libk5crypto3 \
+        libkrb5-3 \
+        libkrb5support0 \
         liblzma5 \
         libnghttp2-14 \
+        libpam-modules \
+        libpam-modules-bin \
+        libpam-runtime \
+        libpam0g \
         libperl5.34 \
         libpq5 \
         libpython3.10-minimal \

@@ -6,7 +6,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   audit:
@@ -14,7 +13,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
+        with:
+          persist-credentials: false
 
       - name: Bootstrap
         uses: ./.github/actions/bootstrap
@@ -22,10 +22,25 @@ jobs:
         run: pnpm run check:runtime-versions
 
       - name: Audit pnpm dependencies (fail on moderate+)
-        uses: JamesRobertWiseman/pnpm-audit@a6a8cc297d146014c029926e49d43571e776f85e # v3.2.0
+        id: audit
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/pnpm-audit-result"
+          set +e
+          pnpm audit --audit-level moderate --json \
+            > "$RUNNER_TEMP/pnpm-audit-result/audit.json"
+          status=$?
+          set -e
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+
+      - name: Upload audit result
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          package_json_path: ./
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          level: moderate
-          fails: true
-          single_comment: true
+          name: pnpm-audit-result
+          path: ${{ runner.temp }}/pnpm-audit-result/audit.json
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Enforce audit result
+        if: steps.audit.outputs.exit_code != '0'
+        run: exit 1

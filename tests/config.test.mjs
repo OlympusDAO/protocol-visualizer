@@ -95,6 +95,27 @@ test("CI scans every Dockerfile and local image", () => {
   );
 });
 
+test("Dependency audit comments are isolated from pull request code", () => {
+  const auditWorkflow = readFileSync(".github/workflows/audit.yml", "utf8");
+  const commentWorkflow = readFileSync(
+    ".github/workflows/audit-comment.yml",
+    "utf8"
+  );
+
+  assert(!auditWorkflow.includes("pull-requests: write"));
+  assert(!auditWorkflow.includes("github_token:"));
+  assert(auditWorkflow.includes("pnpm audit --audit-level moderate --json"));
+  assert(auditWorkflow.includes("actions/upload-artifact@"));
+
+  assert(commentWorkflow.includes("workflow_run:"));
+  assert(commentWorkflow.includes("pull-requests: write"));
+  assert(commentWorkflow.includes("actions/download-artifact@"));
+  assert(commentWorkflow.includes("actions/github-script@"));
+  assert(!commentWorkflow.includes("actions/checkout@"));
+  assert(!commentWorkflow.includes("./.github/actions/bootstrap"));
+  assert(!commentWorkflow.includes("pnpm install"));
+});
+
 test("Compose includes the Railway-like snapshot services", () => {
   const compose = readFileSync("docker-compose.yml", "utf8");
   for (const service of [

@@ -1,14 +1,36 @@
 import { createServer } from "node:http";
-import { loadGatewayConfig, createSnapshotGateway } from "./server.js";
+import {
+  createSnapshotGateway,
+  getSafeErrorDetails,
+  loadGatewayConfig,
+} from "./server.js";
 
-const config = await loadGatewayConfig();
-const port = Number(process.env.PORT || "8080");
+const logFatalError = (event: string, error: unknown) => {
+  console.error(
+    "snapshot gateway failed",
+    JSON.stringify({ event, ...getSafeErrorDetails(error) })
+  );
+};
 
-if (!Number.isInteger(port) || port <= 0) {
-  throw new Error(`PORT must be a positive integer`);
-}
+const main = async () => {
+  const config = await loadGatewayConfig();
+  const port = Number(process.env.PORT || "8080");
 
-const server = createServer(createSnapshotGateway(config));
-server.listen(port, "::", () => {
-  console.log(`snapshot gateway listening on port ${port}`);
+  if (!Number.isInteger(port) || port <= 0) {
+    throw new Error(`PORT must be a positive integer`);
+  }
+
+  const server = createServer(createSnapshotGateway(config));
+  server.once("error", (error) => {
+    logFatalError("snapshot_gateway_server_error", error);
+    process.exit(1);
+  });
+  server.listen(port, "::", () => {
+    console.log(`snapshot gateway listening on port ${port}`);
+  });
+};
+
+main().catch((error) => {
+  logFatalError("snapshot_gateway_startup_failed", error);
+  process.exitCode = 1;
 });

@@ -8,8 +8,10 @@ import {
   type SnapshotManifest,
 } from "@protocol-visualizer/snapshot-artifacts";
 import {
+  createReadinessReporter,
   createSnapshotGateway,
   type GatewayConfig,
+  type GatewayLogger,
   type ObjectReader,
 } from "../src/server.js";
 
@@ -68,22 +70,70 @@ class FakeReader implements ObjectReader {
   keys: string[] = [];
   constructor(private readonly objects: Record<string, string>) {}
 
-  async getObject(key: string) {
+  async getObject(key: string, _signal?: AbortSignal) {
     this.keys.push(key);
     const body = this.objects[key];
     if (body === undefined) throw new Error("missing");
     return { body };
   }
 
-  async headObject(key: string) {
+  async headObject(key: string, _signal?: AbortSignal) {
     this.keys.push(`head:${key}`);
     if (this.objects[key] === undefined) throw new Error("missing");
   }
 }
 
+const silentLogger: GatewayLogger = {
+  error: () => {},
+  info: () => {},
+};
+
+const createRecordingLogger = () => {
+  const errors: Array<{
+    message: string;
+    details: Record<string, unknown>;
+  }> = [];
+  const infos: Array<{
+    message: string;
+    details: Record<string, unknown>;
+  }> = [];
+  const logger: GatewayLogger = {
+    error: (message, details) => errors.push({ message, details }),
+    info: (message, details) => infos.push({ message, details }),
+  };
+  return { errors, infos, logger };
+};
+
+const createTestConfig = (
+  reader: ObjectReader,
+  options: {
+    logger?: GatewayLogger;
+    readinessOperationTimeoutMs?: number;
+  } = {}
+): GatewayConfig => ({
+  reader,
+  logger: options.logger ?? silentLogger,
+  readinessOperationTimeoutMs: options.readinessOperationTimeoutMs,
+  openapiPath: "missing-openapi.json",
+  chains: [
+    {
+      key: "Mainnet",
+      chainId: 1,
+      name: "Mainnet",
+      explorerBaseUrl: "https://etherscan.io",
+    },
+  ],
+});
+
 async function request(
   path: string,
-  options: { method?: string; body?: string; reader?: FakeReader } = {}
+  options: {
+    method?: string;
+    body?: string;
+    reader?: FakeReader;
+    logger?: GatewayLogger;
+    readinessOperationTimeoutMs?: number;
+  } = {}
 ) {
   const reader =
     options.reader ??
@@ -97,18 +147,7 @@ async function request(
         data: { contracts: [], roles: [], roleAssignments: [] },
       }),
     });
-  const config: GatewayConfig = {
-    reader,
-    openapiPath: "missing-openapi.json",
-    chains: [
-      {
-        key: "Mainnet",
-        chainId: 1,
-        name: "Mainnet",
-        explorerBaseUrl: "https://etherscan.io",
-      },
-    ],
-  };
+  const config = createTestConfig(reader, options);
   const server = createServer(createSnapshotGateway(config));
   const listening = once(server, "listening");
   server.listen(0, "127.0.0.1");
@@ -216,6 +255,15 @@ test("rejects request bodies and unsupported methods", async () => {
   );
 });
 
+test("healthz reports process liveness without accessing snapshot storage", async () => {
+  const missing = new FakeReader({});
+  const { response, text } = await request("/healthz", { reader: missing });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(JSON.parse(text), { ok: true });
+  assert.deepEqual(missing.keys, []);
+});
+
 test("ready requires manifest access", async () => {
   assert.equal((await request("/ready")).response.status, 200);
   const missing = new FakeReader({});
@@ -223,6 +271,237 @@ test("ready requires manifest access", async () => {
     (await request("/ready", { reader: missing })).response.status,
     503
   );
+});
+
+test("ready logs sanitized storage failures", async () => {
+  const { errors, logger } = createRecordingLogger();
+  const reader = new FakeReader({});
+  reader.getObject = async () => {
+    throw Object.assign(new Error("secret endpoint and credentials"), {
+      name: "S3ServiceException",
+      code: "AccessDenied",
+      $metadata: { httpStatusCode: 403 },
+    });
+  };
+
+  const { response } = await request("/ready", { reader, logger });
+
+  assert.equal(response.status, 503);
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0]?.message, "snapshot gateway readiness check failed");
+  assert.equal(errors[0]?.details.event, "snapshot_gateway_readiness_failed");
+  assert.equal(errors[0]?.details.reason, "manifest_not_accessible");
+  assert.equal(errors[0]?.details.errorName, "S3ServiceException");
+  assert.equal(errors[0]?.details.errorCode, "AccessDenied");
+  assert.equal(errors[0]?.details.httpStatusCode, 403);
+  assert.equal(typeof errors[0]?.details.durationMs, "number");
+  assert(!JSON.stringify(errors).includes("secret endpoint"));
+  assert(!JSON.stringify(errors).includes("credentials"));
+});
+
+test("ready bounds manifest storage operations with a timeout", async () => {
+  const { errors, logger } = createRecordingLogger();
+  const reader = new FakeReader({});
+  let aborted = false;
+  reader.getObject = async (_key, signal) =>
+    new Promise((_resolve, reject) => {
+      const fallback = setTimeout(
+        () => reject(new Error("operation was not aborted")),
+        100
+      );
+      signal?.addEventListener(
+        "abort",
+        () => {
+          clearTimeout(fallback);
+          aborted = true;
+          reject(signal.reason);
+        },
+        { once: true }
+      );
+    });
+
+  const startedAt = performance.now();
+  const { response } = await request("/ready", {
+    reader,
+    logger,
+    readinessOperationTimeoutMs: 10,
+  });
+
+  assert.equal(response.status, 503);
+  assert(performance.now() - startedAt < 1_000);
+  assert.equal(aborted, true);
+  assert.equal(errors[0]?.details.errorCode, "READINESS_TIMEOUT");
+});
+
+test("readiness logging suppresses repeated failures and reports recovery", () => {
+  const { errors, infos, logger } = createRecordingLogger();
+  const reporter = createReadinessReporter(logger);
+  const failure = {
+    event: "snapshot_gateway_readiness_failed",
+    reason: "manifest_not_accessible",
+    errorCode: "AccessDenied",
+    durationMs: 10,
+  };
+
+  reporter.failed(failure);
+  reporter.failed({ ...failure, durationMs: 20 });
+  reporter.ready(5);
+  reporter.failed(failure);
+
+  assert.equal(errors.length, 2);
+  assert.equal(infos.length, 1);
+  assert.deepEqual(infos[0]?.details, {
+    event: "snapshot_gateway_readiness_recovered",
+    durationMs: 5,
+  });
+});
+
+test("ready coalesces overlapping storage checks", async () => {
+  const reader = new FakeReader({
+    [ACTIVE_MANIFEST_KEY]: JSON.stringify(manifest),
+    "v1/deployments/deployment-a/chain/1/protocol.json": "{}",
+  });
+  const getObject = reader.getObject.bind(reader);
+  const headObject = reader.headObject.bind(reader);
+  let manifestReads = 0;
+  let artifactReads = 0;
+  reader.getObject = async (key, signal) => {
+    manifestReads += 1;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    return getObject(key, signal);
+  };
+  reader.headObject = async (key, signal) => {
+    artifactReads += 1;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    return headObject(key, signal);
+  };
+
+  const server = createServer(createSnapshotGateway(createTestConfig(reader)));
+  const listening = once(server, "listening");
+  server.listen(0, "127.0.0.1");
+  await listening;
+  const address = server.address();
+  assert(typeof address === "object" && address !== null);
+  try {
+    const responses = await Promise.all([
+      fetch(`http://127.0.0.1:${address.port}/ready`),
+      fetch(`http://127.0.0.1:${address.port}/ready`),
+    ]);
+
+    assert.deepEqual(
+      responses.map((response) => response.status),
+      [200, 200]
+    );
+    assert.equal(manifestReads, 1);
+    assert.equal(artifactReads, 1);
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
+
+test("ready checks manifest artifacts in parallel", async () => {
+  const secondChain = {
+    chainId: 10,
+    name: "Optimism",
+    path: "/v1/chains/10/protocol",
+    generatedAt: manifest.generatedAt,
+    recordCounts: { contracts: 1, roles: 1, roleAssignments: 1 },
+  };
+  const parallelManifest: SnapshotManifest = {
+    ...manifest,
+    chains: [...manifest.chains, secondChain],
+    artifacts: {
+      ...manifest.artifacts,
+      "10": "v1/deployments/deployment-a/chain/10/protocol.json",
+    },
+  };
+  const reader = new FakeReader({
+    [ACTIVE_MANIFEST_KEY]: JSON.stringify(parallelManifest),
+  });
+  let activeChecks = 0;
+  let maximumActiveChecks = 0;
+  reader.headObject = async () => {
+    activeChecks += 1;
+    maximumActiveChecks = Math.max(maximumActiveChecks, activeChecks);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    activeChecks -= 1;
+  };
+
+  const { response } = await request("/ready", { reader });
+
+  assert.equal(response.status, 200);
+  assert.equal(maximumActiveChecks, 2);
+});
+
+test("ready limits concurrent artifact checks", async () => {
+  const chains = Array.from({ length: 12 }, (_value, index) => {
+    const chainId = index + 1;
+    return {
+      chainId,
+      name: `Chain ${chainId}`,
+      path: `/v1/chains/${chainId}/protocol`,
+      generatedAt: manifest.generatedAt,
+      recordCounts: { contracts: 1, roles: 1, roleAssignments: 1 },
+    };
+  });
+  const boundedManifest: SnapshotManifest = {
+    ...manifest,
+    chains,
+    artifacts: Object.fromEntries(
+      chains.map(({ chainId }) => [
+        String(chainId),
+        `v1/deployments/deployment-a/chain/${chainId}/protocol.json`,
+      ])
+    ),
+  };
+  const reader = new FakeReader({
+    [ACTIVE_MANIFEST_KEY]: JSON.stringify(boundedManifest),
+  });
+  let activeChecks = 0;
+  let maximumActiveChecks = 0;
+  reader.headObject = async () => {
+    activeChecks += 1;
+    maximumActiveChecks = Math.max(maximumActiveChecks, activeChecks);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    activeChecks -= 1;
+  };
+
+  const { response } = await request("/ready", { reader });
+
+  assert.equal(response.status, 200);
+  assert(maximumActiveChecks > 1);
+  assert(maximumActiveChecks <= 8);
+});
+
+test("ready logs inaccessible artifact chain ids", async () => {
+  const { errors, logger } = createRecordingLogger();
+  const reader = new FakeReader({
+    [ACTIVE_MANIFEST_KEY]: JSON.stringify(manifest),
+  });
+  reader.headObject = async () => {
+    throw Object.assign(new Error("secret artifact endpoint"), {
+      name: "S3ServiceException",
+      code: "NoSuchKey",
+      $metadata: { httpStatusCode: 404 },
+    });
+  };
+
+  const { response } = await request("/ready", { reader, logger });
+
+  assert.equal(response.status, 503);
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0]?.details.reason, "active_manifest_not_ready");
+  assert.deepEqual(errors[0]?.details.inaccessibleChainIds, [1]);
+  assert.deepEqual(errors[0]?.details.artifactErrors, [
+    {
+      chainId: 1,
+      errorName: "S3ServiceException",
+      errorCode: "NoSuchKey",
+      httpStatusCode: 404,
+    },
+  ]);
+  assert.equal(typeof errors[0]?.details.durationMs, "number");
+  assert(!JSON.stringify(errors).includes("secret artifact endpoint"));
 });
 
 test("ready rejects legacy manifests without handover artifacts", async () => {

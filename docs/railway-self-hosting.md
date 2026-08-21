@@ -35,6 +35,7 @@ Public REST responses never expose deployment ids or S3 object keys.
 
 ```text
 GET /
+GET /healthz
 GET /ready
 GET /v1/openapi.json
 GET /v1/bounds
@@ -185,6 +186,12 @@ Healthchecks:
 - `indexer`: `/healthz`
 - `snapshot-gateway`: `/ready`
 - `frontend`: `/`
+
+The snapshot gateway also exposes `/healthz` as a storage-independent liveness
+check. Railway intentionally uses `/ready` so a deployment is promoted only
+after the active manifest and every referenced chain artifact are accessible.
+Readiness failures emit sanitized, state-change-aware logs with provider error
+codes, affected chain ids, and check duration.
 
 ## Deployment
 

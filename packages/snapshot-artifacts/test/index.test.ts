@@ -52,6 +52,7 @@ test("generates the REST OpenAPI document", () => {
   const openapi = createOpenApiDocument();
   assert.equal(openapi.openapi, "3.1.0");
   assert.deepEqual(Object.keys(openapi.paths).sort(), [
+    "/healthz",
     "/ready",
     "/v1/bounds",
     "/v1/chains",

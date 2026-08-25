@@ -191,7 +191,7 @@ The snapshot gateway also exposes `/healthz` as a storage-independent liveness
 check. Railway intentionally uses `/ready` so a deployment is promoted only
 after the active manifest and every referenced chain artifact are accessible.
 Readiness failures emit sanitized, state-change-aware logs with provider error
-codes, affected chain ids, and check duration.
+codes, affected chain ids when available, and check duration.
 
 ## Deployment
 

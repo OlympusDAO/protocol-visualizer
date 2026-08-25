@@ -430,6 +430,12 @@ export function createOpenApiDocument(): OpenApiDocument {
             "200": jsonResponse("#/components/schemas/Ready"),
           },
         },
+        head: {
+          summary: "Liveness check",
+          responses: {
+            "200": jsonResponse("#/components/schemas/Ready"),
+          },
+        },
       },
       "/ready": {
         get: {

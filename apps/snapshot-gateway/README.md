@@ -44,7 +44,7 @@ simultaneous readiness probes share one in-flight check so the work remains
 bounded beneath Railway's deployment timeout.
 
 Readiness failures are logged with sanitized error names, provider error codes,
-HTTP status codes, affected chain ids, and check duration. Repeated identical
+HTTP status codes, affected chain ids when available, and check duration. Repeated identical
 failures are suppressed until the failure changes or readiness recovers. Logs
 never include provider error messages, credentials, or object contents.
 

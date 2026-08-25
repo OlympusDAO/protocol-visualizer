@@ -10,6 +10,7 @@ import {
 import {
   createReadinessReporter,
   createSnapshotGateway,
+  fatalErrorDetails,
   type GatewayConfig,
   type GatewayLogger,
   type ObjectReader,
@@ -123,6 +124,27 @@ const createTestConfig = (
       explorerBaseUrl: "https://etherscan.io",
     },
   ],
+});
+
+test("gateway rejects invalid readiness operation timeouts", () => {
+  const reader = new FakeReader({});
+  for (const value of [0, -1, 1.5, Number.NaN]) {
+    assert.throws(
+      () =>
+        createSnapshotGateway(
+          createTestConfig(reader, { readinessOperationTimeoutMs: value })
+        ),
+      /readinessOperationTimeoutMs must be a positive integer/
+    );
+  }
+});
+
+test("fatal error details include configuration messages", () => {
+  assert.deepEqual(fatalErrorDetails(new Error("BUCKET is required")), {
+    errorName: "Error",
+    message: "BUCKET is required",
+  });
+  assert.deepEqual(fatalErrorDetails("unknown failure"), {});
 });
 
 async function request(
@@ -333,9 +355,10 @@ test("ready bounds manifest storage operations with a timeout", async () => {
   assert.equal(errors[0]?.details.errorCode, "READINESS_TIMEOUT");
 });
 
-test("readiness logging suppresses repeated failures and reports recovery", () => {
+test("readiness logging re-logs sustained failures and reports recovery", () => {
   const { errors, infos, logger } = createRecordingLogger();
-  const reporter = createReadinessReporter(logger);
+  let now = 0;
+  const reporter = createReadinessReporter(logger, () => now);
   const failure = {
     event: "snapshot_gateway_readiness_failed",
     reason: "manifest_not_accessible",
@@ -344,11 +367,14 @@ test("readiness logging suppresses repeated failures and reports recovery", () =
   };
 
   reporter.failed(failure);
+  now = 59_999;
   reporter.failed({ ...failure, durationMs: 20 });
+  now = 60_000;
+  reporter.failed({ ...failure, durationMs: 30 });
   reporter.ready(5);
   reporter.failed(failure);
 
-  assert.equal(errors.length, 2);
+  assert.equal(errors.length, 3);
   assert.equal(infos.length, 1);
   assert.deepEqual(infos[0]?.details, {
     event: "snapshot_gateway_readiness_recovered",
@@ -365,28 +391,48 @@ test("ready coalesces overlapping storage checks", async () => {
   const headObject = reader.headObject.bind(reader);
   let manifestReads = 0;
   let artifactReads = 0;
+  let releaseManifest: (() => void) | undefined;
+  const manifestBlocked = new Promise<void>((resolve) => {
+    releaseManifest = resolve;
+  });
+  let manifestReadStarted: (() => void) | undefined;
+  const manifestStarted = new Promise<void>((resolve) => {
+    manifestReadStarted = resolve;
+  });
   reader.getObject = async (key, signal) => {
     manifestReads += 1;
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    manifestReadStarted?.();
+    await manifestBlocked;
     return getObject(key, signal);
   };
   reader.headObject = async (key, signal) => {
     artifactReads += 1;
-    await new Promise((resolve) => setTimeout(resolve, 20));
     return headObject(key, signal);
   };
 
-  const server = createServer(createSnapshotGateway(createTestConfig(reader)));
+  const handler = createSnapshotGateway(createTestConfig(reader));
+  let requestsStarted = 0;
+  let bothRequestsStarted: (() => void) | undefined;
+  const requestsStartedPromise = new Promise<void>((resolve) => {
+    bothRequestsStarted = resolve;
+  });
+  const server = createServer((incomingRequest, response) => {
+    requestsStarted += 1;
+    if (requestsStarted === 2) bothRequestsStarted?.();
+    void handler(incomingRequest, response);
+  });
   const listening = once(server, "listening");
   server.listen(0, "127.0.0.1");
   await listening;
   const address = server.address();
   assert(typeof address === "object" && address !== null);
   try {
-    const responses = await Promise.all([
-      fetch(`http://127.0.0.1:${address.port}/ready`),
-      fetch(`http://127.0.0.1:${address.port}/ready`),
-    ]);
+    const firstResponse = fetch(`http://127.0.0.1:${address.port}/ready`);
+    await manifestStarted;
+    const secondResponse = fetch(`http://127.0.0.1:${address.port}/ready`);
+    await requestsStartedPromise;
+    releaseManifest?.();
+    const responses = await Promise.all([firstResponse, secondResponse]);
 
     assert.deepEqual(
       responses.map((response) => response.status),
@@ -397,6 +443,51 @@ test("ready coalesces overlapping storage checks", async () => {
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
+});
+
+test("ready applies one deadline to the artifact check phase", async () => {
+  const chains = Array.from({ length: 9 }, (_value, index) => {
+    const chainId = index + 1;
+    return {
+      chainId,
+      name: `Chain ${chainId}`,
+      path: `/v1/chains/${chainId}/protocol`,
+      generatedAt: manifest.generatedAt,
+      recordCounts: { contracts: 1, roles: 1, roleAssignments: 1 },
+    };
+  });
+  const boundedManifest: SnapshotManifest = {
+    ...manifest,
+    chains,
+    artifacts: Object.fromEntries(
+      chains.map(({ chainId }) => [String(chainId), `artifact-${chainId}`])
+    ),
+  };
+  const reader = new FakeReader({
+    [ACTIVE_MANIFEST_KEY]: JSON.stringify(boundedManifest),
+  });
+  let calls = 0;
+  reader.headObject = async (_key, signal) => {
+    calls += 1;
+    if (calls <= 8) {
+      await new Promise((resolve) => setTimeout(resolve, 70));
+      return;
+    }
+    await new Promise((_resolve, reject) =>
+      signal?.addEventListener("abort", () => reject(signal.reason), {
+        once: true,
+      })
+    );
+  };
+
+  const startedAt = performance.now();
+  const { response } = await request("/ready", {
+    reader,
+    readinessOperationTimeoutMs: 100,
+  });
+
+  assert.equal(response.status, 503);
+  assert(performance.now() - startedAt < 145);
 });
 
 test("ready checks manifest artifacts in parallel", async () => {

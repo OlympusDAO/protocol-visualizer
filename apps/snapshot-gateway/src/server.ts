@@ -77,6 +77,11 @@ export const getSafeErrorDetails = (
   };
 };
 
+export const fatalErrorDetails = (error: unknown): Record<string, unknown> => ({
+  ...getSafeErrorDetails(error),
+  ...(error instanceof Error ? { message: error.message } : {}),
+});
+
 class ReadinessTimeoutError extends Error {
   readonly code = "READINESS_TIMEOUT";
 
@@ -99,22 +104,36 @@ const withTimeout = async <T>(
   }
 };
 
-export function createReadinessReporter(logger: GatewayLogger) {
+const readinessFailureRelogIntervalMs = 60_000;
+
+export function createReadinessReporter(
+  logger: GatewayLogger,
+  now: () => number = () => Date.now()
+) {
   let lastFailure: string | undefined;
+  let lastFailureLoggedAt = 0;
 
   return {
     failed(details: Record<string, unknown>) {
       const { durationMs: _durationMs, ...fingerprintDetails } = details;
       const fingerprint = JSON.stringify(fingerprintDetails);
-      if (fingerprint === lastFailure) return;
+      const timestamp = now();
+      if (
+        fingerprint === lastFailure &&
+        timestamp - lastFailureLoggedAt < readinessFailureRelogIntervalMs
+      ) {
+        return;
+      }
 
       lastFailure = fingerprint;
+      lastFailureLoggedAt = timestamp;
       logger.error("snapshot gateway readiness check failed", details);
     },
     ready(durationMs: number) {
       if (lastFailure === undefined) return;
 
       lastFailure = undefined;
+      lastFailureLoggedAt = 0;
       logger.info("snapshot gateway readiness check recovered", {
         event: "snapshot_gateway_readiness_recovered",
         durationMs,
@@ -347,6 +366,7 @@ const verifyActiveManifestArtifacts = async (
     ({ chainId: number } & Record<string, unknown>) | undefined
   > = new Array(manifest.chains.length);
   let nextChainIndex = 0;
+  const deadline = Date.now() + timeoutMs;
   const checkArtifacts = async () => {
     while (nextChainIndex < manifest.chains.length) {
       const index = nextChainIndex;
@@ -357,9 +377,11 @@ const verifyActiveManifestArtifacts = async (
       if (!key) continue;
 
       try {
+        const remainingMs = deadline - Date.now();
+        if (remainingMs <= 0) throw new ReadinessTimeoutError(timeoutMs);
         await withTimeout(
           (signal) => reader.headObject(key, signal),
-          timeoutMs
+          remainingMs
         );
       } catch (error) {
         artifactChecks[index] = {

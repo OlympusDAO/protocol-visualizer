@@ -60,6 +60,21 @@ test("generates the REST OpenAPI document", () => {
     "/v1/manifest",
     "/v1/openapi.json",
   ]);
+  const healthz = openapi.paths["/healthz"] as Record<
+    string,
+    { summary: string; responses: Record<string, unknown> }
+  >;
+  for (const method of ["get", "head"]) {
+    assert.equal(healthz[method]?.summary, "Liveness check");
+    assert.deepEqual(healthz[method]?.responses["200"], {
+      description: "JSON response",
+      content: {
+        "application/json": {
+          schema: { $ref: "#/components/schemas/Ready" },
+        },
+      },
+    });
+  }
 });
 
 test("parses Envio metrics readiness for supported chains", () => {

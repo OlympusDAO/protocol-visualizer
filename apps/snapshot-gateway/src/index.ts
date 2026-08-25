@@ -1,14 +1,14 @@
 import { createServer } from "node:http";
 import {
   createSnapshotGateway,
-  getSafeErrorDetails,
+  fatalErrorDetails,
   loadGatewayConfig,
 } from "./server.js";
 
 const logFatalError = (event: string, error: unknown) => {
   console.error(
     "snapshot gateway failed",
-    JSON.stringify({ event, ...getSafeErrorDetails(error) })
+    JSON.stringify({ event, ...fatalErrorDetails(error) })
   );
 };
 

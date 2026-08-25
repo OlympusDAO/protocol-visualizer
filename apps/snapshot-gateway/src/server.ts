@@ -95,12 +95,19 @@ const withTimeout = async <T>(
   operation: (signal: AbortSignal) => Promise<T>,
   timeoutMs: number
 ) => {
-  const signal = AbortSignal.timeout(timeoutMs);
+  const controller = new AbortController();
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new ReadinessTimeoutError(timeoutMs));
+      controller.abort();
+    }, timeoutMs);
+  });
+
   try {
-    return await operation(signal);
-  } catch (error) {
-    if (signal.aborted) throw new ReadinessTimeoutError(timeoutMs);
-    throw error;
+    return await Promise.race([operation(controller.signal), timeout]);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
   }
 };
 

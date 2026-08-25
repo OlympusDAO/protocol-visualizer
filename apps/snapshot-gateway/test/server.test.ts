@@ -355,6 +355,23 @@ test("ready bounds manifest storage operations with a timeout", async () => {
   assert.equal(errors[0]?.details.errorCode, "READINESS_TIMEOUT");
 });
 
+test("ready times out when storage ignores the abort signal", async () => {
+  const { errors, logger } = createRecordingLogger();
+  const reader = new FakeReader({});
+  reader.getObject = async () => new Promise(() => {});
+
+  const startedAt = performance.now();
+  const { response } = await request("/ready", {
+    reader,
+    logger,
+    readinessOperationTimeoutMs: 10,
+  });
+
+  assert.equal(response.status, 503);
+  assert(performance.now() - startedAt < 1_000);
+  assert.equal(errors[0]?.details.errorCode, "READINESS_TIMEOUT");
+});
+
 test("readiness logging re-logs sustained failures and reports recovery", () => {
   const { errors, infos, logger } = createRecordingLogger();
   let now = 0;

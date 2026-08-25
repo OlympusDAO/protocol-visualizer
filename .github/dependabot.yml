@@ -45,7 +45,7 @@ updates:
     versioning-strategy: increase
 
   # Snapshot gateway app
-  - package-ecosystem: "gomod"
+  - package-ecosystem: "npm"
     directory: "/apps/snapshot-gateway"
     schedule:
       interval: "weekly"
@@ -53,3 +53,4 @@ updates:
     open-pull-requests-limit: 3
     labels:
       - "dependencies"
+    versioning-strategy: increase

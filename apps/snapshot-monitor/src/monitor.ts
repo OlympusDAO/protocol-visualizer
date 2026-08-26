@@ -76,6 +76,35 @@ type DiscordWebhookPayload = {
   embeds?: DiscordEmbed[];
 };
 
+export type MonitorLogger = {
+  error: (message: string, details: Record<string, unknown>) => void;
+  info: (message: string, details: Record<string, unknown>) => void;
+};
+
+const defaultLogger: MonitorLogger = {
+  error: (message, details) => console.error(message, JSON.stringify(details)),
+  info: (message, details) => console.info(message, JSON.stringify(details)),
+};
+
+const fatalErrorDetails = (error: unknown): Record<string, unknown> => {
+  if (!(error instanceof Error)) return {};
+
+  const candidate = error as Error & {
+    code?: unknown;
+    $metadata?: { httpStatusCode?: unknown };
+  };
+  return {
+    errorName: error.name,
+    message: error.message,
+    ...(typeof candidate.code === "string"
+      ? { errorCode: candidate.code }
+      : {}),
+    ...(typeof candidate.$metadata?.httpStatusCode === "number"
+      ? { httpStatusCode: candidate.$metadata.httpStatusCode }
+      : {}),
+  };
+};
+
 const requiredEnv = (key: string): string => {
   const value = process.env[key]?.trim();
   if (!value) throw new Error(`${key} is required`);
@@ -394,27 +423,56 @@ export async function runMonitor(input: {
   );
 }
 
-export async function runMonitorFromEnv() {
-  const environmentName = requiredEnv("RAILWAY_ENVIRONMENT_NAME");
-  const staleThresholdHours = Number(
-    process.env.MONITOR_STALE_CHAIN_HOURS ?? "24"
-  );
-  if (!Number.isFinite(staleThresholdHours) || staleThresholdHours <= 0) {
-    throw new Error("MONITOR_STALE_CHAIN_HOURS must be a positive number");
+export async function runMonitorFromEnv(logger: MonitorLogger = defaultLogger) {
+  let stage = "load_configuration";
+
+  try {
+    const environmentName = requiredEnv("RAILWAY_ENVIRONMENT_NAME");
+    const metricsUrl = requiredEnv("INDEXER_METRICS_URL");
+    const staleThresholdHours = Number(
+      process.env.MONITOR_STALE_CHAIN_HOURS ?? "24"
+    );
+    if (!Number.isFinite(staleThresholdHours) || staleThresholdHours <= 0) {
+      throw new Error("MONITOR_STALE_CHAIN_HOURS must be a positive number");
+    }
+    const deploymentId = resolveDeploymentId();
+    const store = createS3Store();
+    const webhookUrl = requiredEnv("DISCORD_WEBHOOK_URL");
+    const stateKey = process.env.MONITOR_STATE_KEY || DEFAULT_MONITOR_STATE_KEY;
+
+    logger.info("snapshot monitor starting", {
+      event: "snapshot_monitor_starting",
+      environmentName,
+      deploymentId: shortId(deploymentId),
+      metricsUrl: safeUrlForLog(metricsUrl),
+    });
+
+    stage = "load_chain_configuration";
+    const chains = await loadChains();
+
+    stage = "fetch_indexer_metrics";
+    const readiness = await fetchIndexerMetricsReadiness({
+      metricsUrl,
+      chains,
+    });
+
+    stage = "run_monitor";
+    await runMonitor({
+      store,
+      webhookUrl,
+      stateKey,
+      environmentName,
+      deploymentId,
+      progress: readiness.indexingProgress,
+      notReadyChainIds: readiness.notReadyChainIds,
+      staleThresholdMs: staleThresholdHours * 60 * 60 * 1000,
+    });
+  } catch (error) {
+    logger.error("snapshot monitor failed", {
+      event: "snapshot_monitor_run_failed",
+      stage,
+      ...fatalErrorDetails(error),
+    });
+    throw error;
   }
-  const chains = await loadChains();
-  const readiness = await fetchIndexerMetricsReadiness({
-    metricsUrl: requiredEnv("INDEXER_METRICS_URL"),
-    chains,
-  });
-  await runMonitor({
-    store: createS3Store(),
-    webhookUrl: requiredEnv("DISCORD_WEBHOOK_URL"),
-    stateKey: process.env.MONITOR_STATE_KEY || DEFAULT_MONITOR_STATE_KEY,
-    environmentName,
-    deploymentId: resolveDeploymentId(),
-    progress: readiness.indexingProgress,
-    notReadyChainIds: readiness.notReadyChainIds,
-    staleThresholdMs: staleThresholdHours * 60 * 60 * 1000,
-  });
 }

@@ -12,7 +12,6 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/snapshot-monitor/package.json ./apps/snapshot-monitor/
 COPY packages/snapshot-artifacts/package.json ./packages/snapshot-artifacts/
 COPY packages/protocol-config/protocol-chains.json ./config/protocol-chains.json
-COPY packages/protocol-config/protocol-chains.json ./packages/protocol-config/protocol-chains.json
 
 RUN pnpm install --frozen-lockfile --filter snapshot-monitor...
 

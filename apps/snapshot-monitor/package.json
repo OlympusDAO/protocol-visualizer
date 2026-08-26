@@ -8,7 +8,8 @@
   ],
   "scripts": {
     "start": "node dist/src/index.js",
-    "build": "tsc && node --test dist/test/*.test.js",
+    "build": "tsc",
+    "test": "node --test dist/test/*.test.js",
     "lint": "biome lint --write . --error-on-warnings",
     "lint:check": "biome lint . --error-on-warnings"
   },

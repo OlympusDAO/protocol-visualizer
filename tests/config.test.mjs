@@ -95,6 +95,14 @@ test("CI scans every Dockerfile and local image", () => {
   );
 });
 
+test("Dependabot treats the snapshot gateway as TypeScript", () => {
+  const dependabot = readFileSync(".github/dependabot.yml", "utf8");
+  assert.match(
+    dependabot,
+    /package-ecosystem: "npm"\s+directory: "\/apps\/snapshot-gateway"/
+  );
+});
+
 test("Dependency audit comments are isolated from pull request code", () => {
   const auditWorkflow = readFileSync(".github/workflows/audit.yml", "utf8");
   const commentWorkflow = readFileSync(
@@ -326,13 +334,19 @@ test("Snapshot service Dockerfiles prune source and test artifacts", () => {
   }
 });
 
-test("Snapshot monitor Docker build includes its test configuration", () => {
-  const monitor = dockerfileContent("Dockerfile-snapshot-monitor");
+test("Snapshot monitor runs tests in CI, not during image builds", () => {
+  const monitorPackage = readJson("apps/snapshot-monitor/package.json");
+  const monitorDockerfile = dockerfileContent("Dockerfile-snapshot-monitor");
+  const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
+
+  assert.equal(monitorPackage.scripts.build, "tsc");
+  assert.equal(monitorPackage.scripts.test, "node --test dist/test/*.test.js");
+  assert(workflow.includes("pnpm --filter snapshot-monitor run test"));
   assert(
-    monitor.includes(
+    !monitorDockerfile.includes(
       "COPY packages/protocol-config/protocol-chains.json ./packages/protocol-config/protocol-chains.json"
     ),
-    "Dockerfile-snapshot-monitor should provide the config path used by monitor tests"
+    "Dockerfile-snapshot-monitor should not copy test-only configuration"
   );
 });
 

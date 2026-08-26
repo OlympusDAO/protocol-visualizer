@@ -326,6 +326,16 @@ test("Snapshot service Dockerfiles prune source and test artifacts", () => {
   }
 });
 
+test("Snapshot monitor Docker build includes its test configuration", () => {
+  const monitor = dockerfileContent("Dockerfile-snapshot-monitor");
+  assert(
+    monitor.includes(
+      "COPY packages/protocol-config/protocol-chains.json ./packages/protocol-config/protocol-chains.json"
+    ),
+    "Dockerfile-snapshot-monitor should provide the config path used by monitor tests"
+  );
+});
+
 test("Frontend and indexer Dockerfiles prune scaffold and local-only files", () => {
   const frontend = dockerfileContent("Dockerfile-frontend");
   assert(frontend.includes("libxml2"));

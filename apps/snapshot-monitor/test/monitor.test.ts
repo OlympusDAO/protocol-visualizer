@@ -7,6 +7,7 @@ import {
 import {
   evaluateMonitor,
   fetchIndexerMetricsReadiness,
+  runMonitorFromEnv,
   sendDiscordMessage,
   shortId,
 } from "../src/monitor.js";
@@ -284,6 +285,103 @@ test("reports indexer metrics HTTP failures with safe context", async () => {
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("logs a sanitized stage when indexer metrics cannot be fetched", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalEnv = { ...process.env };
+  const errors: Array<{
+    message: string;
+    details: Record<string, unknown>;
+  }> = [];
+  const infos: Array<{
+    message: string;
+    details: Record<string, unknown>;
+  }> = [];
+
+  globalThis.fetch = (async () => {
+    throw new Error("fetch failed");
+  }) as typeof fetch;
+  Object.assign(process.env, {
+    RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-63",
+    INDEXER_METRICS_URL:
+      "http://user:password@indexer.railway.internal:9898/metrics?secret=value",
+    PROTOCOL_CHAINS_CONFIG_PATH:
+      "../../packages/protocol-config/protocol-chains.json",
+    BUCKET: "protocol-snapshots",
+    REGION: "us-east-1",
+    ENDPOINT: "http://minio.internal:9000",
+    ACCESS_KEY_ID: "test-access-key",
+    SECRET_ACCESS_KEY: "test-secret-key",
+    DISCORD_WEBHOOK_URL: "http://discord.local/webhook",
+  });
+
+  try {
+    await assert.rejects(
+      () =>
+        runMonitorFromEnv({
+          error: (message, details) => errors.push({ message, details }),
+          info: (message, details) => infos.push({ message, details }),
+        }),
+      /Indexer metrics request/
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    process.env = originalEnv;
+  }
+
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0]?.message, "snapshot monitor failed");
+  assert.equal(errors[0]?.details.event, "snapshot_monitor_run_failed");
+  assert.equal(errors[0]?.details.stage, "fetch_indexer_metrics");
+  assert.equal(errors[0]?.details.errorName, "Error");
+  assert.match(String(errors[0]?.details.message), /fetch failed/);
+  assert.doesNotMatch(
+    JSON.stringify(errors[0]?.details),
+    /password|secret=value/
+  );
+  assert.equal(infos.length, 1);
+  assert.equal(infos[0]?.message, "snapshot monitor starting");
+  assert.equal(
+    infos[0]?.details.metricsUrl,
+    "http://indexer.railway.internal:9898/metrics"
+  );
+});
+
+test("logs missing storage configuration during configuration loading", async () => {
+  const originalEnv = { ...process.env };
+  const errors: Array<{
+    message: string;
+    details: Record<string, unknown>;
+  }> = [];
+
+  Object.assign(process.env, {
+    RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-63",
+    INDEXER_METRICS_URL: "http://indexer.railway.internal:9898/metrics",
+    REGION: "us-east-1",
+    ENDPOINT: "http://minio.internal:9000",
+    ACCESS_KEY_ID: "test-access-key",
+    SECRET_ACCESS_KEY: "test-secret-key",
+    DISCORD_WEBHOOK_URL: "http://discord.local/webhook",
+  });
+  delete process.env.BUCKET;
+
+  try {
+    await assert.rejects(
+      () =>
+        runMonitorFromEnv({
+          error: (message, details) => errors.push({ message, details }),
+          info: () => undefined,
+        }),
+      /BUCKET is required/
+    );
+  } finally {
+    process.env = originalEnv;
+  }
+
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0]?.details.stage, "load_configuration");
+  assert.equal(errors[0]?.details.message, "BUCKET is required");
 });
 
 test("sends Discord embed payloads", async () => {

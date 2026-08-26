@@ -25,17 +25,129 @@ type ChainConfig = {
 };
 
 export type ObjectReader = {
-  getObject: (key: string) => Promise<{ body: string; contentLength?: number }>;
-  headObject: (key: string) => Promise<void>;
+  getObject: (
+    key: string,
+    signal?: AbortSignal
+  ) => Promise<{ body: string; contentLength?: number }>;
+  headObject: (key: string, signal?: AbortSignal) => Promise<void>;
+};
+
+export type GatewayLogger = {
+  error: (message: string, details: Record<string, unknown>) => void;
+  info: (message: string, details: Record<string, unknown>) => void;
 };
 
 export type GatewayConfig = {
   reader: ObjectReader;
   chains: ChainConfig[];
   openapiPath: string;
+  logger?: GatewayLogger;
+  readinessOperationTimeoutMs?: number;
 };
 
 const defaultChainsPath = "config/protocol-chains.json";
+const defaultReadinessOperationTimeoutMs = 5_000;
+const maxConcurrentArtifactChecks = 8;
+
+const defaultLogger: GatewayLogger = {
+  error: (message, details) => console.error(message, JSON.stringify(details)),
+  info: (message, details) => console.info(message, JSON.stringify(details)),
+};
+
+export const getSafeErrorDetails = (
+  error: unknown
+): Record<string, unknown> => {
+  if (!error || typeof error !== "object") return {};
+
+  const candidate = error as {
+    name?: unknown;
+    code?: unknown;
+    $metadata?: { httpStatusCode?: unknown };
+  };
+  return {
+    ...(typeof candidate.name === "string"
+      ? { errorName: candidate.name }
+      : {}),
+    ...(typeof candidate.code === "string"
+      ? { errorCode: candidate.code }
+      : {}),
+    ...(typeof candidate.$metadata?.httpStatusCode === "number"
+      ? { httpStatusCode: candidate.$metadata.httpStatusCode }
+      : {}),
+  };
+};
+
+export const fatalErrorDetails = (error: unknown): Record<string, unknown> => ({
+  ...getSafeErrorDetails(error),
+  ...(error instanceof Error ? { message: error.message } : {}),
+});
+
+class ReadinessTimeoutError extends Error {
+  readonly code = "READINESS_TIMEOUT";
+
+  constructor(timeoutMs: number) {
+    super(`readiness storage operation exceeded ${timeoutMs}ms`);
+    this.name = "ReadinessTimeoutError";
+  }
+}
+
+const withTimeout = async <T>(
+  operation: (signal: AbortSignal) => Promise<T>,
+  timeoutMs: number
+) => {
+  const controller = new AbortController();
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new ReadinessTimeoutError(timeoutMs));
+      controller.abort();
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([operation(controller.signal), timeout]);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  }
+};
+
+const readinessFailureRelogIntervalMs = 60_000;
+
+export function createReadinessReporter(
+  logger: GatewayLogger,
+  now: () => number = () => Date.now()
+) {
+  let lastFailure: string | undefined;
+  let lastFailureLoggedAt = 0;
+
+  return {
+    failed(details: Record<string, unknown>) {
+      const { durationMs: _durationMs, ...fingerprintDetails } = details;
+      const fingerprint = JSON.stringify(fingerprintDetails);
+      const timestamp = now();
+      if (
+        fingerprint === lastFailure &&
+        timestamp - lastFailureLoggedAt < readinessFailureRelogIntervalMs
+      ) {
+        return;
+      }
+
+      lastFailure = fingerprint;
+      lastFailureLoggedAt = timestamp;
+      logger.error("snapshot gateway readiness check failed", details);
+    },
+    ready(durationMs: number) {
+      if (lastFailure === undefined) return;
+
+      lastFailure = undefined;
+      lastFailureLoggedAt = 0;
+      logger.info("snapshot gateway readiness check recovered", {
+        event: "snapshot_gateway_readiness_recovered",
+        durationMs,
+      });
+    },
+  };
+}
 
 const requiredEnv = (key: string): string => {
   const value = process.env[key]?.trim();
@@ -77,9 +189,10 @@ export function createS3Reader(): ObjectReader {
   });
 
   return {
-    getObject: async (key) => {
+    getObject: async (key, signal) => {
       const output = await client.send(
-        new GetObjectCommand({ Bucket: bucket, Key: key })
+        new GetObjectCommand({ Bucket: bucket, Key: key }),
+        { abortSignal: signal }
       );
       return {
         body: await objectBodyToString(output.Body),
@@ -89,8 +202,10 @@ export function createS3Reader(): ObjectReader {
             : undefined,
       };
     },
-    headObject: async (key) => {
-      await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+    headObject: async (key, signal) => {
+      await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }), {
+        abortSignal: signal,
+      });
     },
   };
 }
@@ -169,9 +284,17 @@ const parseUrl = (request: IncomingMessage): URL => {
   }
 };
 
-const readManifest = async (reader: ObjectReader): Promise<SnapshotManifest> =>
+const readManifest = async (
+  reader: ObjectReader,
+  timeoutMs: number
+): Promise<SnapshotManifest> =>
   JSON.parse(
-    (await reader.getObject(ACTIVE_MANIFEST_KEY)).body
+    (
+      await withTimeout(
+        (signal) => reader.getObject(ACTIVE_MANIFEST_KEY, signal),
+        timeoutMs
+      )
+    ).body
   ) as SnapshotManifest;
 
 class ActiveManifestNotReadyError extends Error {
@@ -233,25 +356,64 @@ const assertActiveManifest = (manifest: SnapshotManifest) => {
 
 const verifyActiveManifestArtifacts = async (
   reader: ObjectReader,
-  manifest: SnapshotManifest
-): Promise<string[]> => {
+  manifest: SnapshotManifest,
+  timeoutMs: number
+): Promise<{
+  issues: string[];
+  inaccessibleChainIds: number[];
+  artifactErrors: Array<Record<string, unknown>>;
+}> => {
   const issues = activeManifestIssues(manifest);
-  if (issues.length > 0) return issues;
+  const inaccessibleChainIds: number[] = [];
+  const artifactErrors: Array<Record<string, unknown>> = [];
+  if (issues.length > 0)
+    return { issues, inaccessibleChainIds, artifactErrors };
 
-  for (const chain of manifest.chains) {
-    const key = activeArtifactKeyForChain(manifest, chain.chainId);
-    if (!key) {
-      issues.push(`chain ${chain.chainId} artifact is missing`);
-      continue;
+  const artifactChecks: Array<
+    ({ chainId: number } & Record<string, unknown>) | undefined
+  > = new Array(manifest.chains.length);
+  let nextChainIndex = 0;
+  const deadline = Date.now() + timeoutMs;
+  const checkArtifacts = async () => {
+    while (nextChainIndex < manifest.chains.length) {
+      const index = nextChainIndex;
+      nextChainIndex += 1;
+      const chain = manifest.chains[index];
+      if (!chain) continue;
+      const key = activeArtifactKeyForChain(manifest, chain.chainId);
+      if (!key) continue;
+
+      try {
+        const remainingMs = deadline - Date.now();
+        if (remainingMs <= 0) throw new ReadinessTimeoutError(timeoutMs);
+        await withTimeout(
+          (signal) => reader.headObject(key, signal),
+          remainingMs
+        );
+      } catch (error) {
+        artifactChecks[index] = {
+          chainId: chain.chainId,
+          ...getSafeErrorDetails(error),
+        };
+      }
     }
-    try {
-      await reader.headObject(key);
-    } catch {
-      issues.push(`chain ${chain.chainId} artifact is not accessible`);
-    }
+  };
+  await Promise.all(
+    Array.from(
+      {
+        length: Math.min(maxConcurrentArtifactChecks, manifest.chains.length),
+      },
+      checkArtifacts
+    )
+  );
+  for (const artifactError of artifactChecks) {
+    if (artifactError === undefined) continue;
+    issues.push(`chain ${artifactError.chainId} artifact is not accessible`);
+    inaccessibleChainIds.push(artifactError.chainId);
+    artifactErrors.push(artifactError);
   }
 
-  return issues;
+  return { issues, inaccessibleChainIds, artifactErrors };
 };
 
 const activeArtifactKeyForChain = (
@@ -282,9 +444,47 @@ const publicIndexHtml = `<!doctype html>
 `;
 
 export function createSnapshotGateway(config: GatewayConfig) {
+  const logger = config.logger ?? defaultLogger;
+  const readinessReporter = createReadinessReporter(logger);
+  const readinessOperationTimeoutMs =
+    config.readinessOperationTimeoutMs ?? defaultReadinessOperationTimeoutMs;
+  if (
+    !Number.isInteger(readinessOperationTimeoutMs) ||
+    readinessOperationTimeoutMs <= 0
+  ) {
+    throw new Error("readinessOperationTimeoutMs must be a positive integer");
+  }
   const allowedChains = new Map(
     config.chains.map((chain) => [chain.chainId, chain])
   );
+  let readinessCheckInFlight:
+    | Promise<{
+        issues: string[];
+        inaccessibleChainIds: number[];
+        artifactErrors: Array<Record<string, unknown>>;
+      }>
+    | undefined;
+  const checkReadiness = () => {
+    if (readinessCheckInFlight) return readinessCheckInFlight;
+
+    const check = (async () => {
+      const manifest = await readManifest(
+        config.reader,
+        readinessOperationTimeoutMs
+      );
+      return verifyActiveManifestArtifacts(
+        config.reader,
+        manifest,
+        readinessOperationTimeoutMs
+      );
+    })();
+    readinessCheckInFlight = check;
+    const clear = () => {
+      if (readinessCheckInFlight === check) readinessCheckInFlight = undefined;
+    };
+    void check.then(clear, clear);
+    return check;
+  };
 
   return async (request: IncomingMessage, response: ServerResponse) => {
     if (!isAllowedMethod(request.method)) {
@@ -320,6 +520,7 @@ export function createSnapshotGateway(config: GatewayConfig) {
       return;
     }
 
+    const startedAt = performance.now();
     try {
       if (url.pathname === "/") {
         send(
@@ -332,13 +533,25 @@ export function createSnapshotGateway(config: GatewayConfig) {
         return;
       }
 
+      if (url.pathname === "/healthz") {
+        sendJson(request, response, 200, { ok: true });
+        return;
+      }
+
       if (url.pathname === "/ready") {
-        const manifest = await readManifest(config.reader);
-        const issues = await verifyActiveManifestArtifacts(
-          config.reader,
-          manifest
-        );
+        const { issues, inaccessibleChainIds, artifactErrors } =
+          await checkReadiness();
         if (issues.length > 0) {
+          readinessReporter.failed({
+            event: "snapshot_gateway_readiness_failed",
+            reason: "active_manifest_not_ready",
+            issues,
+            ...(inaccessibleChainIds.length > 0
+              ? { inaccessibleChainIds }
+              : {}),
+            ...(artifactErrors.length > 0 ? { artifactErrors } : {}),
+            durationMs: Math.round(performance.now() - startedAt),
+          });
           sendJson(request, response, 503, {
             ok: false,
             error: "active manifest is not ready",
@@ -346,6 +559,7 @@ export function createSnapshotGateway(config: GatewayConfig) {
           });
           return;
         }
+        readinessReporter.ready(Math.round(performance.now() - startedAt));
         sendJson(request, response, 200, { ok: true });
         return;
       }
@@ -373,7 +587,10 @@ export function createSnapshotGateway(config: GatewayConfig) {
         }
       }
 
-      const manifest = await readManifest(config.reader);
+      const manifest = await readManifest(
+        config.reader,
+        readinessOperationTimeoutMs
+      );
       assertActiveManifest(manifest);
       if (url.pathname === "/v1/bounds") {
         const bounds: BoundsResponse = {
@@ -452,6 +669,12 @@ export function createSnapshotGateway(config: GatewayConfig) {
         return;
       }
       if (url.pathname === "/ready") {
+        readinessReporter.failed({
+          event: "snapshot_gateway_readiness_failed",
+          reason: "manifest_not_accessible",
+          durationMs: Math.round(performance.now() - startedAt),
+          ...getSafeErrorDetails(error),
+        });
         sendJson(request, response, 503, {
           ok: false,
           error: "manifest not accessible",

@@ -40,6 +40,9 @@ jobs:
       - name: Run build
         run: pnpm run build
 
+      - name: Run snapshot monitor tests
+        run: pnpm --filter snapshot-monitor run test
+
   docker-build:
     runs-on: ubuntu-latest
     steps:

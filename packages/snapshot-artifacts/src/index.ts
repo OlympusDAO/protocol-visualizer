@@ -423,6 +423,20 @@ export function createOpenApiDocument(): OpenApiDocument {
       version: SCHEMA_VERSION,
     },
     paths: {
+      "/healthz": {
+        get: {
+          summary: "Liveness check",
+          responses: {
+            "200": jsonResponse("#/components/schemas/Ready"),
+          },
+        },
+        head: {
+          summary: "Liveness check",
+          responses: {
+            "200": jsonResponse("#/components/schemas/Ready"),
+          },
+        },
+      },
       "/ready": {
         get: {
           summary: "Readiness check",

@@ -10,6 +10,8 @@ does not expose Hasura, bucket keys, or deployment ids publicly.
 ```text
 GET  /
 HEAD /
+GET  /healthz
+HEAD /healthz
 GET  /ready
 HEAD /ready
 GET  /v1/openapi.json
@@ -28,11 +30,26 @@ HEAD /v1/chains/{chainId}/protocol
 methods, unknown paths, unsupported query parameters, and unsupported chain ids
 are rejected.
 
-## Readiness
+## Health and readiness
 
-`/ready` returns `200` only when `v1/manifest.json` is readable from the
-bucket. The active manifest is the public handover boundary: while a new
-indexer deployment reindexes, the gateway continues serving the previous
+`/healthz` is a liveness check that returns `200` when the HTTP process is
+running. It does not access snapshot storage.
+
+`/ready` returns `200` only when `v1/manifest.json` is readable and valid and
+every active chain artifact is accessible in the bucket. Railway uses this
+route to prevent an unusable deployment from receiving traffic. Manifest and
+artifact operations have a five-second timeout that aborts the underlying S3
+request. Artifact checks run with at most eight concurrent requests, and
+simultaneous readiness probes share one in-flight check so the work remains
+bounded beneath Railway's deployment timeout.
+
+Readiness failures are logged with sanitized error names, provider error codes,
+HTTP status codes, affected chain ids when available, and check duration. Repeated identical
+failures are suppressed until the failure changes or readiness recovers. Logs
+never include provider error messages, credentials, or object contents.
+
+The active manifest is the public handover boundary: while a new indexer
+deployment reindexes, the gateway continues serving the previous
 manifest-backed deployment.
 
 ## Configuration

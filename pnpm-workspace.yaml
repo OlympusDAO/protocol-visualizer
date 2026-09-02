@@ -53,6 +53,8 @@ packages:
   - "apps/*"
   - "packages/*"
 overrides:
+  "autoprefixer@<10.4.22": "10.4.22"
+  "browserslist@<4.28.7": "^4.28.8"
   "envio>@fuel-ts/crypto@<0.103.0": "0.103.0"
   "envio>@fuel-ts/errors@<0.103.0": "0.103.0"
   "envio>@fuel-ts/hasher@<0.103.0": "0.103.0"

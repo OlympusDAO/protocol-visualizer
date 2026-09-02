@@ -5,9 +5,13 @@ USER root
 
 RUN apt-get update \
     && ACCEPT_EULA=Y DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --only-upgrade \
+        bsdutils \
         coreutils \
         curl \
+        diffutils \
         gzip \
+        libattr1 \
+        libblkid1 \
         libc-bin \
         libc6 \
         libcap2 \
@@ -20,7 +24,9 @@ RUN apt-get update \
         libkrb5-3 \
         libkrb5support0 \
         liblzma5 \
+        libmount1 \
         libnghttp2-14 \
+        libp11-kit0 \
         libpam-modules \
         libpam-modules-bin \
         libpam-runtime \
@@ -29,12 +35,14 @@ RUN apt-get update \
         libpq5 \
         libpython3.10-minimal \
         libpython3.10-stdlib \
+        libsmartcols1 \
         libsqlite3-0 \
         libssh-4 \
         libssl3 \
         libsystemd0 \
         libudev1 \
         libuuid1 \
+        mount \
         msodbcsql18 \
         openssl \
         perl \

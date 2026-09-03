@@ -13,7 +13,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "envio": "3.6.1",
+    "envio": "3.9.0",
     "viem": "^2.21.3"
   },
   "devDependencies": {

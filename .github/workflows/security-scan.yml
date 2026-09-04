@@ -25,6 +25,9 @@ jobs:
         run: pnpm run check:runtime-versions
 
       - name: Run security audit
+        env:
+          PNPM_CONFIG_FETCH_TIMEOUT: "300000"
+          PNPM_CONFIG_FETCH_RETRIES: "1"
         run: pnpm audit --audit-level=high
 
       - name: Setup Docker Buildx

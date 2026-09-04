@@ -103,17 +103,6 @@ test("Dependabot treats the snapshot gateway as TypeScript", () => {
   );
 });
 
-test("Dependency audits allow slow npm advisory responses", () => {
-  for (const path of [
-    ".github/workflows/audit.yml",
-    ".github/workflows/security-scan.yml",
-  ]) {
-    const workflow = readFileSync(path, "utf8");
-    assert.match(workflow, /PNPM_CONFIG_FETCH_TIMEOUT: "300000"/);
-    assert.match(workflow, /PNPM_CONFIG_FETCH_RETRIES: "1"/);
-  }
-});
-
 test("Dependency audit comments are isolated from pull request code", () => {
   const auditWorkflow = readFileSync(".github/workflows/audit.yml", "utf8");
   const commentWorkflow = readFileSync(

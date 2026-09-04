@@ -24,9 +24,6 @@ jobs:
       - name: Audit pnpm dependencies (fail on moderate+)
         id: audit
         shell: bash
-        env:
-          PNPM_CONFIG_FETCH_TIMEOUT: "300000"
-          PNPM_CONFIG_FETCH_RETRIES: "1"
         run: |
           mkdir -p "$RUNNER_TEMP/pnpm-audit-result"
           set +e

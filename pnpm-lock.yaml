@@ -24,6 +24,7 @@ overrides:
   express@>=4.0.0 <4.22.2: 4.22.2
   fast-uri@<3.1.2: 3.1.2
   fast-xml-parser@<5.8.0: 5.8.0
+  fflate@>=0.8.0 <0.8.3: 0.8.3
   flatted@<3.4.2: 3.4.2
   hono@<4.12.18: 4.12.18
   kysely@<0.28.17: 0.28.17
@@ -1721,8 +1722,8 @@ packages:
       picomatch:
         optional: true
 
-  fflate@0.8.2:
-    resolution: {integrity: sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A==}
+  fflate@0.8.3:
+    resolution: {integrity: sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==}
 
   fill-range@7.1.1:
     resolution: {integrity: sha512-YsGpe3WHLK8ZYi4tWDg2Jy3ebRz2rXowDxnld4bkQB00cc/1Zw9AWnC0i9ztDJitivtQvaI9KaLyKrc+hBW0yg==}
@@ -3508,7 +3509,7 @@ snapshots:
       '@fuel-ts/errors': 0.103.0
       '@fuel-ts/math': 0.103.0
       '@fuel-ts/versions': 0.103.0
-      fflate: 0.8.2
+      fflate: 0.8.3
       vitest: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(vite@8.0.16(@types/node@24.12.2)(esbuild@0.28.1)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.3))
 
   '@fuel-ts/versions@0.103.0':
@@ -4694,7 +4695,7 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.4
 
-  fflate@0.8.2: {}
+  fflate@0.8.3: {}
 
   fill-range@7.1.1:
     dependencies:

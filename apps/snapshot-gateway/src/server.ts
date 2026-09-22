@@ -16,6 +16,7 @@ import {
   type BoundsResponse,
   type SnapshotManifest,
 } from "@protocol-visualizer/snapshot-artifacts";
+import { type AbiRegistry, defaultAbisPath, loadAbiRegistry } from "./abis.js";
 
 type ChainConfig = {
   key: string;
@@ -41,6 +42,7 @@ export type GatewayConfig = {
   reader: ObjectReader;
   chains: ChainConfig[];
   openapiPath: string;
+  abis?: AbiRegistry;
   logger?: GatewayLogger;
   readinessOperationTimeoutMs?: number;
 };
@@ -227,8 +229,32 @@ export async function loadGatewayConfig(): Promise<GatewayConfig> {
     reader: createS3Reader(),
     chains: await loadChains(),
     openapiPath: join(process.cwd(), "openapi.json"),
+    abis: await loadOptionalAbiRegistry(
+      process.env.CONTRACT_ABIS_PATH || join(process.cwd(), defaultAbisPath)
+    ),
   };
 }
+
+// A bad ABI registry must not stop the snapshot API. The /v1/abis routes
+// then return 503, and the log names the error.
+export async function loadOptionalAbiRegistry(
+  path: string,
+  logger: GatewayLogger = defaultLogger
+): Promise<AbiRegistry | undefined> {
+  try {
+    return await loadAbiRegistry(path);
+  } catch (error) {
+    logger.error("snapshot gateway could not load the ABI registry", {
+      event: "snapshot_gateway_abi_registry_failed",
+      ...fatalErrorDetails(error),
+    });
+    return undefined;
+  }
+}
+
+const abiAddressRoute = /^\/v1\/abis\/([0-9]+)\/([^/]+)$/;
+const abiLabelRoute = /^\/v1\/abis\/([0-9]+)\/labels\/([A-Za-z0-9_]+)$/;
+const abiCacheControl = "public, s-maxage=3600, stale-while-revalidate=86400";
 
 const hasRequestBody = (request: IncomingMessage): boolean => {
   const contentLength = request.headers["content-length"];
@@ -437,11 +463,54 @@ const publicIndexHtml = `<!doctype html>
         <li><a href="/v1/bounds">Bounds</a></li>
         <li><a href="/v1/manifest">Manifest</a></li>
         <li><a href="/v1/chains">Chains</a></li>
+        <li><a href="/v1/abis">ABIs</a></li>
       </ul>
     </main>
   </body>
 </html>
 `;
+
+function handleAbiRequest(
+  request: IncomingMessage,
+  response: ServerResponse,
+  pathname: string,
+  abis: AbiRegistry | undefined
+) {
+  if (!abis) {
+    sendJson(request, response, 503, { error: "abi registry not loaded" });
+    return;
+  }
+  if (pathname === "/v1/abis") {
+    sendJson(request, response, 200, abis.manifest, abiCacheControl);
+    return;
+  }
+  const labelMatch = pathname.match(abiLabelRoute);
+  if (labelMatch) {
+    const found = abis.byLabel(Number(labelMatch[1]), labelMatch[2] ?? "");
+    if (!found) {
+      sendJson(request, response, 404, { error: "abi not found" });
+      return;
+    }
+    sendJson(request, response, 200, found, abiCacheControl);
+    return;
+  }
+  const addressMatch = pathname.match(abiAddressRoute);
+  if (addressMatch) {
+    const address = addressMatch[2] ?? "";
+    if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
+      sendJson(request, response, 400, { error: "invalid address" });
+      return;
+    }
+    const found = abis.byAddress(Number(addressMatch[1]), address);
+    if (!found) {
+      sendJson(request, response, 404, { error: "abi not found" });
+      return;
+    }
+    sendJson(request, response, 200, found, abiCacheControl);
+    return;
+  }
+  sendJson(request, response, 404, { error: "not found" });
+}
 
 export function createSnapshotGateway(config: GatewayConfig) {
   const logger = config.logger ?? defaultLogger;
@@ -585,6 +654,11 @@ export function createSnapshotGateway(config: GatewayConfig) {
           );
           return;
         }
+      }
+
+      if (url.pathname === "/v1/abis" || url.pathname.startsWith("/v1/abis/")) {
+        handleAbiRequest(request, response, url.pathname, config.abis);
+        return;
       }
 
       const manifest = await readManifest(

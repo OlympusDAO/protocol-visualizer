@@ -3,6 +3,8 @@
   "private": true,
   "packageManager": "pnpm@11.13.0",
   "scripts": {
+    "abis:check": "pnpm --filter @protocol-visualizer/contract-abis run check",
+    "abis:sync": "pnpm --filter @protocol-visualizer/contract-abis run sync",
     "build": "turbo run build && pnpm run test:config",
     "check:runtime-versions": "node scripts/verify-runtime-versions.mjs",
     "docker:build:frontend": "docker build -f Dockerfile-frontend --build-arg VITE_PROTOCOL_SNAPSHOT_BASE_URL=http://localhost:8082 -t protocol-visualizer/frontend:local .",

@@ -66,6 +66,36 @@ export type BoundsResponse = {
   indexingProgress?: IndexingProgress;
 };
 
+export type AbiDeployment = {
+  abi: string;
+  abiHash: string;
+  abiSource: "etherscan" | "override";
+  address: string;
+  chain: string;
+  chainId: number;
+  contractName?: string;
+  label: string;
+  origin: { env?: string[]; kernel?: string };
+  proxy?: {
+    contractName: string;
+    implementation: string;
+    implementationSource: "eip1967" | "etherscan";
+  };
+  version?: string;
+};
+
+export type AbiRegistryManifest = {
+  schemaVersion: number;
+  env: { repo: string; branch: string; path: string; ref: string };
+  scope: string;
+  deployments: AbiDeployment[];
+  exclusions: Array<Record<string, unknown>>;
+};
+
+export type AbiDeploymentResponse = {
+  data: { deployment: AbiDeployment; abi: unknown[] };
+};
+
 export type OpenApiDocument = {
   openapi: "3.1.0";
   info: { title: string; version: string };
@@ -406,6 +436,50 @@ export const manifestSchema = {
   },
 } as const;
 
+export const abiDeploymentSchema = {
+  type: "object",
+  required: [
+    "abi",
+    "abiHash",
+    "abiSource",
+    "address",
+    "chain",
+    "chainId",
+    "label",
+    "origin",
+  ],
+  properties: {
+    abi: { type: "string", description: "ABI file path in the registry" },
+    abiHash: { type: "string" },
+    abiSource: { type: "string", enum: ["etherscan", "override"] },
+    address: { type: "string" },
+    chain: { type: "string" },
+    chainId: { type: "integer" },
+    contractName: { type: "string" },
+    label: { type: "string" },
+    origin: {
+      type: "object",
+      properties: {
+        env: { type: "array", items: { type: "string" } },
+        kernel: { type: "string" },
+      },
+    },
+    proxy: {
+      type: "object",
+      required: ["contractName", "implementation", "implementationSource"],
+      properties: {
+        contractName: { type: "string" },
+        implementation: { type: "string" },
+        implementationSource: {
+          type: "string",
+          enum: ["eip1967", "etherscan"],
+        },
+      },
+    },
+    version: { type: "string" },
+  },
+} as const;
+
 export function createOpenApiDocument(): OpenApiDocument {
   const jsonResponse = (schemaRef: string) => ({
     description: "JSON response",
@@ -487,6 +561,61 @@ export function createOpenApiDocument(): OpenApiDocument {
           },
         },
       },
+      "/v1/abis": {
+        get: {
+          summary: "ABI registry manifest",
+          responses: {
+            "200": jsonResponse("#/components/schemas/AbiManifest"),
+          },
+        },
+      },
+      "/v1/abis/{chainId}/{address}": {
+        get: {
+          summary: "ABI of a deployed contract, found by address",
+          parameters: [
+            {
+              name: "chainId",
+              in: "path",
+              required: true,
+              schema: { type: "integer" },
+            },
+            {
+              name: "address",
+              in: "path",
+              required: true,
+              schema: { type: "string", pattern: "^0x[0-9a-fA-F]{40}$" },
+            },
+          ],
+          responses: {
+            "200": jsonResponse("#/components/schemas/AbiDeploymentResponse"),
+            "400": jsonResponse("#/components/schemas/Error"),
+            "404": jsonResponse("#/components/schemas/Error"),
+          },
+        },
+      },
+      "/v1/abis/{chainId}/labels/{label}": {
+        get: {
+          summary: "ABI of a deployed contract, found by label",
+          parameters: [
+            {
+              name: "chainId",
+              in: "path",
+              required: true,
+              schema: { type: "integer" },
+            },
+            {
+              name: "label",
+              in: "path",
+              required: true,
+              schema: { type: "string", pattern: "^[A-Za-z0-9_]+$" },
+            },
+          ],
+          responses: {
+            "200": jsonResponse("#/components/schemas/AbiDeploymentResponse"),
+            "404": jsonResponse("#/components/schemas/Error"),
+          },
+        },
+      },
       "/v1/openapi.json": {
         get: {
           summary: "OpenAPI document",
@@ -544,6 +673,41 @@ export function createOpenApiDocument(): OpenApiDocument {
           },
         },
         ProtocolSnapshot: protocolSnapshotSchema,
+        AbiDeployment: abiDeploymentSchema,
+        AbiManifest: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "env",
+            "scope",
+            "deployments",
+            "exclusions",
+          ],
+          properties: {
+            schemaVersion: { type: "integer" },
+            env: { type: "object" },
+            scope: { type: "string" },
+            deployments: {
+              type: "array",
+              items: { $ref: "#/components/schemas/AbiDeployment" },
+            },
+            exclusions: { type: "array", items: { type: "object" } },
+          },
+        },
+        AbiDeploymentResponse: {
+          type: "object",
+          required: ["data"],
+          properties: {
+            data: {
+              type: "object",
+              required: ["deployment", "abi"],
+              properties: {
+                deployment: { $ref: "#/components/schemas/AbiDeployment" },
+                abi: { type: "array", items: { type: "object" } },
+              },
+            },
+          },
+        },
         OpenApi: { type: "object" },
       },
     },

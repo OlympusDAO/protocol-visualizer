@@ -54,6 +54,9 @@ test("generates the REST OpenAPI document", () => {
   assert.deepEqual(Object.keys(openapi.paths).sort(), [
     "/healthz",
     "/ready",
+    "/v1/abis",
+    "/v1/abis/{chainId}/labels/{label}",
+    "/v1/abis/{chainId}/{address}",
     "/v1/bounds",
     "/v1/chains",
     "/v1/chains/{chainId}/protocol",

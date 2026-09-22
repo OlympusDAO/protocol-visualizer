@@ -1,0 +1,49 @@
+{
+  "env": {
+    "repo": "OlympusDAO/olympus-v3",
+    "branch": "master",
+    "path": "src/scripts/env.json",
+    "ref": "c851f7e0a3147bcf312a8d076f7573b681ff3552"
+  },
+  "snapshotBaseUrl": "https://protocol-visualizer-api.olympusdao.finance",
+  "chains": ["arbitrum", "base", "berachain", "mainnet", "optimism", "sepolia"],
+  "excludedChains": {
+    "arbitrum-sepolia": "Testnet that the protocol visualizer does not index.",
+    "base-sepolia": "Testnet that the protocol visualizer does not index.",
+    "berachain-bartio": "Retired network. Etherscan V2 does not support it.",
+    "goerli": "Retired network. Etherscan V2 does not support it.",
+    "solana": "Non-EVM chain; Solidity ABIs do not describe Solana programs.",
+    "solana-devnet": "Non-EVM chain; Solidity ABIs do not describe Solana programs."
+  },
+  "excludedSections": {
+    "config": {
+      "reason": "Deployment configuration entries, not protocol contracts."
+    },
+    "multisig": {
+      "reason": "Safe multisig wallets, not protocol contracts."
+    },
+    "legacy": {
+      "keep": ["OHM", "OlympusAuthority", "Staking", "gOHM", "sOHM"],
+      "reason": "Pre-V3 contracts that are no longer used. The kept contracts are still live."
+    }
+  },
+  "exclusions": [
+    {
+      "chain": "mainnet",
+      "address": "0x4A8c9502A34962a2C6d73c5D181dAaeF3dcDc88D",
+      "reason": "RPC eth_getCode returns no bytecode at this address."
+    },
+    {
+      "chain": "mainnet",
+      "address": "0xb212D9584cfc56EFf1117F412Fe0bBdc53673954",
+      "reason": "Replaced module: the Kernel uses OlympusRangeV2 for RANGE."
+    }
+  ],
+  "labels": [
+    {
+      "chain": "mainnet",
+      "address": "0x50f441a3387625bDA8B8081cE3fd6C04CC48C0A2",
+      "label": "EmissionManagerPrevious"
+    }
+  ]
+}

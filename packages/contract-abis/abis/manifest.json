@@ -1,0 +1,2208 @@
+{
+  "deployments": [
+    {
+      "abi": "arbitrum/CrossChainBridge.json",
+      "abiHash": "d3a22bd8f68e474d104081575eea879df69ea96fd32a333364f6802f9161f2c9",
+      "abiSource": "etherscan",
+      "address": "0x20B3834091f038Ce04D8686FAC99CA44A0FB285c",
+      "chain": "arbitrum",
+      "chainId": 42161,
+      "contractName": "CrossChainBridge",
+      "label": "CrossChainBridge",
+      "origin": {
+        "env": ["olympus.policies.CrossChainBridge"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "arbitrum/Kernel.json",
+      "abiHash": "4db221cb34961841903132b48b7a12986889a7bf9c8e6db051acb8f04f8e43be",
+      "abiSource": "etherscan",
+      "address": "0xeac3eC0CC130f4826715187805d1B50e861F2DaC",
+      "chain": "arbitrum",
+      "chainId": 42161,
+      "contractName": "Kernel",
+      "label": "Kernel",
+      "origin": {
+        "env": ["olympus.Kernel"],
+        "kernel": "KERNEL"
+      }
+    },
+    {
+      "abi": "arbitrum/OHM.json",
+      "abiHash": "db095255ab0e30751d090d0a8c62e0ba4680f77694f5d113d9106d3797b17c70",
+      "abiSource": "etherscan",
+      "address": "0xf0cb2dc0db5e6c66B9a70Ac27B06b878da017028",
+      "chain": "arbitrum",
+      "chainId": 42161,
+      "contractName": "OlympusERC20Token",
+      "label": "OHM",
+      "origin": {
+        "env": ["olympus.legacy.OHM"]
+      }
+    },
+    {
+      "abi": "arbitrum/OlympusAuthority.json",
+      "abiHash": "cce4ae4f14dad5301880aa9377fcb4049b8f7b1aab138ae1088e6fb7aef1cb1d",
+      "abiSource": "etherscan",
+      "address": "0x78f84998c73655ac2Da0Aa1e1270F6Cb985a343e",
+      "chain": "arbitrum",
+      "chainId": 42161,
+      "contractName": "OlympusAuthority",
+      "label": "OlympusAuthority",
+      "origin": {
+        "env": ["olympus.legacy.OlympusAuthority"]
+      }
+    },
+    {
+      "abi": "arbitrum/OlympusLender.json",
+      "abiHash": "dbca9c0a505fae5af2772fb643a5d7379333f30bbdb9d629ee2ae7d9260e745e",
+      "abiSource": "etherscan",
+      "address": "0x868C3ae18Fdea85bBb7a303e379c5B7e23b30F03",
+      "chain": "arbitrum",
+      "chainId": 42161,
+      "contractName": "OlympusLender",
+      "label": "OlympusLender",
+      "origin": {
+        "env": ["olympus.modules.OlympusLender"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "arbitrum/OlympusMinter.json",
+      "abiHash": "79214ef18b773413f8a03e6b8633538a7fc08dcd32f11e01dac2abcb8ca75af2",
+      "abiSource": "etherscan",
+      "address": "0x8f6406eDbFA393e327822D4A08BcF15503570D87",
+      "chain": "arbitrum",
+      "chainId": 42161,
+      "contractName": "OlympusMinter",
+      "label": "OlympusMinter",
+      "origin": {
+        "env": ["olympus.modules.OlympusMinter"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "arbitrum/OlympusRoles.json",
+      "abiHash": "b505ebd55f3654e86a01f004ac8c4dc8ab538b756e817e9b8798ad5d9c3dbd85",
+      "abiSource": "etherscan",
+      "address": "0xFF5F09D5efE13A9a424F30EC2e1af89D867834d6",
+      "chain": "arbitrum",
+      "chainId": 42161,
+      "contractName": "OlympusRoles",
+      "label": "OlympusRoles",
+      "origin": {
+        "env": ["olympus.modules.OlympusRoles"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "arbitrum/OlympusTreasury.json",
+      "abiHash": "6cb6d45a279c4806e0936ff5eebe15f0f35eb8a0535329e99e6054cc83ea428d",
+      "abiSource": "etherscan",
+      "address": "0x56db53e9801a6EA080569261b63925E0f1f3C81A",
+      "chain": "arbitrum",
+      "chainId": 42161,
+      "contractName": "OlympusTreasury",
+      "label": "OlympusTreasury",
+      "origin": {
+        "env": ["olympus.modules.OlympusTreasury"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "arbitrum/RolesAdmin.json",
+      "abiHash": "865949a35f70843e41bc7f089d380d3232d68de8f3b74d436c2b8ae426ea8fdf",
+      "abiSource": "etherscan",
+      "address": "0x69168c08AcF66f002fd02E1B169f38C022c93b70",
+      "chain": "arbitrum",
+      "chainId": 42161,
+      "contractName": "RolesAdmin",
+      "label": "RolesAdmin",
+      "origin": {
+        "env": ["olympus.policies.RolesAdmin"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "arbitrum/gOHM.json",
+      "abiHash": "c7fd13224f09afb68ed123ef09a4aca7f61384b91c1edaa25e15e8a14799c907",
+      "abiSource": "etherscan",
+      "address": "0x8D9bA570D6cb60C7e3e0F31343Efe75AB8E65FB1",
+      "chain": "arbitrum",
+      "chainId": 42161,
+      "contractName": "SynapseERC20",
+      "label": "gOHM",
+      "origin": {
+        "env": ["olympus.legacy.gOHM"]
+      }
+    },
+    {
+      "abi": "base/CrossChainBridge.json",
+      "abiHash": "1da15f7ca14ef27ea3bc0b65e1ccfdcf9977d6f4922b7cc8a3d915057429f91f",
+      "abiSource": "etherscan",
+      "address": "0x6CA1a916e883c7ce2BFBcF59dc70F2c1EF9dac6e",
+      "chain": "base",
+      "chainId": 8453,
+      "contractName": "CrossChainBridge",
+      "label": "CrossChainBridge",
+      "origin": {
+        "env": ["olympus.policies.CrossChainBridge"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "base/Kernel.json",
+      "abiHash": "4db221cb34961841903132b48b7a12986889a7bf9c8e6db051acb8f04f8e43be",
+      "abiSource": "etherscan",
+      "address": "0x18878Df23e2a36f81e820e4b47b4A40576D3159C",
+      "chain": "base",
+      "chainId": 8453,
+      "contractName": "Kernel",
+      "label": "Kernel",
+      "origin": {
+        "env": ["olympus.Kernel"],
+        "kernel": "KERNEL"
+      }
+    },
+    {
+      "abi": "base/OHM.json",
+      "abiHash": "db095255ab0e30751d090d0a8c62e0ba4680f77694f5d113d9106d3797b17c70",
+      "abiSource": "etherscan",
+      "address": "0x060cb087a9730E13aa191f31A6d86bFF8DfcdCC0",
+      "chain": "base",
+      "chainId": 8453,
+      "contractName": "OlympusERC20Token",
+      "label": "OHM",
+      "origin": {
+        "env": ["olympus.legacy.OHM"]
+      }
+    },
+    {
+      "abi": "base/OlympusAuthority.json",
+      "abiHash": "cce4ae4f14dad5301880aa9377fcb4049b8f7b1aab138ae1088e6fb7aef1cb1d",
+      "abiSource": "etherscan",
+      "address": "0x13DFEff85779118136bB9826DcAD8f3bd25153a3",
+      "chain": "base",
+      "chainId": 8453,
+      "contractName": "OlympusAuthority",
+      "label": "OlympusAuthority",
+      "origin": {
+        "env": ["olympus.legacy.OlympusAuthority"]
+      }
+    },
+    {
+      "abi": "base/OlympusMinter.json",
+      "abiHash": "79214ef18b773413f8a03e6b8633538a7fc08dcd32f11e01dac2abcb8ca75af2",
+      "abiSource": "etherscan",
+      "address": "0x623164A9Ee2556D524b08f34F1d2389d7B4e1A1C",
+      "chain": "base",
+      "chainId": 8453,
+      "contractName": "OlympusMinter",
+      "label": "OlympusMinter",
+      "origin": {
+        "env": ["olympus.modules.OlympusMinter"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "base/OlympusRoles.json",
+      "abiHash": "b505ebd55f3654e86a01f004ac8c4dc8ab538b756e817e9b8798ad5d9c3dbd85",
+      "abiSource": "etherscan",
+      "address": "0xbC9eE0D911739cBc72cd094ADA26F56E0C49EeAE",
+      "chain": "base",
+      "chainId": 8453,
+      "contractName": "OlympusRoles",
+      "label": "OlympusRoles",
+      "origin": {
+        "env": ["olympus.modules.OlympusRoles"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "base/RolesAdmin.json",
+      "abiHash": "f1772029dce78f0bfe3e36aebe1fd4e540401333b695b1dbf843ee6eedb0c39f",
+      "abiSource": "etherscan",
+      "address": "0xb1fA0Ac44d399b778B14af0AAF4bCF8af3437ad1",
+      "chain": "base",
+      "chainId": 8453,
+      "contractName": "RolesAdmin",
+      "label": "RolesAdmin",
+      "origin": {
+        "env": ["olympus.policies.RolesAdmin"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "berachain/CrossChainBridge.json",
+      "abiHash": "1da15f7ca14ef27ea3bc0b65e1ccfdcf9977d6f4922b7cc8a3d915057429f91f",
+      "abiSource": "etherscan",
+      "address": "0xBA42BE149e5260EbA4B82418A6306f55D532eA47",
+      "chain": "berachain",
+      "chainId": 80094,
+      "contractName": "CrossChainBridge",
+      "label": "CrossChainBridge",
+      "origin": {
+        "env": ["olympus.policies.CrossChainBridge"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "berachain/Emergency.json",
+      "abiHash": "f64dca4490d510d97051ac4ce91558d74b7489ce1c267a9e649303da79f0fc57",
+      "abiSource": "etherscan",
+      "address": "0xCA7240A7B439c9D458B47831d38c3d69C1287469",
+      "chain": "berachain",
+      "chainId": 80094,
+      "contractName": "Emergency",
+      "label": "Emergency",
+      "origin": {
+        "env": ["olympus.policies.Emergency"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "berachain/Kernel.json",
+      "abiHash": "4db221cb34961841903132b48b7a12986889a7bf9c8e6db051acb8f04f8e43be",
+      "abiSource": "etherscan",
+      "address": "0x623164A9Ee2556D524b08f34F1d2389d7B4e1A1C",
+      "chain": "berachain",
+      "chainId": 80094,
+      "contractName": "Kernel",
+      "label": "Kernel",
+      "origin": {
+        "env": ["olympus.Kernel"],
+        "kernel": "KERNEL"
+      }
+    },
+    {
+      "abi": "berachain/OHM.json",
+      "abiHash": "db095255ab0e30751d090d0a8c62e0ba4680f77694f5d113d9106d3797b17c70",
+      "abiSource": "etherscan",
+      "address": "0x18878Df23e2a36f81e820e4b47b4A40576D3159C",
+      "chain": "berachain",
+      "chainId": 80094,
+      "contractName": "OlympusERC20Token",
+      "label": "OHM",
+      "origin": {
+        "env": ["olympus.legacy.OHM"]
+      }
+    },
+    {
+      "abi": "berachain/OlympusAuthority.json",
+      "abiHash": "cce4ae4f14dad5301880aa9377fcb4049b8f7b1aab138ae1088e6fb7aef1cb1d",
+      "abiSource": "etherscan",
+      "address": "0x060cb087a9730E13aa191f31A6d86bFF8DfcdCC0",
+      "chain": "berachain",
+      "chainId": 80094,
+      "contractName": "OlympusAuthority",
+      "label": "OlympusAuthority",
+      "origin": {
+        "env": ["olympus.legacy.OlympusAuthority"]
+      }
+    },
+    {
+      "abi": "berachain/OlympusMinter.json",
+      "abiHash": "79214ef18b773413f8a03e6b8633538a7fc08dcd32f11e01dac2abcb8ca75af2",
+      "abiSource": "etherscan",
+      "address": "0xbC9eE0D911739cBc72cd094ADA26F56E0C49EeAE",
+      "chain": "berachain",
+      "chainId": 80094,
+      "contractName": "OlympusMinter",
+      "label": "OlympusMinter",
+      "origin": {
+        "env": ["olympus.modules.OlympusMinter"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "berachain/OlympusRoles.json",
+      "abiHash": "b505ebd55f3654e86a01f004ac8c4dc8ab538b756e817e9b8798ad5d9c3dbd85",
+      "abiSource": "etherscan",
+      "address": "0x22AE99D07584A2AE1af748De573c83f1B9Cdb4c0",
+      "chain": "berachain",
+      "chainId": 80094,
+      "contractName": "OlympusRoles",
+      "label": "OlympusRoles",
+      "origin": {
+        "env": ["olympus.modules.OlympusRoles"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "berachain/OlympusTreasury.json",
+      "abiHash": "6cb6d45a279c4806e0936ff5eebe15f0f35eb8a0535329e99e6054cc83ea428d",
+      "abiSource": "etherscan",
+      "address": "0xb1fA0Ac44d399b778B14af0AAF4bCF8af3437ad1",
+      "chain": "berachain",
+      "chainId": 80094,
+      "contractName": "OlympusTreasury",
+      "label": "OlympusTreasury",
+      "origin": {
+        "env": ["olympus.modules.OlympusTreasury"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "berachain/RolesAdmin.json",
+      "abiHash": "f1772029dce78f0bfe3e36aebe1fd4e540401333b695b1dbf843ee6eedb0c39f",
+      "abiSource": "etherscan",
+      "address": "0xe37D9a2791707BBB858012d219960D5FBD190794",
+      "chain": "berachain",
+      "chainId": 80094,
+      "contractName": "RolesAdmin",
+      "label": "RolesAdmin",
+      "origin": {
+        "env": ["olympus.policies.RolesAdmin"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "berachain/TreasuryCustodian.json",
+      "abiHash": "bfbf90de743fef176a035d6cf60b30ccdd2854772f697d037a9a8c566959055b",
+      "abiSource": "etherscan",
+      "address": "0x0D33c811D0fcC711BcB388DFB3a152DE445bE66F",
+      "chain": "berachain",
+      "chainId": 80094,
+      "contractName": "TreasuryCustodian",
+      "label": "TreasuryCustodian",
+      "origin": {
+        "env": ["olympus.policies.TreasuryCustodian"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "mainnet/BLVaultLido.json",
+      "abiHash": "718dd38d39e750c4b03094305d0b910d50a96be9f9f82eb6e7f5cfb0af27f93e",
+      "abiSource": "etherscan",
+      "address": "0x7fdD4e808ee9608f1b2f05157A2A8098e3D432cD",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "BLVaultLido",
+      "label": "BLVaultLido",
+      "origin": {
+        "env": ["olympus.policies.BLVaultLido"]
+      }
+    },
+    {
+      "abi": "mainnet/BLVaultLusd.json",
+      "abiHash": "b37c5a31815e6da51a6d29acfa4ce3dfba02dd3e21ca3fadcd81ee92c709fe04",
+      "abiSource": "etherscan",
+      "address": "0xfbB3742628e8D19E0E2d7D8dde208821C09dE960",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "BLVaultLusd",
+      "label": "BLVaultLusd",
+      "origin": {
+        "env": ["olympus.policies.BLVaultLusd"]
+      }
+    },
+    {
+      "abi": "mainnet/BLVaultManagerLido.json",
+      "abiHash": "674ef69e79c1e37f2cddedba12ea4d6edc76d162786d7b3a5ebb0f7905465f59",
+      "abiSource": "etherscan",
+      "address": "0xafe729d57d2CC58978C2e01b4EC39C47FB7C4b23",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "BLVaultManagerLido",
+      "label": "BLVaultManagerLido",
+      "origin": {
+        "env": ["olympus.policies.BLVaultManagerLido"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "mainnet/BLVaultManagerLusd.json",
+      "abiHash": "c92e52d38ae45ac0e7a44840696c19a80e3b39c98953794adba4068186b7062f",
+      "abiSource": "etherscan",
+      "address": "0xF451c45C7a26e2248a0EA02382579Eb4858cAdA1",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "BLVaultManagerLusd",
+      "label": "BLVaultManagerLusd",
+      "origin": {
+        "env": ["olympus.policies.BLVaultManagerLusd"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "mainnet/BondCallback.json",
+      "abiHash": "42b0f0a93a5d2d2a6231464f7785b632f8d39ef1b0ef796a313ec6aaa5d13859",
+      "abiSource": "etherscan",
+      "address": "0x73df08CE9dcC8d74d22F23282c4d49F13b4c795E",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "BondCallback",
+      "label": "BondCallback",
+      "origin": {
+        "env": ["olympus.policies.BondCallback"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "mainnet/CCIPCrossChainBridge.json",
+      "abiHash": "4f8351f779caa8ee7e4d481af29b77d16ffe76eb533991411816d0c898e45f68",
+      "abiSource": "etherscan",
+      "address": "0xFbf6383dC3F6010d403Ecdf12DDC1311701D143D",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "CCIPCrossChainBridge",
+      "label": "CCIPCrossChainBridge",
+      "origin": {
+        "env": ["olympus.periphery.CCIPCrossChainBridge"]
+      }
+    },
+    {
+      "abi": "mainnet/CCIPLockReleaseTokenPool.json",
+      "abiHash": "9d2f8224f4b477a5e67571b97dabb7901c39fc14130a2def1a17f6d4b4996c4e",
+      "abiSource": "etherscan",
+      "address": "0xa5588e518CE5ee0e4628C005E4edAbD5e87de3aD",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "LockReleaseTokenPool",
+      "label": "CCIPLockReleaseTokenPool",
+      "origin": {
+        "env": ["olympus.periphery.CCIPLockReleaseTokenPool"]
+      }
+    },
+    {
+      "abi": "mainnet/ChainlinkPriceFeeds.json",
+      "abiHash": "e55818bc3d37048a64cd9f5f3eaae588c31531cb84e314bef36eb11c456bafb9",
+      "abiSource": "etherscan",
+      "address": "0x1c22ecaCaFD35cfE997729f2880F8C23aa5A2fb2",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "ChainlinkPriceFeeds",
+      "label": "ChainlinkPriceFeeds",
+      "origin": {
+        "env": ["olympus.submodules.PRICE.ChainlinkPriceFeeds"]
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "mainnet/ClaimTransfer.json",
+      "abiHash": "aa1b4ea1d76485cb068f00638261976d9fd363a2148aa2ea8b302384e72ac9b4",
+      "abiSource": "etherscan",
+      "address": "0x611B541ab1EFDeEb9665522ED3BaA406D4952546",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "ClaimTransfer",
+      "label": "ClaimTransfer",
+      "origin": {
+        "env": ["olympus.claim.ClaimTransfer"]
+      }
+    },
+    {
+      "abi": "mainnet/ClearinghouseV1_0.json",
+      "abiHash": "24ccab39a96eb17e9ba321d3d8310339f6cb4244a0fae79be818b8e9baa9347d",
+      "abiSource": "etherscan",
+      "address": "0xD6A6E8d9e82534bD65821142fcCd91ec9cF31880",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "Clearinghouse",
+      "label": "ClearinghouseV1_0",
+      "origin": {
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "mainnet/ClearinghouseV1_1.json",
+      "abiHash": "24ccab39a96eb17e9ba321d3d8310339f6cb4244a0fae79be818b8e9baa9347d",
+      "abiSource": "etherscan",
+      "address": "0xE6343ad0675C9b8D3f32679ae6aDbA0766A2ab4c",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "Clearinghouse",
+      "label": "ClearinghouseV1_1",
+      "origin": {
+        "env": ["olympus.policies.Clearinghouse"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "mainnet/ClearinghouseV1_2.json",
+      "abiHash": "9fd6821365420b5e4729e16c75b212b685742a56217d382b7751674eec0a883d",
+      "abiSource": "etherscan",
+      "address": "0x1e094fE00E13Fd06D64EeA4FB3cD912893606fE0",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "Clearinghouse",
+      "label": "ClearinghouseV1_2",
+      "origin": {
+        "kernel": "POLICY"
+      },
+      "version": "1.2"
+    },
+    {
+      "abi": "mainnet/ContractRegistryAdmin.json",
+      "abiHash": "4aac7272f761d7f1a13cece0072a3667a8ca65bd47c82132b26f9a737db569ab",
+      "abiSource": "etherscan",
+      "address": "0xBA05d48Fb94dC76820EB7ea1B360fd6DfDEabdc5",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "ContractRegistryAdmin",
+      "label": "ContractRegistryAdmin",
+      "origin": {
+        "env": ["olympus.policies.ContractRegistryAdmin"],
+        "kernel": "POLICY"
+      },
+      "version": "1"
+    },
+    {
+      "abi": "mainnet/ConvertibleDepositActivator.json",
+      "abiHash": "8874d2721df3ecbc519f7d0e2142ab14c2e03a5ebbfc8197efc5dc796c3d4597",
+      "abiSource": "etherscan",
+      "address": "0xA0ca0F496B6295f949EddA2DF5FcD3877d5a253E",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "ConvertibleDepositActivator",
+      "label": "ConvertibleDepositActivator",
+      "origin": {
+        "env": ["olympus.periphery.ConvertibleDepositActivator"]
+      }
+    },
+    {
+      "abi": "mainnet/ConvertibleDepositAuctioneer.json",
+      "abiHash": "dd18deb45a8aab5ea3cc4cd19651b80ca47cb23916bb95bd098db0cdf2959b2c",
+      "abiSource": "etherscan",
+      "address": "0xF35193DA8C10e44aF10853Ba5a3a1a6F7529E39a",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "ConvertibleDepositAuctioneer",
+      "label": "ConvertibleDepositAuctioneer",
+      "origin": {
+        "env": ["olympus.policies.ConvertibleDepositAuctioneer"],
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "mainnet/ConvertibleDepositAuctioneerLimitOrders.json",
+      "abiHash": "34199f2231a2f5e19ffeacb701898ebb3f093ccd257984f9aaeabe8809506971",
+      "abiSource": "etherscan",
+      "address": "0x7d8f82A0D5B67d5FDd1B77A899FF517818FaFc2e",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "CDAuctioneerLimitOrders",
+      "label": "ConvertibleDepositAuctioneerLimitOrders",
+      "origin": {
+        "env": ["olympus.periphery.ConvertibleDepositAuctioneerLimitOrders"]
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "mainnet/ConvertibleDepositFacility.json",
+      "abiHash": "6413bf65bedc11c26227fa9b19dccf0c1d48d5239eea9c71b155bdfe42520f27",
+      "abiSource": "etherscan",
+      "address": "0xEBDe552D851DD6Dfd3D360C596D3F4aF6e5F9678",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "ConvertibleDepositFacility",
+      "label": "ConvertibleDepositFacility",
+      "origin": {
+        "env": ["olympus.policies.ConvertibleDepositFacility"],
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "mainnet/CoolerV2.json",
+      "abiHash": "3ffe8404e705390cf031e5c8dde89b0519e76e5c4e0a4e1ba7c7265f0f40f884",
+      "abiSource": "etherscan",
+      "address": "0xdb591Ea2e5Db886dA872654D58f6cc584b68e7cC",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "MonoCooler",
+      "label": "CoolerV2",
+      "origin": {
+        "env": ["olympus.policies.CoolerV2"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "mainnet/CoolerV2Composites.json",
+      "abiHash": "61524d57a197e79548467baa2286602539710ffeff4a69273770291b2530b9ca",
+      "abiSource": "etherscan",
+      "address": "0x6593768feBF9C95aC857Fb7Ef244D5738D1C57Fd",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "CoolerComposites",
+      "label": "CoolerV2Composites",
+      "origin": {
+        "env": ["olympus.periphery.CoolerV2Composites"]
+      }
+    },
+    {
+      "abi": "mainnet/CoolerV2LtvOracle.json",
+      "abiHash": "7c2fa73f6d5a30a6e783ba0dfb5ea0609f7958c5311e96a07643947fe20c7022",
+      "abiSource": "etherscan",
+      "address": "0x9ee9f0c2e91E4f6B195B988a9e6e19efcf91e8dc",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "CoolerLtvOracle",
+      "label": "CoolerV2LtvOracle",
+      "origin": {
+        "env": ["olympus.policies.CoolerV2LtvOracle"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "mainnet/CoolerV2Migrator.json",
+      "abiHash": "086e14287c846580619d5330b2c08abbbb3c5ce31bca1d88893beac40d5fa2e9",
+      "abiSource": "etherscan",
+      "address": "0xE045BD0A0d85E980AA152064C06EAe6B6aE358D2",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "CoolerV2Migrator",
+      "label": "CoolerV2Migrator",
+      "origin": {
+        "env": ["olympus.periphery.CoolerV2Migrator"]
+      }
+    },
+    {
+      "abi": "mainnet/CoolerV2TreasuryBorrower.json",
+      "abiHash": "c7eb960ceec8e0297b6e87202a029f7865975c9979faad634edc66f5e43a10df",
+      "abiSource": "etherscan",
+      "address": "0xD58d7406E9CE34c90cf849Fc3eed3764EB3779B0",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "CoolerTreasuryBorrower",
+      "label": "CoolerV2TreasuryBorrower",
+      "origin": {
+        "env": ["olympus.policies.CoolerV2TreasuryBorrower"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "mainnet/DelegateEscrowFactory.json",
+      "abiHash": "3a6d91ca78248417bee83716507939eaef12bbcdf5ef939bef9ec8cad5889856",
+      "abiSource": "etherscan",
+      "address": "0xC84157C2306238C9330fEa14774a82A53a127A59",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "DelegateEscrowFactory",
+      "label": "DelegateEscrowFactory",
+      "origin": {
+        "env": ["olympus.periphery.DelegateEscrowFactory"]
+      }
+    },
+    {
+      "abi": "mainnet/DepositManager.json",
+      "abiHash": "2d773cea705613a44ab8b8538a80b9edeaa94e9b5f87565828bb5e72387f607f",
+      "abiSource": "etherscan",
+      "address": "0xcb4E21Eb404d80F3e1dB781aAd9AD6A1217fbbf2",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "DepositManager",
+      "label": "DepositManager",
+      "origin": {
+        "env": ["olympus.policies.DepositManager"],
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "mainnet/DepositRedemptionVault.json",
+      "abiHash": "eb052e44b4e59c76487320cab2ee04072a908cbab90cdff3c3133e4bbba2077e",
+      "abiSource": "etherscan",
+      "address": "0x20a3d8510f2e1176E8Db4CeA9883a8287a9029Db",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "DepositRedemptionVault",
+      "label": "DepositRedemptionVault",
+      "origin": {
+        "env": ["olympus.policies.DepositRedemptionVault"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "mainnet/Distributor.json",
+      "abiHash": "7e1267af0b34273bc269c7d174ad3fb21facb14d773013bd37ec540651808be9",
+      "abiSource": "etherscan",
+      "address": "0x27e606fdb5C922F8213dC588A434BF7583697866",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "Distributor",
+      "label": "Distributor",
+      "origin": {
+        "env": ["olympus.policies.Distributor"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "mainnet/ERC4626Price.json",
+      "abiHash": "c15630ba266dd62238b405904d9fa40c5f65c12edd686cb107b562aaebce92e4",
+      "abiSource": "etherscan",
+      "address": "0x5d23a83c9bEc7AC6acea3760BC2EEca9186F3037",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "ERC4626Price",
+      "label": "ERC4626Price",
+      "origin": {
+        "env": ["olympus.submodules.PRICE.ERC4626Price"]
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "mainnet/Emergency.json",
+      "abiHash": "368cad618e6a977a4b6ca6eb165704d84c3b4fd6e946086f99499e7c938b4f7e",
+      "abiSource": "etherscan",
+      "address": "0x9229b0b6FA4A58D67Eb465567DaA2c6A34714A75",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "Emergency",
+      "label": "Emergency",
+      "origin": {
+        "env": ["olympus.policies.Emergency"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "mainnet/EmissionManagerPrevious.json",
+      "abiHash": "6cc9cac2e3c140ac99ce4128ad0a4ec28ddcebcf1b9356cb1cc605e18e4d141b",
+      "abiSource": "etherscan",
+      "address": "0x50f441a3387625bDA8B8081cE3fd6C04CC48C0A2",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "EmissionManager",
+      "label": "EmissionManagerPrevious",
+      "origin": {
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "mainnet/EmissionManagerV1_2.json",
+      "abiHash": "7bcf063023db8b6826e9eb68c75149a781c03395f9e94ac33f6ad868728991f9",
+      "abiSource": "etherscan",
+      "address": "0xA61b846D5D8b757e3d541E0e4F80390E28f0B6Ff",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "EmissionManager",
+      "label": "EmissionManagerV1_2",
+      "origin": {
+        "env": ["olympus.policies.EmissionManager"],
+        "kernel": "POLICY"
+      },
+      "version": "1.2"
+    },
+    {
+      "abi": "mainnet/GovernorBravoDelegate.json",
+      "abiHash": "02570ebb85b22fb501dec4ff576a891c51b43fcbf8791e290b20d4a94bc00b71",
+      "abiSource": "etherscan",
+      "address": "0xdE3F82D378c3b4E3F3f848b8DF501914b3317E96",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "GovernorBravoDelegate",
+      "label": "GovernorBravoDelegate",
+      "origin": {
+        "env": ["olympus.governance.GovernorBravoDelegate"]
+      }
+    },
+    {
+      "abi": "mainnet/GovernorBravoDelegator.json",
+      "abiHash": "e214f029de8ab938e6dcabcdcc32d06ca7724919d02c69d77c93bf73c7586fae",
+      "abiSource": "etherscan",
+      "address": "0x0941233c964e7d7Efeb05D253176E5E634cEFfcD",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "GovernorBravoDelegate",
+      "label": "GovernorBravoDelegator",
+      "origin": {
+        "env": ["olympus.governance.GovernorBravoDelegator"]
+      },
+      "proxy": {
+        "contractName": "GovernorBravoDelegator",
+        "implementation": "0xdE3F82D378c3b4E3F3f848b8DF501914b3317E96",
+        "implementationSource": "etherscan"
+      }
+    },
+    {
+      "abi": "mainnet/Kernel.json",
+      "abiHash": "4db221cb34961841903132b48b7a12986889a7bf9c8e6db051acb8f04f8e43be",
+      "abiSource": "etherscan",
+      "address": "0x2286d7f9639e8158FaD1169e76d1FbC38247f54b",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "Kernel",
+      "label": "Kernel",
+      "origin": {
+        "env": ["olympus.Kernel"],
+        "kernel": "KERNEL"
+      }
+    },
+    {
+      "abi": "mainnet/MigrationProposalHelper.json",
+      "abiHash": "4c0b2dd74254546612f3ef6866cd4c801c3c6b9d4f757d793b0fa06e9897fad8",
+      "abiSource": "etherscan",
+      "address": "0x62633B567ED4FC4078Db75A5cb4B896B3d44A5D4",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "MigrationProposalHelper",
+      "label": "MigrationProposalHelper",
+      "origin": {
+        "env": ["olympus.periphery.MigrationProposalHelper"]
+      }
+    },
+    {
+      "abi": "mainnet/OHM.json",
+      "abiHash": "db095255ab0e30751d090d0a8c62e0ba4680f77694f5d113d9106d3797b17c70",
+      "abiSource": "etherscan",
+      "address": "0x64aa3364F17a4D01c6f1751Fd97C2BD3D7e7f1D5",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "OlympusERC20Token",
+      "label": "OHM",
+      "origin": {
+        "env": ["olympus.legacy.OHM"]
+      }
+    },
+    {
+      "abi": "mainnet/OlympusBoostedLiquidityRegistry.json",
+      "abiHash": "2962a3dfa1f960b1ba837a075c51a9bbc5df239b1e81c6079e4d9b0024282f9f",
+      "abiSource": "etherscan",
+      "address": "0x375E06C694B5E50aF8be8FB03495A612eA3e2275",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "OlympusBoostedLiquidityRegistry",
+      "label": "OlympusBoostedLiquidityRegistry",
+      "origin": {
+        "env": ["olympus.modules.OlympusBoostedLiquidityRegistry"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "mainnet/OlympusClearinghouseRegistry.json",
+      "abiHash": "059e9f55f14b23d5a0b5f18bfc1e1cd2ba1f2ca07850a46f36d20b1e753a22ce",
+      "abiSource": "etherscan",
+      "address": "0x69a3E97027d21a5984B6a543b36603fFbC6543a4",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "OlympusClearinghouseRegistry",
+      "label": "OlympusClearinghouseRegistry",
+      "origin": {
+        "env": ["olympus.modules.OlympusClearinghouseRegistry"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "mainnet/OlympusContractRegistry.json",
+      "abiHash": "7889116fe01dee71a786623962b1c6836af8581a8cfe4c92428f36a7339cdbe3",
+      "abiSource": "etherscan",
+      "address": "0x89631595649Cc6dEBa249A8012a5b2d88C8ddE48",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "OlympusContractRegistry",
+      "label": "OlympusContractRegistry",
+      "origin": {
+        "env": ["olympus.modules.OlympusContractRegistry"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "mainnet/OlympusDepositPositionManager.json",
+      "abiHash": "ac08762fc427d35cc807a115e0883fabf85b95094a961f698bdbcbfc50b0408b",
+      "abiSource": "etherscan",
+      "address": "0x02331A4c97a4841084dF54d7c0eC04DD3f1A9F1c",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "OlympusDepositPositionManager",
+      "label": "OlympusDepositPositionManager",
+      "origin": {
+        "env": ["olympus.modules.OlympusDepositPositionManager"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "mainnet/OlympusGovDelegation.json",
+      "abiHash": "2d30cf8da945075b69bf2349ddbeb96747779b5eb70a7052d61deea82652ccc8",
+      "abiSource": "etherscan",
+      "address": "0xD3204Ae00d6599Ba6e182c6D640A79d76CdAad74",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "OlympusGovDelegation",
+      "label": "OlympusGovDelegation",
+      "origin": {
+        "env": ["olympus.modules.OlympusGovDelegation"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "mainnet/OlympusHeartV1_6.json",
+      "abiHash": "7324e27c6ddfbd4f6ee013c71c2a03f8169abb03f1553aba5846a0fc9b2bbfe9",
+      "abiSource": "etherscan",
+      "address": "0xf7602C0421c283A2fc113172EBDf64C30F21654D",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "OlympusHeart",
+      "label": "OlympusHeartV1_6",
+      "origin": {
+        "kernel": "POLICY"
+      },
+      "version": "1.6"
+    },
+    {
+      "abi": "mainnet/OlympusHeartV1_7.json",
+      "abiHash": "27fa403cbb56a145dac5c35fb6186df895d7c46e9436b4e87c2c566204104393",
+      "abiSource": "etherscan",
+      "address": "0x5824850D8A6E46a473445a5AF214C7EbD46c5ECB",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "OlympusHeart",
+      "label": "OlympusHeartV1_7",
+      "origin": {
+        "env": ["olympus.policies.OlympusHeart"],
+        "kernel": "POLICY"
+      },
+      "version": "1.7"
+    },
+    {
+      "abi": "mainnet/OlympusMinter.json",
+      "abiHash": "79214ef18b773413f8a03e6b8633538a7fc08dcd32f11e01dac2abcb8ca75af2",
+      "abiSource": "etherscan",
+      "address": "0xa90bFe53217da78D900749eb6Ef513ee5b6a491e",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "OlympusMinter",
+      "label": "OlympusMinter",
+      "origin": {
+        "env": ["olympus.modules.OlympusMinter"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "mainnet/OlympusPriceConfig.json",
+      "abiHash": "20b21fc7b543070faf2488b00ff7e1a5c08255adbc55959ceba694b12b7f1a2b",
+      "abiSource": "etherscan",
+      "address": "0xf6D5d06A4e8e6904E4360108749C177692F59E90",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "OlympusPriceConfig",
+      "label": "OlympusPriceConfig",
+      "origin": {
+        "env": ["olympus.policies.OlympusPriceConfig"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "mainnet/OlympusPriceConfigV2.json",
+      "abiHash": "b6b0ecbea9bd125007f9a76c8a104b0ff64e76c21b826e2ae7740eb0b8d77e94",
+      "abiSource": "etherscan",
+      "address": "0x5c69f61D384e41b55699C3B10523Ed81c5ef9cbd",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "PriceConfigv2",
+      "label": "OlympusPriceConfigV2",
+      "origin": {
+        "env": ["olympus.policies.OlympusPriceConfigV2"],
+        "kernel": "POLICY"
+      },
+      "version": "2.0"
+    },
+    {
+      "abi": "mainnet/OlympusPriceV1.json",
+      "abiHash": "e09005cdff85632022abe6e9dbb5436dee7c03a6f4bc37a5afc0391d42b9f544",
+      "abiSource": "etherscan",
+      "address": "0x465cCc69d285415Bce199f855d3A68ea3537F8FE",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "OlympusPricev1_2",
+      "label": "OlympusPriceV1",
+      "origin": {
+        "env": ["olympus.modules.OlympusPriceV1"],
+        "kernel": "MODULE"
+      },
+      "version": "1.2"
+    },
+    {
+      "abi": "mainnet/OlympusRangeV2.json",
+      "abiHash": "d1e8d1461454c28736e1458c3a4d8689193de52bfd0116bdf17808143a4de3c7",
+      "abiSource": "etherscan",
+      "address": "0x399cD3685912bb56aAeD0949119dB6cE5Df60FB5",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "OlympusRange",
+      "label": "OlympusRangeV2",
+      "origin": {
+        "env": ["olympus.modules.OlympusRangeV2"],
+        "kernel": "MODULE"
+      },
+      "version": "2.0"
+    },
+    {
+      "abi": "mainnet/OlympusRoles.json",
+      "abiHash": "b505ebd55f3654e86a01f004ac8c4dc8ab538b756e817e9b8798ad5d9c3dbd85",
+      "abiSource": "etherscan",
+      "address": "0x6CAfd730Dc199Df73C16420C4fCAb18E3afbfA59",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "OlympusRoles",
+      "label": "OlympusRoles",
+      "origin": {
+        "env": ["olympus.modules.OlympusRoles"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "mainnet/OlympusTreasury.json",
+      "abiHash": "6cb6d45a279c4806e0936ff5eebe15f0f35eb8a0535329e99e6054cc83ea428d",
+      "abiSource": "etherscan",
+      "address": "0xa8687A15D4BE32CC8F0a8a7B9704a4C3993D9613",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "OlympusTreasury",
+      "label": "OlympusTreasury",
+      "origin": {
+        "env": ["olympus.modules.OlympusTreasury"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "mainnet/Operator.json",
+      "abiHash": "b9dee95f70ac67d6f39e3dec5cfeb385524d3c001ac1eb58e76e68b2040086d3",
+      "abiSource": "etherscan",
+      "address": "0x6417F206a0a6628Da136C0Faa39026d0134D2b52",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "Operator",
+      "label": "Operator",
+      "origin": {
+        "env": ["olympus.policies.Operator"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "mainnet/PositionTokenRenderer.json",
+      "abiHash": "9a67415699c5c32cc7a45869f5e581700dac1dadad99ea8408ab5abb8a919d92",
+      "abiSource": "etherscan",
+      "address": "0x9c859Dc91DB65bD7375660341231227336dAa134",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "PositionTokenRenderer",
+      "label": "PositionTokenRenderer",
+      "origin": {
+        "env": ["olympus.periphery.PositionTokenRenderer"]
+      }
+    },
+    {
+      "abi": "mainnet/ReceiptTokenManager.json",
+      "abiHash": "959efb39e29f7568e153dcc18d8fc28305b335b347b5cabb9b1fd6dc7ecc000d",
+      "abiSource": "etherscan",
+      "address": "0xD98B5b2E4D5d6Cd554115DE19EfB7A9084BEddd1",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "ReceiptTokenManager",
+      "label": "ReceiptTokenManager",
+      "origin": {
+        "env": ["olympus.periphery.ReceiptTokenManager"]
+      }
+    },
+    {
+      "abi": "mainnet/ReserveMigrator.json",
+      "abiHash": "85b8c5f82c8ec69fba14be82aa66191a2f4cebfa4e336a39dd790c2ed8a693c7",
+      "abiSource": "etherscan",
+      "address": "0x986b99579BEc7B990331474b66CcDB94Fa2419F5",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "ReserveMigrator",
+      "label": "ReserveMigrator",
+      "origin": {
+        "env": ["olympus.policies.ReserveMigrator"],
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "mainnet/ReserveWrapper.json",
+      "abiHash": "4da0e2d44e4051ac289d51b5e1d03ea439056c784ed7c0a740beae926bb11ebc",
+      "abiSource": "etherscan",
+      "address": "0xcA6cd4F0a0033f8C20cF68d6dF277E7001a386f9",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "ReserveWrapper",
+      "label": "ReserveWrapper",
+      "origin": {
+        "env": ["olympus.policies.ReserveWrapper"],
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "mainnet/RolesAdmin.json",
+      "abiHash": "865949a35f70843e41bc7f089d380d3232d68de8f3b74d436c2b8ae426ea8fdf",
+      "abiSource": "etherscan",
+      "address": "0xb216d714d91eeC4F7120a732c11428857C659eC8",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "RolesAdmin",
+      "label": "RolesAdmin",
+      "origin": {
+        "env": ["olympus.policies.RolesAdmin"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "mainnet/SimplePriceFeedStrategy.json",
+      "abiHash": "34e69270ffcecf757bd7702da1e2421d88169fb3092b5dd72dd30a43ee7c5cec",
+      "abiSource": "etherscan",
+      "address": "0xC8b00Cbc78fd9d43E5cDDd86099B9394C4CeF95D",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "SimplePriceFeedStrategy",
+      "label": "SimplePriceFeedStrategy",
+      "origin": {
+        "env": ["olympus.submodules.PRICE.SimplePriceFeedStrategy"]
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "mainnet/Staking.json",
+      "abiHash": "c3fc5d5f8b073a2808c4332a4a2dbeb62723b3f688008ea238c19749ae661227",
+      "abiSource": "etherscan",
+      "address": "0xB63cac384247597756545b500253ff8E607a8020",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "OlympusStaking",
+      "label": "Staking",
+      "origin": {
+        "env": ["olympus.legacy.Staking"]
+      }
+    },
+    {
+      "abi": "mainnet/Timelock.json",
+      "abiHash": "79abe4bdc55620f385bb13f79755222238125eb944a9f3fee8e318c87a370a42",
+      "abiSource": "etherscan",
+      "address": "0x953EA3223d2dd3c1A91E9D6cca1bf7Af162C9c39",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "Timelock",
+      "label": "Timelock",
+      "origin": {
+        "env": ["olympus.governance.Timelock"]
+      }
+    },
+    {
+      "abi": "mainnet/TreasuryCustodian.json",
+      "abiHash": "2e46c36a060d6501384d127d7efce860e9459bd36b88e8708cfa0fb791890b07",
+      "abiSource": "etherscan",
+      "address": "0xC9518AC915e46D707585116451Dc19c164513Ccf",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "TreasuryCustodian",
+      "label": "TreasuryCustodian",
+      "origin": {
+        "env": ["olympus.policies.TreasuryCustodian"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "mainnet/UniswapV3Price.json",
+      "abiHash": "5023edf2aa3274e674d2e0043068754b37599fd3cb8f65dc649fd6c7942d5e3e",
+      "abiSource": "etherscan",
+      "address": "0x5F8A7a25373AEEb4cbfC281BF74EbBE6996C8099",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "UniswapV3Price",
+      "label": "UniswapV3Price",
+      "origin": {
+        "env": ["olympus.submodules.PRICE.UniswapV3Price"]
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "mainnet/V1Migrator.json",
+      "abiHash": "20ec23061286c55cb0ef99b074b802d71f2b6b5f2d847cf8a0fdd3b0899951c1",
+      "abiSource": "etherscan",
+      "address": "0x5131654eFCd63f7b797e00118792e0d0dD90B8B0",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "V1Migrator",
+      "label": "V1Migrator",
+      "origin": {
+        "env": ["olympus.policies.V1Migrator"],
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "mainnet/YieldRepurchaseFacility.json",
+      "abiHash": "b9f5810b05e1c4f1b80e17631c5517a45236ef640efc734e893ee6b6e9eba782",
+      "abiSource": "etherscan",
+      "address": "0x271e35a8555a62F6bA76508E85dfD76D580B0692",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "YieldRepurchaseFacility",
+      "label": "YieldRepurchaseFacility",
+      "origin": {
+        "env": ["olympus.policies.YieldRepurchaseFacility"],
+        "kernel": "POLICY"
+      },
+      "version": "1.2"
+    },
+    {
+      "abi": "mainnet/ZeroDistributor.json",
+      "abiHash": "8e1d4c251bdacf43114825f413f22089fe6ca91a8db1620b870aec8f33aa7d0d",
+      "abiSource": "etherscan",
+      "address": "0x44a7a09ccddb4338e062f1a3849f9a82bdbf2aaa",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "ZeroDistributor",
+      "label": "ZeroDistributor",
+      "origin": {
+        "env": ["olympus.policies.ZeroDistributor"]
+      }
+    },
+    {
+      "abi": "mainnet/gOHM.json",
+      "abiHash": "a7202b3f5c8e45c0e78a44f9d87b49ebe4643fcb0e25c302883be90a0626896d",
+      "abiSource": "etherscan",
+      "address": "0x0ab87046fBb341D058F17CBC4c1133F25a20a52f",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "gOHM",
+      "label": "gOHM",
+      "origin": {
+        "env": ["olympus.legacy.gOHM"]
+      }
+    },
+    {
+      "abi": "mainnet/pOLY.json",
+      "abiHash": "7b6b25010e1590d2584512e53cddaaa311d135b7a66b96d73cf895c405add646",
+      "abiSource": "etherscan",
+      "address": "0xb37796941cA55b7E4243841930C104Ee325Da5a1",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "pOLY",
+      "label": "pOLY",
+      "origin": {
+        "env": ["olympus.policies.pOLY"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "mainnet/sOHM.json",
+      "abiHash": "225c68e23bf3539c7e79523edf76c8c05dbb053426cb0520e3ce66e53f2d7d02",
+      "abiSource": "etherscan",
+      "address": "0x04906695D6D12CF5459975d7C3C03356E4Ccd460",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "sOlympus",
+      "label": "sOHM",
+      "origin": {
+        "env": ["olympus.legacy.sOHM"]
+      }
+    },
+    {
+      "abi": "optimism/CrossChainBridge.json",
+      "abiHash": "d3a22bd8f68e474d104081575eea879df69ea96fd32a333364f6802f9161f2c9",
+      "abiSource": "etherscan",
+      "address": "0x22AE99D07584A2AE1af748De573c83f1B9Cdb4c0",
+      "chain": "optimism",
+      "chainId": 10,
+      "contractName": "CrossChainBridge",
+      "label": "CrossChainBridge",
+      "origin": {
+        "env": ["olympus.policies.CrossChainBridge"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "optimism/Kernel.json",
+      "abiHash": "4db221cb34961841903132b48b7a12986889a7bf9c8e6db051acb8f04f8e43be",
+      "abiSource": "etherscan",
+      "address": "0x18878Df23e2a36f81e820e4b47b4A40576D3159C",
+      "chain": "optimism",
+      "chainId": 10,
+      "contractName": "Kernel",
+      "label": "Kernel",
+      "origin": {
+        "env": ["olympus.Kernel"],
+        "kernel": "KERNEL"
+      }
+    },
+    {
+      "abi": "optimism/OHM.json",
+      "abiHash": "db095255ab0e30751d090d0a8c62e0ba4680f77694f5d113d9106d3797b17c70",
+      "abiSource": "etherscan",
+      "address": "0x060cb087a9730E13aa191f31A6d86bFF8DfcdCC0",
+      "chain": "optimism",
+      "chainId": 10,
+      "contractName": "OlympusERC20Token",
+      "label": "OHM",
+      "origin": {
+        "env": ["olympus.legacy.OHM"]
+      }
+    },
+    {
+      "abi": "optimism/OlympusAuthority.json",
+      "abiHash": "cce4ae4f14dad5301880aa9377fcb4049b8f7b1aab138ae1088e6fb7aef1cb1d",
+      "abiSource": "etherscan",
+      "address": "0x13DFEff85779118136bB9826DcAD8f3bd25153a3",
+      "chain": "optimism",
+      "chainId": 10,
+      "contractName": "OlympusAuthority",
+      "label": "OlympusAuthority",
+      "origin": {
+        "env": ["olympus.legacy.OlympusAuthority"]
+      }
+    },
+    {
+      "abi": "optimism/OlympusMinter.json",
+      "abiHash": "79214ef18b773413f8a03e6b8633538a7fc08dcd32f11e01dac2abcb8ca75af2",
+      "abiSource": "etherscan",
+      "address": "0x623164A9Ee2556D524b08f34F1d2389d7B4e1A1C",
+      "chain": "optimism",
+      "chainId": 10,
+      "contractName": "OlympusMinter",
+      "label": "OlympusMinter",
+      "origin": {
+        "env": ["olympus.modules.OlympusMinter"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "optimism/OlympusRoles.json",
+      "abiHash": "b505ebd55f3654e86a01f004ac8c4dc8ab538b756e817e9b8798ad5d9c3dbd85",
+      "abiSource": "etherscan",
+      "address": "0xbC9eE0D911739cBc72cd094ADA26F56E0C49EeAE",
+      "chain": "optimism",
+      "chainId": 10,
+      "contractName": "OlympusRoles",
+      "label": "OlympusRoles",
+      "origin": {
+        "env": ["olympus.modules.OlympusRoles"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "optimism/RolesAdmin.json",
+      "abiHash": "865949a35f70843e41bc7f089d380d3232d68de8f3b74d436c2b8ae426ea8fdf",
+      "abiSource": "etherscan",
+      "address": "0xb1fA0Ac44d399b778B14af0AAF4bCF8af3437ad1",
+      "chain": "optimism",
+      "chainId": 10,
+      "contractName": "RolesAdmin",
+      "label": "RolesAdmin",
+      "origin": {
+        "env": ["olympus.policies.RolesAdmin"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "optimism/gOHM.json",
+      "abiHash": "c7fd13224f09afb68ed123ef09a4aca7f61384b91c1edaa25e15e8a14799c907",
+      "abiSource": "etherscan",
+      "address": "0x0b5740c6b4a97f90eF2F0220651Cca420B868FfB",
+      "chain": "optimism",
+      "chainId": 10,
+      "contractName": "SynapseERC20",
+      "label": "gOHM",
+      "origin": {
+        "env": ["olympus.legacy.gOHM"]
+      }
+    },
+    {
+      "abi": "sepolia/CCIPCrossChainBridge.json",
+      "abiHash": "4f8351f779caa8ee7e4d481af29b77d16ffe76eb533991411816d0c898e45f68",
+      "abiSource": "etherscan",
+      "address": "0xCfe75Cca2b7A9354F7c25e889b1216F977DEC6a5",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "CCIPCrossChainBridge",
+      "label": "CCIPCrossChainBridge",
+      "origin": {
+        "env": ["olympus.periphery.CCIPCrossChainBridge"]
+      }
+    },
+    {
+      "abi": "sepolia/CCIPLockReleaseTokenPool.json",
+      "abiHash": "9d2f8224f4b477a5e67571b97dabb7901c39fc14130a2def1a17f6d4b4996c4e",
+      "abiSource": "etherscan",
+      "address": "0xF166375E8Ee42565F93e244C606b8c09b9F67dbc",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "LockReleaseTokenPool",
+      "label": "CCIPLockReleaseTokenPool",
+      "origin": {
+        "env": ["olympus.periphery.CCIPLockReleaseTokenPool"]
+      }
+    },
+    {
+      "abi": "sepolia/Clearinghouse.json",
+      "abiHash": "9fd6821365420b5e4729e16c75b212b685742a56217d382b7751674eec0a883d",
+      "abiSource": "etherscan",
+      "address": "0xD4aFf9B757d918Cb8a31A518F10cDaf914E57E3F",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "Clearinghouse",
+      "label": "Clearinghouse",
+      "origin": {
+        "env": ["olympus.policies.Clearinghouse"],
+        "kernel": "POLICY"
+      },
+      "version": "1.2"
+    },
+    {
+      "abi": "sepolia/ConvertibleDepositActivator.json",
+      "abiHash": "8874d2721df3ecbc519f7d0e2142ab14c2e03a5ebbfc8197efc5dc796c3d4597",
+      "abiSource": "etherscan",
+      "address": "0x7e655891Ce813887613Ee4EEF0b9610f7A243144",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "ConvertibleDepositActivator",
+      "label": "ConvertibleDepositActivator",
+      "origin": {
+        "env": ["olympus.periphery.ConvertibleDepositActivator"]
+      }
+    },
+    {
+      "abi": "sepolia/ConvertibleDepositAuctioneer.json",
+      "abiHash": "dd18deb45a8aab5ea3cc4cd19651b80ca47cb23916bb95bd098db0cdf2959b2c",
+      "abiSource": "etherscan",
+      "address": "0x247f1989aDc0F63D07b91Bf645De879b9de06fbB",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "ConvertibleDepositAuctioneer",
+      "label": "ConvertibleDepositAuctioneer",
+      "origin": {
+        "env": ["olympus.policies.ConvertibleDepositAuctioneer"],
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "sepolia/ConvertibleDepositAuctioneerLimitOrders.json",
+      "abiHash": "34199f2231a2f5e19ffeacb701898ebb3f093ccd257984f9aaeabe8809506971",
+      "abiSource": "etherscan",
+      "address": "0xeF64baB08c3431BbC527B063354b95D1C5b549B0",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "CDAuctioneerLimitOrders",
+      "label": "ConvertibleDepositAuctioneerLimitOrders",
+      "origin": {
+        "env": ["olympus.periphery.ConvertibleDepositAuctioneerLimitOrders"]
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "sepolia/ConvertibleDepositFacility.json",
+      "abiHash": "b1978ce2402276b774011a21078d8f533c7c1112221e503f1e3fdb1417ac3ba0",
+      "abiSource": "etherscan",
+      "address": "0x0bE69702E83f06A027E6841B614f6946d1265441",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "ConvertibleDepositFacility",
+      "label": "ConvertibleDepositFacility",
+      "origin": {
+        "env": ["olympus.policies.ConvertibleDepositFacility"],
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "sepolia/CoolerV2.json",
+      "abiHash": "3ffe8404e705390cf031e5c8dde89b0519e76e5c4e0a4e1ba7c7265f0f40f884",
+      "abiSource": "etherscan",
+      "address": "0x8bEB701EBaf8CD68B7E8f04BFA4fC7387cF711E0",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "MonoCooler",
+      "label": "CoolerV2",
+      "origin": {
+        "env": ["olympus.policies.CoolerV2"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "sepolia/CoolerV2Composites.json",
+      "abiHash": "61524d57a197e79548467baa2286602539710ffeff4a69273770291b2530b9ca",
+      "abiSource": "etherscan",
+      "address": "0x992ea219636777de4b99b63bbb0b08b90a3d57da",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "CoolerComposites",
+      "label": "CoolerV2Composites",
+      "origin": {
+        "env": ["olympus.periphery.CoolerV2Composites"]
+      }
+    },
+    {
+      "abi": "sepolia/CoolerV2LtvOracle.json",
+      "abiHash": "7c2fa73f6d5a30a6e783ba0dfb5ea0609f7958c5311e96a07643947fe20c7022",
+      "abiSource": "etherscan",
+      "address": "0x1EdcEfFC669E965593E25446023B9C1f4C714Ef9",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "CoolerLtvOracle",
+      "label": "CoolerV2LtvOracle",
+      "origin": {
+        "env": ["olympus.policies.CoolerV2LtvOracle"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "sepolia/CoolerV2Migrator.json",
+      "abiHash": "086e14287c846580619d5330b2c08abbbb3c5ce31bca1d88893beac40d5fa2e9",
+      "abiSource": "etherscan",
+      "address": "0x70233D8F47042d3A5813026e2157B5181C608cD0",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "CoolerV2Migrator",
+      "label": "CoolerV2Migrator",
+      "origin": {
+        "env": ["olympus.periphery.CoolerV2Migrator"]
+      }
+    },
+    {
+      "abi": "sepolia/CoolerV2TreasuryBorrower.json",
+      "abiHash": "c7eb960ceec8e0297b6e87202a029f7865975c9979faad634edc66f5e43a10df",
+      "abiSource": "etherscan",
+      "address": "0x74FeAEde88962139f4d36A2f1998BcF56088d519",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "CoolerTreasuryBorrower",
+      "label": "CoolerV2TreasuryBorrower",
+      "origin": {
+        "env": ["olympus.policies.CoolerV2TreasuryBorrower"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "sepolia/CrossChainBridge.json",
+      "abiHash": "1da15f7ca14ef27ea3bc0b65e1ccfdcf9977d6f4922b7cc8a3d915057429f91f",
+      "abiSource": "etherscan",
+      "address": "0x79A0D5eB7ceC7994A74a3Cc050945AA53B9Fc19A",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "CrossChainBridge",
+      "label": "CrossChainBridge",
+      "origin": {
+        "env": ["olympus.policies.CrossChainBridge"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "sepolia/DelegateEscrowFactory.json",
+      "abiHash": "3a6d91ca78248417bee83716507939eaef12bbcdf5ef939bef9ec8cad5889856",
+      "abiSource": "etherscan",
+      "address": "0x256a184f14ffd25D7AEecB768db473c16517e66B",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "DelegateEscrowFactory",
+      "label": "DelegateEscrowFactory",
+      "origin": {
+        "env": ["olympus.periphery.DelegateEscrowFactory"]
+      }
+    },
+    {
+      "abi": "sepolia/DepositManager.json",
+      "abiHash": "2d773cea705613a44ab8b8538a80b9edeaa94e9b5f87565828bb5e72387f607f",
+      "abiSource": "etherscan",
+      "address": "0x2C9658b32E59cC4eb5aC90e2A3795C9E7fCaa644",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "DepositManager",
+      "label": "DepositManager",
+      "origin": {
+        "env": ["olympus.policies.DepositManager"],
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "sepolia/DepositRedemptionVault.json",
+      "abiHash": "eb052e44b4e59c76487320cab2ee04072a908cbab90cdff3c3133e4bbba2077e",
+      "abiSource": "etherscan",
+      "address": "0x93AcaDa86ad23C85e96869D46945fA6FFb7a4036",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "DepositRedemptionVault",
+      "label": "DepositRedemptionVault",
+      "origin": {
+        "env": ["olympus.policies.DepositRedemptionVault"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "sepolia/Emergency.json",
+      "abiHash": "f64dca4490d510d97051ac4ce91558d74b7489ce1c267a9e649303da79f0fc57",
+      "abiSource": "etherscan",
+      "address": "0xDB5cb2eba141d9cc4B2d35FBbC4D2b23a88eDA52",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "Emergency",
+      "label": "Emergency",
+      "origin": {
+        "env": ["olympus.policies.Emergency"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "sepolia/EmissionManager.json",
+      "abiHash": "7bcf063023db8b6826e9eb68c75149a781c03395f9e94ac33f6ad868728991f9",
+      "abiSource": "etherscan",
+      "address": "0x79cF5D3824CaBD3C7617F8470B94033EB10b28CA",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "EmissionManager",
+      "label": "EmissionManager",
+      "origin": {
+        "env": ["olympus.policies.EmissionManager"],
+        "kernel": "POLICY"
+      },
+      "version": "1.2"
+    },
+    {
+      "abi": "sepolia/Kernel.json",
+      "abiHash": "4db221cb34961841903132b48b7a12986889a7bf9c8e6db051acb8f04f8e43be",
+      "abiSource": "etherscan",
+      "address": "0x4b0BBa51cE44175a9766f7e55e3d122a9F4BE78E",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "Kernel",
+      "label": "Kernel",
+      "origin": {
+        "env": ["olympus.Kernel"],
+        "kernel": "KERNEL"
+      }
+    },
+    {
+      "abi": "sepolia/LZBridgeAndDelegateConfigV1_0.json",
+      "abiHash": "e6440af8311cf4af5eee4a1d04ebe389642f2a286f909f93849c362de97a7c91",
+      "abiSource": "etherscan",
+      "address": "0x018B747CA7a2B9346f80aed5A9B7a417fB57f313",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "LZBridgeAndDelegateConfig",
+      "label": "LZBridgeAndDelegateConfigV1_0",
+      "origin": {
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "sepolia/LZBridgeGatewayV1_0.json",
+      "abiHash": "0da3114be5d272fdd2d6acdae730afdbfc55b7b39aafc13eca3e494f5e9bc9fa",
+      "abiSource": "etherscan",
+      "address": "0x28c3798314CEc6E921B5c70f61dFFBDbEFE65AFf",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "LZBridgeGateway",
+      "label": "LZBridgeGatewayV1_0",
+      "origin": {
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "sepolia/LZEndpointDelegateV1_0.json",
+      "abiHash": "5312a8483b7cf87f4a8dd2ccf9129ae17bb829187bc71031145b6915629a3379",
+      "abiSource": "etherscan",
+      "address": "0xC275F923D02B1148b399ddA35b6cb54717bEc7dA",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "LZEndpointDelegate",
+      "label": "LZEndpointDelegateV1_0",
+      "origin": {
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "sepolia/Minter.json",
+      "abiHash": "230720c76a1fdfea96259669f962309abd12adbc46dc49b45f366f160b6cc617",
+      "abiSource": "etherscan",
+      "address": "0x556B5fA9f8aa6E38e5E8FB0AD9Cb978bcAf33913",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "Minter",
+      "label": "Minter",
+      "origin": {
+        "env": ["olympus.policies.Minter"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "sepolia/OHM.json",
+      "abiHash": "db095255ab0e30751d090d0a8c62e0ba4680f77694f5d113d9106d3797b17c70",
+      "abiSource": "etherscan",
+      "address": "0x784cA0C006b8651BAB183829A99fA46BeCe50dBc",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "XsynERC20Token",
+      "label": "OHM",
+      "origin": {
+        "env": ["olympus.legacy.OHM"]
+      }
+    },
+    {
+      "abi": "sepolia/OlympusAuthority.json",
+      "abiHash": "cce4ae4f14dad5301880aa9377fcb4049b8f7b1aab138ae1088e6fb7aef1cb1d",
+      "abiSource": "etherscan",
+      "address": "0x81057Bef097462957B9388D8DCB7D4AB0699cADB",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "OlympusAuthority",
+      "label": "OlympusAuthority",
+      "origin": {
+        "env": ["olympus.legacy.OlympusAuthority"]
+      }
+    },
+    {
+      "abi": "sepolia/OlympusClearinghouseRegistry.json",
+      "abiHash": "059e9f55f14b23d5a0b5f18bfc1e1cd2ba1f2ca07850a46f36d20b1e753a22ce",
+      "abiSource": "etherscan",
+      "address": "0x38038bdd78602e5AA2accd0Ce07557369e21a6c1",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "OlympusClearinghouseRegistry",
+      "label": "OlympusClearinghouseRegistry",
+      "origin": {
+        "env": ["olympus.modules.OlympusClearinghouseRegistry"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "sepolia/OlympusDepositPositionManager.json",
+      "abiHash": "ac08762fc427d35cc807a115e0883fabf85b95094a961f698bdbcbfc50b0408b",
+      "abiSource": "etherscan",
+      "address": "0xEF928e9ed1083636e34230543D4ad3B6270Fa986",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "OlympusDepositPositionManager",
+      "label": "OlympusDepositPositionManager",
+      "origin": {
+        "env": ["olympus.modules.OlympusDepositPositionManager"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "sepolia/OlympusGovDelegation.json",
+      "abiHash": "2d30cf8da945075b69bf2349ddbeb96747779b5eb70a7052d61deea82652ccc8",
+      "abiSource": "etherscan",
+      "address": "0xc3FC2a67087D7f72e6255cb2fe6511ee927D3ABA",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "OlympusGovDelegation",
+      "label": "OlympusGovDelegation",
+      "origin": {
+        "env": ["olympus.modules.OlympusGovDelegation"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "sepolia/OlympusHeart.json",
+      "abiHash": "27fa403cbb56a145dac5c35fb6186df895d7c46e9436b4e87c2c566204104393",
+      "abiSource": "etherscan",
+      "address": "0x1dc2c4E15189a7aa61Eff2b3DD3D5EAe8fA03377",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "OlympusHeart",
+      "label": "OlympusHeart",
+      "origin": {
+        "env": ["olympus.policies.OlympusHeart"],
+        "kernel": "POLICY"
+      },
+      "version": "1.7"
+    },
+    {
+      "abi": "sepolia/OlympusMinter.json",
+      "abiHash": "79214ef18b773413f8a03e6b8633538a7fc08dcd32f11e01dac2abcb8ca75af2",
+      "abiSource": "etherscan",
+      "address": "0x203C46cbB4FCC18977f521a9f7fdE007E1A564f6",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "OlympusMinter",
+      "label": "OlympusMinter",
+      "origin": {
+        "env": ["olympus.modules.OlympusMinter"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "sepolia/OlympusPriceConfig.json",
+      "abiHash": "fb76975b4d0a7446e7dd726e08ea8d262a00ca72ca0f553a4a4bb0123ab93cf7",
+      "abiSource": "etherscan",
+      "address": "0x68009f5e809C5A3438438312F8EEFB9F5C73d534",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "OlympusPriceConfig",
+      "label": "OlympusPriceConfig",
+      "origin": {
+        "env": ["olympus.policies.OlympusPriceConfig"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "sepolia/OlympusPriceV1.json",
+      "abiHash": "a86655ef6ed2e45e8129e9e7087dafd41aae7070aa25fe45b951dd96374b5206",
+      "abiSource": "etherscan",
+      "address": "0x3bD25E292dC36b674BBF1EEecaAB4565bf2eF241",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "OlympusPrice",
+      "label": "OlympusPriceV1",
+      "origin": {
+        "env": ["olympus.modules.OlympusPriceV1"],
+        "kernel": "MODULE"
+      },
+      "version": "1.1"
+    },
+    {
+      "abi": "sepolia/OlympusRangeV2.json",
+      "abiHash": "d1e8d1461454c28736e1458c3a4d8689193de52bfd0116bdf17808143a4de3c7",
+      "abiSource": "etherscan",
+      "address": "0xb4309Cf4F876A2d18561b3fD8eeC54899dFeB962",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "OlympusRange",
+      "label": "OlympusRangeV2",
+      "origin": {
+        "env": ["olympus.modules.OlympusRangeV2"],
+        "kernel": "MODULE"
+      },
+      "version": "2.0"
+    },
+    {
+      "abi": "sepolia/OlympusRoles.json",
+      "abiHash": "b505ebd55f3654e86a01f004ac8c4dc8ab538b756e817e9b8798ad5d9c3dbd85",
+      "abiSource": "etherscan",
+      "address": "0xEdd6ebFFeD7D29947957d096dd55e82F523ceb86",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "OlympusRoles",
+      "label": "OlympusRoles",
+      "origin": {
+        "env": ["olympus.modules.OlympusRoles"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "sepolia/OlympusTreasury.json",
+      "abiHash": "6cb6d45a279c4806e0936ff5eebe15f0f35eb8a0535329e99e6054cc83ea428d",
+      "abiSource": "etherscan",
+      "address": "0xC48abD1431f17212379557397Dd603912174131E",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "OlympusTreasury",
+      "label": "OlympusTreasury",
+      "origin": {
+        "env": ["olympus.modules.OlympusTreasury"],
+        "kernel": "MODULE"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "sepolia/Operator.json",
+      "abiHash": "b9dee95f70ac67d6f39e3dec5cfeb385524d3c001ac1eb58e76e68b2040086d3",
+      "abiSource": "etherscan",
+      "address": "0xd5405C517631b15C5814fdb7E612ba4c86fC2f75",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "Operator",
+      "label": "Operator",
+      "origin": {
+        "env": ["olympus.policies.Operator"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "sepolia/PositionTokenRenderer.json",
+      "abiHash": "9a67415699c5c32cc7a45869f5e581700dac1dadad99ea8408ab5abb8a919d92",
+      "abiSource": "etherscan",
+      "address": "0x2c2A10aC552fd896725397e9811a2a1104Cef457",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "PositionTokenRenderer",
+      "label": "PositionTokenRenderer",
+      "origin": {
+        "env": ["olympus.periphery.PositionTokenRenderer"]
+      }
+    },
+    {
+      "abi": "sepolia/ReceiptTokenManager.json",
+      "abiHash": "959efb39e29f7568e153dcc18d8fc28305b335b347b5cabb9b1fd6dc7ecc000d",
+      "abiSource": "etherscan",
+      "address": "0x95F6CfFFCbdaecB76f1cA335Ceda4247c45B45E4",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "ReceiptTokenManager",
+      "label": "ReceiptTokenManager",
+      "origin": {
+        "env": ["olympus.periphery.ReceiptTokenManager"]
+      }
+    },
+    {
+      "abi": "sepolia/ReserveMigrator.json",
+      "abiHash": "85b8c5f82c8ec69fba14be82aa66191a2f4cebfa4e336a39dd790c2ed8a693c7",
+      "abiSource": "etherscan",
+      "address": "0x8B92A1dea210B7b7516443b52fdf5Dae677e93b0",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "ReserveMigrator",
+      "label": "ReserveMigrator",
+      "origin": {
+        "env": ["olympus.policies.ReserveMigrator"],
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "sepolia/ReserveWrapper.json",
+      "abiHash": "4da0e2d44e4051ac289d51b5e1d03ea439056c784ed7c0a740beae926bb11ebc",
+      "abiSource": "etherscan",
+      "address": "0x46a01AE30571855FBB5988eEd9D116aa2A3f2377",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "ReserveWrapper",
+      "label": "ReserveWrapper",
+      "origin": {
+        "env": ["olympus.policies.ReserveWrapper"],
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "sepolia/RewardDistributorUSDSV1_0.json",
+      "abiHash": "ac836d468fdac26e2c6c54628ee0ecd22898142ffc6fe27783fd28726e6bbedf",
+      "abiSource": "etherscan",
+      "address": "0x1079968070b12f3a82f3fFD43bA21FA6805272e2",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "RewardDistributorUSDS",
+      "label": "RewardDistributorUSDSV1_0",
+      "origin": {
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "sepolia/RolesAdmin.json",
+      "abiHash": "f1772029dce78f0bfe3e36aebe1fd4e540401333b695b1dbf843ee6eedb0c39f",
+      "abiSource": "etherscan",
+      "address": "0xf33133E5356B9534e794468dAcD424D11007f1cF",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "RolesAdmin",
+      "label": "RolesAdmin",
+      "origin": {
+        "env": ["olympus.policies.RolesAdmin"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "sepolia/Staking.json",
+      "abiHash": "c3fc5d5f8b073a2808c4332a4a2dbeb62723b3f688008ea238c19749ae661227",
+      "abiSource": "etherscan",
+      "address": "0xbC2778f2F24864D35D806AA968A1DB445988A5E9",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "OlympusStaking",
+      "label": "Staking",
+      "origin": {
+        "env": ["olympus.legacy.Staking"]
+      }
+    },
+    {
+      "abi": "sepolia/TreasuryCustodian.json",
+      "abiHash": "bfbf90de743fef176a035d6cf60b30ccdd2854772f697d037a9a8c566959055b",
+      "abiSource": "etherscan",
+      "address": "0xD031777082DD0bFBd7027af34fb306c24e6c3D97",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "TreasuryCustodian",
+      "label": "TreasuryCustodian",
+      "origin": {
+        "env": ["olympus.policies.TreasuryCustodian"],
+        "kernel": "POLICY"
+      }
+    },
+    {
+      "abi": "sepolia/YieldRepurchaseFacility.json",
+      "abiHash": "938631549270a82858be9994e20e581ec63ad6c49ae8b3c344dd6fee1f3124cd",
+      "abiSource": "etherscan",
+      "address": "0xf8ABE1D9502BbcaD4576433490D851D03c22A6B4",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "YieldRepurchaseFacility",
+      "label": "YieldRepurchaseFacility",
+      "origin": {
+        "env": ["olympus.policies.YieldRepurchaseFacility"],
+        "kernel": "POLICY"
+      },
+      "version": "1.3"
+    },
+    {
+      "abi": "sepolia/ZeroDistributor.json",
+      "abiHash": "8e1d4c251bdacf43114825f413f22089fe6ca91a8db1620b870aec8f33aa7d0d",
+      "abiSource": "etherscan",
+      "address": "0x1F338C7E85C92225B00CC79F7366e585D0c8eeEb",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "ZeroDistributor",
+      "label": "ZeroDistributor",
+      "origin": {
+        "env": ["olympus.policies.ZeroDistributor"]
+      }
+    },
+    {
+      "abi": "sepolia/gOHM.json",
+      "abiHash": "a7202b3f5c8e45c0e78a44f9d87b49ebe4643fcb0e25c302883be90a0626896d",
+      "abiSource": "etherscan",
+      "address": "0x0f7F33f915B29476ca2b2606C8A3e06A5FC7e896",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "gOHM",
+      "label": "gOHM",
+      "origin": {
+        "env": ["olympus.legacy.gOHM"]
+      }
+    },
+    {
+      "abi": "sepolia/sOHM.json",
+      "abiHash": "225c68e23bf3539c7e79523edf76c8c05dbb053426cb0520e3ce66e53f2d7d02",
+      "abiSource": "etherscan",
+      "address": "0x7aEe38DbB5465a05EE809d00d1C34dB76F8c5B72",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "contractName": "sOlympus",
+      "label": "sOHM",
+      "origin": {
+        "env": ["olympus.legacy.sOHM"]
+      }
+    }
+  ],
+  "env": {
+    "branch": "master",
+    "path": "src/scripts/env.json",
+    "ref": "c851f7e0a3147bcf312a8d076f7573b681ff3552",
+    "repo": "OlympusDAO/olympus-v3"
+  },
+  "exclusions": [
+    {
+      "address": "0x3024ceabec7e120647ad585bd5836eb13d247de7",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "env": ["olympus.policies.CCIPBurnMintTokenPool"],
+      "reason": "Inactive policy: isActive() returns false."
+    },
+    {
+      "address": "0x367149cf2d04D3114fFD1Cc6b273222664908D0B",
+      "chain": "mainnet",
+      "chainId": 1,
+      "env": ["olympus.policies.LegacyBurner"],
+      "reason": "Inactive policy: isActive() returns false."
+    },
+    {
+      "address": "0x45e563c39cDdbA8699A90078F42353A57509543a",
+      "chain": "mainnet",
+      "chainId": 1,
+      "env": ["olympus.policies.CrossChainBridge"],
+      "reason": "Inactive policy: isActive() returns false."
+    },
+    {
+      "address": "0x4A8c9502A34962a2C6d73c5D181dAaeF3dcDc88D",
+      "chain": "mainnet",
+      "chainId": 1,
+      "env": ["olympus.legacy.OlympusAuthority"],
+      "reason": "RPC eth_getCode returns no bytecode at this address."
+    },
+    {
+      "address": "0x784cA0C006b8651BAB183829A99fA46BeCe50dBc",
+      "chain": "mainnet",
+      "chainId": 1,
+      "env": ["olympus.policies.LoanConsolidator"],
+      "reason": "Inactive policy: isActive() returns false."
+    },
+    {
+      "address": "0x989B93efB6e9d90c2F3632D80EC7c4d1f61D4109",
+      "chain": "sepolia",
+      "chainId": 11155111,
+      "env": ["olympus.policies.BondCallback"],
+      "reason": "Inactive policy: isActive() returns false."
+    },
+    {
+      "address": "0x9f08c2603e919a46d6D98289C9ADA5250b310558",
+      "chain": "mainnet",
+      "chainId": 1,
+      "env": ["olympus.policies.Burner"],
+      "reason": "Inactive policy: isActive() returns false."
+    },
+    {
+      "address": "0xb212D9584cfc56EFf1117F412Fe0bBdc53673954",
+      "chain": "mainnet",
+      "chainId": 1,
+      "env": ["olympus.modules.OlympusRangeV1"],
+      "reason": "Replaced module: the Kernel uses OlympusRangeV2 for RANGE."
+    },
+    {
+      "address": "0xf577c77ee3578c7F216327F41B5D7221EaD2B2A3",
+      "chain": "mainnet",
+      "chainId": 1,
+      "env": ["olympus.policies.BondManager"],
+      "reason": "Inactive policy: isActive() returns false."
+    },
+    {
+      "chain": "arbitrum-sepolia",
+      "reason": "Testnet that the protocol visualizer does not index."
+    },
+    {
+      "chain": "base-sepolia",
+      "reason": "Testnet that the protocol visualizer does not index."
+    },
+    {
+      "chain": "berachain-bartio",
+      "reason": "Retired network. Etherscan V2 does not support it."
+    },
+    {
+      "chain": "goerli",
+      "reason": "Retired network. Etherscan V2 does not support it."
+    },
+    {
+      "chain": "solana",
+      "reason": "Non-EVM chain; Solidity ABIs do not describe Solana programs."
+    },
+    {
+      "chain": "solana-devnet",
+      "reason": "Non-EVM chain; Solidity ABIs do not describe Solana programs."
+    },
+    {
+      "reason": "Deployment configuration entries, not protocol contracts.",
+      "section": "olympus.config"
+    },
+    {
+      "keep": ["OHM", "OlympusAuthority", "Staking", "gOHM", "sOHM"],
+      "reason": "Pre-V3 contracts that are no longer used. The kept contracts are still live.",
+      "section": "olympus.legacy"
+    },
+    {
+      "reason": "Safe multisig wallets, not protocol contracts.",
+      "section": "olympus.multisig"
+    }
+  ],
+  "schemaVersion": 1,
+  "scope": "Live Olympus EVM contracts: the in-scope addresses of env.json current, plus the enabled Kernel modules and policies. See exclusions."
+}

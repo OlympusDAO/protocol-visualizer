@@ -17,7 +17,8 @@ const fn = (name, inputs = []) => ({
   stateMutability: "nonpayable",
 });
 
-const address = (n) => `0x${n.toString(16).padStart(40, "0")}`;
+// Distinct leading digits, because a label can fall back to the address.
+const address = (n) => `0x${n.toString(16).padEnd(40, "0")}`;
 
 const KERNEL = address(0x100);
 const CH_CURRENT = address(0x101);
@@ -320,7 +321,7 @@ test("a missing verified source uses the override, else fails with instructions"
   const source = fakes();
   await assert.rejects(
     buildRegistry({ ...source, config, env: unverifiedEnv }),
-    /mainnet modules\.Lender .*overrides\/mainnet\/0x0+108\.json/
+    new RegExp(`overrides/mainnet/${UNVERIFIED.toLowerCase()}.json`)
   );
   const { manifest } = await buildRegistry({
     ...source,
@@ -346,7 +347,9 @@ test("a proxy with an unverified implementation uses the override of the proxy",
   });
   await assert.rejects(
     build(source),
-    /no verified source for the implementation 0x0+301/
+    new RegExp(
+      `no verified source for the implementation ${unverifiedImplementation}`
+    )
   );
   const { manifest } = await build(source, {
     readOverride: async (_chain, addr) =>
@@ -363,7 +366,7 @@ test("a proxy with an unverified implementation uses the override of the proxy",
   assert.equal(gohm.proxy, undefined);
 });
 
-test("a shared name gets a version only where a version exists", async () => {
+test("a shared name without a version falls back to the address", async () => {
   const source = fakes();
   const { manifest } = await build({
     ...source,
@@ -386,29 +389,26 @@ test("a shared name gets a version only where a version exists", async () => {
       .filter((deployment) => deployment.contractName === "Clearinghouse")
       .map((deployment) => deployment.label)
       .sort(),
-    ["Clearinghouse", "ClearinghouseV1_0"]
+    ["ClearinghouseV1_0", `Clearinghouse_${CH_CURRENT.slice(0, 10)}`]
   );
 });
 
-test("label collisions and missing versions fail, and a config label resolves them", async () => {
-  const noVersion = {
-    ...fakes(),
-    rpc: { ...fakes().rpc, version: async () => null },
-  };
-  await assert.rejects(
-    buildRegistry({
-      ...noVersion,
-      config,
-      env,
-      kernel: async (chainId) =>
-        chainId === 1
-          ? kernelContracts[1].map((contract) => ({
-              ...contract,
-              version: undefined,
-            }))
-          : null,
-    }),
-    /has no version/
+test("a Kernel contract without a version uses its address, and a config label wins", async () => {
+  const source = fakes();
+  const { manifest } = await build({
+    ...source,
+    rpc: { ...source.rpc, version: async () => null },
+    kernel: async (chainId) =>
+      chainId === 1
+        ? kernelContracts[1].map((contract) => ({
+            ...contract,
+            version: undefined,
+          }))
+        : null,
+  });
+  assert.ok(
+    byLabel(manifest)[`mainnet/Clearinghouse_${CH_V1_0.slice(0, 10)}`],
+    "the Kernel contract is named after its address"
   );
   const labelled = await build(fakes(), {
     config: {

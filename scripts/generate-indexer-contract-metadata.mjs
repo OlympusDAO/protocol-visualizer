@@ -19,6 +19,13 @@ const outputPath = path.join(
   "generated",
   "contract-metadata.json"
 );
+const abiRegistryRoot = path.join(
+  repoRoot,
+  "packages",
+  "contract-abis",
+  "abis"
+);
+const abiRegistryManifestPath = path.join(abiRegistryRoot, "manifest.json");
 const etherscanBaseUrl = "https://api.etherscan.io/v2/api";
 const roleRolesAdmin = "RolesAdmin";
 loadDotEnv(path.join(repoRoot, ".env"));
@@ -475,18 +482,32 @@ function isRetryableNetworkError(error) {
   );
 }
 
-async function fetchContractAbi(chainId, address) {
-  const result = await fetchEtherscanResult(
-    new URLSearchParams({
-      chainid: chainId,
-      module: "contract",
-      action: "getabi",
-      address,
-      apikey: process.env.ETHERSCAN_API_KEY,
-    })
-  );
+function loadAbiRegistry() {
+  const manifest = JSON.parse(readFileSync(abiRegistryManifestPath, "utf8"));
+  const deploymentByKey = new Map();
 
-  return JSON.parse(result);
+  for (const deployment of manifest.deployments ?? []) {
+    if (!deployment?.address || !deployment.abi) continue;
+    deploymentByKey.set(
+      getAbiRegistryKey(deployment.chainId, deployment.address),
+      deployment
+    );
+  }
+
+  return deploymentByKey;
+}
+
+function getAbiRegistryKey(chainId, address) {
+  return `${chainId}:${address.toLowerCase()}`;
+}
+
+function readAbiRegistryAbi(deployment) {
+  const abiPath = path.join(abiRegistryRoot, deployment.abi);
+  const abi = JSON.parse(readFileSync(abiPath, "utf8"));
+  if (!Array.isArray(abi)) {
+    throw new Error(`ABI registry file ${deployment.abi} is not an ABI array`);
+  }
+  return abi;
 }
 
 async function fetchContractSourceCode(chainId, address) {
@@ -592,8 +613,7 @@ function processSourceCode(name, sourceCode, processedData) {
   return processedData;
 }
 
-async function fetchProcessedContract(contract) {
-  const abi = await fetchContractAbi(contract.chainId, contract.address);
+async function buildProcessedContract(contract, abi) {
   const sourceCode = await fetchContractSourceCode(
     contract.chainId,
     contract.address
@@ -618,12 +638,8 @@ for (const [chainId, contracts] of Object.entries(cache)) {
 }
 
 if (!cliOptions.cacheOnly) {
-  if (!process.env.ETHERSCAN_API_KEY?.trim()) {
-    throw new Error(
-      "ETHERSCAN_API_KEY is required to fetch missing contract metadata"
-    );
-  }
-
+  const abiRegistry = loadAbiRegistry();
+  const hasEtherscanApiKey = Boolean(process.env.ETHERSCAN_API_KEY?.trim());
   const contracts = parseContractNames().filter(shouldFetchContract);
   const candidates = contracts.filter((contract) => {
     const chainMetadata = metadata[contract.chainId] ?? {};
@@ -634,33 +650,50 @@ if (!cliOptions.cacheOnly) {
   });
 
   console.log(
-    `Fetching metadata for ${candidates.length} named contract(s); ${contracts.length - candidates.length} already present.`
+    `Building metadata for ${candidates.length} named contract(s); ${contracts.length - candidates.length} already present.`
   );
 
   const failures = [];
   for (const contract of candidates) {
-    try {
-      console.log(
-        `Fetching ${contract.name} ${contract.address} on chain ${contract.chainId}`
+    const location = `${contract.name} ${contract.address} on chain ${contract.chainId}`;
+    const deployment = abiRegistry.get(
+      getAbiRegistryKey(contract.chainId, contract.normalizedAddress)
+    );
+
+    if (!deployment) {
+      failures.push({ contract });
+      console.warn(
+        `Skipped ${location}: the ABI registry in packages/contract-abis has no entry for this address. Any existing generated metadata is kept, and the indexer resolves the contract at runtime instead.`
       );
+      continue;
+    }
+
+    if (!hasEtherscanApiKey) {
+      failures.push({ contract });
+      console.warn(
+        `Skipped ${location}: ETHERSCAN_API_KEY is not set, and the source code of the contract is required to derive function roles.`
+      );
+      continue;
+    }
+
+    try {
+      console.log(`Processing ${location} with ABI ${deployment.abi}`);
       metadata[contract.chainId] ??= {};
       metadata[contract.chainId][contract.normalizedAddress] =
-        await fetchProcessedContract(contract);
+        await buildProcessedContract(contract, readAbiRegistryAbi(deployment));
     } catch (error) {
-      failures.push({ contract, error });
-      console.warn(
-        `Failed to fetch ${contract.name} ${contract.address} on chain ${contract.chainId}: ${error.message}`
-      );
+      failures.push({ contract });
+      console.warn(`Failed to process ${location}: ${error.message}`);
     }
   }
 
   if (failures.length > 0 && (cliOptions.address || cliOptions.name)) {
-    throw new Error(`Failed to fetch ${failures.length} requested contract(s)`);
+    throw new Error(
+      `Failed to process ${failures.length} requested contract(s)`
+    );
   }
   if (failures.length > 0) {
-    console.warn(
-      `Skipped ${failures.length} named contract(s) after fetch errors.`
-    );
+    console.warn(`Skipped ${failures.length} named contract(s).`);
   }
 }
 

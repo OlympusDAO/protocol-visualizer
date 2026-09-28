@@ -24,6 +24,61 @@ const PRECOMPUTED_CONTRACT_METADATA = precomputedContractMetadata as Record<
   string,
   Record<string, ProcessedContractData>
 >;
+// The ABI registry of packages/contract-abis. The Docker image copies it to
+// the same path relative to apps/indexer.
+const ABI_REGISTRY_DIR =
+  process.env.CONTRACT_ABIS_PATH || "../../packages/contract-abis/abis";
+
+type AbiRegistryManifest = {
+  deployments: { chainId: number; address: string; abi: string }[];
+};
+
+let abiRegistryFiles: Map<string, string> | undefined;
+
+function loadAbiRegistryFiles(): Map<string, string> {
+  const files = new Map<string, string>();
+  const manifestPath = path.join(ABI_REGISTRY_DIR, "manifest.json");
+  if (!existsSync(manifestPath)) {
+    console.warn(
+      `ABI registry not found at ${manifestPath}; ABIs come from Etherscan.`
+    );
+    return files;
+  }
+  try {
+    const manifest = JSON.parse(
+      readFileSync(manifestPath, "utf-8")
+    ) as AbiRegistryManifest;
+    for (const deployment of manifest.deployments) {
+      files.set(
+        `${deployment.chainId}:${deployment.address.toLowerCase()}`,
+        deployment.abi
+      );
+    }
+  } catch (error) {
+    console.warn(
+      `ABI registry at ${manifestPath} is not valid; ABIs come from Etherscan.`,
+      error
+    );
+    files.clear();
+  }
+  return files;
+}
+
+// The ABI of an address from the registry, or undefined if the registry does
+// not have the address or its ABI file cannot be read.
+function readRegistryAbi(chainId: ChainId, address: string): Abi | undefined {
+  abiRegistryFiles ??= loadAbiRegistryFiles();
+  const file = abiRegistryFiles.get(`${chainId}:${address}`);
+  if (!file) return undefined;
+  try {
+    return JSON.parse(
+      readFileSync(path.join(ABI_REGISTRY_DIR, file), "utf-8")
+    ) as Abi;
+  } catch (error) {
+    console.warn(`Cannot read ABI registry file ${file}.`, error);
+    return undefined;
+  }
+}
 
 export class ContractProcessor {
   // private roleExtractor: RoleExtractor;
@@ -75,9 +130,13 @@ export class ContractProcessor {
 
     let abi: Abi;
     const abiPath = this.getAbiPath(normalizedAddress);
+    const registryAbi = readRegistryAbi(this.chainId, normalizedAddress);
 
-    // Check if ABI exists on disk
-    if (existsSync(abiPath)) {
+    if (registryAbi) {
+      abi = registryAbi;
+      writeFileSync(abiPath, JSON.stringify(abi, null, 2));
+    } else if (existsSync(abiPath)) {
+      // Check if ABI exists on disk
       const abiJson = readFileSync(abiPath, "utf-8");
       abi = JSON.parse(abiJson) as Abi;
     } else {

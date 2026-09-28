@@ -86,16 +86,19 @@ export function labelFor(candidate, resolved, labelOverrides, shared = false) {
   );
   if (override) return override;
   const version = resolved.version || candidate.kernel?.version;
-  const suffix = version ? `V${version.replaceAll(".", "_")}` : undefined;
+  // A contract that has no version, such as a deployment from before
+  // VERSION() existed, is named after its address.
+  const suffix = version
+    ? `V${version.replaceAll(".", "_")}`
+    : `_${candidate.address.slice(0, 10).toLowerCase()}`;
   if (candidate.env.length > 0) {
     const base = candidate.env[0].split(".").pop();
     // A versioned env.json name, such as OlympusRangeV2, keeps its name.
-    if (!shared || !suffix || /V\d+(_\d+)*$/.test(base)) return base;
+    if (!shared || /V\d+(_\d+)*$/.test(base)) return base;
     return `${base}${suffix}`;
   }
   const name = resolved.contractName || candidate.kernel?.name;
-  if (!name || !suffix) return undefined;
-  return `${name}${suffix}`;
+  return name ? `${name}${suffix}` : undefined;
 }
 
 // Deployments with the same contract name on one chain. A proxy counts
@@ -389,7 +392,7 @@ export async function buildRegistry({
     );
     if (!label) {
       errors.push(
-        `${name}: the Kernel contract has no version, so it has no label. Add a label in config.json.`
+        `${name}: the contract has no name, so it has no label. Add a label in config.json.`
       );
       continue;
     }

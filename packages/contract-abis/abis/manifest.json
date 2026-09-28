@@ -767,19 +767,6 @@
       }
     },
     {
-      "abi": "mainnet/EmissionManagerPrevious.json",
-      "abiHash": "6cc9cac2e3c140ac99ce4128ad0a4ec28ddcebcf1b9356cb1cc605e18e4d141b",
-      "abiSource": "etherscan",
-      "address": "0x50f441a3387625bDA8B8081cE3fd6C04CC48C0A2",
-      "chain": "mainnet",
-      "chainId": 1,
-      "contractName": "EmissionManager",
-      "label": "EmissionManagerPrevious",
-      "origin": {
-        "kernel": "POLICY"
-      }
-    },
-    {
       "abi": "mainnet/EmissionManagerV1_2.json",
       "abiHash": "7bcf063023db8b6826e9eb68c75149a781c03395f9e94ac33f6ad868728991f9",
       "abiSource": "etherscan",
@@ -2131,6 +2118,12 @@
       "reason": "RPC eth_getCode returns no bytecode at this address."
     },
     {
+      "address": "0x50f441a3387625bDA8B8081cE3fd6C04CC48C0A2",
+      "chain": "mainnet",
+      "chainId": 1,
+      "reason": "Shut down on 2025-11-30: locallyActive() returns false, and the Heart calls EmissionManagerV1_2 instead."
+    },
+    {
       "address": "0x784cA0C006b8651BAB183829A99fA46BeCe50dBc",
       "chain": "mainnet",
       "chainId": 1,
@@ -2190,13 +2183,13 @@
       "reason": "Non-EVM chain; Solidity ABIs do not describe Solana programs."
     },
     {
-      "reason": "Deployment configuration entries, not protocol contracts.",
-      "section": "olympus.config"
-    },
-    {
       "keep": ["OHM", "OlympusAuthority", "Staking", "gOHM", "sOHM"],
       "reason": "Pre-V3 contracts that are no longer used. The kept contracts are still live.",
       "section": "olympus.legacy"
+    },
+    {
+      "reason": "Deployment configuration entries, not protocol contracts.",
+      "section": "olympus.config"
     },
     {
       "reason": "Safe multisig wallets, not protocol contracts.",

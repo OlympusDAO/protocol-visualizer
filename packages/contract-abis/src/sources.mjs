@@ -62,20 +62,27 @@ const githubHeaders = (accept) => ({
     : {}),
 });
 
-export async function latestEnvRef({ repo, branch }) {
+// The last commit on the branch that changed env.json. A commit that does not
+// touch env.json does not change the ref.
+export async function latestEnvRef({ repo, branch, path }) {
+  const query = new URLSearchParams({ sha: branch, path, per_page: "1" });
   const response = await fetch(
-    `https://api.github.com/repos/${repo}/commits/${branch}`,
+    `https://api.github.com/repos/${repo}/commits?${query}`,
     {
-      headers: githubHeaders("application/vnd.github.sha"),
+      headers: githubHeaders("application/vnd.github+json"),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     }
   );
   if (!response.ok) {
     throw new Error(
-      `GitHub returned HTTP ${response.status} for ${repo}@${branch}`
+      `GitHub returned HTTP ${response.status} for ${repo}/${path}@${branch}`
     );
   }
-  return (await response.text()).trim();
+  const [commit] = await response.json();
+  if (!commit?.sha) {
+    throw new Error(`GitHub has no commit for ${repo}/${path}@${branch}`);
+  }
+  return commit.sha;
 }
 
 export async function fetchEnv({ repo, path, ref }) {

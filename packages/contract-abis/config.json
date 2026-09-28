@@ -37,13 +37,12 @@
       "chain": "mainnet",
       "address": "0xb212D9584cfc56EFf1117F412Fe0bBdc53673954",
       "reason": "Replaced module: the Kernel uses OlympusRangeV2 for RANGE."
-    }
-  ],
-  "labels": [
+    },
     {
       "chain": "mainnet",
       "address": "0x50f441a3387625bDA8B8081cE3fd6C04CC48C0A2",
-      "label": "EmissionManagerPrevious"
+      "reason": "Shut down on 2025-11-30: locallyActive() returns false, and the Heart calls EmissionManagerV1_2 instead."
     }
-  ]
+  ],
+  "labels": []
 }

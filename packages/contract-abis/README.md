@@ -4,6 +4,12 @@ This package has the ABI of each live Olympus contract. The snapshot gateway
 serves it at `/v1/abis`. Consumers such as the Olympus MCP server use it to
 decode calls, events and reverts of the deployed addresses.
 
+`pnpm indexer:metadata` also reads this registry. It gets the ABI of each
+address from `abis/manifest.json` and writes the function selectors to
+`apps/indexer/src/generated/contract-metadata.json`. It skips an address that
+the registry does not have; then the indexer resolves that address at runtime.
+See the "Contract Metadata" section of `apps/indexer/README.md`.
+
 ## Layout
 
 ```text
@@ -53,14 +59,17 @@ them that has a version gets the version in its label. For example, the three
 mainnet Clearinghouses are `ClearinghouseV1_0`, `ClearinghouseV1_1` and
 `ClearinghouseV1_2`. These deployments keep a plain label:
 
-- A deployment with no version.
 - An env.json name that already ends with a version, such as `OlympusRangeV2`.
 
 A proxy counts under its own contract name, not the name of its
 implementation.
 
-If a Kernel contract has no version, or two addresses on one chain get the same
-label, the sync stops. Add a label in `config.json` to correct it.
+A deployment that has no version takes the start of its address instead, for
+example `EmissionManager_0x50f441a3`. This happens with contracts from before
+`VERSION()` existed.
+
+If two addresses on one chain get the same label, the sync stops. Add a label
+in `config.json` to correct it.
 
 A label can change when a new version is deployed. Look up ABIs by address in
 the manifest, not by file name.
@@ -104,7 +113,7 @@ same `abiHash` have the same interface.
 | Command                  | Purpose                                                                | Network                    |
 | ------------------------ | ---------------------------------------------------------------------- | -------------------------- |
 | `pnpm abis:sync`         | Update the registry. Gets ABIs only for new addresses and changed proxies. | GitHub, gateway, Etherscan, RPC |
-| `pnpm abis:sync --latest` | Move `env.ref` to the head of olympus-v3 `master`, then update.        | Same                       |
+| `pnpm abis:sync --latest` | Move `env.ref` to the last olympus-v3 `master` commit that changed env.json, then update. | Same |
 | `pnpm abis:check`        | Check that the manifest and the ABI files agree. Writes nothing.        | None                       |
 
 `pnpm abis:sync` needs `ETHERSCAN_API_KEY`. It reads a `.env` file in this
@@ -118,10 +127,10 @@ comes from `viem/chains`.
 - The `build` job in `.github/workflows/ci.yml` runs `pnpm abis:check` and the
   package tests. It does not use the network, so a new contract on-chain cannot
   make an unrelated pull request fail.
-- `.github/workflows/abis-sync.yml` runs `pnpm abis:sync --latest` on a
-  `repository_dispatch` event of type `env-json-updated`, which olympus-v3
-  sends when `src/scripts/env.json` changes on `master`. You can also start it
-  manually. If the registry changed, it opens or updates one pull
-  request from the `bot/abis-sync` branch. It needs the `ETHERSCAN_API_KEY`
+- `.github/workflows/abis-sync.yml` runs `pnpm abis:sync --latest` every day,
+  and on manual dispatch. The daily run also finds the changes that env.json
+  does not show, such as a policy that the Kernel activates, or a proxy
+  upgrade. If the registry changed, it opens or updates one pull request from
+  the `bot/abis-sync` branch. It needs the `ETHERSCAN_API_KEY`
   secret and one `ENVIO_RPC_URL_<chainId>` secret for each chain in
   `config.json` `chains`.

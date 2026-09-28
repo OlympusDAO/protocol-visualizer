@@ -1,12 +1,12 @@
 name: ABI registry sync
 
-# Runs `pnpm abis:sync --latest` and opens one pull request with the changes.
-# olympus-v3 starts it with a repository_dispatch event of type
-# env-json-updated when src/scripts/env.json changes on master.
+# Runs `pnpm abis:sync --latest` every day and opens one pull request with the
+# changes. The daily run also finds the changes that env.json does not show,
+# such as a policy that the Kernel activates, or a proxy upgrade.
 on:
+  schedule:
+    - cron: "17 6 * * *"
   workflow_dispatch:
-  repository_dispatch:
-    types: [env-json-updated]
 
 permissions:
   contents: read
@@ -100,7 +100,14 @@ jobs:
           git checkout -B "$BRANCH"
           git apply --index "$RUNNER_TEMP/abis-sync/abis.patch"
           git commit -m "chore(abis): sync ABI registry"
-          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "$BRANCH"
+          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          # The daily run does not push a new commit if the branch already has
+          # the same tree. A new commit starts the checks again.
+          if git fetch --quiet --depth 1 "$REMOTE" "$BRANCH" 2>/dev/null && git diff --quiet FETCH_HEAD HEAD; then
+            echo "$BRANCH already has these changes."
+          else
+            git push --force "$REMOTE" "$BRANCH"
+          fi
           if [ -z "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
             gh pr create --head "$BRANCH" --base "${{ github.event.repository.default_branch }}" \
               --title "chore(abis): sync ABI registry" \

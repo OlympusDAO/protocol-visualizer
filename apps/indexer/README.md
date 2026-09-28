@@ -120,11 +120,31 @@ function-role metadata without reindexing:
 pnpm run indexer:metadata
 ```
 
-The generator reads the repository root `.env` and `apps/indexer/.env`, requires
-`ETHERSCAN_API_KEY`, fetches metadata for named contracts that are missing from
-`src/generated/contract-metadata.json`, and writes the merged generated file.
+The generator builds metadata for the named contracts that are missing from
+`src/generated/contract-metadata.json`, then writes the merged generated file.
 It skips addresses that already have generated metadata unless `--force` is
-passed.
+passed. `--cache-only` merges `data/contract-cache.json` and writes nothing new.
+
+The function selectors come from the ABI registry in
+`packages/contract-abis/abis`. The generator looks up each address in
+`abis/manifest.json` by chain ID and address, and does not read ABIs from
+Etherscan. The registry does not hold every address in `src/ContractNames.ts`:
+it excludes inactive policies and some `env.json` sections. For an address that
+the registry does not have, the generator prints a warning and skips it. Then
+any metadata that the generated file already holds stays as it is, and the
+indexer resolves the contract at runtime through its local ABI cache or
+Etherscan, as before.
+
+At runtime, the indexer also reads the ABI registry before it asks Etherscan
+for an ABI. The Docker image has the registry at the same relative path. Set
+`CONTRACT_ABIS_PATH` to use a different directory.
+
+Function roles still come from the contract source code, which the generator
+reads from Etherscan. Therefore it reads `ETHERSCAN_API_KEY` from the
+repository root `.env` and from `apps/indexer/.env`. Without the key, the
+generator warns and skips each contract that needs a new role lookup, and it
+changes no existing entry. A run that targets one contract with `--address` or
+`--name` fails instead of skipping.
 
 Etherscan HTTP `429`, server errors, network failures, and Etherscan rate-limit
 responses are retried with bounded backoff. Tune this with

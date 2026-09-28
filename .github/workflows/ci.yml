@@ -43,6 +43,9 @@ jobs:
       - name: Run snapshot monitor tests
         run: pnpm --filter snapshot-monitor run test
 
+      - name: Check ABI registry
+        run: pnpm run abis:check
+
   docker-build:
     runs-on: ubuntu-latest
     steps:

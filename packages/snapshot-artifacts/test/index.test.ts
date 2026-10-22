@@ -8,8 +8,73 @@ import {
   restProtocolPath,
   sanitizeManifestForPublic,
   SCHEMA_VERSION,
+  readSnapshotData,
   type SnapshotManifest,
 } from "../src/index.js";
+
+test("reads 1.0 and 1.1 additions and rejects unsupported versions clearly", () => {
+  const data = { contracts: [], roles: [], roleAssignments: [] };
+  assert.deepEqual(readSnapshotData({ schemaVersion: "1.0.0", data }), {
+    ...data,
+    additionalContracts: [],
+    contractStates: [],
+    relationships: [],
+    observation: null,
+  });
+  const additionalContracts = [
+    {
+      id: "1:0xabc",
+      chainId: 1,
+      address: "0xabc",
+      name: "External",
+      category: "external" as const,
+      provenance: { source: "inventory" as const },
+    },
+  ];
+  const extended = { ...data, additionalContracts };
+  assert.deepEqual(
+    readSnapshotData({ schemaVersion: "1.1.0", data: extended })
+      .additionalContracts,
+    additionalContracts
+  );
+  assert.throws(
+    () => readSnapshotData({ schemaVersion: "2.0.0", data }),
+    /Unsupported snapshot schema version: 2.0.0/
+  );
+  assert.throws(
+    () => readSnapshotData({ schemaVersion: "invalid", data }),
+    /Unsupported snapshot schema version: invalid/
+  );
+});
+
+test("OpenAPI snapshot references resolve within the shared document", () => {
+  const document = createOpenApiDocument();
+  const snapshot = document.components.schemas.ProtocolSnapshot as Record<
+    string,
+    unknown
+  >;
+  assert.equal(
+    snapshot.$id,
+    undefined,
+    "embedding cannot change the reference base URI"
+  );
+  const walk = (value: unknown): void => {
+    if (!value || typeof value !== "object") return;
+    const ref = (value as { $ref?: string }).$ref;
+    if (ref) {
+      const target = ref
+        .slice(2)
+        .split("/")
+        .reduce<unknown>(
+          (object, key) => (object as Record<string, unknown>)?.[key],
+          document
+        );
+      assert(target, `unresolved reference: ${ref}`);
+    }
+    for (const nested of Object.values(value)) walk(nested);
+  };
+  walk(document);
+});
 
 test("builds deployment-scoped artifact keys and REST paths", () => {
   assert.equal(
@@ -83,9 +148,11 @@ test("parses Envio metrics readiness for supported chains", () => {
       hyperindex_synced_to_head 1
       envio_progress_ready{chainId="1"} 1
       envio_progress_block{chainId="1"} 25272069
+      envio_progress_block_time_seconds{chainId="1"} 1780876800
       envio_progress_events{chainId="1"} 193
       envio_progress_ready{chainId="10"} 1
       envio_progress_block{chainId="10"} 152657692
+      envio_progress_block_time_seconds{chainId="10"} 1780876800
     `,
     [
       { key: "Mainnet", chainId: 1 },
@@ -111,10 +178,10 @@ test("uses Envio per-chain progress timestamps when present", () => {
       hyperindex_synced_to_head 1
       envio_progress_ready{chainId="1"} 1
       envio_progress_block{chainId="1"} 25272069
-      envio_progress_timestamp{chainId="1"} 1780491216
+      envio_progress_block_time_seconds{chainId="1"} 1780491216
       envio_progress_ready{chainId="10"} 1
       envio_progress_block{chainId="10"} 152657692
-      envio_progress_timestamp{chainId="10"} 1684540529
+      envio_progress_block_time_seconds{chainId="10"} 1684540529
     `,
     [
       { key: "Mainnet", chainId: 1 },
@@ -135,14 +202,29 @@ test("uses Envio per-chain progress timestamps when present", () => {
   assert.equal(readiness.indexingProgress.chains.Optimism?.date, "2023-05-19");
 });
 
+test("missing progress timestamps cannot use observation time as chain coverage", () => {
+  const readiness = parseEnvioMetricsReadiness(
+    `hyperindex_synced_to_head 1
+envio_progress_ready{chainId="1"} 1
+envio_progress_block{chainId="1"} 123`,
+    [{ key: "Mainnet", chainId: 1 }],
+    new Date("2026-10-22T00:00:00.000Z")
+  );
+  assert.equal(readiness.ready, false);
+  assert.equal(readiness.indexingProgress.chains.Mainnet?.timestamp, 0);
+  assert.deepEqual(readiness.missingChainIds, [1]);
+});
+
 test("blocks readiness when Envio metrics are missing or not ready", () => {
   const readiness = parseEnvioMetricsReadiness(
     `
       hyperindex_synced_to_head 0
       envio_progress_ready{chainId="1"} 1
       envio_progress_block{chainId="1"} 25272069
+      envio_progress_block_time_seconds{chainId="1"} 1780876800
       envio_progress_ready{chainId="10"} 0
       envio_progress_block{chainId="10"} 152657692
+      envio_progress_block_time_seconds{chainId="10"} 1780876800
     `,
     [
       { key: "Mainnet", chainId: 1 },
@@ -164,6 +246,7 @@ test("ignores long malformed metrics without regex backtracking", () => {
       ${"A".repeat(20_000)}{chainId="${"A".repeat(20_000)}"} ${"0".repeat(20_000)}
       envio_progress_ready{chainId="${"00".repeat(20_000)}"} 1
       envio_progress_block{chainId="1"} 123
+      envio_progress_block_time_seconds{chainId="1"} 1780876800
       envio_progress_ready{chainId="1"} 1
       hyperindex_synced_to_head 1
     `,

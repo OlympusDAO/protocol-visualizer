@@ -20,6 +20,17 @@ private Hasura for the public frontend. On each run it:
 If any fetch, validation, upload, or verification fails, the process exits
 non-zero so Railway records a failed cron run.
 
+Snapshots use schema `1.1.0`. Readers also accept schema `1.0.0`.
+The legacy `contracts` array still contains active Kernel contracts.
+The optional `additionalContracts` array contains inactive indexed contracts and curated external deployments from `packages/protocol-config/other-contracts.json`.
+The optional `contractStates`, `relationships`, and `observation` fields carry indexed control data and provenance.
+Missing fields in older snapshots mean unknown state, with empty additional arrays.
+The shared `snapshot-artifacts` package owns both schemas.
+
+Publication readiness uses completed chain observations or indexer metrics.
+Inventory records, state-change timestamps, and publication time cannot establish indexing progress.
+Sample mode uses fixed observations and performs no RPC reads.
+
 ## Bucket Files
 
 The generated object keys are internal. The public REST API is served by

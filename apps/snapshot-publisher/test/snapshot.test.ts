@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { test } from "node:test";
 import { getSampleProtocolData } from "../src/sample-data.js";
-import { loadSupportedChains } from "../src/chains.js";
+import { loadOtherContracts, loadSupportedChains } from "../src/chains.js";
 import {
   createProtocolSnapshot,
   createSnapshotFiles,
+  createSnapshotBatch,
   fetchProtocolData,
   parseChainIds,
   selectChains,
@@ -25,6 +29,90 @@ const supportedChains = [
     explorerBaseUrl: "https://optimistic.etherscan.io",
   },
 ];
+
+test("includes inactive and inventory-only contracts without changing active core", async () => {
+  const input = getSampleProtocolData(1);
+  const contracts = input.Contract;
+  const mainnet = supportedChains[0];
+  assert(contracts);
+  assert(mainnet);
+  const policy = contracts[2];
+  assert(policy);
+  const inactive = {
+    ...policy,
+    address: "0x0000000000000000000000000000000000000099",
+    isEnabled: false,
+  };
+  input.KnownContract = [...contracts, inactive];
+  const snapshot = createProtocolSnapshot({
+    chainId: 1,
+    generatedAt: "2026-05-25T00:00:00.000Z",
+    graphqlData: input,
+    additionalContracts: [
+      { chainId: 1, address: inactive.address, name: "Inventory duplicate" },
+      {
+        chainId: 1,
+        address: "0x0000000000000000000000000000000000000088",
+        name: "External",
+      },
+    ],
+  });
+  assert.equal(snapshot.data.contracts.length, 3);
+  assert.equal(snapshot.data.additionalContracts?.length, 2);
+  assert.equal(
+    snapshot.data.additionalContracts?.find(
+      (c) => c.address === inactive.address
+    )?.category,
+    "inactive-core"
+  );
+  assert.equal(
+    snapshot.data.contractStates?.find((c) => c.address === inactive.address)
+      ?.kernelMembership,
+    "inactive"
+  );
+  const batch = await createSnapshotBatch({
+    chains: [mainnet],
+    loadProtocolData: () => ({}),
+    additionalContracts: [
+      {
+        chainId: 1,
+        address: "0x0000000000000000000000000000000000000088",
+        name: "External",
+      },
+    ],
+  });
+  assert.equal(
+    batch.ready,
+    false,
+    "inventory and publication time cannot invent indexing progress"
+  );
+  const observed = await createSnapshotBatch({
+    chains: [mainnet],
+    loadProtocolData: () => ({}),
+    additionalContracts: [
+      {
+        chainId: 1,
+        address: "0x0000000000000000000000000000000000000088",
+        name: "External",
+      },
+    ],
+    indexingProgressOverride: {
+      chains: {
+        Mainnet: {
+          chainId: 1,
+          block: 123,
+          timestamp: 1700000000,
+          date: "2023-11-14",
+        },
+      },
+    },
+  });
+  assert.equal(
+    observed.ready,
+    true,
+    "real chain progress permits external-only publication"
+  );
+});
 
 test("creates valid protocol snapshots from GraphQL data", () => {
   const snapshot = createProtocolSnapshot({
@@ -96,6 +184,38 @@ test("loads shared protocol chain config", async () => {
   assert(!chains.some((chain) => chain.chainId === 80084));
   assert(chains.some((chain) => chain.chainId === 421614));
   assert(chains.some((chain) => chain.chainId === 84532));
+});
+
+test("validates other-contract inventory before returning typed entries", async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), "protocol-inventory-"));
+  const configPath = path.join(directory, "other-contracts.json");
+  const previous = process.env.OTHER_CONTRACTS_CONFIG_PATH;
+  process.env.OTHER_CONTRACTS_CONFIG_PATH = configPath;
+  const valid = {
+    chainId: 1,
+    address: "0x0000000000000000000000000000000000000001",
+    name: "Pool",
+    startBlock: 0,
+  };
+  try {
+    for (const invalid of [
+      {},
+      [{ ...valid, chainId: 0 }],
+      [{ ...valid, address: "0x1234" }],
+      [{ ...valid, address: "0x0000000000000000000000000000000000000000" }],
+      [{ ...valid, name: "" }],
+      [{ ...valid, startBlock: -1 }],
+    ]) {
+      await writeFile(configPath, JSON.stringify(invalid));
+      await assert.rejects(loadOtherContracts(), /other-contract inventory/);
+    }
+    await writeFile(configPath, JSON.stringify([valid]));
+    assert.deepEqual(await loadOtherContracts(), [valid]);
+  } finally {
+    if (previous === undefined) delete process.env.OTHER_CONTRACTS_CONFIG_PATH;
+    else process.env.OTHER_CONTRACTS_CONFIG_PATH = previous;
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 
 test("reports Hasura network failures with safe context", async () => {

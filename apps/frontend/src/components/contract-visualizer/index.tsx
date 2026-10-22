@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   type Contract,
   getProtocolVisualizerData,
+  getAdditionalGraphContracts,
   type RoleAssignment,
 } from "@/services/contracts";
 import dagre from "dagre";
@@ -102,7 +103,9 @@ const createAssigneeNode = (
   chainId: number
 ) => {
   const assigneeName =
-    assignee.assigneeName === "UNKNOWN" ? "EOA" : assignee.assigneeName;
+    assignee.assigneeName === "UNKNOWN"
+      ? "Unknown address"
+      : assignee.assigneeName;
 
   return {
     id,
@@ -345,7 +348,16 @@ export function ContractVisualizer() {
   const roles = data?.roles;
   const roleAssignments = data?.roleAssignments;
   const hasNoContractData =
-    !isLoading && !error && (contracts?.length ?? 0) === 0;
+    !isLoading &&
+    !error &&
+    (contracts?.length ?? 0) + (data?.additionalContracts.length ?? 0) === 0;
+
+  useEffect(() => {
+    if (!data) return;
+    setInitialized(false);
+    setOriginalLayout(null);
+    setSelectedNode(null);
+  }, [data]);
 
   const createNodeFromContract = useCallback(
     (contract: Contract, id: string) => {
@@ -563,6 +575,59 @@ export function ContractVisualizer() {
       }
     });
 
+    const additional = data ? getAdditionalGraphContracts(data) : [];
+    for (const contract of additional) {
+      const state = data?.contractStates.find(
+        (state) => state.address.toLowerCase() === contract.address
+      );
+      newNodes.push({
+        id: contract.address,
+        position: { x: 0, y: 0 },
+        data: {
+          name: contract.name,
+          label: (
+            <div className="p-2 text-sm">
+              <Handle
+                id={`${contract.address}-target`}
+                type="target"
+                position={Position.Left}
+              />
+              <div className="font-semibold">{contract.name}</div>
+              <a
+                href={getEtherscanLink(contract.address, selectedChainId)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-blue-600"
+              >
+                {shortenAddress(contract.address)}
+              </a>
+              <div className="mt-1 text-xs text-gray-500">
+                {contract.category === "inactive-core"
+                  ? "Kernel inactive"
+                  : "External deployment"}
+              </div>
+              {state?.enabled != null && (
+                <div className="text-xs text-gray-500">
+                  {state.enabled ? "Enabled" : "Disabled"}
+                </div>
+              )}
+              <Handle
+                id={`${contract.address}-source`}
+                type="source"
+                position={Position.Right}
+              />
+            </div>
+          ),
+        },
+        style: {
+          background: "#f9fafb",
+          border: "1px solid #9ca3af",
+          borderRadius: "8px",
+          minWidth: "180px",
+        },
+      });
+    }
+
     // Process roles and assignees
     roles.forEach((role) => {
       const roleId = `role-${role.role}`;
@@ -602,7 +667,7 @@ export function ContractVisualizer() {
 
       // Process assignees
       roleAssignmentsList.forEach((assignment) => {
-        const contractNode = contracts.find(
+        const contractNode = [...contracts, ...additional].find(
           (c) => c.address.toLowerCase() === assignment.assignee.toLowerCase()
         );
 
@@ -654,6 +719,7 @@ export function ContractVisualizer() {
     setLayouting(false);
     setInitialized(true);
   }, [
+    data,
     contracts,
     roles,
     roleAssignments,

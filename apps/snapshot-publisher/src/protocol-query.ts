@@ -8,6 +8,10 @@ export const PROTOCOL_VISUALIZER_QUERIES: ProtocolVisualizerQuery[] = [
     name: "graphql-default",
     query: `
       query ProtocolVisualizerData($chainId: Int!) {
+        KnownContract: contract(where: { chainId: { _eq: $chainId } }, orderBy: { name: asc }) { id chainId address lastUpdatedTimestamp lastUpdatedBlockNumber name version contractType isEnabled policyPermissions policyFunctions }
+        ContractState: contractState(where: { chainId: { _eq: $chainId } }) { id chainId address enablerCapability enabled seed lastChange indexedThrough verification }
+        ContractRelationship: contractRelationship(where: { chainId: { _eq: $chainId } }) { id chainId kind source target status scope provenance }
+        ChainObservation: chainObservation(where: { chainId: { _eq: $chainId } }) { chainId indexedThrough }
         Contract: contract(
           where: { chainId: { _eq: $chainId }, isEnabled: { _eq: true } }
           orderBy: { name: asc }
@@ -49,6 +53,10 @@ export const PROTOCOL_VISUALIZER_QUERIES: ProtocolVisualizerQuery[] = [
     name: "hasura-default",
     query: `
       query ProtocolVisualizerData($chainId: Int!) {
+        KnownContract: Contract(where: { chainId: { _eq: $chainId } }, order_by: { name: asc }) { id chainId address lastUpdatedTimestamp lastUpdatedBlockNumber name version contractType isEnabled policyPermissions policyFunctions }
+        ContractState: ContractState(where: { chainId: { _eq: $chainId } }) { id chainId address enablerCapability enabled seed lastChange indexedThrough verification }
+        ContractRelationship: ContractRelationship(where: { chainId: { _eq: $chainId } }) { id chainId kind source target status scope provenance }
+        ChainObservation: ChainObservation(where: { chainId: { _eq: $chainId } }) { chainId indexedThrough }
         Contract(
           where: { chainId: { _eq: $chainId }, isEnabled: { _eq: true } }
           order_by: { name: asc }

@@ -1,4 +1,97 @@
-export const SCHEMA_VERSION = "1.0.0" as const;
+export const SCHEMA_VERSION = "1.1.0" as const;
+export type SnapshotSchemaVersion = "1.0.0" | typeof SCHEMA_VERSION;
+
+export function isSupportedSchemaVersion(
+  value: unknown
+): value is SnapshotSchemaVersion {
+  return value === "1.0.0" || value === SCHEMA_VERSION;
+}
+
+export function assertSupportedSchemaVersion(
+  value: unknown
+): asserts value is SnapshotSchemaVersion {
+  if (!isSupportedSchemaVersion(value))
+    throw new Error(`Unsupported snapshot schema version: ${String(value)}`);
+}
+
+export type BlockObservation = {
+  number: string;
+  hash: string;
+  timestamp: string;
+};
+export type EventProvenance = BlockObservation & {
+  transactionHash: string;
+  logIndex: number;
+};
+export type GetterVerification = {
+  outcome: "unperformed" | "match" | "mismatch" | "unavailable";
+  block?: BlockObservation;
+  getterValue?: string;
+  reason?: string;
+};
+export type AdditionalContract = {
+  id: string;
+  chainId: number;
+  address: string;
+  name: string;
+  category: "external" | "inactive-core";
+  contractType?: "KERNEL" | "MODULE" | "POLICY";
+  version?: string | null;
+  provenance: { source: "inventory" | "indexer"; startBlock?: number };
+};
+export type ContractState = {
+  id: string;
+  chainId: number;
+  address: string;
+  kernelMembership: "active" | "inactive" | "unknown";
+  enablerCapability: "unknown" | "supported" | "unsupported";
+  enabled: boolean | null;
+  seed?: BlockObservation | null;
+  lastChange?: EventProvenance | null;
+  indexedThrough?: BlockObservation | null;
+  verification: GetterVerification;
+};
+export type ContractRelationship = {
+  id: string;
+  chainId: number;
+  kind: string;
+  source: string;
+  target: string | null;
+  status: "current" | "pending" | "reference" | "unset";
+  scope?: { registry?: string; token?: string } | null;
+  provenance: EventProvenance | BlockObservation;
+};
+export type ChainObservation = {
+  chainId: number;
+  indexedThrough: BlockObservation;
+};
+export type SnapshotExtension = {
+  additionalContracts?: AdditionalContract[];
+  contractStates?: ContractState[];
+  relationships?: ContractRelationship[];
+  observation?: ChainObservation | null;
+};
+
+/** Reader-first rollout: legacy snapshots carry no claim about control state. */
+export function readSnapshotData<
+  T extends {
+    contracts: unknown[];
+    roles: unknown[];
+    roleAssignments: unknown[];
+  },
+>(snapshot: {
+  schemaVersion: unknown;
+  data: T & SnapshotExtension;
+}): T & Required<SnapshotExtension> {
+  assertSupportedSchemaVersion(snapshot.schemaVersion);
+  return {
+    ...snapshot.data,
+    additionalContracts: snapshot.data.additionalContracts ?? [],
+    contractStates: snapshot.data.contractStates ?? [],
+    relationships: snapshot.data.relationships ?? [],
+    observation: snapshot.data.observation ?? null,
+  };
+}
 export const ACTIVE_MANIFEST_KEY = "v1/manifest.json";
 export const PUBLISHER_LOCK_KEY = "v1/publisher.lock";
 export const DEFAULT_MONITOR_STATE_KEY = "v1/monitor-state.json";
@@ -43,7 +136,7 @@ export type SnapshotManifestChain = {
 };
 
 export type SnapshotManifest = {
-  schemaVersion: typeof SCHEMA_VERSION;
+  schemaVersion: SnapshotSchemaVersion;
   generatedAt: string;
   schemas: {
     openapi: string;
@@ -240,7 +333,7 @@ const parsePrometheusNumber = (value: string): number | undefined => {
 export function parseEnvioMetricsReadiness(
   metricsText: string,
   chains: EnvioMetricsChainConfig[],
-  observedAt = new Date()
+  _observedAt?: Date
 ): EnvioMetricsReadiness {
   const readyByChainId = new Map<number, number>();
   const blockByChainId = new Map<number, number>();
@@ -270,12 +363,11 @@ export function parseEnvioMetricsReadiness(
       readyByChainId.set(chainId, value);
     } else if (metricName === "envio_progress_block") {
       blockByChainId.set(chainId, value);
-    } else if (metricName === "envio_progress_timestamp") {
+    } else if (metricName === "envio_progress_block_time_seconds") {
       timestampByChainId.set(chainId, value);
     }
   }
 
-  const fallbackTimestamp = Math.floor(observedAt.getTime() / 1000);
   const missingChainIds: number[] = [];
   const notReadyChainIds: number[] = [];
   const readyChainIds: number[] = [];
@@ -284,9 +376,18 @@ export function parseEnvioMetricsReadiness(
   for (const chain of chains) {
     const readyMetric = readyByChainId.get(chain.chainId);
     const block = blockByChainId.get(chain.chainId);
+    const timestamp = timestampByChainId.get(chain.chainId);
     const chainReady =
-      readyMetric === 1 && typeof block === "number" && block > 0;
-    if (readyMetric === undefined || block === undefined) {
+      readyMetric === 1 &&
+      typeof block === "number" &&
+      block > 0 &&
+      typeof timestamp === "number" &&
+      timestamp > 0;
+    if (
+      readyMetric === undefined ||
+      block === undefined ||
+      timestamp === undefined
+    ) {
       missingChainIds.push(chain.chainId);
     }
     if (!chainReady) {
@@ -295,9 +396,7 @@ export function parseEnvioMetricsReadiness(
       readyChainIds.push(chain.chainId);
     }
 
-    const chainTimestamp = Math.trunc(
-      timestampByChainId.get(chain.chainId) ?? fallbackTimestamp
-    );
+    const chainTimestamp = Math.trunc(timestamp ?? 0);
 
     progressEntries.push([
       chain.key,
@@ -324,15 +423,19 @@ export function parseEnvioMetricsReadiness(
 }
 
 export const protocolSnapshotSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "/v1/schemas/protocol-snapshot-v1.schema.json",
+  title: "Protocol Visualizer Protocol Snapshot",
   type: "object",
+  additionalProperties: false,
   required: ["schemaVersion", "generatedAt", "chainId", "recordCounts", "data"],
-  additionalProperties: true,
   properties: {
-    schemaVersion: { const: SCHEMA_VERSION },
+    schemaVersion: { enum: ["1.0.0", SCHEMA_VERSION] },
     generatedAt: { type: "string", format: "date-time" },
     chainId: { type: "integer" },
     recordCounts: {
       type: "object",
+      additionalProperties: false,
       required: ["contracts", "roles", "roleAssignments"],
       properties: {
         contracts: { type: "integer", minimum: 0 },
@@ -342,15 +445,199 @@ export const protocolSnapshotSchema = {
     },
     data: {
       type: "object",
+      additionalProperties: false,
       required: ["contracts", "roles", "roleAssignments"],
       properties: {
-        contracts: { type: "array", items: { type: "object" } },
-        roles: { type: "array", items: { type: "object" } },
-        roleAssignments: { type: "array", items: { type: "object" } },
+        additionalContracts: {
+          type: "array",
+          items: { $ref: "#/$defs/additionalContract" },
+        },
+        contractStates: {
+          type: "array",
+          items: { $ref: "#/$defs/contractState" },
+        },
+        relationships: {
+          type: "array",
+          items: { $ref: "#/$defs/relationship" },
+        },
+        observation: {
+          anyOf: [{ $ref: "#/$defs/observation" }, { type: "null" }],
+        },
+        contracts: { type: "array", items: { $ref: "#/$defs/contract" } },
+        roles: { type: "array", items: { $ref: "#/$defs/role" } },
+        roleAssignments: {
+          type: "array",
+          items: { $ref: "#/$defs/roleAssignment" },
+        },
       },
     },
   },
-} as const;
+  $defs: {
+    block: {
+      type: "object",
+      required: ["number", "hash", "timestamp"],
+      properties: {
+        number: { type: "string" },
+        hash: { type: "string" },
+        timestamp: { type: "string" },
+        transactionHash: { type: "string" },
+        logIndex: { type: "integer" },
+      },
+    },
+    additionalContract: {
+      type: "object",
+      required: ["id", "chainId", "address", "name", "category", "provenance"],
+      properties: {
+        id: { type: "string" },
+        chainId: { type: "integer" },
+        address: { type: "string" },
+        name: { type: "string" },
+        category: { enum: ["external", "inactive-core"] },
+        contractType: { enum: ["KERNEL", "MODULE", "POLICY"] },
+        version: { type: ["string", "null"] },
+        provenance: {
+          type: "object",
+          required: ["source"],
+          properties: {
+            source: { enum: ["inventory", "indexer"] },
+            startBlock: { type: "integer" },
+          },
+        },
+      },
+    },
+    contractState: {
+      type: "object",
+      required: [
+        "id",
+        "chainId",
+        "address",
+        "kernelMembership",
+        "enablerCapability",
+        "enabled",
+        "verification",
+      ],
+      properties: {
+        id: { type: "string" },
+        chainId: { type: "integer" },
+        address: { type: "string" },
+        kernelMembership: { enum: ["active", "inactive", "unknown"] },
+        enablerCapability: { enum: ["unknown", "supported", "unsupported"] },
+        enabled: { type: ["boolean", "null"] },
+        seed: { anyOf: [{ $ref: "#/$defs/block" }, { type: "null" }] },
+        lastChange: { anyOf: [{ $ref: "#/$defs/block" }, { type: "null" }] },
+        indexedThrough: {
+          anyOf: [{ $ref: "#/$defs/block" }, { type: "null" }],
+        },
+        verification: {
+          type: "object",
+          required: ["outcome"],
+          properties: {
+            outcome: {
+              enum: ["unperformed", "match", "mismatch", "unavailable"],
+            },
+            block: { $ref: "#/$defs/block" },
+            getterValue: { type: "string" },
+            reason: { type: "string" },
+          },
+        },
+      },
+    },
+    relationship: {
+      type: "object",
+      required: [
+        "id",
+        "chainId",
+        "kind",
+        "source",
+        "target",
+        "status",
+        "provenance",
+      ],
+      properties: {
+        id: { type: "string" },
+        chainId: { type: "integer" },
+        kind: { type: "string" },
+        source: { type: "string" },
+        target: { type: ["string", "null"] },
+        status: { enum: ["current", "pending", "reference", "unset"] },
+        scope: { type: ["object", "null"] },
+        provenance: { $ref: "#/$defs/block" },
+      },
+    },
+    observation: {
+      type: "object",
+      required: ["chainId", "indexedThrough"],
+      properties: {
+        chainId: { type: "integer" },
+        indexedThrough: { $ref: "#/$defs/block" },
+      },
+    },
+    jsonValue: true,
+    contract: {
+      type: "object",
+      additionalProperties: false,
+      required: [
+        "id",
+        "chainId",
+        "address",
+        "lastUpdatedTimestamp",
+        "lastUpdatedBlockNumber",
+        "name",
+        "contractType",
+        "type",
+        "isEnabled",
+      ],
+      properties: {
+        id: { type: "string" },
+        chainId: { type: "integer" },
+        address: { type: "string" },
+        lastUpdatedTimestamp: { type: "string" },
+        lastUpdatedBlockNumber: { type: "string" },
+        name: { type: "string" },
+        version: { type: ["string", "null"] },
+        contractType: { enum: ["KERNEL", "MODULE", "POLICY"] },
+        type: { enum: ["kernel", "module", "policy"] },
+        isEnabled: { type: "boolean" },
+        policyPermissions: { $ref: "#/$defs/jsonValue" },
+        policyFunctions: { $ref: "#/$defs/jsonValue" },
+      },
+    },
+    role: {
+      type: "object",
+      additionalProperties: false,
+      required: ["id", "chainId", "role"],
+      properties: {
+        id: { type: "string" },
+        chainId: { type: "integer" },
+        role: { type: "string" },
+      },
+    },
+    roleAssignment: {
+      type: "object",
+      additionalProperties: false,
+      required: [
+        "id",
+        "chainId",
+        "role",
+        "assignee",
+        "assigneeName",
+        "lastUpdatedTimestamp",
+        "lastUpdatedBlockNumber",
+        "isGranted",
+      ],
+      properties: {
+        id: { type: "string" },
+        chainId: { type: "integer" },
+        role: { type: "string" },
+        assignee: { type: "string" },
+        assigneeName: { type: "string" },
+        lastUpdatedTimestamp: { type: "string" },
+        lastUpdatedBlockNumber: { type: "string" },
+        isGranted: { type: "boolean" },
+      },
+    },
+  },
+};
 
 export const indexingProgressSchema = {
   type: "object",
@@ -377,7 +664,7 @@ export const manifestSchema = {
   required: ["schemaVersion", "generatedAt", "schemas", "chains"],
   additionalProperties: false,
   properties: {
-    schemaVersion: { const: SCHEMA_VERSION },
+    schemaVersion: { enum: ["1.0.0", SCHEMA_VERSION] },
     generatedAt: { type: "string", format: "date-time" },
     schemas: {
       type: "object",
@@ -407,6 +694,11 @@ export const manifestSchema = {
 } as const;
 
 export function createOpenApiDocument(): OpenApiDocument {
+  const {
+    $id: _id,
+    $schema: _schema,
+    ...snapshotSchema
+  } = protocolSnapshotSchema;
   const jsonResponse = (schemaRef: string) => ({
     description: "JSON response",
     content: {
@@ -551,7 +843,11 @@ export function createOpenApiDocument(): OpenApiDocument {
             },
           },
         },
-        ProtocolSnapshot: protocolSnapshotSchema,
+        ProtocolSnapshot: JSON.parse(
+          JSON.stringify(snapshotSchema)
+            .split("#/$defs/")
+            .join("#/components/schemas/ProtocolSnapshot/$defs/")
+        ),
         OpenApi: { type: "object" },
       },
     },

@@ -124,3 +124,57 @@ type CurrentRoleAssignee {
   lastUpdatedTimestamp: BigInt!
   lastUpdatedBlockNumber: BigInt! @index
 }
+
+# Current control state is independent from Contract.isEnabled (Kernel membership).
+# Json provenance uses {number,hash,timestamp}, all numeric values encoded as strings.
+type ContractState {
+  id: ID!
+  chainId: Int! @index
+  address: String! @index
+  enablerCapability: String!
+  enabled: Boolean
+  seed: Json
+  lastChange: Json
+  indexedThrough: Json
+  verification: Json!
+}
+
+type ContractStateSeed {
+  id: ID!
+  chainId: Int! @index
+  address: String! @index
+  boundary: Json!
+  getter: String!
+  value: String!
+}
+
+type ControlTransition {
+  id: ID!
+  chainId: Int! @index
+  address: String! @index
+  kind: String! @index
+  previousValue: Json
+  value: Json!
+  blockNumber: BigInt! @index
+  blockHash: String! @index
+  timestamp: BigInt!
+  transactionHash: String! @index
+  logIndex: Int!
+}
+
+type ContractRelationship {
+  id: ID!
+  chainId: Int! @index
+  kind: String! @index
+  source: String! @index
+  target: String @index
+  status: String!
+  scope: Json
+  provenance: Json!
+}
+
+type ChainObservation {
+  id: ID!
+  chainId: Int! @index
+  indexedThrough: Json!
+}

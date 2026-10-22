@@ -1,3 +1,8 @@
+import {
+  readPinnedControlGetter,
+  type ControlGetterInput,
+  type ControlGetterResult,
+} from "./control-reads";
 import { createEffect, S } from "envio";
 import type { Address, Hex } from "viem";
 
@@ -386,4 +391,44 @@ export function getRolesAdmin(
     rolesAdminAddress,
     blockNumber,
   });
+}
+
+// Envio persists effect cache across rollbacks. Canonical hash is part of every input, not a process cache.
+export const readControlGetterEffect = createEffect(
+  {
+    name: "readControlGetter",
+    input: {
+      chainId: S.number,
+      address: S.address,
+      blockNumber: S.bigint,
+      blockHash: S.string,
+      getter: S.string,
+    },
+    output: {
+      status: S.string,
+      value: S.optional(S.string),
+      reason: S.optional(S.string),
+    },
+    rateLimit: { calls: 25, per: "second" },
+    cache: true,
+  },
+  async ({ input, context }) => {
+    const result = await readPinnedControlGetter(
+      getPublicClient(input.chainId),
+      input
+    );
+    if (result.status === "unavailable") context.cache = false;
+    return result;
+  }
+);
+
+export async function getControlGetter(
+  context: EnvioContext,
+  input: ControlGetterInput
+): Promise<ControlGetterResult> {
+  return (await context.effect(readControlGetterEffect, {
+    ...input,
+    address: normalizeAddress(input.address) as Address,
+    blockHash: input.blockHash.toLowerCase(),
+  })) as ControlGetterResult;
 }

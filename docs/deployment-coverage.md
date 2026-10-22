@@ -99,3 +99,15 @@ Arbitrum Sepolia receipts: `broadcast/LZBridgeTestnetDeploy.s.sol/421614/run-178
 The Arbitrum Sepolia broadcast also contains successful creations for LZBridgeGateway, LZEndpointDelegate, LZCrossChainBridge, and LZBridgeAndDelegateConfig. Kernel replay discovered the three policies, so their receipt-backed labels are included even though the older environment entries omit them. The periphery bridge is listed separately. This adds no LayerZero deployment to Robinhood.
 
 Both new networks completed archive-RPC Envio replay with zero latest-state fallbacks. Arbitrum Sepolia blocks `273448353–273458353` produced seven named core contracts, five roles, and five assignments. Base Sepolia blocks `21445241–21455241` produced nine named core contracts, five roles, and five assignments. Real Hasura snapshots validated successfully for both. These are deployment-window checks, not complete chain-head coverage claims.
+
+## Snapshot and control-state foundations
+
+Schema 1.1 adds external and inactive nodes, control state, relationships, and observation metadata. Readers also accept 1.0 snapshots. Missing extensions remain empty or unknown. The active-core array keeps its previous meaning.
+
+A full Mainnet core replay from block `15998125` through `26246707` completed successfully. It produced 43 active contracts, 35 roles, and 48 current assignments. This replaces the three-contract deployment-window fixture in the local preview. The gateway served the new snapshot, and browser inspection confirmed the restored modules and policies.
+
+A separate local Anvil and PostgreSQL replay verified Envio rollback. The first branch seeded `true` at block 1 and applied a disable event at block 2. A replacement branch seeded `false` at the same block 1 height. Envio removed the orphaned seed and transition. The replacement state matched its block-pinned getter. The effect cache retained separate results for the old and replacement hashes, without reusing the orphaned value.
+
+This runtime check also exposed a JSONB history-write failure with primitive boolean transition payloads. Transition values now use JSON objects. Concrete production enablement and ownership subscriptions follow in the next milestones; this foundation does not claim those fields are already observed.
+
+Getter calls use EIP-1898 canonical block hashes, including across RPC fallbacks. The shared readiness parser uses the actual Envio 3.14.1 metric, `envio_progress_block_time_seconds`. Missing block-time metrics remain unavailable; scrape or publication time cannot replace them.

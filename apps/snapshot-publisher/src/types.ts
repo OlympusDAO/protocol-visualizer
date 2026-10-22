@@ -49,7 +49,18 @@ export type GraphqlRoleAssignment = {
   isGranted: unknown;
 };
 
+export type InventoryContract = {
+  chainId: number;
+  address: string;
+  name: string;
+  startBlock?: number;
+};
+
 export type ProtocolGraphqlData = {
+  KnownContract?: GraphqlContract[];
+  ContractState?: ContractState[];
+  ContractRelationship?: ContractRelationship[];
+  ChainObservation?: ChainObservation[];
   Contract?: GraphqlContract[];
   Role?: GraphqlRole[];
   RoleAssignment?: GraphqlRoleAssignment[];
@@ -88,11 +99,11 @@ export type RoleAssignment = {
 };
 
 export type ProtocolSnapshot = {
-  schemaVersion: "1.0.0";
+  schemaVersion: SnapshotSchemaVersion;
   generatedAt: string;
   chainId: number;
   recordCounts: RecordCounts;
-  data: {
+  data: SnapshotExtension & {
     contracts: Contract[];
     roles: Role[];
     roleAssignments: RoleAssignment[];
@@ -118,6 +129,11 @@ export type SnapshotFile = {
 };
 import type {
   IndexingProgress,
+  ContractState,
+  ContractRelationship,
+  ChainObservation,
+  SnapshotExtension,
+  SnapshotSchemaVersion,
   RecordCounts,
   SnapshotManifest,
 } from "@protocol-visualizer/snapshot-artifacts";

@@ -32,6 +32,17 @@ export function getSampleProtocolData(chainId: number): ProtocolGraphqlData {
 
   return {
     Contract: contracts,
+    KnownContract: contracts,
+    ChainObservation: [
+      {
+        chainId,
+        indexedThrough: {
+          number: "1000000",
+          hash: `0x${chainId.toString(16).padStart(64, "0")}`,
+          timestamp: "1700000000",
+        },
+      },
+    ],
     Role: [{ id: `${chainId}-operator`, chainId, role: "operator" }],
     RoleAssignment: [
       {

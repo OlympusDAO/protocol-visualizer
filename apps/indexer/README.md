@@ -93,6 +93,20 @@ deliberately testing RPC-only ingestion.
 
 Effect-handler RPC reads also support `ENVIO_RPC_URL_FALLBACK_<chainId>`.
 
+Control-state getter reads require archive state at the requested block.
+The effect input includes the chain, address, block number, block hash, and getter.
+The getter call uses the block hash and requires a canonical block (EIP-1898).
+The reader also checks the canonical hash before and after each read.
+An unavailable historical read returns an unavailable result; it never reads latest state.
+Providers that do not support hash-bound calls leave the read unavailable.
+Failed verification preserves the indexed value and its provenance.
+
+Control-state seeds describe the end of a completed block.
+Only events from later blocks can replay over that seed.
+Control-event registrations must select `block: ["hash", "timestamp"]` and `transaction: ["hash"]` in their `fields`.
+The block-completion handler records indexing progress after all events in that block.
+Seed provenance, transition provenance, indexing progress, and snapshot publication time remain separate.
+
 Arbitrum is enabled in `config.yaml`, so `ENVIO_RPC_URL_42161` is required with
 the other enabled-chain RPC URLs.
 

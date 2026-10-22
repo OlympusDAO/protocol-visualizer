@@ -7,6 +7,11 @@ export type EntityStore = {
 };
 
 export type EnvioContext = EvmOnEventContext & {
+  ContractState: EntityStore;
+  ContractStateSeed: EntityStore;
+  ControlTransition: EntityStore;
+  ContractRelationship: EntityStore;
+  ChainObservation: EntityStore;
   ActionExecutedEvent: EntityStore;
   Contract: EntityStore;
   ContractEvent: EntityStore;
@@ -36,10 +41,14 @@ export type PolicyPermission = {
 
 export type BaseEvent = {
   chainId: number;
-  block: { number: number; timestamp: number };
+  block: { number: number; timestamp: number; hash?: string };
   transaction: { hash: string };
   logIndex: number;
   srcAddress: Address;
+};
+
+export type ControlEvent = BaseEvent & {
+  block: { number: number; timestamp: number; hash: string };
 };
 
 export type KernelActionExecutedEvent = BaseEvent & {

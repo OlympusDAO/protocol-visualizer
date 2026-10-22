@@ -155,6 +155,57 @@ test("fatal error details include configuration messages", () => {
   assert.deepEqual(fatalErrorDetails("unknown failure"), {});
 });
 
+test("gateway carries old and new snapshot payloads and rejects unsupported versions", async () => {
+  for (const version of ["1.0.0", "1.1.0"]) {
+    const payload = {
+      schemaVersion: version,
+      chainId: 1,
+      data: {
+        contracts: [],
+        roles: [],
+        roleAssignments: [],
+        ...(version === "1.1.0"
+          ? {
+              additionalContracts: [
+                {
+                  id: "1:0xabc",
+                  chainId: 1,
+                  address: "0xabc",
+                  name: "External",
+                  category: "external",
+                  provenance: { source: "inventory" },
+                },
+              ],
+              contractStates: [],
+              relationships: [],
+              observation: null,
+            }
+          : {}),
+      },
+    };
+    const reader = new FakeReader({
+      [ACTIVE_MANIFEST_KEY]: JSON.stringify({
+        ...manifest,
+        schemaVersion: version,
+      }),
+      "v1/deployments/deployment-a/chain/1/protocol.json":
+        JSON.stringify(payload),
+    });
+    const result = await request("/v1/chains/1/protocol", { reader });
+    assert.equal(result.response.status, 200);
+    assert.deepEqual(JSON.parse(result.text), payload);
+  }
+  const reader = new FakeReader({
+    [ACTIVE_MANIFEST_KEY]: JSON.stringify(manifest),
+    "v1/deployments/deployment-a/chain/1/protocol.json": JSON.stringify({
+      schemaVersion: "2.0.0",
+    }),
+  });
+  const result = await request("/v1/chains/1/protocol", { reader });
+  assert.equal(result.response.status, 502);
+  assert.match(result.text, /Unsupported snapshot schema version: 2.0.0/);
+});
+
 async function request(
   path: string,
   options: {

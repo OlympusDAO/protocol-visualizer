@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Protocol Visualizer Snapshot API",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "paths": {
     "/healthz": {
@@ -239,7 +239,7 @@
         "additionalProperties": false,
         "properties": {
           "schemaVersion": {
-            "const": "1.0.0"
+            "enum": ["1.0.0", "1.1.0"]
           },
           "generatedAt": {
             "type": "string",
@@ -360,7 +360,9 @@
         }
       },
       "ProtocolSnapshot": {
+        "title": "Protocol Visualizer Protocol Snapshot",
         "type": "object",
+        "additionalProperties": false,
         "required": [
           "schemaVersion",
           "generatedAt",
@@ -368,10 +370,9 @@
           "recordCounts",
           "data"
         ],
-        "additionalProperties": true,
         "properties": {
           "schemaVersion": {
-            "const": "1.0.0"
+            "enum": ["1.0.0", "1.1.0"]
           },
           "generatedAt": {
             "type": "string",
@@ -382,6 +383,7 @@
           },
           "recordCounts": {
             "type": "object",
+            "additionalProperties": false,
             "required": ["contracts", "roles", "roleAssignments"],
             "properties": {
               "contracts": {
@@ -400,25 +402,363 @@
           },
           "data": {
             "type": "object",
+            "additionalProperties": false,
             "required": ["contracts", "roles", "roleAssignments"],
             "properties": {
+              "additionalContracts": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ProtocolSnapshot/$defs/additionalContract"
+                }
+              },
+              "contractStates": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ProtocolSnapshot/$defs/contractState"
+                }
+              },
+              "relationships": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ProtocolSnapshot/$defs/relationship"
+                }
+              },
+              "observation": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/observation"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
               "contracts": {
                 "type": "array",
                 "items": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/ProtocolSnapshot/$defs/contract"
                 }
               },
               "roles": {
                 "type": "array",
                 "items": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/ProtocolSnapshot/$defs/role"
                 }
               },
               "roleAssignments": {
                 "type": "array",
                 "items": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/ProtocolSnapshot/$defs/roleAssignment"
                 }
+              }
+            }
+          }
+        },
+        "$defs": {
+          "block": {
+            "type": "object",
+            "required": ["number", "hash", "timestamp"],
+            "properties": {
+              "number": {
+                "type": "string"
+              },
+              "hash": {
+                "type": "string"
+              },
+              "timestamp": {
+                "type": "string"
+              },
+              "transactionHash": {
+                "type": "string"
+              },
+              "logIndex": {
+                "type": "integer"
+              }
+            }
+          },
+          "additionalContract": {
+            "type": "object",
+            "required": [
+              "id",
+              "chainId",
+              "address",
+              "name",
+              "category",
+              "provenance"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "chainId": {
+                "type": "integer"
+              },
+              "address": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "category": {
+                "enum": ["external", "inactive-core"]
+              },
+              "contractType": {
+                "enum": ["KERNEL", "MODULE", "POLICY"]
+              },
+              "version": {
+                "type": ["string", "null"]
+              },
+              "provenance": {
+                "type": "object",
+                "required": ["source"],
+                "properties": {
+                  "source": {
+                    "enum": ["inventory", "indexer"]
+                  },
+                  "startBlock": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          "contractState": {
+            "type": "object",
+            "required": [
+              "id",
+              "chainId",
+              "address",
+              "kernelMembership",
+              "enablerCapability",
+              "enabled",
+              "verification"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "chainId": {
+                "type": "integer"
+              },
+              "address": {
+                "type": "string"
+              },
+              "kernelMembership": {
+                "enum": ["active", "inactive", "unknown"]
+              },
+              "enablerCapability": {
+                "enum": ["unknown", "supported", "unsupported"]
+              },
+              "enabled": {
+                "type": ["boolean", "null"]
+              },
+              "seed": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "lastChange": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "indexedThrough": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "verification": {
+                "type": "object",
+                "required": ["outcome"],
+                "properties": {
+                  "outcome": {
+                    "enum": ["unperformed", "match", "mismatch", "unavailable"]
+                  },
+                  "block": {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  "getterValue": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "relationship": {
+            "type": "object",
+            "required": [
+              "id",
+              "chainId",
+              "kind",
+              "source",
+              "target",
+              "status",
+              "provenance"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "chainId": {
+                "type": "integer"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "target": {
+                "type": ["string", "null"]
+              },
+              "status": {
+                "enum": ["current", "pending", "reference", "unset"]
+              },
+              "scope": {
+                "type": ["object", "null"]
+              },
+              "provenance": {
+                "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+              }
+            }
+          },
+          "observation": {
+            "type": "object",
+            "required": ["chainId", "indexedThrough"],
+            "properties": {
+              "chainId": {
+                "type": "integer"
+              },
+              "indexedThrough": {
+                "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+              }
+            }
+          },
+          "jsonValue": true,
+          "contract": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "chainId",
+              "address",
+              "lastUpdatedTimestamp",
+              "lastUpdatedBlockNumber",
+              "name",
+              "contractType",
+              "type",
+              "isEnabled"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "chainId": {
+                "type": "integer"
+              },
+              "address": {
+                "type": "string"
+              },
+              "lastUpdatedTimestamp": {
+                "type": "string"
+              },
+              "lastUpdatedBlockNumber": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "type": ["string", "null"]
+              },
+              "contractType": {
+                "enum": ["KERNEL", "MODULE", "POLICY"]
+              },
+              "type": {
+                "enum": ["kernel", "module", "policy"]
+              },
+              "isEnabled": {
+                "type": "boolean"
+              },
+              "policyPermissions": {
+                "$ref": "#/components/schemas/ProtocolSnapshot/$defs/jsonValue"
+              },
+              "policyFunctions": {
+                "$ref": "#/components/schemas/ProtocolSnapshot/$defs/jsonValue"
+              }
+            }
+          },
+          "role": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "chainId", "role"],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "chainId": {
+                "type": "integer"
+              },
+              "role": {
+                "type": "string"
+              }
+            }
+          },
+          "roleAssignment": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "chainId",
+              "role",
+              "assignee",
+              "assigneeName",
+              "lastUpdatedTimestamp",
+              "lastUpdatedBlockNumber",
+              "isGranted"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "chainId": {
+                "type": "integer"
+              },
+              "role": {
+                "type": "string"
+              },
+              "assignee": {
+                "type": "string"
+              },
+              "assigneeName": {
+                "type": "string"
+              },
+              "lastUpdatedTimestamp": {
+                "type": "string"
+              },
+              "lastUpdatedBlockNumber": {
+                "type": "string"
+              },
+              "isGranted": {
+                "type": "boolean"
               }
             }
           }

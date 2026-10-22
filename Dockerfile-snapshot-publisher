@@ -12,6 +12,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/snapshot-publisher/package.json ./apps/snapshot-publisher/
 COPY packages/snapshot-artifacts/package.json ./packages/snapshot-artifacts/
 COPY packages/protocol-config/protocol-chains.json ./config/protocol-chains.json
+COPY packages/protocol-config/other-contracts.json ./config/other-contracts.json
 
 RUN pnpm install --frozen-lockfile --filter snapshot-publisher...
 
@@ -35,6 +36,7 @@ WORKDIR /app
 
 COPY --from=deps /deploy/snapshot-publisher ./apps/snapshot-publisher
 COPY --from=deps /app/config/protocol-chains.json ./config/protocol-chains.json
+COPY --from=deps /app/config/other-contracts.json ./config/other-contracts.json
 
 RUN rm -rf \
     /root/.cache/node/corepack \
@@ -48,6 +50,7 @@ RUN rm -rf \
 
 ENV NODE_ENV=production
 ENV PROTOCOL_CHAINS_CONFIG_PATH=/app/config/protocol-chains.json
+ENV OTHER_CONTRACTS_CONFIG_PATH=/app/config/other-contracts.json
 
 RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
 

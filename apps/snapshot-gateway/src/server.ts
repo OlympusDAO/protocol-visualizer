@@ -12,7 +12,7 @@ import {
   deploymentArtifactKey,
   restProtocolPath,
   sanitizeManifestForPublic,
-  SCHEMA_VERSION,
+  isSupportedSchemaVersion,
   type BoundsResponse,
   type SnapshotManifest,
 } from "@protocol-visualizer/snapshot-artifacts";
@@ -308,8 +308,10 @@ class ActiveManifestNotReadyError extends Error {
 const activeManifestIssues = (manifest: SnapshotManifest): string[] => {
   const issues: string[] = [];
 
-  if (manifest.schemaVersion !== SCHEMA_VERSION) {
-    issues.push("manifest schemaVersion is unsupported");
+  if (!isSupportedSchemaVersion(manifest.schemaVersion)) {
+    issues.push(
+      `manifest schemaVersion is unsupported: ${String(manifest.schemaVersion)}`
+    );
   }
   if (!manifest.generatedAt || Number.isNaN(Date.parse(manifest.generatedAt))) {
     issues.push("manifest generatedAt is invalid");
@@ -653,6 +655,13 @@ export function createSnapshotGateway(config: GatewayConfig) {
           return;
         }
         const object = await config.reader.getObject(key);
+        const snapshot = JSON.parse(object.body) as { schemaVersion?: unknown };
+        if (!isSupportedSchemaVersion(snapshot.schemaVersion)) {
+          sendJson(request, response, 502, {
+            error: `Unsupported snapshot schema version: ${String(snapshot.schemaVersion)}`,
+          });
+          return;
+        }
         send(
           response,
           200,

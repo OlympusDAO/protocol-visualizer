@@ -1,3 +1,10 @@
+import {
+  readSnapshotData,
+  type SnapshotExtension,
+  type SnapshotSchemaVersion,
+  type AdditionalContract,
+} from "../../../../packages/snapshot-artifacts/src/index";
+
 type ContractType = "kernel" | "module" | "policy";
 type EnvioContractType = "KERNEL" | "MODULE" | "POLICY";
 
@@ -41,14 +48,14 @@ export type RoleAssignment = {
   isGranted: boolean;
 };
 
-export type ProtocolVisualizerData = {
+export type ProtocolVisualizerData = Required<SnapshotExtension> & {
   contracts: Contract[];
   roles: Role[];
   roleAssignments: RoleAssignment[];
 };
 
 type ProtocolSnapshot = {
-  schemaVersion: "1.0.0";
+  schemaVersion: SnapshotSchemaVersion;
   generatedAt: string;
   chainId: number;
   recordCounts: {
@@ -56,7 +63,8 @@ type ProtocolSnapshot = {
     roles: number;
     roleAssignments: number;
   };
-  data: ProtocolVisualizerData;
+  data: Omit<ProtocolVisualizerData, keyof SnapshotExtension> &
+    SnapshotExtension;
 };
 
 const DEFAULT_PROTOCOL_SNAPSHOT_BASE_URL = "http://localhost:8082";
@@ -99,7 +107,46 @@ export async function getProtocolVisualizerData(
   chainId: number
 ): Promise<ProtocolVisualizerData> {
   const snapshot = await protocolSnapshotRequest(chainId);
-  return snapshot.data;
+  return decodeProtocolSnapshot(snapshot);
+}
+
+export function decodeProtocolSnapshot(
+  snapshot: ProtocolSnapshot
+): ProtocolVisualizerData {
+  const data = readSnapshotData(snapshot);
+  return {
+    ...data,
+    contracts: data.contracts.map((contract) => ({
+      ...contract,
+      address: contract.address.toLowerCase(),
+    })),
+    roleAssignments: data.roleAssignments.map((assignment) => ({
+      ...assignment,
+      assignee: assignment.assignee.toLowerCase(),
+    })),
+  };
+}
+
+/** Additional nodes never acquire invented Kernel membership through the legacy contract type. */
+export function getAdditionalGraphContracts(
+  data: ProtocolVisualizerData
+): AdditionalContract[] {
+  const existing = new Set(
+    data.contracts.map(
+      (contract) => `${contract.chainId}:${contract.address.toLowerCase()}`
+    )
+  );
+  const unique = new Map<string, AdditionalContract>();
+  for (const contract of data.additionalContracts) {
+    const id = `${contract.chainId}:${contract.address.toLowerCase()}`;
+    if (!existing.has(id))
+      unique.set(id, {
+        ...contract,
+        id,
+        address: contract.address.toLowerCase(),
+      });
+  }
+  return [...unique.values()];
 }
 
 export async function getContracts(chainId: number): Promise<Contract[]> {

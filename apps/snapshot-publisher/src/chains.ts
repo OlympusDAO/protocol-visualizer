@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
-import type { ChainConfig } from "./types.js";
+import type { ChainConfig, InventoryContract } from "./types.js";
 
 const DEFAULT_CHAIN_CONFIG_CANDIDATES = [
   "packages/protocol-config/protocol-chains.json",
@@ -56,5 +56,48 @@ export async function loadSupportedChains(): Promise<ChainConfig[]> {
 
   throw new Error(
     `Unable to load protocol chain config. Tried: ${errors.join("; ")}`
+  );
+}
+
+const isInventoryContract = (value: unknown): value is InventoryContract => {
+  if (!value || typeof value !== "object") return false;
+  const contract = value as Record<string, unknown>;
+  return (
+    Number.isInteger(contract.chainId) &&
+    Number(contract.chainId) > 0 &&
+    typeof contract.address === "string" &&
+    /^0x[0-9a-f]{40}$/i.test(contract.address) &&
+    !/^0x0{40}$/i.test(contract.address) &&
+    typeof contract.name === "string" &&
+    contract.name.trim().length > 0 &&
+    (contract.startBlock === undefined ||
+      (Number.isInteger(contract.startBlock) &&
+        Number(contract.startBlock) >= 0))
+  );
+};
+
+export async function loadOtherContracts(): Promise<InventoryContract[]> {
+  const candidates = process.env.OTHER_CONTRACTS_CONFIG_PATH
+    ? [process.env.OTHER_CONTRACTS_CONFIG_PATH]
+    : DEFAULT_CHAIN_CONFIG_CANDIDATES.map((candidate) =>
+        candidate.replace("protocol-chains.json", "other-contracts.json")
+      );
+  for (const candidate of candidates) {
+    try {
+      const contracts: unknown = JSON.parse(
+        await readFile(path.resolve(process.cwd(), candidate), "utf8")
+      );
+      if (!Array.isArray(contracts) || !contracts.every(isInventoryContract)) {
+        throw new Error(
+          "other-contract inventory must contain valid chain, address, name, and optional startBlock entries"
+        );
+      }
+      return contracts;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
+  throw new Error(
+    "Unable to load other-contracts.json; set OTHER_CONTRACTS_CONFIG_PATH"
   );
 }

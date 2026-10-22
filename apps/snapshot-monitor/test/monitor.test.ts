@@ -194,6 +194,7 @@ test("fetches current indexing readiness from Envio metrics", async () => {
         hyperindex_synced_to_head 1
         envio_progress_ready{chainId="1"} 1
         envio_progress_block{chainId="1"} 123
+        envio_progress_block_time_seconds{chainId="1"} 1780876800
       `,
       { status: 200, headers: { "content-type": "text/plain" } }
     );

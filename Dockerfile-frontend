@@ -17,6 +17,7 @@ RUN pnpm install --frozen-lockfile
 # Copy source code
 COPY apps/frontend/ ./apps/frontend/
 COPY packages/protocol-config/ ./packages/protocol-config/
+COPY packages/snapshot-artifacts/src/ ./packages/snapshot-artifacts/src/
 
 WORKDIR /app/apps/frontend
 

@@ -41,7 +41,7 @@ The current graph describes Bophades permissions but omits much of the surroundi
 
 **Operational state**
 
-- R4. Show `IEnabler` enabled/disabled state separately from Kernel active/inactive state. Support both legacy `IEnabler` and `IEnablerV2`, including implementations without ERC165.
+- R4. Show `IEnabler` enabled/disabled state separately from Kernel active/inactive state. Unknown state leaves the existing display unchanged, with no enabled-state badge. Support both legacy `IEnabler` and `IEnablerV2`, including implementations without ERC165.
 - R5. Track enablement and ownership changes through verified contract events in Envio. Preserve transition provenance and indexing progress. Distinguish disabled state, unsupported capabilities, unknown initial state, and unavailable reads. Getter reads seed and verify state. A failed verification read does not erase established indexed state or imply a fresh success.
 
 **Ownership and authority**
@@ -256,7 +256,7 @@ Export shared state, provenance, and relationship types from the artifact packag
 
 **Files:** deployment capability inventory; indexer `config.yaml`, enablement ABIs, `src/EventHandlers.ts`, new enablement handlers/tests, schema and seeding/effect helpers; frontend `src/services/contracts.ts`, `src/components/contract-visualizer/index.tsx`, `package.json`; new `apps/frontend/src/components/contract-visualizer/graph.ts` and `graph.test.ts`, wired into the existing build/test workflow; publisher sample fixtures/tests.
 
-**Approach:** Implement KTD6 and AE2. Register known implementations from their deployment anchors and apply enablement logs to the indexed state. Preserve V2 metadata without duplicate logical transitions. Show separate Kernel active/inactive and Contract enabled/disabled labels. Unknown state, unsupported capability, stale indexing, and verification outcomes need text labels. Show a mismatch warning beside the affected badge or relationship details, with both values and the comparison block. Rebuild graph data on snapshot refresh while retaining surviving selections and node positions. Do not infer whole-bridge enablement from a configuration policy.
+**Approach:** Implement KTD6 and AE2. Register known implementations from their deployment anchors and apply enablement logs to the indexed state. Preserve V2 metadata without duplicate logical transitions. Show separate Kernel active/inactive and Contract enabled/disabled labels. Unknown state has no enabled-state badge. Explain unknown or unsupported capability, stale indexing, and verification outcomes in contract details. Show a mismatch warning beside the affected badge or relationship details, with both values and the comparison block. Rebuild graph data on snapshot refresh while retaining surviving selections and node positions. Do not infer whole-bridge enablement from a configuration policy.
 
 **Test scenarios:**
 

@@ -260,8 +260,10 @@ test("publisher skips before Hasura reads when indexer metrics are not ready", a
         hyperindex_synced_to_head 0
         envio_progress_ready{chainId="1"} 1
         envio_progress_block{chainId="1"} 25272069
+        envio_progress_block_time_seconds{chainId="1"} 1780876800
         envio_progress_ready{chainId="10"} 0
         envio_progress_block{chainId="10"} 152657692
+        envio_progress_block_time_seconds{chainId="10"} 1780876800
       `,
       { status: 200 }
     );
@@ -335,6 +337,7 @@ test("publisher logs continuing indexing for a previously observed deployment", 
         hyperindex_synced_to_head 0
         envio_progress_ready{chainId="1"} 0
         envio_progress_block{chainId="1"} 25272069
+        envio_progress_block_time_seconds{chainId="1"} 1780876800
       `,
       { status: 200 }
     );
@@ -389,7 +392,7 @@ test("publisher sends handover-in-progress Discord embed for an unready new depl
           hyperindex_synced_to_head 0
           envio_progress_ready{chainId="1"} 0
           envio_progress_block{chainId="1"} 25272069
-          envio_progress_timestamp{chainId="1"} 1780491216
+          envio_progress_block_time_seconds{chainId="1"} 1780491216
         `,
         { status: 200 }
       );

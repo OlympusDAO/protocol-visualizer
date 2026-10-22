@@ -1197,10 +1197,15 @@ export function ContractVisualizer() {
     // Find all assignees for this role
     const assignees = roleAssignments
       .filter((a) => a.role === roleName)
-      .map((a) => ({
-        address: a.assignee,
-        name: a.assigneeName,
-      }));
+      .map((a) => {
+        const contract = contracts.find(
+          (contract) => contract.address === a.assignee.toLowerCase()
+        );
+        return {
+          address: a.assignee,
+          name: contract ? formatContractName(contract) : a.assigneeName,
+        };
+      });
 
     // Find all policies that use this role
     const policiesUsingRole = contracts
@@ -1221,7 +1226,7 @@ export function ContractVisualizer() {
           .map((func) => func.name);
 
         return {
-          name: policy.name,
+          name: formatContractName(policy),
           address: policy.address,
           functions,
         };
@@ -1614,7 +1619,7 @@ export function ContractVisualizer() {
                       className="text-green-600 hover:text-green-800 hover:underline text-left"
                       onClick={() => setSelectedNode(policy.address)}
                     >
-                      {policy.name}
+                      {formatContractName(policy)}
                     </button>
                     <a
                       href={getEtherscanLink(policy.address, selectedChainId)}

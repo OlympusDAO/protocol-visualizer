@@ -1,8 +1,17 @@
 # Contract ABIs
 
-This package has the ABI of each live Olympus contract. The snapshot gateway
-serves it at `/v1/abis`. Consumers such as the Olympus MCP server use it to
-decode calls, events and reverts of the deployed addresses.
+This package has the ABI of each live Olympus contract. Consumers such as the
+Olympus MCP server use it to decode calls, events and reverts of the deployed
+addresses. The snapshot gateway serves it:
+
+| Route                               | Response                                        |
+| ----------------------------------- | ----------------------------------------------- |
+| `/v1/abis`                          | The contracts of each chain: label and address. |
+| `/v1/abis/{chainId}/{address}`      | The ABI and the metadata of one contract.       |
+| `/v1/abis/{chainId}/labels/{label}` | The same, found by label.                       |
+
+The gateway does not serve the exclusions or the env.json ref. They are only in
+`abis/manifest.json`.
 
 `pnpm indexer:metadata` also reads this registry. It gets the ABI of each
 address from `abis/manifest.json` and writes the function selectors to
@@ -52,27 +61,22 @@ The script makes each label with these rules, in this order:
    `<ContractName>V<major>_<minor>`. The contract name comes from Etherscan.
    For example, `ClearinghouseV1_0`.
 
-The version comes from `VERSION()` on-chain, else from the Kernel index.
-
-If two or more deployments on one chain have the same contract name, each of
-them that has a version gets the version in its label. For example, the three
-mainnet Clearinghouses are `ClearinghouseV1_0`, `ClearinghouseV1_1` and
-`ClearinghouseV1_2`. These deployments keep a plain label:
-
-- An env.json name that already ends with a version, such as `OlympusRangeV2`.
-
-A proxy counts under its own contract name, not the name of its
-implementation.
-
-A deployment that has no version takes the start of its address instead, for
+The version comes from `VERSION()` on-chain, else from the Kernel index. A
+Kernel contract that has no version takes the start of its address instead, for
 example `EmissionManager_0x50f441a3`. This happens with contracts from before
 `VERSION()` existed.
+
+An env.json label never gets a version. Thus the label of the current contract
+does not change when the Kernel adds or removes another version. For example,
+the mainnet Clearinghouse in env.json is `Clearinghouse`. The other
+Clearinghouses that the Kernel still has are `ClearinghouseV1_0` and
+`ClearinghouseV1_2`.
 
 If two addresses on one chain get the same label, the sync stops. Add a label
 in `config.json` to correct it.
 
-A label can change when a new version is deployed. Look up ABIs by address in
-the manifest, not by file name.
+When env.json gets a new address for a name, the label moves to the new
+address. To identify one deployment, use its address.
 
 ## ABIs
 
@@ -131,6 +135,10 @@ comes from `viem/chains`.
   and on manual dispatch. The daily run also finds the changes that env.json
   does not show, such as a policy that the Kernel activates, or a proxy
   upgrade. If the registry changed, it opens or updates one pull request from
-  the `bot/abis-sync` branch. It needs the `ETHERSCAN_API_KEY`
-  secret and one `ENVIO_RPC_URL_<chainId>` secret for each chain in
-  `config.json` `chains`.
+  the `bot/abis-sync` branch with `peter-evans/create-pull-request`. It needs
+  the `ETHERSCAN_API_KEY` secret and one `ENVIO_RPC_URL_<chainId>` secret for
+  each chain in `config.json` `chains`.
+- A push with `GITHUB_TOKEN` does not start `on: pull_request` workflows.
+  Thus, after each push to `bot/abis-sync`, the sync workflow starts
+  `ci.yml` on that branch with `workflow_dispatch`. The checks of that run
+  show on the pull request.

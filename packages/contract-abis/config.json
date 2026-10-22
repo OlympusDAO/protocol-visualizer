@@ -41,7 +41,7 @@
     {
       "chain": "mainnet",
       "address": "0x50f441a3387625bDA8B8081cE3fd6C04CC48C0A2",
-      "reason": "Shut down on 2025-11-30: locallyActive() returns false, and the Heart calls EmissionManagerV1_2 instead."
+      "reason": "Shut down on 2025-11-30: locallyActive() returns false, and the Heart calls EmissionManager v1.2 instead."
     }
   ],
   "labels": []

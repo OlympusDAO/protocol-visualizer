@@ -78,33 +78,24 @@ export function mergeAbis(implementation, proxy) {
   ];
 }
 
-// The label of a deployment. See README.md for the rules. `shared` is true
-// when other deployments on the same chain have the same contract name.
-export function labelFor(candidate, resolved, labelOverrides, shared = false) {
+// The label of a deployment. See README.md for the rules. An env.json name
+// does not get a version, so that the label of the current contract does not
+// change when the Kernel adds or removes another version.
+export function labelFor(candidate, resolved, labelOverrides) {
   const override = labelOverrides.get(
     addressKey(candidate.chain, candidate.address)
   );
   if (override) return override;
+  if (candidate.env.length > 0) return candidate.env[0].split(".").pop();
+  const name = resolved.contractName || candidate.kernel?.name;
+  if (!name) return undefined;
   const version = resolved.version || candidate.kernel?.version;
   // A contract that has no version, such as a deployment from before
   // VERSION() existed, is named after its address.
-  const suffix = version
-    ? `V${version.replaceAll(".", "_")}`
-    : `_${candidate.address.slice(0, 10).toLowerCase()}`;
-  if (candidate.env.length > 0) {
-    const base = candidate.env[0].split(".").pop();
-    // A versioned env.json name, such as OlympusRangeV2, keeps its name.
-    if (!shared || /V\d+(_\d+)*$/.test(base)) return base;
-    return `${base}${suffix}`;
-  }
-  const name = resolved.contractName || candidate.kernel?.name;
-  return name ? `${name}${suffix}` : undefined;
+  return version
+    ? `${name}V${version.replaceAll(".", "_")}`
+    : `${name}_${candidate.address.slice(0, 10).toLowerCase()}`;
 }
-
-// Deployments with the same contract name on one chain. A proxy counts
-// under its own name, not the name of its implementation.
-const groupName = (entry, resolved) =>
-  `${entry.chain}:${resolved.proxy?.contractName ?? resolved.contractName ?? entry.kernel?.name ?? entry.address}`;
 
 /**
  * Build the registry from its sources. All network access goes through the
@@ -329,7 +320,6 @@ export async function buildRegistry({
   const deployments = [];
   const abis = new Map();
   const labels = new Map();
-  const resolvedEntries = [];
   const ordered = [...candidates.values()].sort(
     (first, second) =>
       compare(first.chain, second.chain) ||
@@ -374,22 +364,8 @@ export async function buildRegistry({
       errors.push(`${name}: the ABI is empty or invalid.`);
       continue;
     }
-    resolvedEntries.push({ entry, name, resolved });
-  }
 
-  const groupSizes = new Map();
-  for (const { entry, resolved } of resolvedEntries) {
-    const key = groupName(entry, resolved);
-    groupSizes.set(key, (groupSizes.get(key) ?? 0) + 1);
-  }
-
-  for (const { entry, name, resolved } of resolvedEntries) {
-    const label = labelFor(
-      entry,
-      resolved,
-      labelOverrides,
-      groupSizes.get(groupName(entry, resolved)) > 1
-    );
+    const label = labelFor(entry, resolved, labelOverrides);
     if (!label) {
       errors.push(
         `${name}: the contract has no name, so it has no label. Add a label in config.json.`
@@ -411,6 +387,8 @@ export async function buildRegistry({
 
     const file = `${entry.chain}/${label}.json`;
     abis.set(file, resolved.abi);
+    // The same version as the label: VERSION() on-chain, else the Kernel index.
+    const version = resolved.version || entry.kernel?.version;
     deployments.push({
       abi: file,
       abiHash: abiHash(resolved.abi),
@@ -427,7 +405,7 @@ export async function buildRegistry({
         ...(entry.kernel ? { kernel: entry.kernel.type } : {}),
       },
       ...(resolved.proxy ? { proxy: resolved.proxy } : {}),
-      ...(resolved.version ? { version: resolved.version } : {}),
+      ...(version ? { version } : {}),
     });
   }
 

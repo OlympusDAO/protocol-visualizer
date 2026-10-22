@@ -202,12 +202,12 @@ test("labels come from env.json paths, or from the name and version of a Kernel 
   const deployments = byLabel(manifest);
   assert.deepEqual(Object.keys(deployments).sort(), [
     "arbitrum/gOHM",
+    "mainnet/Clearinghouse",
     "mainnet/ClearinghouseV1_0",
-    "mainnet/ClearinghouseV1_1",
     "mainnet/Kernel",
     "mainnet/RolesAdmin",
   ]);
-  assert.deepEqual(deployments["mainnet/ClearinghouseV1_1"].origin, {
+  assert.deepEqual(deployments["mainnet/Clearinghouse"].origin, {
     env: ["olympus.policies.Clearinghouse"],
     kernel: "POLICY",
   });
@@ -366,30 +366,34 @@ test("a proxy with an unverified implementation uses the override of the proxy",
   assert.equal(gohm.proxy, undefined);
 });
 
-test("a shared name without a version falls back to the address", async () => {
+test("the version comes from the Kernel index if VERSION() cannot be read", async () => {
   const source = fakes();
   const { manifest } = await build({
     ...source,
-    // The current Clearinghouse has no VERSION() and no Kernel version.
+    rpc: { ...source.rpc, version: async () => null },
+  });
+  assert.equal(byLabel(manifest)["mainnet/ClearinghouseV1_0"].version, "1.0");
+});
+
+test("an env.json label does not change when the Kernel removes another version", async () => {
+  const source = fakes();
+  const withoutV1_0 = await build({
+    ...source,
     kernel: async (chainId) =>
       chainId === 1
-        ? kernelContracts[1].map((contract) =>
-            contract.address === CH_CURRENT
-              ? { ...contract, version: undefined }
-              : contract
-          )
+        ? kernelContracts[1].filter((contract) => contract.address !== CH_V1_0)
         : null,
-    rpc: {
-      ...source.rpc,
-      version: async (_chainId, addr) => (addr === CH_V1_0 ? "1.0" : null),
-    },
   });
-  assert.deepEqual(
-    manifest.deployments
-      .filter((deployment) => deployment.contractName === "Clearinghouse")
-      .map((deployment) => deployment.label)
-      .sort(),
-    ["ClearinghouseV1_0", `Clearinghouse_${CH_CURRENT.slice(0, 10)}`]
+  const withV1_0 = await build(source);
+  for (const { manifest } of [withoutV1_0, withV1_0]) {
+    assert.equal(
+      byLabel(manifest)["mainnet/Clearinghouse"].address,
+      CH_CURRENT
+    );
+  }
+  assert.equal(
+    byLabel(withoutV1_0.manifest)["mainnet/ClearinghouseV1_0"],
+    undefined
   );
 });
 
@@ -424,11 +428,11 @@ test("a Kernel contract without a version uses its address, and a config label w
       config: {
         ...config,
         labels: [
-          { chain: "mainnet", address: CH_V1_0, label: "ClearinghouseV1_1" },
+          { chain: "mainnet", address: CH_V1_0, label: "Clearinghouse" },
         ],
       },
     }),
-    /label ClearinghouseV1_1 is also the label/
+    /label Clearinghouse is also the label/
   );
 });
 
@@ -503,8 +507,8 @@ test("checkRegistry finds config.json changes that were not synced", async () =>
     },
   });
   assert.deepEqual(problems.sort(), [
+    "mainnet/Clearinghouse: olympus.policies.Clearinghouse is in an excluded section.",
     "mainnet/ClearinghouseV1_0: config.json gives the label ClearinghouseOld.",
-    "mainnet/ClearinghouseV1_1: olympus.policies.Clearinghouse is in an excluded section.",
     "mainnet/Kernel: the address is excluded in config.json.",
     "mainnet/RolesAdmin: olympus.policies.RolesAdmin is in an excluded section.",
   ]);

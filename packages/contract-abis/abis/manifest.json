@@ -502,6 +502,20 @@
       }
     },
     {
+      "abi": "mainnet/Clearinghouse.json",
+      "abiHash": "24ccab39a96eb17e9ba321d3d8310339f6cb4244a0fae79be818b8e9baa9347d",
+      "abiSource": "etherscan",
+      "address": "0xE6343ad0675C9b8D3f32679ae6aDbA0766A2ab4c",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "Clearinghouse",
+      "label": "Clearinghouse",
+      "origin": {
+        "env": ["olympus.policies.Clearinghouse"],
+        "kernel": "POLICY"
+      }
+    },
+    {
       "abi": "mainnet/ClearinghouseV1_0.json",
       "abiHash": "24ccab39a96eb17e9ba321d3d8310339f6cb4244a0fae79be818b8e9baa9347d",
       "abiSource": "etherscan",
@@ -511,20 +525,6 @@
       "contractName": "Clearinghouse",
       "label": "ClearinghouseV1_0",
       "origin": {
-        "kernel": "POLICY"
-      }
-    },
-    {
-      "abi": "mainnet/ClearinghouseV1_1.json",
-      "abiHash": "24ccab39a96eb17e9ba321d3d8310339f6cb4244a0fae79be818b8e9baa9347d",
-      "abiSource": "etherscan",
-      "address": "0xE6343ad0675C9b8D3f32679ae6aDbA0766A2ab4c",
-      "chain": "mainnet",
-      "chainId": 1,
-      "contractName": "Clearinghouse",
-      "label": "ClearinghouseV1_1",
-      "origin": {
-        "env": ["olympus.policies.Clearinghouse"],
         "kernel": "POLICY"
       }
     },
@@ -767,14 +767,14 @@
       }
     },
     {
-      "abi": "mainnet/EmissionManagerV1_2.json",
+      "abi": "mainnet/EmissionManager.json",
       "abiHash": "7bcf063023db8b6826e9eb68c75149a781c03395f9e94ac33f6ad868728991f9",
       "abiSource": "etherscan",
       "address": "0xA61b846D5D8b757e3d541E0e4F80390E28f0B6Ff",
       "chain": "mainnet",
       "chainId": 1,
       "contractName": "EmissionManager",
-      "label": "EmissionManagerV1_2",
+      "label": "EmissionManager",
       "origin": {
         "env": ["olympus.policies.EmissionManager"],
         "kernel": "POLICY"
@@ -928,6 +928,21 @@
       "version": "1.0"
     },
     {
+      "abi": "mainnet/OlympusHeart.json",
+      "abiHash": "27fa403cbb56a145dac5c35fb6186df895d7c46e9436b4e87c2c566204104393",
+      "abiSource": "etherscan",
+      "address": "0x5824850D8A6E46a473445a5AF214C7EbD46c5ECB",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "OlympusHeart",
+      "label": "OlympusHeart",
+      "origin": {
+        "env": ["olympus.policies.OlympusHeart"],
+        "kernel": "POLICY"
+      },
+      "version": "1.7"
+    },
+    {
       "abi": "mainnet/OlympusHeartV1_6.json",
       "abiHash": "7324e27c6ddfbd4f6ee013c71c2a03f8169abb03f1553aba5846a0fc9b2bbfe9",
       "abiSource": "etherscan",
@@ -940,21 +955,6 @@
         "kernel": "POLICY"
       },
       "version": "1.6"
-    },
-    {
-      "abi": "mainnet/OlympusHeartV1_7.json",
-      "abiHash": "27fa403cbb56a145dac5c35fb6186df895d7c46e9436b4e87c2c566204104393",
-      "abiSource": "etherscan",
-      "address": "0x5824850D8A6E46a473445a5AF214C7EbD46c5ECB",
-      "chain": "mainnet",
-      "chainId": 1,
-      "contractName": "OlympusHeart",
-      "label": "OlympusHeartV1_7",
-      "origin": {
-        "env": ["olympus.policies.OlympusHeart"],
-        "kernel": "POLICY"
-      },
-      "version": "1.7"
     },
     {
       "abi": "mainnet/OlympusMinter.json",
@@ -2121,7 +2121,7 @@
       "address": "0x50f441a3387625bDA8B8081cE3fd6C04CC48C0A2",
       "chain": "mainnet",
       "chainId": 1,
-      "reason": "Shut down on 2025-11-30: locallyActive() returns false, and the Heart calls EmissionManagerV1_2 instead."
+      "reason": "Shut down on 2025-11-30: locallyActive() returns false, and the Heart calls EmissionManager v1.2 instead."
     },
     {
       "address": "0x784cA0C006b8651BAB183829A99fA46BeCe50dBc",

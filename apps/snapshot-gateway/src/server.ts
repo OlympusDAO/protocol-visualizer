@@ -236,7 +236,8 @@ export async function loadGatewayConfig(): Promise<GatewayConfig> {
 }
 
 // A bad ABI registry must not stop the snapshot API. The /v1/abis routes
-// then return 503, and the log names the error.
+// then return 503, and the log names the error. /ready also returns 503, so
+// that Railway keeps the previous deployment.
 export async function loadOptionalAbiRegistry(
   path: string,
   logger: GatewayLogger = defaultLogger
@@ -282,6 +283,23 @@ const send = (
   response.end(body);
 };
 
+// Sends a JSON body that is already serialized. A HEAD response has no body.
+const sendJsonBody = (
+  request: IncomingMessage,
+  response: ServerResponse,
+  status: number,
+  body: string,
+  cacheControl = "no-store"
+) => {
+  send(
+    response,
+    status,
+    request.method === "HEAD" ? "" : body,
+    "application/json",
+    cacheControl
+  );
+};
+
 const sendJson = (
   request: IncomingMessage,
   response: ServerResponse,
@@ -289,8 +307,13 @@ const sendJson = (
   value: unknown,
   cacheControl = "no-store"
 ) => {
-  const body = request.method === "HEAD" ? "" : `${JSON.stringify(value)}\n`;
-  send(response, status, body, "application/json", cacheControl);
+  sendJsonBody(
+    request,
+    response,
+    status,
+    `${JSON.stringify(value)}\n`,
+    cacheControl
+  );
 };
 
 const isAllowedMethod = (method: string | undefined) =>
@@ -480,8 +503,10 @@ function handleAbiRequest(
     sendJson(request, response, 503, { error: "abi registry not loaded" });
     return;
   }
+  const sendBody = (body: string) =>
+    sendJsonBody(request, response, 200, body, abiCacheControl);
   if (pathname === "/v1/abis") {
-    sendJson(request, response, 200, abis.manifest, abiCacheControl);
+    sendBody(abis.index);
     return;
   }
   const labelMatch = pathname.match(abiLabelRoute);
@@ -491,7 +516,7 @@ function handleAbiRequest(
       sendJson(request, response, 404, { error: "abi not found" });
       return;
     }
-    sendJson(request, response, 200, found, abiCacheControl);
+    sendBody(found);
     return;
   }
   const addressMatch = pathname.match(abiAddressRoute);
@@ -506,7 +531,7 @@ function handleAbiRequest(
       sendJson(request, response, 404, { error: "abi not found" });
       return;
     }
-    sendJson(request, response, 200, found, abiCacheControl);
+    sendBody(found);
     return;
   }
   sendJson(request, response, 404, { error: "not found" });
@@ -608,6 +633,18 @@ export function createSnapshotGateway(config: GatewayConfig) {
       }
 
       if (url.pathname === "/ready") {
+        if (!config.abis) {
+          readinessReporter.failed({
+            event: "snapshot_gateway_readiness_failed",
+            reason: "abi_registry_not_loaded",
+            durationMs: Math.round(performance.now() - startedAt),
+          });
+          sendJson(request, response, 503, {
+            ok: false,
+            error: "abi registry not loaded",
+          });
+          return;
+        }
         const { issues, inaccessibleChainIds, artifactErrors } =
           await checkReadiness();
         if (issues.length > 0) {
@@ -636,13 +673,7 @@ export function createSnapshotGateway(config: GatewayConfig) {
       if (url.pathname === "/v1/openapi.json") {
         try {
           const body = await readFile(config.openapiPath, "utf8");
-          send(
-            response,
-            200,
-            request.method === "HEAD" ? "" : body,
-            "application/json",
-            "public, max-age=300"
-          );
+          sendJsonBody(request, response, 200, body, "public, max-age=300");
           return;
         } catch {
           sendJson(

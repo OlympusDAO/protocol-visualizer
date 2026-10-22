@@ -67,7 +67,6 @@ export type BoundsResponse = {
 };
 
 export type AbiDeployment = {
-  abi: string;
   abiHash: string;
   abiSource: "etherscan" | "override";
   address: string;
@@ -84,12 +83,12 @@ export type AbiDeployment = {
   version?: string;
 };
 
-export type AbiRegistryManifest = {
-  schemaVersion: number;
-  env: { repo: string; branch: string; path: string; ref: string };
-  scope: string;
-  deployments: AbiDeployment[];
-  exclusions: Array<Record<string, unknown>>;
+export type AbiIndexResponse = {
+  data: Array<{
+    chainId: number;
+    chain: string;
+    contracts: Array<{ label: string; address: string }>;
+  }>;
 };
 
 export type AbiDeploymentResponse = {
@@ -439,7 +438,6 @@ export const manifestSchema = {
 export const abiDeploymentSchema = {
   type: "object",
   required: [
-    "abi",
     "abiHash",
     "abiSource",
     "address",
@@ -449,7 +447,6 @@ export const abiDeploymentSchema = {
     "origin",
   ],
   properties: {
-    abi: { type: "string", description: "ABI file path in the registry" },
     abiHash: { type: "string" },
     abiSource: { type: "string", enum: ["etherscan", "override"] },
     address: { type: "string" },
@@ -563,9 +560,9 @@ export function createOpenApiDocument(): OpenApiDocument {
       },
       "/v1/abis": {
         get: {
-          summary: "ABI registry manifest",
+          summary: "Contracts with a known ABI, by chain: label and address",
           responses: {
-            "200": jsonResponse("#/components/schemas/AbiManifest"),
+            "200": jsonResponse("#/components/schemas/AbiIndex"),
           },
         },
       },
@@ -674,24 +671,32 @@ export function createOpenApiDocument(): OpenApiDocument {
         },
         ProtocolSnapshot: protocolSnapshotSchema,
         AbiDeployment: abiDeploymentSchema,
-        AbiManifest: {
+        AbiIndex: {
           type: "object",
-          required: [
-            "schemaVersion",
-            "env",
-            "scope",
-            "deployments",
-            "exclusions",
-          ],
+          required: ["data"],
           properties: {
-            schemaVersion: { type: "integer" },
-            env: { type: "object" },
-            scope: { type: "string" },
-            deployments: {
+            data: {
               type: "array",
-              items: { $ref: "#/components/schemas/AbiDeployment" },
+              items: {
+                type: "object",
+                required: ["chainId", "chain", "contracts"],
+                properties: {
+                  chainId: { type: "integer" },
+                  chain: { type: "string" },
+                  contracts: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      required: ["label", "address"],
+                      properties: {
+                        label: { type: "string" },
+                        address: { type: "string" },
+                      },
+                    },
+                  },
+                },
+              },
             },
-            exclusions: { type: "array", items: { type: "object" } },
           },
         },
         AbiDeploymentResponse: {

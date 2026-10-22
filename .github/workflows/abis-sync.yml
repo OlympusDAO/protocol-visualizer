@@ -76,6 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
+      actions: write
       contents: write
       pull-requests: write
     steps:
@@ -90,26 +91,27 @@ jobs:
           name: abis-sync-patch
           path: ${{ runner.temp }}/abis-sync
 
+      - name: Apply the patch
+        run: git apply "$RUNNER_TEMP/abis-sync/abis.patch"
+
+      # The action does not push if the branch already has these changes.
       - name: Open or update the pull request
+        id: pr
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          branch: bot/abis-sync
+          add-paths: packages/contract-abis
+          author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          commit-message: "chore(abis): sync ABI registry"
+          title: "chore(abis): sync ABI registry"
+          body: The scheduled ABI registry sync found changes. Review the diff of packages/contract-abis/abis/manifest.json, then merge.
+
+      # A push with GITHUB_TOKEN does not start `on: pull_request` workflows.
+      # GITHUB_TOKEN can start `workflow_dispatch`, and the checks of that run
+      # show on the pull request.
+      - name: Start CI on the pull request
+        if: contains(fromJSON('["created", "updated"]'), steps.pr.outputs.pull-request-operation)
         env:
           GH_TOKEN: ${{ github.token }}
-          BRANCH: bot/abis-sync
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -B "$BRANCH"
-          git apply --index "$RUNNER_TEMP/abis-sync/abis.patch"
-          git commit -m "chore(abis): sync ABI registry"
-          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
-          # The daily run does not push a new commit if the branch already has
-          # the same tree. A new commit starts the checks again.
-          if git fetch --quiet --depth 1 "$REMOTE" "$BRANCH" 2>/dev/null && git diff --quiet FETCH_HEAD HEAD; then
-            echo "$BRANCH already has these changes."
-          else
-            git push --force "$REMOTE" "$BRANCH"
-          fi
-          if [ -z "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
-            gh pr create --head "$BRANCH" --base "${{ github.event.repository.default_branch }}" \
-              --title "chore(abis): sync ABI registry" \
-              --body "The scheduled ABI registry sync found changes. Review the diff of packages/contract-abis/abis/manifest.json, then merge."
-          fi
+          BRANCH: ${{ steps.pr.outputs.pull-request-branch }}
+        run: gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"

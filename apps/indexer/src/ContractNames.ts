@@ -1,4 +1,5 @@
 import { ChainId } from "./constants";
+import otherContracts from "../../../packages/protocol-config/other-contracts.json";
 
 type ContractDetails = {
   name: string;
@@ -20,6 +21,23 @@ type MultiChainContracts = {
 
 const contractNames: MultiChainContracts = {
   [ChainId.Mainnet]: {
+    "0x2cea7b722dbd6b03f0e857d11e53ecb698cc2b4e": {
+      name: "CCIPTokenPoolConfig",
+      type: "policy",
+      startBlock: 26232434,
+    },
+    "0x465ccc69d285415bce199f855d3a68ea3537f8fe": {
+      name: "PRICE",
+      type: "module",
+    },
+    "0xf489f38bf8d98a5c10a030f8c16624f6764cd27a": {
+      name: "CCIPTokenPoolConfigTimelock",
+      type: "policy",
+      startBlock: 26232436,
+    },
+    "0x2075e3b46470cfce124daaf52b46dcf965727dd1": {
+      name: "Treasury Working Group MS",
+    },
     "0x0374c001204eF5e7E4F5362A5A2430CB6c219326": {
       name: "Operator",
       version: "1.3",
@@ -150,6 +168,7 @@ const contractNames: MultiChainContracts = {
     },
     "0x784cA0C006b8651BAB183829A99fA46BeCe50dBc": {
       name: "LoanConsolidator",
+      type: "policy",
     },
     "0x7fdD4e808ee9608f1b2f05157A2A8098e3D432cD": {
       name: "BLVaultLido",
@@ -418,6 +437,21 @@ const contractNames: MultiChainContracts = {
     },
   },
   [ChainId.Arbitrum]: {
+    "0x5261fba7b50aa22b19b9edf939b771d109de991f": {
+      name: "CCIPTokenPoolConfigTimelock",
+      type: "policy",
+      startBlock: 516537754,
+    },
+    "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb": {
+      name: "CCIPTokenPoolConfig",
+      type: "policy",
+      startBlock: 516537728,
+    },
+    "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a": {
+      name: "CCIPBurnMintTokenPool",
+      type: "policy",
+      startBlock: 516537665,
+    },
     // tx: https://arbiscan.io/tx/0x3f55f2ce3af9f803343c6b3361ccde1cf4853c931c9410ad935586cc3c21519d
     "0xeac3eC0CC130f4826715187805d1B50e861F2DaC": {
       name: "Kernel",
@@ -471,6 +505,21 @@ const contractNames: MultiChainContracts = {
     },
   },
   [ChainId.Base]: {
+    "0x20a3d8510f2e1176e8db4cea9883a8287a9029db": {
+      name: "CCIPBurnMintTokenPool",
+      type: "policy",
+      startBlock: 52847117,
+    },
+    "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50": {
+      name: "CCIPTokenPoolConfigTimelock",
+      type: "policy",
+      startBlock: 52847137,
+    },
+    "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a": {
+      name: "CCIPTokenPoolConfig",
+      type: "policy",
+      startBlock: 52847128,
+    },
     // tx: https://basescan.org/tx/0x005ee16349882fa0b7a31470b2c8049d40bb387c2aeef045b6baa75566d8a39c
     "0x18878Df23e2a36f81e820e4b47b4A40576D3159C": {
       name: "Kernel",
@@ -517,6 +566,21 @@ const contractNames: MultiChainContracts = {
     },
   },
   [ChainId.Berachain]: {
+    "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb": {
+      name: "CCIPTokenPoolConfigTimelock",
+      type: "policy",
+      startBlock: 27734771,
+    },
+    "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50": {
+      name: "CCIPTokenPoolConfig",
+      type: "policy",
+      startBlock: 27734765,
+    },
+    "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678": {
+      name: "CCIPBurnMintTokenPool",
+      type: "policy",
+      startBlock: 27734756,
+    },
     "0x623164A9Ee2556D524b08f34F1d2389d7B4e1A1C": {
       name: "Kernel",
       type: "kernel",
@@ -572,6 +636,21 @@ const contractNames: MultiChainContracts = {
     },
   },
   [ChainId.Optimism]: {
+    "0x20a3d8510f2e1176e8db4cea9883a8287a9029db": {
+      name: "CCIPTokenPoolConfig",
+      type: "policy",
+      startBlock: 158442676,
+    },
+    "0xd98b5b2e4d5d6cd554115de19efb7a9084beddd1": {
+      name: "CCIPBurnMintTokenPool",
+      type: "policy",
+      startBlock: 158442667,
+    },
+    "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678": {
+      name: "CCIPTokenPoolConfigTimelock",
+      type: "policy",
+      startBlock: 158442680,
+    },
     // tx: https://optimistic.etherscan.io/tx/0x5a22cf89858ce51ee163fe3491129499cf692695d71d8f31a5a5b3c7bc52942c
     "0x18878Df23e2a36f81e820e4b47b4A40576D3159C": {
       name: "Kernel",
@@ -612,6 +691,69 @@ const contractNames: MultiChainContracts = {
     },
   },
   [ChainId.Sepolia]: {
+    "0x1edceffc669e965593e25446023b9c1f4c714ef9": {
+      name: "CoolerV2LtvOracle",
+      type: "policy",
+    },
+    "0x203c46cbb4fcc18977f521a9f7fde007e1a564f6": {
+      name: "MINTR",
+      type: "module",
+      startBlock: 8226370,
+    },
+    "0x38038bdd78602e5aa2accd0ce07557369e21a6c1": {
+      name: "CHREG",
+      type: "module",
+      startBlock: 8226404,
+    },
+    "0x3bd25e292dc36b674bbf1eeecaab4565bf2ef241": {
+      name: "PRICE",
+      type: "module",
+      startBlock: 9068225,
+    },
+    "0x4b0bba51ce44175a9766f7e55e3d122a9f4be78e": {
+      name: "Kernel",
+      type: "kernel",
+      startBlock: 8226369,
+    },
+    "0x79cf5d3824cabd3c7617f8470b94033eb10b28ca": {
+      name: "EmissionManager",
+      type: "policy",
+    },
+    "0x8beb701ebaf8cd68b7e8f04bfa4fc7387cf711e0": {
+      name: "CoolerV2",
+      type: "policy",
+    },
+    "0xb4309cf4f876a2d18561b3fd8eec54899dfeb962": {
+      name: "RANGE",
+      type: "module",
+      startBlock: 9180082,
+    },
+    "0xc3fc2a67087d7f72e6255cb2fe6511ee927d3aba": {
+      name: "DLGTE",
+      type: "module",
+    },
+    "0xc48abd1431f17212379557397dd603912174131e": {
+      name: "TRSRY",
+      type: "module",
+      startBlock: 8226372,
+    },
+    "0xd4aff9b757d918cb8a31a518f10cdaf914e57e3f": {
+      name: "Clearinghouse",
+      type: "policy",
+    },
+    "0xedd6ebffed7d29947957d096dd55e82f523ceb86": {
+      name: "ROLES",
+      type: "module",
+      startBlock: 8226371,
+    },
+    "0xef928e9ed1083636e34230543d4ad3b6270fa986": {
+      name: "DEPOS",
+      type: "module",
+      startBlock: 9578176,
+    },
+    "0x81e6e5ba12a11ceed3e8bfe825b56ae9b7260691": {
+      name: "Emergency MS",
+    },
     "0x1A5309F208f161a393E8b5A253de8Ab894A67188": {
       name: "Deployer",
     },
@@ -791,6 +933,64 @@ const contractNames: MultiChainContracts = {
       type: "policy",
     },
   },
+  [ChainId.Robinhood]: {
+    "0x02331a4c97a4841084df54d7c0ec04dd3f1a9f1c": {
+      name: "Kernel",
+      type: "kernel",
+      startBlock: 94168504,
+    },
+    "0x20a3d8510f2e1176e8db4cea9883a8287a9029db": {
+      name: "TRSRY",
+      type: "module",
+      startBlock: 94168648,
+    },
+    "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb": {
+      name: "CCIPBurnMintTokenPool",
+      type: "policy",
+      startBlock: 94169097,
+    },
+    "0x6d94b3745b0ecf908b3b467907b947b43fba5f15": {
+      name: "CCIPTokenPoolConfig",
+      type: "policy",
+      startBlock: 94169625,
+    },
+    "0x9f08c2603e919a46d6d98289c9ada5250b310558": {
+      name: "CCIPTokenPoolConfigTimelock",
+      type: "policy",
+      startBlock: 94169693,
+    },
+    "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50": {
+      name: "TreasuryCustodian",
+      type: "policy",
+      startBlock: 94168987,
+    },
+    "0xcb4e21eb404d80f3e1db781aad9ad6a1217fbbf2": {
+      name: "ROLES",
+      type: "module",
+      startBlock: 94168602,
+    },
+    "0xd98b5b2e4d5d6cd554115de19efb7a9084beddd1": {
+      name: "MINTR",
+      type: "module",
+      startBlock: 94168555,
+    },
+    "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678": {
+      name: "RolesAdmin",
+      type: "policy",
+      startBlock: 94168691,
+    },
+    "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a": {
+      name: "Emergency",
+      type: "policy",
+      startBlock: 94168742,
+    },
+    "0x317e0f5ef883db95f8ffb5b995b8457903873608": {
+      name: "DAO MS",
+    },
+    "0xa8a6ff2606b24f61afa986381d8991dfcccd2d55": {
+      name: "Emergency MS",
+    },
+  },
 };
 
 const getContractDetails = (
@@ -801,16 +1001,18 @@ const getContractDetails = (
   const normalizedAddress = address.toLowerCase() as `0x${string}`;
   const chainContracts = contractNames[chainId];
 
-  if (!chainContracts) {
-    return null;
-  }
-
   // Find matching contract name by comparing normalized addresses
-  const match = Object.entries(chainContracts).find(
+  const match = Object.entries(chainContracts ?? {}).find(
     ([addr]) => addr.toLowerCase() === normalizedAddress
   );
 
-  return match ? match[1] : null;
+  if (match) return match[1];
+  return (
+    otherContracts.find(
+      (entry) =>
+        entry.chainId === chainId && entry.address === normalizedAddress
+    ) ?? null
+  );
 };
 
 const isLikelyModuleName = (name: string): boolean => {

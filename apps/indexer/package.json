@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node --test scripts/*.test.mjs",
+    "build": "node --import ./scripts/register-typescript.mjs --test scripts/*.test.mjs",
     "dev": "envio dev",
     "start": "envio start",
     "codegen": "envio codegen",

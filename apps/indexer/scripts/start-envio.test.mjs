@@ -9,6 +9,7 @@ const validEnv = {
   ENVIO_RPC_URL_1: "https://example.com/1",
   ENVIO_RPC_URL_10: "https://example.com/10",
   ENVIO_RPC_URL_42161: "https://example.com/42161",
+  ENVIO_RPC_URL_4663: "https://example.com/4663",
   ENVIO_RPC_URL_8453: "https://example.com/8453",
   ENVIO_RPC_URL_80094: "https://example.com/80094",
   ENVIO_RPC_URL_11155111: "https://example.com/11155111",

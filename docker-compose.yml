@@ -61,6 +61,7 @@ services:
       ENVIO_RPC_URL_1: ${ENVIO_RPC_URL_1:?Set ENVIO_RPC_URL_1 in .env to run the compose stack}
       ENVIO_RPC_URL_10: ${ENVIO_RPC_URL_10:?Set ENVIO_RPC_URL_10 in .env to run the compose stack}
       ENVIO_RPC_URL_42161: ${ENVIO_RPC_URL_42161:?Set ENVIO_RPC_URL_42161 in .env to run the compose stack}
+      ENVIO_RPC_URL_4663: ${ENVIO_RPC_URL_4663:?Set ENVIO_RPC_URL_4663 in .env to run the compose stack}
       ENVIO_RPC_URL_8453: ${ENVIO_RPC_URL_8453:?Set ENVIO_RPC_URL_8453 in .env to run the compose stack}
       ENVIO_RPC_URL_80094: ${ENVIO_RPC_URL_80094:?Set ENVIO_RPC_URL_80094 in .env to run the compose stack}
       ENVIO_RPC_URL_11155111: ${ENVIO_RPC_URL_11155111:?Set ENVIO_RPC_URL_11155111 in .env to run the compose stack}

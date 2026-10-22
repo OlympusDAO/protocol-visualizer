@@ -6,6 +6,18 @@ const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 
 const dockerfileContent = (path) => readFileSync(path, "utf8");
 
+test("other contracts are valid, unique chain-scoped identities", () => {
+  const contracts = readJson("packages/protocol-config/other-contracts.json");
+  const identities = new Set();
+  for (const contract of contracts) {
+    assert.match(contract.address, /^0x[0-9a-f]{40}$/);
+    assert.notEqual(contract.address, `0x${"0".repeat(40)}`);
+    const identity = `${contract.chainId}:${contract.address}`;
+    assert(!identities.has(identity), identity);
+    identities.add(identity);
+  }
+});
+
 test("Railway configs use root-anchored watch patterns and expected restart policies", () => {
   const configs = [
     ["railway-hasura.json", "Dockerfile-hasura", "ON_FAILURE"],
@@ -42,6 +54,11 @@ test("Railway configs use root-anchored watch patterns and expected restart poli
   assert.equal(
     readJson("railway-indexer.json").deploy.healthcheckPath,
     "/healthz"
+  );
+  assert(
+    readJson("railway-indexer.json").build.watchPatterns.includes(
+      "/packages/protocol-config/**"
+    )
   );
   assert.equal(
     readJson("railway-snapshot-gateway.json").deploy.healthcheckPath,
@@ -153,7 +170,15 @@ test("Compose requires Envio API token, Etherscan key, and RPC URLs for local in
   const railwayDocs = readFileSync("docs/railway-self-hosting.md", "utf8");
 
   assert(compose.includes("ENVIO_API_TOKEN: ${ENVIO_API_TOKEN:?"));
-  for (const chainId of ["1", "10", "42161", "8453", "80094", "11155111"]) {
+  for (const chainId of [
+    "1",
+    "10",
+    "42161",
+    "4663",
+    "8453",
+    "80094",
+    "11155111",
+  ]) {
     assert(compose.includes(`ENVIO_RPC_URL_${chainId}: $`));
     assert(compose.includes(`Set ENVIO_RPC_URL_${chainId} in .env`));
     assert(sampleEnv.includes(`ENVIO_RPC_URL_${chainId}=`));

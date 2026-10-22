@@ -27,6 +27,25 @@ contracts:
       - event: "NewAdminPulled(address indexed newAdmin_)"
 
 chains:
+  - id: 4663
+    start_block: 94168504
+    rpc:
+      - url: ${ENVIO_RPC_URL_4663:-https://rpc.mainnet.chain.robinhood.com}
+        for: ${ENVIO_RPC_MODE:-sync}
+    contracts:
+      - name: Kernel
+        address:
+          - "0x02331a4c97a4841084df54d7c0ec04dd3f1a9f1c"
+        start_block: 94168504
+      - name: OlympusRoles
+        address:
+          - "0xcb4e21eb404d80f3e1db781aad9ad6a1217fbbf2"
+        start_block: 94168602
+      - name: RolesAdmin
+        address:
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+        start_block: 94168691
+
   - id: 1
     start_block: 15998125
     rpc:

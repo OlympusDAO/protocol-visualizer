@@ -5,6 +5,7 @@ export enum ChainId {
   Berachain = 80094,
   Optimism = 10,
   Sepolia = 11155111,
+  Robinhood = 4663,
 }
 
 type ChainContractConstants = {
@@ -15,6 +16,13 @@ type ChainContractConstants = {
 };
 
 const KERNEL_CONSTANTS: Record<number, ChainContractConstants> = {
+  [ChainId.Robinhood]: {
+    creationTransactionHash:
+      "0xd85c0f9ffa9910d4a94b0ef01b7de1d472ec3f33525a97b5e36450d3ced9dc99",
+    creationBlockNumber: 94168504,
+    creationTimestamp: 1792573917,
+    address: "0x02331a4c97a4841084df54d7c0ec04dd3f1a9f1c",
+  },
   [ChainId.Mainnet]: {
     creationTransactionHash:
       "0xda3facf1f77124cdf4bddff8fa09221354ad663ec2f8b03dcc4657086ebf5e72",
@@ -69,6 +77,13 @@ export const getKernelConstants = (chainId: number) => {
 };
 
 const ROLES_CONSTANTS: Record<number, ChainContractConstants> = {
+  [ChainId.Robinhood]: {
+    creationTransactionHash:
+      "0x442a153c3d82fd0449e239dd2dce08e55d26e1a07d90dfd165088ec60af7db3d",
+    creationBlockNumber: 94168602,
+    creationTimestamp: 1792573927,
+    address: "0xcb4e21eb404d80f3e1db781aad9ad6a1217fbbf2",
+  },
   [ChainId.Mainnet]: {
     creationTransactionHash:
       "0xbf00e197abe1961dc9992b29c5471949df1947be69d462ff48bb574aed2fab42",
@@ -123,6 +138,13 @@ export const getRolesConstants = (chainId: number) => {
 };
 
 const ROLES_ADMIN_CONSTANTS: Record<number, ChainContractConstants> = {
+  [ChainId.Robinhood]: {
+    creationTransactionHash:
+      "0x88b12105ca02e377d460d82667e0c624b56fe78103e88f937ee5665c6409e507",
+    creationBlockNumber: 94168691,
+    creationTimestamp: 1792573936,
+    address: "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678",
+  },
   [ChainId.Mainnet]: {
     creationTransactionHash:
       "0xcc820ca2f75e32ae5f98eb861c08d663501878f18b8888983bec07a007da6b78",

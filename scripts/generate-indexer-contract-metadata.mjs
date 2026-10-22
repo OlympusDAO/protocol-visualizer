@@ -555,7 +555,7 @@ function findRoleFromModifier(name, functionDefinition, sourceCode) {
     }
   }
 
-  if (/onlyAdmin(?:\(\))?/.test(functionDefinition)) {
+  if (/onlyAdmin(?:Role)?\b(?:\(\))?/.test(functionDefinition)) {
     return name.includes("RolesAdmin") ? [roleRolesAdmin] : ["admin"];
   }
   if (/onlyEmergency(?:\(\))?/.test(functionDefinition)) {
@@ -580,7 +580,7 @@ function processSourceCode(name, sourceCode, processedData) {
     processedData.functionSelectors
   )) {
     const functionDefinition = sourceCode.match(
-      new RegExp(`function ${functionDetails.name}\\s*\\([^{]*\\)\\s*[^{]*{`)
+      new RegExp(`function ${functionDetails.name}\\s*\\([^;{]*\\)\\s*[^;{]*{`)
     );
     if (!functionDefinition) continue;
 
@@ -614,7 +614,7 @@ for (const [chainId, contracts] of Object.entries(cache)) {
       continue;
     }
 
-    metadata[chainId][address.toLowerCase()] = cacheEntry.processedData;
+    metadata[chainId][address.toLowerCase()] ??= cacheEntry.processedData;
   }
 }
 

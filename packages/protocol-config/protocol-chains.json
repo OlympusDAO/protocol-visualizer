@@ -30,6 +30,12 @@
     "explorerBaseUrl": "https://berascan.com"
   },
   {
+    "key": "Robinhood",
+    "chainId": 4663,
+    "name": "Robinhood Chain",
+    "explorerBaseUrl": "https://robinhoodchain.blockscout.com"
+  },
+  {
     "key": "Sepolia",
     "chainId": 11155111,
     "name": "Sepolia",

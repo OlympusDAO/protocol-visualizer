@@ -11,6 +11,8 @@ import { ChainId } from "../constants";
 const publicClients = new Map<number, PublicClient<Transport>>();
 
 const DEFAULT_RPC_URLS: Record<number, string> = {
+  [ChainId.Arbitrum]: "https://arb1.arbitrum.io/rpc",
+  [ChainId.Robinhood]: "https://rpc.mainnet.chain.robinhood.com",
   [ChainId.Mainnet]: "https://eth.llamarpc.com",
   [ChainId.Base]: "https://base.llamarpc.com",
   [ChainId.Berachain]: "https://rpc.berachain.com",

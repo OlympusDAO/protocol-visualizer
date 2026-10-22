@@ -14,7 +14,7 @@ execution: code
 - **Objective:** A viewer can find Olympus deployments on every recorded EVM network, see whether a contract is enabled, and trace who controls it.
 - **Means:** Extend Envio event indexing and the snapshot pipeline with a deployment inventory, current state, and transition records (KTD1–KTD5).
 - **Authority:** Deployment records identify addresses. Verified contract events establish state changes. Block-pinned getter reads establish initial state and verify replay results. Deployment intentions do not establish completed handovers.
-- **Execution:** Seven local implementation milestones below. U7 is a later follow-up for shareable navigation. This document authorizes no chain transactions or deployment. Publication remains a separate user decision.
+- **Execution:** Eight local implementation milestones below. U7 adds shareable navigation; U8 follows with a Mainnet graph readability assessment and improvements. This document authorizes no chain transactions or deployment. Publication remains a separate user decision.
 - **Milestone commits:** Validate each milestone. Run the privacy gate before its separate local commit. Commit before the next milestone, with the U-ID in the message. Keep unrelated work outside each commit.
 - **Stop conditions:** Preserve conflicting source records and resolve their provenance before importing them. Never replace missing observations with assumed owners or enabled values.
 
@@ -58,6 +58,7 @@ The current graph describes Bophades permissions but omits much of the surroundi
 - R12. Refresh graph state when a new snapshot arrives, and support the existing snapshot format during rollout. Keep browser access read-only through the gateway.
 - R13. Show source-backed contract references as well as control: ConfigTimelock → configured policy, CCIPTokenPoolConfig → configured pool, and analogous verified links. Label references independently from ownership, and retain both when their endpoints coincide.
 - R14. Keep the selected chain and graph node (role, contract, or address actor) in a shareable URL. Opening or reloading that URL restores the same chain, selection, focused graph, and details. Browser Back/Forward restores prior navigation.
+- R15. Make dense networks such as Mainnet understandable at an architectural level, with a clear route from an overview to individual contracts and their relationships. Grouping and filtering must preserve access to every node, relationship kind, status, and provenance without duplicating shared actors.
 
 ### Acceptance Examples
 
@@ -70,6 +71,7 @@ The current graph describes Bophades permissions but omits much of the surroundi
 - AE7. A new contract on an existing chain appears with its correct name after replay of the relevant deployment events. Existing deployments retain their identities and history. Covers R1, R10–R11.
 - AE8. Ownership and enablement events update current entities and transition records. Duplicate replay produces no duplicate changes. Reorg rollback restores the canonical state and removes orphaned transitions. Covers R5, R9, R12.
 - AE9. Selecting Robinhood and a role updates the URL. Opening it in another tab restores that chain and role after data loads. Contract and actor links work the same way, including disabled and uninstalled contracts. Covers R14.
+- AE10. A viewer can locate the Cooler and CCIP subsystems from Mainnet's overview, inspect their contracts and control relationships, and return to the overview. A direct contract URL reveals its group and details. Shared owners retain one address identity. Covers R10, R14–R15.
 
 ### Scope Boundaries
 
@@ -336,6 +338,22 @@ Missing parameters retain the existing default-chain/unselected behavior. Valida
 
 **Verification:** Run focused URL parsing/serialization checks and browser navigation checks covering fresh loads, delayed data, reload, Back/Forward, and invalid URLs. Run applicable frontend lint/build checks before the separate U7 implementation commit. No indexer or snapshot schema changes are expected.
 
+### U8. Assess and improve dense-network architecture rendering
+
+**Goal:** Mainnet's architecture is readable without fitting every individual node and edge onto one screen. **Requirements:** R10–R15. **Dependencies:** U1–U7. **Timing:** After the preceding work; assess alternatives before committing to a rendering design.
+
+**Files:** Frontend graph model, layout and selection code in `apps/frontend/src/components/contract-visualizer/`; existing graph tests and browser checks. Keep the indexed graph and snapshot contracts intact unless the assessment demonstrates a concrete missing requirement.
+
+**Current evidence:** The overview passes all active nodes and mixed relationship types into one top-to-bottom Dagre layout, then places uninstalled contracts in a side group. Selection re-lays out immediate neighbours while moving and fading unrelated nodes. Ownership hubs and role edges therefore influence the same global layout as functional contract references; the existing local focus does not provide an architectural overview.
+
+**Assessment and candidate approach:** Compare the current Mainnet view with a small prototype of an overview containing expandable functional groups (for example Cooler, CCIP, treasury, and governance), alongside the simpler alternative of relationship filters and improved focus alone. Use verified contract metadata and observed references to justify membership; do not cluster unrelated contracts solely because they share an owner. Keep shared modules and actors at a common level where appropriate, with one canonical node per address. Retain the separate uninstalled group. Try the existing React Flow grouping and Dagre layout first; a new layout dependency needs evidence that these cannot produce a usable result.
+
+For the grouped candidate, arrange groups globally and their contents locally. Collapsed groups can summarize cross-group links with counts and relationship kinds; expanding or selecting reveals the underlying directed links. Keep ownership, permissions, and contract references independently selectable so the viewer can answer one architectural question at a time. Make hidden content and the way to reveal it explicit. Mixed contract statuses must not become a misleading single enabled/disabled group status. Contract details retain exact edge kinds, pending/current distinctions, and provenance.
+
+Reuse and simplify the existing focus behavior rather than adding a competing selection system. A U7 contract or role URL must reveal any containing group and focus the target. Preserve expansion, filters, selection, and useful positions across snapshot refreshes. Evaluate rendering performance separately from comprehension: measure actual interactions before introducing memoization, virtualization, or elaborate edge routing.
+
+**Verification and decision:** Compare before/after Mainnet screenshots at a normal laptop viewport and check the smaller Robinhood graph. Verify that a viewer can locate a subsystem, trace Migrator → MonoCooler and ConfigTimelock → policy → pool, identify current versus pending controllers, and return to the overview. Record readability observations and any measured performance changes. Add focused checks for group membership, aggregate-edge counts, cross-group shared identities, expansion, filtering, URL restoration, and refresh. Choose and implement the smallest approach that materially improves these tasks; run applicable frontend checks and commit U8 separately.
+
 ---
 
 ## Verification Contract
@@ -359,6 +377,7 @@ At each milestone boundary, run its verification and the applicable repository c
 - [ ] U5: Ownership and authority events produce correct identities, labels, current holders, and pending nominees.
 - [ ] U6: Token-scoped registry events and pool ownership events independently drive the displayed CCIP relationships.
 - [ ] U7: URL navigation round-trips the selected chain and role/contract/actor, including direct loads, reload, and Back/Forward.
+- [ ] U8: Dense-network rendering has been assessed against Mainnet tasks, and the selected grouping/focus approach improves readability while preserving graph identities and relationships.
 - [ ] Existing role/module views still work; meaningful checks pass; abandoned implementation attempts are removed.
 - [ ] Each completed milestone has its own validated, privacy-gate-clean local commit with its U-ID.
 - [ ] No transaction, push, PR, or deployment is implied by local implementation completion.

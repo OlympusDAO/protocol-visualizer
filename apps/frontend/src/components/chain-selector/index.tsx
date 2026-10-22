@@ -21,7 +21,7 @@ export function ChainSelector({
         id="chain-select"
         value={selectedChainId}
         onChange={(e) => onChainChange(Number(e.target.value))}
-        className="block w-48 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+        className="block w-48 rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
       >
         {SUPPORTED_CHAINS.map((chain) => (
           <option key={chain.chainId} value={chain.chainId}>

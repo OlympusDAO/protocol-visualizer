@@ -42,7 +42,8 @@ const requireFromRepo = createRequire(path.join(repoRoot, "package.json"));
 const requireFromIndexer = createRequire(
   path.join(indexerRoot, "package.json")
 );
-const ts = requireFromRepo("typescript");
+// TypeScript 7's native compiler does not expose this JavaScript AST API.
+const ts = requireFromRepo("@typescript/typescript6");
 const { toFunctionSelector } = requireFromIndexer("viem");
 
 const cliOptions = parseArgs(process.argv.slice(2));

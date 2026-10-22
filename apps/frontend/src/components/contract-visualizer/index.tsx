@@ -119,7 +119,7 @@ const createAssigneeNode = (
             }}
           />
           <div
-            className="font-bold mb-1 break-words whitespace-pre-wrap max-w-[160px]"
+            className="font-bold mb-1 wrap-break-word whitespace-pre-wrap max-w-[160px]"
             style={{ color: NODE_COLORS.assignee.text }}
           >
             {assigneeName}
@@ -392,7 +392,7 @@ export function ContractVisualizer() {
                 }}
               />
               <div
-                className="font-bold mb-1 break-words whitespace-pre-wrap max-w-[160px]"
+                className="font-bold mb-1 wrap-break-word whitespace-pre-wrap max-w-[160px]"
                 style={{ color: colors.text }}
               >
                 {formatContractName(contract)}
@@ -659,37 +659,24 @@ export function ContractVisualizer() {
     selectedChainId,
   ]);
 
-  // Add function to get connected nodes
-  const getConnectedNodes = useCallback(
-    (nodeId: string) => {
-      const connectedNodeIds = new Set<string>([nodeId]);
-
-      // Add directly connected nodes through edges
-      edges.forEach((edge) => {
-        if (edge.source === nodeId) connectedNodeIds.add(edge.target);
-        if (edge.target === nodeId) connectedNodeIds.add(edge.source);
-      });
-
-      return Array.from(connectedNodeIds);
-    },
-    [edges]
-  );
-
   // Add effect to handle node selection and layout
-  // biome-ignore lint/correctness/useExhaustiveDependencies: setNodes/setEdges are stable React Flow setters; this selection effect only tracks graph state.
   useEffect(() => {
     if (!selectedNode || !originalLayout || !reactFlowInstance.current) return;
 
-    const connectedNodeIds = getConnectedNodes(selectedNode);
+    const connectedNodeIds = new Set([selectedNode]);
+    for (const edge of originalLayout.edges) {
+      if (edge.source === selectedNode) connectedNodeIds.add(edge.target);
+      if (edge.target === selectedNode) connectedNodeIds.add(edge.source);
+    }
 
     // Calculate the center of the current view
     const { x: viewX, y: viewY } = reactFlowInstance.current.getViewport();
 
     // Create a subgraph of connected nodes
-    const relevantNodes = nodes.map((node) => ({
+    const relevantNodes = originalLayout.nodes.map((node) => ({
       ...node,
       // Move unconnected nodes just outside the view
-      position: connectedNodeIds.includes(node.id)
+      position: connectedNodeIds.has(node.id)
         ? node.position
         : {
             x: node.position.x + viewX + 800,
@@ -697,19 +684,18 @@ export function ContractVisualizer() {
           },
       style: {
         ...node.style,
-        opacity: connectedNodeIds.includes(node.id) ? 1 : 0.2,
+        opacity: connectedNodeIds.has(node.id) ? 1 : 0.2,
         transition: "all 0.5s ease-in-out",
       },
     }));
 
     // Filter edges to only show those connecting selected nodes
-    const relevantEdges = edges.map((edge) => ({
+    const relevantEdges = originalLayout.edges.map((edge) => ({
       ...edge,
       style: {
         ...edge.style,
         opacity:
-          connectedNodeIds.includes(edge.source) &&
-          connectedNodeIds.includes(edge.target)
+          connectedNodeIds.has(edge.source) && connectedNodeIds.has(edge.target)
             ? 1
             : 0,
         transition: "all 0.5s ease-in-out",
@@ -718,11 +704,10 @@ export function ContractVisualizer() {
 
     // Re-layout the connected nodes to bring them closer
     const { nodes: layoutedNodes } = getLayoutedElements(
-      relevantNodes.filter((node) => connectedNodeIds.includes(node.id)),
+      relevantNodes.filter((node) => connectedNodeIds.has(node.id)),
       relevantEdges.filter(
         (edge) =>
-          connectedNodeIds.includes(edge.source) &&
-          connectedNodeIds.includes(edge.target)
+          connectedNodeIds.has(edge.source) && connectedNodeIds.has(edge.target)
       ),
       "TB"
     );
@@ -737,18 +722,17 @@ export function ContractVisualizer() {
     setEdges(relevantEdges);
 
     // Fit view to connected nodes after a short delay to allow transition
-    setTimeout(() => {
+    const fitViewTimeout = setTimeout(() => {
       if (reactFlowInstance.current) {
         reactFlowInstance.current.fitView({
           padding: 0.2,
           duration: 0,
-          nodes: finalNodes.filter((node) =>
-            connectedNodeIds.includes(node.id)
-          ),
+          nodes: finalNodes.filter((node) => connectedNodeIds.has(node.id)),
         });
       }
     }, 10);
-  }, [selectedNode, originalLayout, getConnectedNodes, edges, nodes]);
+    return () => clearTimeout(fitViewTimeout);
+  }, [selectedNode, originalLayout, setNodes, setEdges]);
 
   // Modify effect to reset layout when deselecting
   // biome-ignore lint/correctness/useExhaustiveDependencies: setNodes/setEdges are stable React Flow setters; this restore effect only tracks selection state.

@@ -22,7 +22,8 @@ import {
 } from "@/services/contracts";
 import dagre from "dagre";
 import { ChainSelector } from "../chain-selector";
-import { DEFAULT_CHAIN_ID, SUPPORTED_CHAINS } from "@/lib/constants";
+import { SUPPORTED_CHAINS } from "@/lib/constants";
+import { useGraphNavigation } from "./navigation";
 import otherContracts from "../../../../../packages/protocol-config/other-contracts.json";
 import {
   getEnablementPresentation,
@@ -425,21 +426,31 @@ export function ContractVisualizer() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [hoveredPolicy, setHoveredPolicy] = useState<string | null>(null);
   const [hoveredRole, setHoveredRole] = useState<string | null>(null);
-  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const {
+    node: selectedNode,
+    chainId: selectedChainId,
+    notice: navigationNotice,
+    setSelectedNode,
+    setSelectedChainId,
+    reconcileSelection,
+  } = useGraphNavigation();
   const [layouting, setLayouting] = useState(false);
   const [initialized, setInitialized] = useState(false);
-  const [selectedChainId, setSelectedChainId] =
-    useState<number>(DEFAULT_CHAIN_ID);
   const [originalLayout, setOriginalLayout] = useState<{
+    chainId: number;
     nodes: CustomNode[];
     edges: Edge[];
   } | null>(null);
 
   // Add ref for ReactFlow instance
-  const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
+  const [reactFlowInstance, setReactFlowInstance] =
+    useState<ReactFlowInstance | null>(null);
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
-  const previousSelection = useRef<string | null>(null);
+  const previousSelection = useRef<{
+    node: string;
+    instance: ReactFlowInstance;
+  } | null>(null);
 
   // Reset initialized state when chain ID changes
   // biome-ignore lint/correctness/useExhaustiveDependencies: selectedChainId intentionally triggers a graph reset.
@@ -448,7 +459,6 @@ export function ContractVisualizer() {
     setNodes([]);
     setEdges([]);
     setOriginalLayout(null);
-    setSelectedNode(null);
     previousSelection.current = null;
   }, [selectedChainId, setNodes, setEdges]);
 
@@ -472,6 +482,20 @@ export function ContractVisualizer() {
       (data?.additionalContracts.length ?? 0) +
       (data?.relationships.length ?? 0) ===
       0;
+
+  useEffect(() => {
+    if (!isHistorical || !selectedNode) return;
+    const recorded = otherContracts.some(
+      (contract) =>
+        contract.chainId === selectedChainId &&
+        contract.address === selectedNode
+    );
+    if (!recorded) reconcileSelection(null);
+    else
+      document
+        .getElementById(`inventory-${selectedNode}`)
+        ?.scrollIntoView({ block: "nearest" });
+  }, [isHistorical, selectedNode, selectedChainId, reconcileSelection]);
 
   useEffect(() => {
     if (!data) return;
@@ -933,8 +957,12 @@ export function ContractVisualizer() {
       ),
       selectedNode
     );
-    setOriginalLayout({ nodes: baseline.nodes, edges: newEdges });
-    setSelectedNode(refreshed.selectedNode);
+    setOriginalLayout({
+      chainId: selectedChainId,
+      nodes: baseline.nodes,
+      edges: newEdges,
+    });
+    reconcileSelection(refreshed.selectedNode);
 
     setNodes(refreshed.nodes);
     setEdges(newEdges);
@@ -952,13 +980,20 @@ export function ContractVisualizer() {
     selectedChainId,
     originalLayout,
     selectedNode,
+    reconcileSelection,
     setNodes,
     setEdges,
   ]);
 
   // Add effect to handle node selection and layout
   useEffect(() => {
-    if (!selectedNode || !originalLayout || !reactFlowInstance.current) return;
+    if (
+      !selectedNode ||
+      !originalLayout ||
+      originalLayout.chainId !== selectedChainId ||
+      !reactFlowInstance
+    )
+      return;
 
     const connectedNodeIds = new Set([selectedNode]);
     for (const edge of originalLayout.edges) {
@@ -967,7 +1002,7 @@ export function ContractVisualizer() {
     }
 
     // Calculate the center of the current view
-    const { x: viewX, y: viewY } = reactFlowInstance.current.getViewport();
+    const { x: viewX, y: viewY } = reactFlowInstance.getViewport();
 
     // Create a subgraph of connected nodes
     const relevantNodes = originalLayout.nodes
@@ -1017,8 +1052,13 @@ export function ContractVisualizer() {
       return layoutedNode || node;
     });
 
-    const selectionChanged = previousSelection.current !== selectedNode;
-    previousSelection.current = selectedNode;
+    const selectionChanged =
+      previousSelection.current?.node !== selectedNode ||
+      previousSelection.current?.instance !== reactFlowInstance;
+    previousSelection.current = {
+      node: selectedNode,
+      instance: reactFlowInstance,
+    };
     setNodes(
       selectionChanged
         ? finalNodes
@@ -1029,16 +1069,21 @@ export function ContractVisualizer() {
 
     // Fit view to connected nodes after a short delay to allow transition
     const fitViewTimeout = setTimeout(() => {
-      if (reactFlowInstance.current) {
-        reactFlowInstance.current.fitView({
-          padding: 0.2,
-          duration: 0,
-          nodes: finalNodes.filter((node) => connectedNodeIds.has(node.id)),
-        });
-      }
+      reactFlowInstance.fitView({
+        padding: 0.2,
+        duration: 0,
+        nodes: finalNodes.filter((node) => connectedNodeIds.has(node.id)),
+      });
     }, 10);
     return () => clearTimeout(fitViewTimeout);
-  }, [selectedNode, originalLayout, setNodes, setEdges]);
+  }, [
+    selectedNode,
+    selectedChainId,
+    originalLayout,
+    reactFlowInstance,
+    setNodes,
+    setEdges,
+  ]);
 
   // Modify effect to reset layout when deselecting
   // biome-ignore lint/correctness/useExhaustiveDependencies: setNodes/setEdges are stable React Flow setters; this restore effect only tracks selection state.
@@ -1046,8 +1091,9 @@ export function ContractVisualizer() {
     if (
       !selectedNode &&
       originalLayout &&
+      originalLayout.chainId === selectedChainId &&
       initialized &&
-      reactFlowInstance.current
+      reactFlowInstance
     ) {
       const selectionChanged = previousSelection.current !== null;
       previousSelection.current = null;
@@ -1065,15 +1111,19 @@ export function ContractVisualizer() {
       if (!selectionChanged) return;
 
       void setTimeout(() => {
-        if (reactFlowInstance.current) {
-          reactFlowInstance.current.fitView({
-            padding: 0.2,
-            duration: 800,
-          });
-        }
+        reactFlowInstance.fitView({
+          padding: 0.2,
+          duration: 800,
+        });
       }, 50);
     }
-  }, [selectedNode, originalLayout, initialized]);
+  }, [
+    selectedNode,
+    selectedChainId,
+    originalLayout,
+    initialized,
+    reactFlowInstance,
+  ]);
 
   // Add initialization effect back
   useEffect(() => {
@@ -1083,11 +1133,14 @@ export function ContractVisualizer() {
   }, [initialized, layouting, contracts, roles, roleAssignments, setupGraph]);
 
   // Fix type for handleNodeClick
-  const handleNodeClick = useCallback((_: unknown, node: Node) => {
-    setSelectedNode((prevSelected) =>
-      prevSelected === node.id ? null : node.id
-    );
-  }, []);
+  const handleNodeClick = useCallback(
+    (_: unknown, node: Node) => {
+      setSelectedNode((prevSelected) =>
+        prevSelected === node.id ? null : node.id
+      );
+    },
+    [setSelectedNode]
+  );
 
   const graphIsLoading = isLoading || layouting;
 
@@ -1678,6 +1731,11 @@ export function ContractVisualizer() {
         selectedChainId={selectedChainId}
         onChainChange={setSelectedChainId}
       />
+      {navigationNotice && (
+        <p role="status" className="mb-2 text-sm text-amber-800">
+          {navigationNotice}
+        </p>
+      )}
       {error && data && !isHistorical && (
         <p role="status" className="mb-2 text-sm text-amber-800">
           Snapshot refresh failed. Showing the last loaded snapshot.
@@ -1702,9 +1760,17 @@ export function ContractVisualizer() {
                 .map((contract) => (
                   <li
                     key={contract.address}
-                    className="border-b border-gray-200 pb-2"
+                    id={`inventory-${contract.address}`}
+                    className={`border-b border-gray-200 pb-2 ${selectedNode === contract.address ? "bg-blue-50" : ""}`}
                   >
-                    <div className="font-medium">{contract.name}</div>
+                    <button
+                      type="button"
+                      className="font-medium hover:underline"
+                      aria-pressed={selectedNode === contract.address}
+                      onClick={() => setSelectedNode(contract.address)}
+                    >
+                      {contract.name}
+                    </button>
                     <code className="break-all text-xs text-gray-600">
                       {contract.address}
                     </code>
@@ -1742,7 +1808,7 @@ export function ContractVisualizer() {
               maxZoom={1.5}
               defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
               onInit={(instance: ReactFlowInstance<NodeData>) => {
-                reactFlowInstance.current = instance;
+                setReactFlowInstance(instance);
               }}
               elementsSelectable={true}
               nodesConnectable={false}

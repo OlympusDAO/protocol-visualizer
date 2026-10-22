@@ -14,7 +14,7 @@ execution: code
 - **Objective:** A viewer can find Olympus deployments on every recorded EVM network, see whether a contract is enabled, and trace who controls it.
 - **Means:** Extend Envio event indexing and the snapshot pipeline with a deployment inventory, current state, and transition records (KTD1–KTD5).
 - **Authority:** Deployment records identify addresses. Verified contract events establish state changes. Block-pinned getter reads establish initial state and verify replay results. Deployment intentions do not establish completed handovers.
-- **Execution:** Six local implementation milestones below. This document authorizes no chain transactions or deployment. Publication remains a separate user decision.
+- **Execution:** Seven local implementation milestones below. U7 is a later follow-up for shareable navigation. This document authorizes no chain transactions or deployment. Publication remains a separate user decision.
 - **Milestone commits:** Validate each milestone. Run the privacy gate before its separate local commit. Commit before the next milestone, with the U-ID in the message. Keep unrelated work outside each commit.
 - **Stop conditions:** Preserve conflicting source records and resolve their provenance before importing them. Never replace missing observations with assumed owners or enabled values.
 
@@ -57,6 +57,7 @@ The current graph describes Bophades permissions but omits much of the surroundi
 - R11. Imported external or inactive deployments remain visible without invented Kernel membership. Unknown actors are labelled as unknown addresses unless account classification is verified.
 - R12. Refresh graph state when a new snapshot arrives, and support the existing snapshot format during rollout. Keep browser access read-only through the gateway.
 - R13. Show source-backed contract references as well as control: ConfigTimelock → configured policy, CCIPTokenPoolConfig → configured pool, and analogous verified links. Label references independently from ownership, and retain both when their endpoints coincide.
+- R14. Keep the selected chain and graph node (role, contract, or address actor) in a shareable URL. Opening or reloading that URL restores the same chain, selection, focused graph, and details. Browser Back/Forward restores prior navigation.
 
 ### Acceptance Examples
 
@@ -68,6 +69,7 @@ The current graph describes Bophades permissions but omits much of the surroundi
 - AE6. A refreshed snapshot changes an owner or enabled badge without requiring a chain switch. An older snapshot leaves new state unknown. Covers R5, R12.
 - AE7. A new contract on an existing chain appears with its correct name after replay of the relevant deployment events. Existing deployments retain their identities and history. Covers R1, R10–R11.
 - AE8. Ownership and enablement events update current entities and transition records. Duplicate replay produces no duplicate changes. Reorg rollback restores the canonical state and removes orphaned transitions. Covers R5, R9, R12.
+- AE9. Selecting Robinhood and a role updates the URL. Opening it in another tab restores that chain and role after data loads. Contract and actor links work the same way, including disabled and uninstalled contracts. Covers R14.
 
 ### Scope Boundaries
 
@@ -312,6 +314,28 @@ The local Olympus registry struct contains administrator, pending administrator,
 
 **Verification:** Replay registry administration, pool selection, and pool ownership events for each configured EVM CCIP deployment. Compare indexed results with getters at the same completed block. Verify the Mainnet DAO MS example and record mismatches. Run full local end-to-end validation before any publication decision.
 
+### U7. Share and restore chain and graph selections through URLs
+
+**Goal:** Viewers can bookmark or share the current chain and selected role, contract, module, policy, or address actor. **Requirements:** R14. **Dependencies:** U2, U4–U6. **Timing:** Later follow-up; record the plan now without implementing navigation changes.
+
+**Files:** `apps/frontend/src/components/contract-visualizer/index.tsx`; a small frontend URL-state helper and focused tests if needed. Reuse the existing chain selector, normalized address identities, role node IDs, and selection/detail behavior.
+
+**Approach:** Use query parameters such as `?chain=4663&node=role-bridge_admin` or `?chain=1&node=0xe045bd0a0d85e980aa152064c06eae6b6ae358d2`. Use native `URL`, `URLSearchParams`, and the History API; no router dependency is needed for this view. Preserve unrelated query parameters and the hash. Chain IDs identify networks; node IDs use normalized addresses or the existing `role-` prefix, with URL encoding for role names.
+
+Read the URL on initial load and `popstate`. Resolve the chain before loading its snapshot, retain the requested node while data and graph nodes are loading, then apply the same focus and details behavior as a click. All selection paths, including links inside details panels and clearing a selection, must update the URL consistently. User navigation creates history entries; normalization and snapshot refresh must not create duplicate entries or URL/state update loops. Switching chains clears the old selection in the same navigation action. Back/Forward restores the chain and node together.
+
+Missing parameters retain the existing default-chain/unselected behavior. Validate chain and node syntax. An unsupported chain falls back predictably to the default; an unknown or malformed node leaves a valid chain overview with a concise explanation. Do not clear a valid requested selection merely because its snapshot is still loading or a request failed. Historical/unavailable chains retain their existing availability explanation.
+
+**Test scenarios:**
+
+1. Chain-only, role, contract, and address-actor URLs round-trip, including encoded role names and mixed-case input addresses.
+2. Fresh-tab navigation and reload restore selection after delayed snapshot loading, including disabled external and uninstalled contracts.
+3. Clicking nodes, navigating from details, clearing selection, and changing chains update the URL; Back/Forward restores the matching graph and details without loops or duplicate history entries.
+4. Snapshot refresh preserves the URL and a still-present selection. Missing nodes, invalid parameters, unavailable chains, and failed loads have the documented fallback behavior.
+5. Unrelated query parameters and hashes survive navigation; URLs without navigation parameters keep existing behavior.
+
+**Verification:** Run focused URL parsing/serialization checks and browser navigation checks covering fresh loads, delayed data, reload, Back/Forward, and invalid URLs. Run applicable frontend lint/build checks before the separate U7 implementation commit. No indexer or snapshot schema changes are expected.
+
 ---
 
 ## Verification Contract
@@ -334,6 +358,7 @@ At each milestone boundary, run its verification and the applicable repository c
 - [ ] U4: Enablement events drive state independently of Kernel membership. Seed, refresh, duplicate replay, and reorg cases behave correctly.
 - [ ] U5: Ownership and authority events produce correct identities, labels, current holders, and pending nominees.
 - [ ] U6: Token-scoped registry events and pool ownership events independently drive the displayed CCIP relationships.
+- [ ] U7: URL navigation round-trips the selected chain and role/contract/actor, including direct loads, reload, and Back/Forward.
 - [ ] Existing role/module views still work; meaningful checks pass; abandoned implementation attempts are removed.
 - [ ] Each completed milestone has its own validated, privacy-gate-clean local commit with its U-ID.
 - [ ] No transaction, push, PR, or deployment is implied by local implementation completion.

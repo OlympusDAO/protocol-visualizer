@@ -1,7 +1,9 @@
+import otherContracts from "../../../../../packages/protocol-config/other-contracts.json";
 import type {
   ContractState,
   ContractRelationship,
   ChainObservation,
+  FunctionContext,
 } from "../../../../../packages/snapshot-artifacts/src/index";
 import type { Node } from "reactflow";
 
@@ -263,24 +265,54 @@ export function getRelationshipGraph(
       source === target
     )
       continue;
-    addresses.add(source);
-    addresses.add(target);
+    const path = getRelationshipPath(relationship);
+    for (const address of path) addresses.add(address);
+    const graphTarget = path[1] ?? target;
     const pending = relationship.status === "pending";
     const name = relationship.kind.replace(/-/g, " ");
     const getter =
       relationship.status === "reference"
         ? relationship.getter?.split(":")[0]
         : undefined;
-    const label = pending
-      ? `Pending ${name}`
-      : getter
-        ? `${getter}(${relationship.scope?.token ? "address" : ""})`
-        : name.charAt(0).toUpperCase() + name.slice(1);
+    const token = relationship.scope?.token?.toLowerCase();
+    const tokenName =
+      otherContracts.find(
+        (contract) =>
+          contract.chainId === chainId &&
+          contract.address.toLowerCase() === token
+      )?.name ?? (token ? `${token.slice(0, 6)}…${token.slice(-4)}` : "Token");
+    let label: string;
+    if (relationship.kind === "token-admin")
+      label = `${pending ? "Pending " : ""}${tokenName} admin`;
+    else if (pending) label = `Pending ${name}`;
+    else if (getter)
+      label =
+        relationship.functionContext?.signature ??
+        `${getter}(${relationship.scope?.token ? "address" : ""})`;
+    else label = name.charAt(0).toUpperCase() + name.slice(1);
     const scope = [relationship.scope?.registry, relationship.scope?.token]
       .map((value) => value?.toLowerCase() ?? "")
       .join(":");
     const id = `${relationship.id}:${relationship.kind}:${relationship.status}:${scope}:${source}:${target}`;
-    edges.set(id, { id, source, target, label, pending, relationship });
+    edges.set(id, {
+      id,
+      source,
+      target: graphTarget,
+      label,
+      pending,
+      relationship,
+    });
+    if (relationship.kind === "token-admin" && path.length === 3) {
+      const contextId = `registry-token:${chainId}:${graphTarget}:${target}`;
+      edges.set(contextId, {
+        id: contextId,
+        source: graphTarget,
+        target,
+        label: `Token configuration · ${tokenName}`,
+        pending: false,
+        relationship,
+      });
+    }
   }
   const graphEdges = [...edges.values()];
   const parallel = new Map<string, typeof graphEdges>();
@@ -298,5 +330,54 @@ export function getRelationshipGraph(
         labelOffset: (index - (group.length - 1) / 2) * 18,
       }))
     ),
+  };
+}
+
+export function getFunctionTooltip(functions: FunctionContext[]): string {
+  return functions
+    .map((fn) =>
+      [fn.signature, fn.source?.match === "exact" ? fn.notice : undefined]
+        .filter(Boolean)
+        .join(" — ")
+    )
+    .join("\n");
+}
+
+export function getRelationshipPath(
+  relationship: ContractRelationship
+): string[] {
+  return [
+    relationship.source,
+    ...(relationship.kind === "token-admin"
+      ? [relationship.scope?.registry]
+      : []),
+    relationship.target,
+  ]
+    .filter((address): address is string =>
+      Boolean(
+        address &&
+          /^0x[0-9a-fA-F]{40}$/.test(address) &&
+          !/^0x0{40}$/i.test(address)
+      )
+    )
+    .map((address) => address.toLowerCase())
+    .filter(
+      (address, index, array) => index === 0 || address !== array[index - 1]
+    );
+}
+
+export function getRelationshipCurve(
+  sourceX: number,
+  sourceY: number,
+  targetX: number,
+  targetY: number,
+  lane = 0
+) {
+  const bend = Math.max(48, Math.abs(targetX - sourceX) / 2);
+  if (Math.abs(targetY - sourceY) < 50) lane -= 160;
+  return {
+    path: `M ${sourceX},${sourceY} C ${sourceX + bend},${sourceY + lane} ${targetX - bend},${targetY + lane} ${targetX},${targetY}`,
+    labelX: (sourceX + targetX) / 2,
+    labelY: (sourceY + targetY) / 2 + lane * 0.75 - 12,
   };
 }

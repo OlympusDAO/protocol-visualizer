@@ -691,6 +691,51 @@
               },
               "coverage": {
                 "type": "string"
+              },
+              "targetCode": {
+                "enum": ["present", "absent"]
+              },
+              "functionContext": {
+                "type": "object",
+                "required": ["signature"],
+                "properties": {
+                  "signature": {
+                    "type": "string"
+                  },
+                  "notice": {
+                    "type": "string"
+                  },
+                  "details": {
+                    "type": "string"
+                  },
+                  "params": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "returns": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "source": {
+                    "type": "object",
+                    "required": ["url", "codeHash"],
+                    "properties": {
+                      "url": {
+                        "type": "string"
+                      },
+                      "codeHash": {
+                        "type": "string"
+                      },
+                      "match": {
+                        "enum": ["exact", "code"]
+                      }
+                    }
+                  }
+                }
               }
             }
           },

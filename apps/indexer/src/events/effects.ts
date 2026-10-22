@@ -1,10 +1,11 @@
+import type { FunctionContext } from "../../../../packages/snapshot-artifacts/src/index";
 import {
   readPinnedControlGetter,
   type ControlGetterInput,
   type ControlGetterResult,
 } from "./control-reads";
 import { createEffect, S } from "envio";
-import type { Address, Hex } from "viem";
+import { keccak256, type Address, type Hex } from "viem";
 
 import { KernelAbi } from "../../abis/Kernel";
 import { ModuleAbi } from "../../abis/Module";
@@ -33,21 +34,39 @@ const requestedPolicyPermissionSchema = S.schema({
   funcSelector: S.string,
 });
 
+const functionContextSchema: S.Schema<FunctionContext> = S.schema({
+  signature: S.string,
+  notice: S.optional(S.string),
+  details: S.optional(S.string),
+  params: S.optional(S.record(S.string)),
+  returns: S.optional(S.record(S.string)),
+  source: S.optional(
+    S.schema({
+      url: S.string,
+      codeHash: S.string,
+      match: S.optional(S.union([S.schema("exact"), S.schema("code")])),
+    })
+  ),
+});
+
 const functionDetailsSchema = S.schema({
   name: S.string,
   selector: S.string,
   signature: S.string,
   roles: S.array(S.string),
+  canonicalSignature: S.optional(S.string),
+  documentation: S.optional(functionContextSchema),
 });
 
-const processedContractDataSchema = S.schema({
+const processedContractDataSchema: S.Schema<ProcessedContractData> = S.schema({
   roleToFunctions: S.record(S.array(S.string)),
   functionSelectors: S.record(functionDetailsSchema),
+  addressGetters: S.optional(S.array(S.string)),
 });
 
 const processContractMetadataEffect = createEffect(
   {
-    name: "processContractMetadata",
+    name: "processContractMetadataV2",
     input: {
       chainId: S.number,
       address: S.address,
@@ -311,27 +330,84 @@ function getContractProcessor(chainId: number): ContractProcessor {
   return newProcessor;
 }
 
-export function getProcessedContract(
+const readCodeHashEffect = createEffect(
+  {
+    name: "readCanonicalCodeHash",
+    input: {
+      chainId: S.number,
+      address: S.address,
+      blockNumber: S.bigint,
+      blockHash: S.string,
+    },
+    output: S.optional(S.string),
+    rateLimit: { calls: 25, per: "second" },
+    cache: true,
+  },
+  async ({ input, context }) => {
+    try {
+      const client = getPublicClient(input.chainId);
+      const before = await client.getBlock({ blockNumber: input.blockNumber });
+      const code = await client.getCode({
+        address: input.address,
+        blockHash: input.blockHash as Hex,
+        requireCanonical: true,
+      });
+      const after = await client.getBlock({ blockNumber: input.blockNumber });
+      if (
+        code &&
+        before.hash === input.blockHash &&
+        after.hash === input.blockHash
+      )
+        return keccak256(code);
+    } catch {
+      /* Documentation stays unavailable when the pinned code cannot be verified. */
+    }
+    context.cache = false;
+    return undefined;
+  }
+);
+
+export async function getProcessedContract(
   context: EnvioContext,
   chainId: number,
   address: Address,
-  name: string
+  name: string,
+  blockNumber: bigint
 ): Promise<ProcessedContractData> {
   const cacheKey = `${chainId}:${normalizeAddress(address)}`;
-  const cached = processedContracts.get(cacheKey);
-  if (cached) {
-    return cached;
+  let pending = processedContracts.get(cacheKey);
+  if (!pending) {
+    pending = context
+      .effect(processContractMetadataEffect, { chainId, address, name })
+      .catch((error) => {
+        processedContracts.delete(cacheKey);
+        throw error;
+      }) as Promise<ProcessedContractData>;
+    processedContracts.set(cacheKey, pending);
   }
-
-  const processedContract = context
-    .effect(processContractMetadataEffect, { chainId, address, name })
-    .catch((error) => {
-      processedContracts.delete(cacheKey);
-      throw error;
-    }) as Promise<ProcessedContractData>;
-  processedContracts.set(cacheKey, processedContract);
-
-  return processedContract;
+  const metadata = await pending;
+  if (!Object.values(metadata.functionSelectors).some((fn) => fn.documentation))
+    return metadata;
+  const block = await getControlBlock(context, chainId, Number(blockNumber));
+  const codeHash = block
+    ? await context.effect(readCodeHashEffect, {
+        chainId,
+        address,
+        blockNumber,
+        blockHash: block.hash,
+      })
+    : undefined;
+  return {
+    ...metadata,
+    functionSelectors: Object.fromEntries(
+      Object.entries(metadata.functionSelectors).map(([selector, fn]) => [
+        selector,
+        fn.documentation?.source?.codeHash === codeHash
+          ? fn
+          : { ...fn, documentation: undefined },
+      ])
+    ),
+  };
 }
 
 export function getRequestedPolicyPermissions(
@@ -409,6 +485,8 @@ export const readControlGetterEffect = createEffect(
       status: S.string,
       value: S.optional(S.string),
       reason: S.optional(S.string),
+      functionContext: S.optional(functionContextSchema),
+      targetCode: S.optional(S.string),
     },
     rateLimit: { calls: 25, per: "second" },
     cache: true,

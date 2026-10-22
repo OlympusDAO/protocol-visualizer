@@ -1,4 +1,7 @@
-import type { Abi, Address, Hex } from "viem";
+import { keccak256, type Abi, type Address, type Hex } from "viem";
+import metadata from "../generated/contract-metadata.json";
+import type { ProcessedContractData } from "../services/contracts/types";
+import type { FunctionContext } from "../../../../packages/snapshot-artifacts/src/index";
 
 export type ControlGetterInput = {
   chainId: number;
@@ -8,7 +11,12 @@ export type ControlGetterInput = {
   getter: string;
 };
 export type ControlGetterResult =
-  | { status: "success"; value: string }
+  | {
+      status: "success";
+      value: string;
+      functionContext?: FunctionContext;
+      targetCode?: "present" | "absent";
+    }
   | { status: "unavailable"; reason: string };
 const addressGetters = new Set([
   "owner",
@@ -30,6 +38,11 @@ const addressGetters = new Set([
   "stakingContract",
 ]);
 type ControlReadClient = {
+  getCode?: (input: {
+    address: Address;
+    blockHash: Hex;
+    requireCanonical: true;
+  }) => Promise<Hex | undefined>;
   getBlock: (input: { blockNumber: bigint }) => Promise<{ hash: Hex | null }>;
   readContract: (input: {
     address: Address;
@@ -44,15 +57,34 @@ type ControlReadClient = {
 /** Hash-bound reads stay on the same state even when the transport falls back to another provider. */
 export async function readPinnedControlGetter(
   client: ControlReadClient,
-  input: ControlGetterInput
+  input: ControlGetterInput,
+  contract: ProcessedContractData | undefined = (
+    metadata as Record<string, Record<string, ProcessedContractData>>
+  )[String(input.chainId)]?.[input.address.toLowerCase()]
 ): Promise<ControlGetterResult> {
   try {
     const [getter = "", token] = input.getter.split(":");
+    const metadataGetter =
+      token && ["administrator", "newAdministrator"].includes(getter)
+        ? "getTokenConfig"
+        : getter;
+    const functionContext = Object.values(
+      contract?.functionSelectors ?? {}
+    ).find(
+      (fn) =>
+        fn.canonicalSignature === `${metadataGetter}(${token ? "address" : ""})`
+    )?.documentation;
+
+    const generic = Boolean(
+      functionContext?.source &&
+        contract?.addressGetters?.includes(input.getter)
+    );
+
     const registryGetter =
       token &&
       /^0x[0-9a-fA-F]{40}$/.test(token) &&
       ["administrator", "newAdministrator", "getPool"].includes(getter);
-    if (getter === "newOwner")
+    if (getter === "newOwner" && !generic)
       return {
         status: "unavailable",
         reason:
@@ -61,6 +93,7 @@ export async function readPinnedControlGetter(
     if (
       input.getter !== "isEnabled" &&
       !addressGetters.has(input.getter) &&
+      !generic &&
       !registryGetter
     )
       return { status: "unavailable", reason: "getter is not configured" };
@@ -70,6 +103,19 @@ export async function readPinnedControlGetter(
         status: "unavailable",
         reason: "canonical block hash changed before getter read",
       };
+    if (functionContext?.source) {
+      const code = await client.getCode?.({
+        address: input.address,
+        blockHash: input.blockHash as Hex,
+        requireCanonical: true,
+      });
+      if (!code || keccak256(code) !== functionContext.source.codeHash)
+        return {
+          status: "unavailable",
+          reason:
+            "Verified compiler documentation does not match bytecode at the canonical block",
+        };
+    }
     let value = await client.readContract({
       address: input.address,
       abi: [
@@ -122,7 +168,33 @@ export async function readPinnedControlGetter(
         status: "unavailable",
         reason: "getter returned an unexpected value",
       };
-    return { status: "success", value: String(value).toLowerCase() };
+    let targetCode: "present" | "absent" | undefined;
+    if (generic && client.getCode && typeof value === "string") {
+      const code = await client.getCode({
+        address: value as Address,
+        blockHash: input.blockHash as Hex,
+        requireCanonical: true,
+      });
+      targetCode = code && code !== "0x" ? "present" : "absent";
+      const confirmed = await client.getBlock({
+        blockNumber: input.blockNumber,
+      });
+      if (confirmed.hash?.toLowerCase() !== input.blockHash.toLowerCase())
+        return {
+          status: "unavailable",
+          reason: "canonical block hash changed during code read",
+        };
+    }
+    return {
+      status: "success",
+      value: String(value).toLowerCase(),
+      ...(functionContext
+        ? { functionContext }
+        : generic
+          ? { functionContext: { signature: `${getter}()` } }
+          : {}),
+      ...(targetCode ? { targetCode } : {}),
+    };
   } catch {
     return {
       status: "unavailable",

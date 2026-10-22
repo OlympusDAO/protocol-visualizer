@@ -1,19 +1,14 @@
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import {
-  type AbiFunction,
-  type AbiParameter,
-  type Abi,
-  toFunctionSelector,
-} from "viem";
+import type { Abi } from "viem";
 import {
   type ContractCache,
   type ProcessedContractData,
-  type FunctionDetails,
   ROLE_ROLES_ADMIN,
 } from "./types";
 import { type EtherscanApi, getEtherscanApi } from "../etherscan/api";
 import type { ChainId } from "../../constants";
+import { processAbiMetadata } from "./abi";
 import precomputedContractMetadata from "../../generated/contract-metadata.json";
 
 const CACHE_FILE = "./data/contract-cache.json";
@@ -87,7 +82,7 @@ export class ContractProcessor {
     }
 
     console.log(`Processing ABI for ${name} on chain ${this.chainId}`);
-    const processedData = this.processAbi(abi);
+    const processedData = processAbiMetadata(abi);
 
     // Check if the source code exists on disk
     let sourceCode: string;
@@ -142,35 +137,6 @@ export class ContractProcessor {
 
   private getSourceCodePath(address: string): string {
     return path.join(this.getChainSourceCodeDir(), `${address}.json`);
-  }
-
-  private processAbi(abi: Abi): ProcessedContractData {
-    const roleToFunctions: Record<string, string[]> = {};
-    const functionSelectors: Record<string, FunctionDetails> = {};
-
-    // Process each function
-    for (const item of abi) {
-      // console.log("item", JSON.stringify(item, null, 2));
-      if (item.type !== "function") continue;
-
-      try {
-        // Get function signature and selector
-        const signature = this.getFunctionSignature(item);
-        const selector = toFunctionSelector(item);
-        // const functionRoles = this.matchFunctionRoles(item, roles);
-
-        functionSelectors[selector] = {
-          name: item.name,
-          selector,
-          signature,
-          roles: [],
-        };
-      } catch (error) {
-        console.warn(`Failed to process function ${item.name}:`, error);
-      }
-    }
-
-    return { roleToFunctions, functionSelectors };
   }
 
   private findRoleFromModifier(
@@ -289,16 +255,6 @@ export class ContractProcessor {
     }
 
     return processedData;
-  }
-
-  private getFunctionSignature(func: AbiFunction): string {
-    const inputs = func.inputs
-      .map((input: AbiParameter) => input.type)
-      .join(",");
-    const outputs = func.outputs
-      .map((output: AbiParameter) => output.type)
-      .join(",");
-    return `${func.name}(${inputs})(${outputs})`;
   }
 
   private loadCache(): ContractCache {

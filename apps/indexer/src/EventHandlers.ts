@@ -12,6 +12,7 @@ import {
   handleAuthorityEvent,
   handleAuthorityReference,
   handleStakingReference,
+  handleContractReference,
   completeRelationshipBlock,
   relationshipAnchorsCanonical,
   type RelationshipField,
@@ -41,6 +42,35 @@ import type {
   RoleGrantedEvent,
   RoleRevokedEvent,
 } from "./events/types";
+
+indexer.onEvent(
+  {
+    contract: "MonoCoolerReferences",
+    event: "LtvOracleSet",
+    fields: { block: ["hash", "timestamp"], transaction: ["hash"] },
+  },
+  ({ event, context }) =>
+    handleContractReference(
+      context as EnvioContext,
+      event,
+      "ltvOracle",
+      event.params.oracle
+    )
+);
+indexer.onEvent(
+  {
+    contract: "MonoCoolerReferences",
+    event: "TreasuryBorrowerSet",
+    fields: { block: ["hash", "timestamp"], transaction: ["hash"] },
+  },
+  ({ event, context }) =>
+    handleContractReference(
+      context as EnvioContext,
+      event,
+      "treasuryBorrower",
+      event.params.treasuryBorrower
+    )
+);
 
 indexer.onEvent(
   {
@@ -271,7 +301,7 @@ for (const chainId of indexer.chainIds) {
       known.find(({ address }) => address === contract.address.toLowerCase())
         ?.startBlock ?? chain.startBlock,
   }));
-  const knownRelationships = getRelationshipFields(chainId);
+  const knownRelationships = getRelationshipFields(chainId, chain.startBlock);
   const relationshipFields: RelationshipField[] = [];
   for (const [name, getters] of [
     ["Owned", ["owner"]],

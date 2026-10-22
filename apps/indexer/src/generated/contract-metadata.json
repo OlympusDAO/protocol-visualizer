@@ -9387,312 +9387,1068 @@
       "roleToFunctions": {}
     },
     "0xdb591ea2e5db886da872654d58f6cc584b68e7cc": {
+      "addressGetters": [
+        "DLGTE",
+        "MINTR",
+        "ROLES",
+        "collateralToken",
+        "debtToken",
+        "kernel",
+        "ltvOracle",
+        "ohm",
+        "staking",
+        "treasuryBorrower"
+      ],
       "functionSelectors": {
         "0x02b1d239": {
+          "canonicalSignature": "ohm()",
+          "documentation": {
+            "signature": "ohm()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "ohm",
           "roles": [],
           "selector": "0x02b1d239",
           "signature": "ohm()(address)"
         },
         "0x030c3c58": {
+          "canonicalSignature": "accountCollateral(address)",
+          "documentation": {
+            "signature": "accountCollateral(address)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "accountCollateral",
           "roles": [],
           "selector": "0x030c3c58",
           "signature": "accountCollateral(address)(uint128)"
         },
         "0x05d6f8ad": {
+          "canonicalSignature": "addCollateral(uint128,address,(address,int256)[])",
+          "documentation": {
+            "signature": "addCollateral(uint128,address,(address,int256)[])",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "addCollateral",
           "roles": [],
           "selector": "0x05d6f8ad",
           "signature": "addCollateral(uint128,address,tuple[])()"
         },
         "0x06899031": {
+          "canonicalSignature": "authorizations(address,address)",
+          "documentation": {
+            "signature": "authorizations(address,address)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "authorizations",
           "roles": [],
           "selector": "0x06899031",
           "signature": "authorizations(address,address)(uint96)"
         },
         "0x0ec4c601": {
+          "canonicalSignature": "accountState(address)",
+          "documentation": {
+            "signature": "accountState(address)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "accountState",
           "roles": [],
           "selector": "0x0ec4c601",
           "signature": "accountState(address)(tuple)"
         },
         "0x18b7b493": {
+          "canonicalSignature": "setAuthorization(address,uint96)",
+          "documentation": {
+            "signature": "setAuthorization(address,uint96)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "setAuthorization",
           "roles": [],
           "selector": "0x18b7b493",
           "signature": "setAuthorization(address,uint96)()"
         },
         "0x1c34a342": {
+          "canonicalSignature": "treasuryBorrower()",
+          "documentation": {
+            "signature": "treasuryBorrower()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "treasuryBorrower",
           "roles": [],
           "selector": "0x1c34a342",
           "signature": "treasuryBorrower()(address)"
         },
         "0x1c46b149": {
+          "canonicalSignature": "setLtvOracle(address)",
+          "documentation": {
+            "signature": "setLtvOracle(address)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "setLtvOracle",
           "roles": ["admin"],
           "selector": "0x1c46b149",
           "signature": "setLtvOracle(address)()"
         },
         "0x1cbc74c5": {
+          "canonicalSignature": "interestAccumulatorRay()",
+          "documentation": {
+            "signature": "interestAccumulatorRay()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "interestAccumulatorRay",
           "roles": [],
           "selector": "0x1cbc74c5",
           "signature": "interestAccumulatorRay()(uint256)"
         },
         "0x22f3e2d4": {
+          "canonicalSignature": "isActive()",
+          "documentation": {
+            "signature": "isActive()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "isActive",
           "roles": [],
           "selector": "0x22f3e2d4",
           "signature": "isActive()(bool)"
         },
         "0x25e6b5e8": {
+          "canonicalSignature": "repay(uint128,address)",
+          "documentation": {
+            "signature": "repay(uint128,address)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "repay",
           "roles": [],
           "selector": "0x25e6b5e8",
           "signature": "repay(uint128,address)(uint128)"
         },
         "0x25fbed10": {
+          "canonicalSignature": "borrowsPaused()",
+          "documentation": {
+            "signature": "borrowsPaused()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "borrowsPaused",
           "roles": [],
           "selector": "0x25fbed10",
           "signature": "borrowsPaused()(bool)"
         },
         "0x2cf05b40": {
+          "canonicalSignature": "withdrawCollateral(uint128,address,address,(address,int256)[])",
+          "documentation": {
+            "signature": "withdrawCollateral(uint128,address,address,(address,int256)[])",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "withdrawCollateral",
           "roles": [],
           "selector": "0x2cf05b40",
           "signature": "withdrawCollateral(uint128,address,address,tuple[])(uint128)"
         },
         "0x2e1ddb32": {
+          "canonicalSignature": "interestAccumulatorUpdatedAt()",
+          "documentation": {
+            "signature": "interestAccumulatorUpdatedAt()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "interestAccumulatorUpdatedAt",
           "roles": [],
           "selector": "0x2e1ddb32",
           "signature": "interestAccumulatorUpdatedAt()(uint40)"
         },
         "0x3644e515": {
+          "canonicalSignature": "DOMAIN_SEPARATOR()",
+          "documentation": {
+            "signature": "DOMAIN_SEPARATOR()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "DOMAIN_SEPARATOR",
           "roles": [],
           "selector": "0x3644e515",
           "signature": "DOMAIN_SEPARATOR()(bytes32)"
         },
         "0x42137cc2": {
+          "canonicalSignature": "ltvOracle()",
+          "documentation": {
+            "signature": "ltvOracle()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "ltvOracle",
           "roles": [],
           "selector": "0x42137cc2",
           "signature": "ltvOracle()(address)"
         },
         "0x4657b36c": {
+          "canonicalSignature": "changeKernel(address)",
+          "documentation": {
+            "signature": "changeKernel(address)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "changeKernel",
           "roles": [],
           "selector": "0x4657b36c",
           "signature": "changeKernel(address)()"
         },
         "0x4ac8eb5f": {
+          "canonicalSignature": "totalCollateral()",
+          "documentation": {
+            "signature": "totalCollateral()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "totalCollateral",
           "roles": [],
           "selector": "0x4ac8eb5f",
           "signature": "totalCollateral()(uint128)"
         },
         "0x4cf088d9": {
+          "canonicalSignature": "staking()",
+          "documentation": {
+            "signature": "staking()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "staking",
           "roles": [],
           "selector": "0x4cf088d9",
           "signature": "staking()(address)"
         },
         "0x52fb2d02": {
+          "canonicalSignature": "setMaxDelegateAddresses(address,uint32)",
+          "documentation": {
+            "signature": "setMaxDelegateAddresses(address,uint32)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "setMaxDelegateAddresses",
           "roles": ["admin"],
           "selector": "0x52fb2d02",
           "signature": "setMaxDelegateAddresses(address,uint32)()"
         },
         "0x5472214b": {
+          "canonicalSignature": "accountDebt(address)",
+          "documentation": {
+            "signature": "accountDebt(address)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "accountDebt",
           "roles": [],
           "selector": "0x5472214b",
           "signature": "accountDebt(address)(uint128)"
         },
         "0x5480478a": {
+          "canonicalSignature": "applyUnhealthyDelegations(address,uint256)",
+          "documentation": {
+            "signature": "applyUnhealthyDelegations(address,uint256)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "applyUnhealthyDelegations",
           "roles": [],
           "selector": "0x5480478a",
           "signature": "applyUnhealthyDelegations(address,uint256)(uint256,uint256)"
         },
         "0x577de7d0": {
+          "canonicalSignature": "MINTR()",
+          "documentation": {
+            "signature": "MINTR()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "MINTR",
           "roles": [],
           "selector": "0x577de7d0",
           "signature": "MINTR()(address)"
         },
         "0x5924be70": {
+          "canonicalSignature": "requestPermissions()",
+          "documentation": {
+            "signature": "requestPermissions()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "requestPermissions",
           "roles": [],
           "selector": "0x5924be70",
           "signature": "requestPermissions()(tuple[])"
         },
         "0x6a6044ad": {
+          "canonicalSignature": "loanToValues()",
+          "documentation": {
+            "signature": "loanToValues()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "loanToValues",
           "roles": [],
           "selector": "0x6a6044ad",
           "signature": "loanToValues()(uint96,uint96)"
         },
         "0x7a9c2975": {
+          "canonicalSignature": "DLGTE()",
+          "documentation": {
+            "signature": "DLGTE()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "DLGTE",
           "roles": [],
           "selector": "0x7a9c2975",
           "signature": "DLGTE()(address)"
         },
         "0x81cf9071": {
+          "canonicalSignature": "batchLiquidate(address[])",
+          "documentation": {
+            "signature": "batchLiquidate(address[])",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "batchLiquidate",
           "roles": [],
           "selector": "0x81cf9071",
           "signature": "batchLiquidate(address[])(uint128,uint128,uint128)"
         },
         "0x81de274c": {
+          "canonicalSignature": "authorizationNonces(address)",
+          "documentation": {
+            "signature": "authorizationNonces(address)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "authorizationNonces",
           "roles": [],
           "selector": "0x81de274c",
           "signature": "authorizationNonces(address)(uint256)"
         },
         "0x8f6d0f11": {
+          "canonicalSignature": "liquidationsPaused()",
+          "documentation": {
+            "signature": "liquidationsPaused()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "liquidationsPaused",
           "roles": [],
           "selector": "0x8f6d0f11",
           "signature": "liquidationsPaused()(bool)"
         },
         "0x923cb952": {
+          "canonicalSignature": "ROLES()",
+          "documentation": {
+            "signature": "ROLES()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "ROLES",
           "roles": [],
           "selector": "0x923cb952",
           "signature": "ROLES()(address)"
         },
         "0x939752bd": {
+          "canonicalSignature": "setBorrowPaused(bool)",
+          "documentation": {
+            "signature": "setBorrowPaused(bool)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "setBorrowPaused",
           "roles": ["emergency"],
           "selector": "0x939752bd",
           "signature": "setBorrowPaused(bool)()"
         },
         "0x9459b875": {
+          "canonicalSignature": "configureDependencies()",
+          "documentation": {
+            "signature": "configureDependencies()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "configureDependencies",
           "roles": [],
           "selector": "0x9459b875",
           "signature": "configureDependencies()(bytes5[])"
         },
         "0x9f3b2753": {
+          "canonicalSignature": "minDebtRequired()",
+          "documentation": {
+            "signature": "minDebtRequired()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "minDebtRequired",
           "roles": [],
           "selector": "0x9f3b2753",
           "signature": "minDebtRequired()(uint256)"
         },
         "0xa35ac753": {
+          "canonicalSignature": "isSenderAuthorized(address,address)",
+          "documentation": {
+            "signature": "isSenderAuthorized(address,address)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "isSenderAuthorized",
           "roles": [],
           "selector": "0xa35ac753",
           "signature": "isSenderAuthorized(address,address)(bool)"
         },
         "0xa8f18f25": {
+          "canonicalSignature": "borrow(uint128,address,address)",
+          "documentation": {
+            "signature": "borrow(uint128,address,address)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "borrow",
           "roles": [],
           "selector": "0xa8f18f25",
           "signature": "borrow(uint128,address,address)(uint128)"
         },
         "0xb2016bd4": {
+          "canonicalSignature": "collateralToken()",
+          "documentation": {
+            "signature": "collateralToken()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "collateralToken",
           "roles": [],
           "selector": "0xb2016bd4",
           "signature": "collateralToken()(address)"
         },
         "0xb611328a": {
+          "canonicalSignature": "debtDeltaForMaxOriginationLtv(address,int128)",
+          "documentation": {
+            "signature": "debtDeltaForMaxOriginationLtv(address,int128)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "debtDeltaForMaxOriginationLtv",
           "roles": [],
           "selector": "0xb611328a",
           "signature": "debtDeltaForMaxOriginationLtv(address,int128)(int128)"
         },
         "0xb64c393a": {
+          "canonicalSignature": "applyDelegations((address,int256)[],address)",
+          "documentation": {
+            "signature": "applyDelegations((address,int256)[],address)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "applyDelegations",
           "roles": [],
           "selector": "0xb64c393a",
           "signature": "applyDelegations(tuple[],address)(uint256,uint256,uint256)"
         },
         "0xb6b89443": {
+          "canonicalSignature": "setInterestRateWad(uint96)",
+          "documentation": {
+            "signature": "setInterestRateWad(uint96)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "setInterestRateWad",
           "roles": ["admin"],
           "selector": "0xb6b89443",
           "signature": "setInterestRateWad(uint96)()"
         },
         "0xbb720329": {
+          "canonicalSignature": "interestRateWad()",
+          "documentation": {
+            "signature": "interestRateWad()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "interestRateWad",
           "roles": [],
           "selector": "0xbb720329",
           "signature": "interestRateWad()(uint96)"
         },
         "0xc3e7a9de": {
+          "canonicalSignature": "computeLiquidity(address[])",
+          "documentation": {
+            "signature": "computeLiquidity(address[])",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "computeLiquidity",
           "roles": [],
           "selector": "0xc3e7a9de",
           "signature": "computeLiquidity(address[])(tuple[])"
         },
         "0xc9c0bccf": {
+          "canonicalSignature": "checkpointDebt()",
+          "documentation": {
+            "signature": "checkpointDebt()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "checkpointDebt",
           "roles": [],
           "selector": "0xc9c0bccf",
           "signature": "checkpointDebt()(uint128,uint256)"
         },
         "0xd4aae0c4": {
+          "canonicalSignature": "kernel()",
+          "documentation": {
+            "signature": "kernel()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "kernel",
           "roles": [],
           "selector": "0xd4aae0c4",
           "signature": "kernel()(address)"
         },
         "0xd9a7ed5c": {
+          "canonicalSignature": "setLiquidationsPaused(bool)",
+          "documentation": {
+            "signature": "setLiquidationsPaused(bool)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "setLiquidationsPaused",
           "roles": ["emergency"],
           "selector": "0xd9a7ed5c",
           "signature": "setLiquidationsPaused(bool)()"
         },
         "0xdf80edfd": {
+          "canonicalSignature": "setTreasuryBorrower(address)",
+          "documentation": {
+            "signature": "setTreasuryBorrower(address)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "setTreasuryBorrower",
           "roles": [],
           "selector": "0xdf80edfd",
           "signature": "setTreasuryBorrower(address)()"
         },
         "0xe54c0d96": {
+          "canonicalSignature": "setAuthorizationWithSig((address,address,uint96,uint256,uint256),(uint8,bytes32,bytes32))",
+          "documentation": {
+            "signature": "setAuthorizationWithSig((address,address,uint96,uint256,uint256),(uint8,bytes32,bytes32))",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "setAuthorizationWithSig",
           "roles": [],
           "selector": "0xe54c0d96",
           "signature": "setAuthorizationWithSig(tuple,tuple)()"
         },
         "0xe75aea90": {
+          "canonicalSignature": "accountDelegationsList(address,uint256,uint256)",
+          "documentation": {
+            "signature": "accountDelegationsList(address,uint256,uint256)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "accountDelegationsList",
           "roles": [],
           "selector": "0xe75aea90",
           "signature": "accountDelegationsList(address,uint256,uint256)(tuple[])"
         },
         "0xe76c01e4": {
+          "canonicalSignature": "globalState()",
+          "documentation": {
+            "signature": "globalState()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "globalState",
           "roles": [],
           "selector": "0xe76c01e4",
           "signature": "globalState()(uint128,uint256)"
         },
         "0xf46cf7f0": {
+          "canonicalSignature": "accountPosition(address)",
+          "documentation": {
+            "signature": "accountPosition(address)",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "accountPosition",
           "roles": [],
           "selector": "0xf46cf7f0",
           "signature": "accountPosition(address)(tuple)"
         },
         "0xf8d89898": {
+          "canonicalSignature": "debtToken()",
+          "documentation": {
+            "signature": "debtToken()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "debtToken",
           "roles": [],
           "selector": "0xf8d89898",
           "signature": "debtToken()(address)"
         },
         "0xfc7b9c18": {
+          "canonicalSignature": "totalDebt()",
+          "documentation": {
+            "signature": "totalDebt()",
+            "source": {
+              "codeHash": "0x6adbbd96a74df1471433adb713210a52c0bc5bad5518511f8cb7c6948aee5d58",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xdb591ea2e5db886da872654d58f6cc584b68e7cc?fields=metadata"
+            }
+          },
           "name": "totalDebt",
           "roles": [],
           "selector": "0xfc7b9c18",
           "signature": "totalDebt()(uint128)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0xe045bd0a0d85e980aa152064c06eae6b6ae358d2": {
+      "addressGetters": [
+        "CHREG",
+        "COOLERV2",
+        "DAI",
+        "FLASH",
+        "GOHM",
+        "MIGRATOR",
+        "USDS",
+        "owner"
+      ],
+      "functionSelectors": {
+        "0x0c959556": {
+          "canonicalSignature": "enable(bytes)",
+          "documentation": {
+            "signature": "enable(bytes)",
+            "source": {
+              "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata"
+            }
+          },
+          "name": "enable",
+          "roles": [],
+          "selector": "0x0c959556",
+          "signature": "enable(bytes)()"
+        },
+        "0x1b2574b4": {
+          "canonicalSignature": "getCoolerFactories()",
+          "documentation": {
+            "signature": "getCoolerFactories()",
+            "source": {
+              "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata"
+            }
+          },
+          "name": "getCoolerFactories",
+          "roles": [],
+          "selector": "0x1b2574b4",
+          "signature": "getCoolerFactories()(address[])"
+        },
+        "0x23e30c8b": {
+          "canonicalSignature": "onFlashLoan(address,address,uint256,uint256,bytes)",
+          "documentation": {
+            "signature": "onFlashLoan(address,address,uint256,uint256,bytes)",
+            "source": {
+              "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata"
+            }
+          },
+          "name": "onFlashLoan",
+          "roles": [],
+          "selector": "0x23e30c8b",
+          "signature": "onFlashLoan(address,address,uint256,uint256,bytes)(bytes32)"
+        },
+        "0x2a72bbb9": {
+          "canonicalSignature": "CHREG()",
+          "documentation": {
+            "signature": "CHREG()",
+            "source": {
+              "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata"
+            }
+          },
+          "name": "CHREG",
+          "roles": [],
+          "selector": "0x2a72bbb9",
+          "signature": "CHREG()(address)"
+        },
+        "0x43392ff4": {
+          "canonicalSignature": "removeCoolerFactory(address)",
+          "documentation": {
+            "signature": "removeCoolerFactory(address)",
+            "source": {
+              "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata"
+            }
+          },
+          "name": "removeCoolerFactory",
+          "roles": [],
+          "selector": "0x43392ff4",
+          "signature": "removeCoolerFactory(address)()"
+        },
+        "0x59576170": {
+          "canonicalSignature": "addCoolerFactory(address)",
+          "documentation": {
+            "signature": "addCoolerFactory(address)",
+            "source": {
+              "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata"
+            }
+          },
+          "name": "addCoolerFactory",
+          "roles": [],
+          "selector": "0x59576170",
+          "signature": "addCoolerFactory(address)()"
+        },
+        "0x5b1fd710": {
+          "canonicalSignature": "FLASH()",
+          "documentation": {
+            "signature": "FLASH()",
+            "source": {
+              "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata"
+            }
+          },
+          "name": "FLASH",
+          "roles": [],
+          "selector": "0x5b1fd710",
+          "signature": "FLASH()(address)"
+        },
+        "0x6aa633b6": {
+          "canonicalSignature": "isEnabled()",
+          "documentation": {
+            "signature": "isEnabled()",
+            "source": {
+              "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata"
+            }
+          },
+          "name": "isEnabled",
+          "roles": [],
+          "selector": "0x6aa633b6",
+          "signature": "isEnabled()(bool)"
+        },
+        "0x7add2e0c": {
+          "canonicalSignature": "previewConsolidate(address[])",
+          "documentation": {
+            "signature": "previewConsolidate(address[])",
+            "source": {
+              "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata"
+            }
+          },
+          "name": "previewConsolidate",
+          "roles": [],
+          "selector": "0x7add2e0c",
+          "signature": "previewConsolidate(address[])(uint256,uint256)"
+        },
+        "0x89358f76": {
+          "canonicalSignature": "consolidate(address[],address,(address,address,uint96,uint256,uint256),(uint8,bytes32,bytes32),(address,int256)[])",
+          "documentation": {
+            "signature": "consolidate(address[],address,(address,address,uint96,uint256,uint256),(uint8,bytes32,bytes32),(address,int256)[])",
+            "source": {
+              "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata"
+            }
+          },
+          "name": "consolidate",
+          "roles": [],
+          "selector": "0x89358f76",
+          "signature": "consolidate(address[],address,tuple,tuple,tuple[])()"
+        },
+        "0x8da5cb5b": {
+          "canonicalSignature": "owner()",
+          "documentation": {
+            "signature": "owner()",
+            "source": {
+              "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata"
+            }
+          },
+          "name": "owner",
+          "roles": [],
+          "selector": "0x8da5cb5b",
+          "signature": "owner()(address)"
+        },
+        "0x8fc925aa": {
+          "canonicalSignature": "disable(bytes)",
+          "documentation": {
+            "signature": "disable(bytes)",
+            "source": {
+              "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata"
+            }
+          },
+          "name": "disable",
+          "roles": [],
+          "selector": "0x8fc925aa",
+          "signature": "disable(bytes)()"
+        },
+        "0x9e1d18e0": {
+          "canonicalSignature": "COOLERV2()",
+          "documentation": {
+            "signature": "COOLERV2()",
+            "source": {
+              "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata"
+            }
+          },
+          "name": "COOLERV2",
+          "roles": [],
+          "selector": "0x9e1d18e0",
+          "signature": "COOLERV2()(address)"
+        },
+        "0x9ecd7472": {
+          "canonicalSignature": "MIGRATOR()",
+          "documentation": {
+            "signature": "MIGRATOR()",
+            "source": {
+              "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata"
+            }
+          },
+          "name": "MIGRATOR",
+          "roles": [],
+          "selector": "0x9ecd7472",
+          "signature": "MIGRATOR()(address)"
+        },
+        "0xc8ef95ae": {
+          "canonicalSignature": "USDS()",
+          "documentation": {
+            "signature": "USDS()",
+            "source": {
+              "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata"
+            }
+          },
+          "name": "USDS",
+          "roles": [],
+          "selector": "0xc8ef95ae",
+          "signature": "USDS()(address)"
+        },
+        "0xd1d5b4c8": {
+          "canonicalSignature": "GOHM()",
+          "documentation": {
+            "signature": "GOHM()",
+            "source": {
+              "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata"
+            }
+          },
+          "name": "GOHM",
+          "roles": [],
+          "selector": "0xd1d5b4c8",
+          "signature": "GOHM()(address)"
+        },
+        "0xe0bab4c4": {
+          "canonicalSignature": "DAI()",
+          "documentation": {
+            "signature": "DAI()",
+            "source": {
+              "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata"
+            }
+          },
+          "name": "DAI",
+          "roles": [],
+          "selector": "0xe0bab4c4",
+          "signature": "DAI()(address)"
+        },
+        "0xf2fde38b": {
+          "canonicalSignature": "transferOwnership(address)",
+          "documentation": {
+            "signature": "transferOwnership(address)",
+            "source": {
+              "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata"
+            }
+          },
+          "name": "transferOwnership",
+          "roles": [],
+          "selector": "0xf2fde38b",
+          "signature": "transferOwnership(address)()"
         }
       },
       "roleToFunctions": {}
@@ -11066,266 +11822,663 @@
       "roleToFunctions": {}
     },
     "0xf489f38bf8d98a5c10a030f8c16624f6764cd27a": {
+      "addressGetters": ["ROLES", "config", "kernel"],
       "functionSelectors": {
         "0x01ffc9a7": {
+          "canonicalSignature": "supportsInterface(bytes4)",
+          "documentation": {
+            "signature": "supportsInterface(bytes4)",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "supportsInterface",
           "roles": [],
           "selector": "0x01ffc9a7",
           "signature": "supportsInterface(bytes4)(bool)"
         },
         "0x0c959556": {
+          "canonicalSignature": "enable(bytes)",
+          "documentation": {
+            "signature": "enable(bytes)",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "enable",
           "roles": [],
           "selector": "0x0c959556",
           "signature": "enable(bytes)()"
         },
         "0x169070eb": {
+          "canonicalSignature": "MIN_TIMELOCK_DELAY()",
+          "documentation": {
+            "signature": "MIN_TIMELOCK_DELAY()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "MIN_TIMELOCK_DELAY",
           "roles": [],
           "selector": "0x169070eb",
           "signature": "MIN_TIMELOCK_DELAY()(uint48)"
         },
         "0x22f3e2d4": {
+          "canonicalSignature": "isActive()",
+          "documentation": {
+            "signature": "isActive()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "isActive",
           "roles": [],
           "selector": "0x22f3e2d4",
           "signature": "isActive()(bool)"
         },
         "0x2a083ca3": {
+          "canonicalSignature": "MAX_TIMELOCK_DELAY()",
+          "documentation": {
+            "signature": "MAX_TIMELOCK_DELAY()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "MAX_TIMELOCK_DELAY",
           "roles": [],
           "selector": "0x2a083ca3",
           "signature": "MAX_TIMELOCK_DELAY()(uint48)"
         },
         "0x332998ac": {
+          "canonicalSignature": "RATE_LIMITS_DOMAIN()",
+          "documentation": {
+            "signature": "RATE_LIMITS_DOMAIN()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "RATE_LIMITS_DOMAIN",
           "roles": [],
           "selector": "0x332998ac",
           "signature": "RATE_LIMITS_DOMAIN()(bytes32)"
         },
         "0x3899fad4": {
+          "canonicalSignature": "REMOTE_POOLS_DOMAIN()",
+          "documentation": {
+            "signature": "REMOTE_POOLS_DOMAIN()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "REMOTE_POOLS_DOMAIN",
           "roles": [],
           "selector": "0x3899fad4",
           "signature": "REMOTE_POOLS_DOMAIN()(bytes32)"
         },
         "0x3e65164a": {
+          "canonicalSignature": "EXECUTION_WINDOW()",
+          "documentation": {
+            "signature": "EXECUTION_WINDOW()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "EXECUTION_WINDOW",
           "roles": [],
           "selector": "0x3e65164a",
           "signature": "EXECUTION_WINDOW()(uint48)"
         },
         "0x4222ddb6": {
+          "canonicalSignature": "setGracePeriod(uint32)",
+          "documentation": {
+            "signature": "setGracePeriod(uint32)",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "setGracePeriod",
           "roles": [],
           "selector": "0x4222ddb6",
           "signature": "setGracePeriod(uint32)()"
         },
         "0x4657b36c": {
+          "canonicalSignature": "changeKernel(address)",
+          "documentation": {
+            "signature": "changeKernel(address)",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "changeKernel",
           "roles": [],
           "selector": "0x4657b36c",
           "signature": "changeKernel(address)()"
         },
         "0x46abe73a": {
+          "canonicalSignature": "nextActionId()",
+          "documentation": {
+            "signature": "nextActionId()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "nextActionId",
           "roles": [],
           "selector": "0x46abe73a",
           "signature": "nextActionId()(uint64)"
         },
         "0x57926074": {
+          "canonicalSignature": "queueRemoveChain(uint64)",
+          "documentation": {
+            "signature": "queueRemoveChain(uint64)",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "queueRemoveChain",
           "roles": [],
           "selector": "0x57926074",
           "signature": "queueRemoveChain(uint64)(uint64)"
         },
         "0x5924be70": {
+          "canonicalSignature": "requestPermissions()",
+          "documentation": {
+            "signature": "requestPermissions()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "requestPermissions",
           "roles": [],
           "selector": "0x5924be70",
           "signature": "requestPermissions()(tuple[])"
         },
         "0x5a2624e0": {
+          "canonicalSignature": "queueRemoveRemotePool(uint64,bytes)",
+          "documentation": {
+            "signature": "queueRemoveRemotePool(uint64,bytes)",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "queueRemoveRemotePool",
           "roles": [],
           "selector": "0x5a2624e0",
           "signature": "queueRemoveRemotePool(uint64,bytes)(uint64)"
         },
         "0x5d6fe9a7": {
+          "canonicalSignature": "getQueuedConfigDestination(uint64,uint256)",
+          "documentation": {
+            "signature": "getQueuedConfigDestination(uint64,uint256)",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "getQueuedConfigDestination",
           "roles": [],
           "selector": "0x5d6fe9a7",
           "signature": "getQueuedConfigDestination(uint64,uint256)(address)"
         },
         "0x5faedf93": {
+          "canonicalSignature": "getQueuedActionLength(uint64)",
+          "documentation": {
+            "signature": "getQueuedActionLength(uint64)",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "getQueuedActionLength",
           "roles": [],
           "selector": "0x5faedf93",
           "signature": "getQueuedActionLength(uint64)(uint256)"
         },
         "0x6aa633b6": {
+          "canonicalSignature": "isEnabled()",
+          "documentation": {
+            "signature": "isEnabled()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "isEnabled",
           "roles": [],
           "selector": "0x6aa633b6",
           "signature": "isEnabled()(bool)"
         },
         "0x7382f13b": {
+          "canonicalSignature": "reEnable()",
+          "documentation": {
+            "signature": "reEnable()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "reEnable",
           "roles": [],
           "selector": "0x7382f13b",
           "signature": "reEnable()()"
         },
         "0x79502c55": {
+          "canonicalSignature": "config()",
+          "documentation": {
+            "signature": "config()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "config",
           "roles": [],
           "selector": "0x79502c55",
           "signature": "config()(address)"
         },
         "0x7a184454": {
+          "canonicalSignature": "getQueuedSubAction(uint64,uint256)",
+          "documentation": {
+            "signature": "getQueuedSubAction(uint64,uint256)",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "getQueuedSubAction",
           "roles": [],
           "selector": "0x7a184454",
           "signature": "getQueuedSubAction(uint64,uint256)(address,bytes4,bytes)"
         },
         "0x86d6f3cc": {
+          "canonicalSignature": "queueAddRemotePool(uint64,bytes)",
+          "documentation": {
+            "signature": "queueAddRemotePool(uint64,bytes)",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "queueAddRemotePool",
           "roles": [],
           "selector": "0x86d6f3cc",
           "signature": "queueAddRemotePool(uint64,bytes)(uint64)"
         },
         "0x8b79670e": {
+          "canonicalSignature": "cancelQueuedAction(uint64)",
+          "documentation": {
+            "signature": "cancelQueuedAction(uint64)",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "cancelQueuedAction",
           "roles": [],
           "selector": "0x8b79670e",
           "signature": "cancelQueuedAction(uint64)()"
         },
         "0x8fc925aa": {
+          "canonicalSignature": "disable(bytes)",
+          "documentation": {
+            "signature": "disable(bytes)",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "disable",
           "roles": [],
           "selector": "0x8fc925aa",
           "signature": "disable(bytes)()"
         },
         "0x923cb952": {
+          "canonicalSignature": "ROLES()",
+          "documentation": {
+            "signature": "ROLES()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "ROLES",
           "roles": [],
           "selector": "0x923cb952",
           "signature": "ROLES()(address)"
         },
         "0x9459b875": {
+          "canonicalSignature": "configureDependencies()",
+          "documentation": {
+            "signature": "configureDependencies()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "configureDependencies",
           "roles": [],
           "selector": "0x9459b875",
           "signature": "configureDependencies()(bytes5[])"
         },
         "0xa06db7dc": {
+          "canonicalSignature": "gracePeriod()",
+          "documentation": {
+            "signature": "gracePeriod()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "gracePeriod",
           "roles": [],
           "selector": "0xa06db7dc",
           "signature": "gracePeriod()(uint32)"
         },
         "0xa33a2b96": {
+          "canonicalSignature": "getQueuedConfigStateCount(uint64,uint256)",
+          "documentation": {
+            "signature": "getQueuedConfigStateCount(uint64,uint256)",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "getQueuedConfigStateCount",
           "roles": [],
           "selector": "0xa33a2b96",
           "signature": "getQueuedConfigStateCount(uint64,uint256)(uint256)"
         },
         "0xa786eb3b": {
+          "canonicalSignature": "queueSetRemoteToken(uint64,bytes)",
+          "documentation": {
+            "signature": "queueSetRemoteToken(uint64,bytes)",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "queueSetRemoteToken",
           "roles": [],
           "selector": "0xa786eb3b",
           "signature": "queueSetRemoteToken(uint64,bytes)(uint64)"
         },
         "0xa898a8ce": {
+          "canonicalSignature": "setTimelockDelay(uint48)",
+          "documentation": {
+            "signature": "setTimelockDelay(uint48)",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "setTimelockDelay",
           "roles": ["admin"],
           "selector": "0xa898a8ce",
           "signature": "setTimelockDelay(uint48)()"
         },
         "0xab6eafdb": {
+          "canonicalSignature": "ROUTE_IDENTITY_DOMAIN()",
+          "documentation": {
+            "signature": "ROUTE_IDENTITY_DOMAIN()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "ROUTE_IDENTITY_DOMAIN",
           "roles": [],
           "selector": "0xab6eafdb",
           "signature": "ROUTE_IDENTITY_DOMAIN()(bytes32)"
         },
         "0xb2a28a25": {
+          "canonicalSignature": "ALLOWLIST_DOMAIN()",
+          "documentation": {
+            "signature": "ALLOWLIST_DOMAIN()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "ALLOWLIST_DOMAIN",
           "roles": [],
           "selector": "0xb2a28a25",
           "signature": "ALLOWLIST_DOMAIN()(bytes32)"
         },
         "0xb7452dd5": {
+          "canonicalSignature": "lastTransitionAt()",
+          "documentation": {
+            "signature": "lastTransitionAt()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "lastTransitionAt",
           "roles": [],
           "selector": "0xb7452dd5",
           "signature": "lastTransitionAt()(uint48)"
         },
         "0xbdc7412a": {
+          "canonicalSignature": "queueBatch((address,bytes4,bytes)[])",
+          "documentation": {
+            "signature": "queueBatch((address,bytes4,bytes)[])",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "queueBatch",
           "roles": [],
           "selector": "0xbdc7412a",
           "signature": "queueBatch(tuple[])(uint64)"
         },
         "0xc0bf26a7": {
+          "canonicalSignature": "queueApplyAllowListUpdates(address[],address[])",
+          "documentation": {
+            "signature": "queueApplyAllowListUpdates(address[],address[])",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "queueApplyAllowListUpdates",
           "roles": [],
           "selector": "0xc0bf26a7",
           "signature": "queueApplyAllowListUpdates(address[],address[])(uint64)"
         },
         "0xce920e90": {
+          "canonicalSignature": "pendingActionId(bytes32)",
+          "documentation": {
+            "signature": "pendingActionId(bytes32)",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "pendingActionId",
           "roles": [],
           "selector": "0xce920e90",
           "signature": "pendingActionId(bytes32)(uint64)"
         },
         "0xd4aae0c4": {
+          "canonicalSignature": "kernel()",
+          "documentation": {
+            "signature": "kernel()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "kernel",
           "roles": [],
           "selector": "0xd4aae0c4",
           "signature": "kernel()(address)"
         },
         "0xd8143a3a": {
+          "canonicalSignature": "queueAddChain((uint64,bytes[],bytes,(bool,uint128,uint128),(bool,uint128,uint128)))",
+          "documentation": {
+            "signature": "queueAddChain((uint64,bytes[],bytes,(bool,uint128,uint128),(bool,uint128,uint128)))",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "queueAddChain",
           "roles": [],
           "selector": "0xd8143a3a",
           "signature": "queueAddChain(tuple)(uint64)"
         },
         "0xd9dd1df7": {
+          "canonicalSignature": "maxConfigKeysPerBatch()",
+          "documentation": {
+            "signature": "maxConfigKeysPerBatch()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "maxConfigKeysPerBatch",
           "roles": [],
           "selector": "0xd9dd1df7",
           "signature": "maxConfigKeysPerBatch()(uint256)"
         },
         "0xe0b6e404": {
+          "canonicalSignature": "executeQueuedAction(uint64)",
+          "documentation": {
+            "signature": "executeQueuedAction(uint64)",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "executeQueuedAction",
           "roles": [],
           "selector": "0xe0b6e404",
           "signature": "executeQueuedAction(uint64)()"
         },
         "0xea5a5277": {
+          "canonicalSignature": "getQueuedAction(uint64)",
+          "documentation": {
+            "signature": "getQueuedAction(uint64)",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "getQueuedAction",
           "roles": [],
           "selector": "0xea5a5277",
           "signature": "getQueuedAction(uint64)(tuple)"
         },
         "0xeef09bad": {
+          "canonicalSignature": "timelockDelay()",
+          "documentation": {
+            "signature": "timelockDelay()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "timelockDelay",
           "roles": [],
           "selector": "0xeef09bad",
           "signature": "timelockDelay()(uint48)"
         },
         "0xf3cffe24": {
+          "canonicalSignature": "queueSetChainRateLimits(uint64,(bool,uint128,uint128),(bool,uint128,uint128))",
+          "documentation": {
+            "signature": "queueSetChainRateLimits(uint64,(bool,uint128,uint128),(bool,uint128,uint128))",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "queueSetChainRateLimits",
           "roles": [],
           "selector": "0xf3cffe24",
           "signature": "queueSetChainRateLimits(uint64,tuple,tuple)(uint64)"
         },
         "0xf5d6d2ba": {
+          "canonicalSignature": "getQueuedConfigState(uint64,uint256,uint256)",
+          "documentation": {
+            "signature": "getQueuedConfigState(uint64,uint256,uint256)",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "getQueuedConfigState",
           "roles": [],
           "selector": "0xf5d6d2ba",
           "signature": "getQueuedConfigState(uint64,uint256,uint256)(bytes32,bytes32)"
         },
         "0xffa1ad74": {
+          "canonicalSignature": "VERSION()",
+          "documentation": {
+            "signature": "VERSION()",
+            "source": {
+              "codeHash": "0x4c036b79d4c71033755bbb5a2a8f17f61ffa374fe028502c4a38f81464e41356",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0xf489f38bf8d98a5c10a030f8c16624f6764cd27a?fields=metadata"
+            }
+          },
           "name": "VERSION",
           "roles": [],
           "selector": "0xffa1ad74",

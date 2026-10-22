@@ -1,5 +1,6 @@
 import type { EvmOnEventContext } from "envio";
 import type { Address, Hex } from "viem";
+import type { FunctionContext } from "../../../../packages/snapshot-artifacts/src/index";
 
 export type EntityStore = {
   get: <T>(id: string) => Promise<T | undefined>;
@@ -38,6 +39,7 @@ export type RequestedPolicyPermissionsResult = {
 export type PolicyPermission = {
   keycode: string;
   function: string;
+  functionContext?: FunctionContext;
 };
 
 export type BaseEvent = {

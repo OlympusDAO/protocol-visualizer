@@ -179,6 +179,8 @@ type ContractRelationship {
   indexedThrough: Json
   verification: Json
   coverage: String
+  functionContext: Json
+  targetCode: String
 }
 
 type ChainObservation {

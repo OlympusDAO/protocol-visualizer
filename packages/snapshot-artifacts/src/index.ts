@@ -32,6 +32,14 @@ export type GetterVerification = {
   getterValue?: string;
   reason?: string;
 };
+export type FunctionContext = {
+  signature: string;
+  notice?: string;
+  details?: string;
+  params?: Record<string, string>;
+  returns?: Record<string, string>;
+  source?: { url: string; codeHash: string; match?: "exact" | "code" };
+};
 export type AdditionalContract = {
   id: string;
   chainId: number;
@@ -71,6 +79,8 @@ export type ContractRelationship = {
   indexedThrough?: BlockObservation | null;
   verification?: GetterVerification;
   coverage?: string;
+  functionContext?: FunctionContext;
+  targetCode?: "present" | "absent";
 };
 export type ChainObservation = {
   chainId: number;
@@ -586,6 +596,33 @@ export const protocolSnapshotSchema = {
         },
         verification: { $ref: "#/$defs/contractState/properties/verification" },
         coverage: { type: "string" },
+        targetCode: { enum: ["present", "absent"] },
+        functionContext: {
+          type: "object",
+          required: ["signature"],
+          properties: {
+            signature: { type: "string" },
+            notice: { type: "string" },
+            details: { type: "string" },
+            params: {
+              type: "object",
+              additionalProperties: { type: "string" },
+            },
+            returns: {
+              type: "object",
+              additionalProperties: { type: "string" },
+            },
+            source: {
+              type: "object",
+              required: ["url", "codeHash"],
+              properties: {
+                url: { type: "string" },
+                codeHash: { type: "string" },
+                match: { enum: ["exact", "code"] },
+              },
+            },
+          },
+        },
       },
     },
     observation: {

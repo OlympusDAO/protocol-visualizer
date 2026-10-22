@@ -7,6 +7,12 @@ field_selection:
     - hash
 
 contracts:
+  - name: MonoCoolerReferences
+    abi_file_path: ./abis/json/MonoCoolerReferences.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "LtvOracleSet(address indexed oracle)"
+      - event: "TreasuryBorrowerSet(address indexed treasuryBorrower)"
   - name: Kernel
     abi_file_path: ./abis/json/Kernel.json
     handler: ./src/EventHandlers.ts
@@ -224,6 +230,9 @@ chains:
       - url: ${ENVIO_RPC_URL_1:-https://eth.llamarpc.com}
         for: ${ENVIO_RPC_MODE:-sync}
     contracts:
+      - name: MonoCoolerReferences
+        address:
+          - "0xdb591ea2e5db886da872654d58f6cc584b68e7cc"
       - name: Kernel
         address:
           - "0x2286d7f9639e8158FaD1169e76d1FbC38247f54b"

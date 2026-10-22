@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import ReactFlow, {
   Background,
   Controls,
+  MiniMap,
   type Node,
   useEdgesState,
   useNodesState,
@@ -19,22 +20,29 @@ import {
   getProtocolVisualizerData,
   getAdditionalGraphContracts,
   type RoleAssignment,
+  type PolicyFunction,
+  type PolicyPermission,
 } from "@/services/contracts";
 import dagre from "dagre";
+import { ConnectionLabel, FunctionDocumentation } from "./function-context";
 import { ChainSelector } from "../chain-selector";
 import { SUPPORTED_CHAINS } from "@/lib/constants";
 import { useGraphNavigation } from "./navigation";
 import {
   getArchitectureView,
+  layoutArchitectureSections,
   getSubsystem,
   SUBSYSTEMS,
   type ConnectionFilters,
   type ConnectionKind,
 } from "./architecture";
+import { RelationshipEdge } from "./relationship-edge";
 import otherContracts from "../../../../../packages/protocol-config/other-contracts.json";
 import {
+  getFunctionTooltip,
   getEnablementPresentation,
   getRelationshipGraph,
+  getRelationshipPath,
   getContractPalette,
   getGraphContractName,
   getContractNodeWidth,
@@ -47,11 +55,6 @@ import {
 interface NodeData {
   name: string;
   contractType?: string;
-  subsystemId?: string;
-  memberCount?: number;
-  memberType?: string;
-  internalLinks?: number;
-  onExpand?: () => void;
   kernelInactive?: boolean;
   label: React.ReactNode;
   assignees?: RoleAssignment[];
@@ -226,12 +229,16 @@ const NODE_COLORS = {
 const createAddressNode = (
   assignee: Pick<RoleAssignment, "assignee" | "assigneeName">,
   id: string,
-  chainId: number
+  chainId: number,
+  contract = false
 ) => {
   const assigneeName =
     assignee.assigneeName === "UNKNOWN"
-      ? "Unknown address"
+      ? contract
+        ? "Unknown contract"
+        : "Unknown address"
       : assignee.assigneeName;
+  const colors = contract ? NODE_COLORS.external : NODE_COLORS.assignee;
 
   return {
     id,
@@ -244,13 +251,13 @@ const createAddressNode = (
             type="target"
             position={Position.Left}
             style={{
-              background: NODE_COLORS.assignee.border,
-              border: `1px solid ${NODE_COLORS.assignee.border}`,
+              background: colors.border,
+              border: `1px solid ${colors.border}`,
             }}
           />
           <div
             className="font-bold mb-1 wrap-break-word"
-            style={{ color: NODE_COLORS.assignee.text }}
+            style={{ color: colors.text }}
           >
             {assigneeName}
           </div>
@@ -259,7 +266,7 @@ const createAddressNode = (
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs break-all hover:opacity-80"
-            style={{ color: NODE_COLORS.assignee.border }}
+            style={{ color: colors.border }}
           >
             {shortenAddress(assignee.assignee)}
           </a>
@@ -268,17 +275,17 @@ const createAddressNode = (
             type="source"
             position={Position.Right}
             style={{
-              background: NODE_COLORS.assignee.border,
-              border: `1px solid ${NODE_COLORS.assignee.border}`,
+              background: colors.border,
+              border: `1px solid ${colors.border}`,
             }}
           />
         </div>
       ),
-      assigneeAddress: assignee.assignee,
+      ...(contract ? {} : { assigneeAddress: assignee.assignee }),
     },
     style: {
-      background: NODE_COLORS.assignee.background,
-      border: `1px solid ${NODE_COLORS.assignee.border}`,
+      background: colors.background,
+      border: `1px solid ${colors.border}`,
       borderRadius: "8px",
       padding: "6px",
       width: getContractNodeWidth({ name: assigneeName }),
@@ -289,29 +296,9 @@ const createAddressNode = (
 };
 
 // Node types configuration
+const edgeTypes = { relationship: RelationshipEdge };
+
 const nodeTypes: NodeTypes = {
-  subsystem: ({ id, data }: { id: string; data: NodeData }) => (
-    <div className="rounded-lg border border-slate-400 bg-slate-50 p-3 text-sm text-slate-800">
-      <Handle id={`${id}-target`} type="target" position={Position.Left} />
-      <strong>{data.name}</strong>
-      <div className="mt-1 text-xs text-slate-500">
-        {data.memberCount} {data.memberType}
-        {data.internalLinks ? ` · ${data.internalLinks} internal links` : ""}
-      </div>
-      <button
-        type="button"
-        className="nodrag nopan mt-2 text-xs text-blue-700 hover:underline"
-        aria-label={`Explore ${data.name}`}
-        onClick={(event) => {
-          event.stopPropagation();
-          data.onExpand?.();
-        }}
-      >
-        Explore →
-      </button>
-      <Handle id={`${id}-source`} type="source" position={Position.Right} />
-    </div>
-  ),
   group: ({ data }) => <div>{data.label}</div>,
   role: ({ data }: { data: NodeData }) => (
     // biome-ignore lint/a11y/noStaticElementInteractions: graph node hover state is handled by React Flow, not an interactive control.
@@ -473,7 +460,7 @@ export function ContractVisualizer() {
   const [architectureView, setArchitectureView] = useState("overview");
   const [connectionFilters, setConnectionFilters] = useState<ConnectionFilters>(
     {
-      permission: true,
+      permission: false,
       control: true,
       reference: true,
     }
@@ -910,9 +897,7 @@ export function ContractVisualizer() {
         (c) => c.type === "policy" && Array.isArray(c.policyFunctions)
       );
       policyContracts.forEach((policy) => {
-        const policyFunctions = policy.policyFunctions as Array<{
-          roles: string[];
-        }>;
+        const policyFunctions = policy.policyFunctions as PolicyFunction[];
         const hasRole = policyFunctions.some((func) =>
           func.roles.includes(role.role)
         );
@@ -942,7 +927,22 @@ export function ContractVisualizer() {
         ...createAddressNode(
           { assignee: address, assigneeName },
           address,
-          selectedChainId
+          selectedChainId,
+          !roleAssignments.some(
+            (assignment) => assignment.assignee.toLowerCase() === address
+          ) &&
+            !data?.relationships.some(
+              (relationship) =>
+                relationship.status === "current" &&
+                relationship.source.toLowerCase() === address
+            ) &&
+            (data?.relationships.some(
+              (relationship) =>
+                relationship.status === "reference" &&
+                relationship.target?.toLowerCase() === address &&
+                relationship.targetCode === "present"
+            ) ??
+              false)
         ),
         position: { x: 0, y: 0 },
       });
@@ -952,13 +952,27 @@ export function ContractVisualizer() {
       newEdges.push({
         ...createEdge(edge.source, edge.target),
         id: edge.id,
-        type: edge.pending ? "default" : "smoothstep",
-        label: edge.label,
+        type: "relationship",
+        label: (
+          <ConnectionLabel
+            label={edge.label}
+            functions={
+              edge.relationship.functionContext
+                ? [edge.relationship.functionContext]
+                : [{ signature: edge.label }]
+            }
+          />
+        ),
+        ariaLabel: edge.relationship.functionContext
+          ? getFunctionTooltip([edge.relationship.functionContext])
+          : edge.label,
         data: {
           kind:
             edge.relationship.status === "reference" ? "reference" : "control",
           pending: edge.pending,
           relationship: edge.relationship,
+          labelText: edge.label,
+          laneOffset: edge.labelOffset * 2.5,
         },
         style: {
           stroke: "#475569",
@@ -969,9 +983,7 @@ export function ContractVisualizer() {
         labelStyle: {
           fontSize: 11,
           fill: "#334155",
-          transform: `translateY(${edge.labelOffset - 12}px)`,
         },
-        labelBgStyle: { transform: `translateY(${edge.labelOffset - 12}px)` },
         markerEnd: { type: MarkerType.Arrow, color: "#475569" },
       });
     }
@@ -1008,32 +1020,27 @@ export function ContractVisualizer() {
       connectionFilters,
       selectedNode
     );
-    const viewNodes = projected.nodes.map((node) =>
-      node.data.subsystemId
-        ? {
-            ...node,
-            data: {
-              ...node.data,
-              onExpand: () => setArchitectureView(node.data.subsystemId),
-            },
-          }
-        : node
-    );
-    const inactive =
-      architectureView === "all" && !selectedNode
-        ? viewNodes.filter((node) => node.data.kernelInactive)
-        : [];
-    const inactiveIds = new Set(inactive.map((node) => node.id));
-    const active = viewNodes.filter((node) => !inactiveIds.has(node.id));
-    const activeIds = new Set(active.map((node) => node.id));
-    const layout = getLayoutedElements(
-      active,
-      projected.edges.filter(
-        (edge) => activeIds.has(edge.source) && activeIds.has(edge.target)
-      ),
-      "TB"
-    );
-    const finalNodes = groupInactiveContracts(layout.nodes, inactive);
+    const viewNodes = projected.nodes;
+    const sectioned = architectureView === "overview" && !selectedNode;
+    let finalNodes: Node[];
+    if (sectioned) finalNodes = layoutArchitectureSections(viewNodes);
+    else {
+      const inactive =
+        architectureView === "all" && !selectedNode
+          ? viewNodes.filter((node) => node.data.kernelInactive)
+          : [];
+      const inactiveIds = new Set(inactive.map((node) => node.id));
+      const active = viewNodes.filter((node) => !inactiveIds.has(node.id));
+      const activeIds = new Set(active.map((node) => node.id));
+      const layout = getLayoutedElements(
+        active,
+        projected.edges.filter(
+          (edge) => activeIds.has(edge.source) && activeIds.has(edge.target)
+        ),
+        "TB"
+      );
+      finalNodes = groupInactiveContracts(layout.nodes, inactive);
+    }
     const key = JSON.stringify([
       selectedChainId,
       architectureView,
@@ -1065,7 +1072,14 @@ export function ContractVisualizer() {
       reactFlowInstance.fitView({
         padding: 0.2,
         duration: 0,
-        nodes: finalNodes,
+        nodes: sectioned
+          ? finalNodes.filter(
+              (node) =>
+                !node.id.startsWith("role-") &&
+                !node.data.kernelInactive &&
+                !["roles", "inactive"].includes(node.data.sectionId)
+            )
+          : finalNodes,
       });
       current.fitted = true;
     }, 10);
@@ -1091,10 +1105,6 @@ export function ContractVisualizer() {
   // Fix type for handleNodeClick
   const handleNodeClick = useCallback(
     (_: unknown, node: Node) => {
-      if (node.data.subsystemId) {
-        setArchitectureView(node.data.subsystemId);
-        return;
-      }
       setSelectedNode((prevSelected) =>
         prevSelected === node.id ? null : node.id
       );
@@ -1233,11 +1243,9 @@ export function ContractVisualizer() {
       )
       .map((policy) => {
         // Get the specific functions that use this role
-        const functions = (
-          policy.policyFunctions as Array<{ roles: string[]; name: string }>
-        )
-          .filter((func) => func.roles.includes(roleName))
-          .map((func) => func.name);
+        const functions = (policy.policyFunctions as PolicyFunction[]).filter(
+          (func) => func.roles.includes(roleName)
+        );
 
         return {
           name: formatContractName(policy),
@@ -1359,8 +1367,20 @@ export function ContractVisualizer() {
                         <div className="text-xs text-gray-600">Functions:</div>
                         <ul className="list-disc pl-4">
                           {policy.functions.map((func) => (
-                            <li key={func} className="text-xs text-blue-600">
-                              {func}
+                            <li
+                              key={
+                                func.canonicalSignature ??
+                                func.signature ??
+                                func.name
+                              }
+                              className="text-xs text-blue-600"
+                            >
+                              {func.canonicalSignature ??
+                                func.signature ??
+                                func.name}
+                              <FunctionDocumentation
+                                value={func.documentation}
+                              />
                             </li>
                           ))}
                         </ul>
@@ -1399,16 +1419,12 @@ export function ContractVisualizer() {
     });
 
     // Group policy permissions by keycode
-    const permissionsByKeycode = new Map<string, Array<{ function: string }>>();
-    (
-      contract.policyPermissions as Array<{ keycode: string; function: string }>
-    ).forEach((permission) => {
+    const permissionsByKeycode = new Map<string, PolicyPermission[]>();
+    (contract.policyPermissions as PolicyPermission[]).forEach((permission) => {
       if (!permissionsByKeycode.has(permission.keycode)) {
         permissionsByKeycode.set(permission.keycode, []);
       }
-      permissionsByKeycode
-        .get(permission.keycode)
-        ?.push({ function: permission.function });
+      permissionsByKeycode.get(permission.keycode)?.push(permission);
     });
 
     // Get unique keycodes from policy permissions
@@ -1526,6 +1542,9 @@ export function ContractVisualizer() {
                               className="text-xs text-blue-600"
                             >
                               {func.function}
+                              <FunctionDocumentation
+                                value={func.functionContext}
+                              />
                             </li>
                           ))}
                         </ul>
@@ -1704,8 +1723,8 @@ export function ContractVisualizer() {
                 setArchitectureView(event.target.value);
               }}
             >
-              <option value="overview">Architecture overview</option>
-              <option value="all">Full graph</option>
+              <option value="overview">Architecture sections</option>
+              <option value="all">Unsectioned graph</option>
               {SUBSYSTEMS.filter((group) =>
                 canonicalGraph?.nodes.some(
                   (node) => getSubsystem(node) === group.id
@@ -1719,7 +1738,7 @@ export function ContractVisualizer() {
           </label>
           {(
             [
-              ["permission", "Permissions"],
+              ["permission", "Role / module permissions"],
               ["control", "Ownership / control"],
               ["reference", "References"],
             ] as [ConnectionKind, string][]
@@ -1750,9 +1769,6 @@ export function ContractVisualizer() {
           <span>
             {nodes.filter((node) => node.type !== "group").length} nodes ·{" "}
             {edges.length} connections
-            {architectureView === "overview" && !selectedNode
-              ? " (summarized)"
-              : ""}
           </span>
         </div>
       )}
@@ -1769,7 +1785,7 @@ export function ContractVisualizer() {
       {!isHistorical && (data?.relationships.length ?? 0) > 0 && (
         <p className="mb-2 text-xs text-gray-500">
           Control and reference links are labelled. Dashed links show pending
-          nominations.
+          nominations. Missing links may reflect incomplete source coverage.
         </p>
       )}
       <div className="h-[800px] border border-gray-200 rounded-lg">
@@ -1828,6 +1844,7 @@ export function ContractVisualizer() {
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
               fitView
               minZoom={0.2}
               maxZoom={1.5}
@@ -1853,6 +1870,7 @@ export function ContractVisualizer() {
             >
               <Background />
               <Controls />
+              <MiniMap pannable zoomable />
             </ReactFlow>
             {selectedAddressNode?.data.assigneeAddress
               ? renderAssigneeTooltip()
@@ -1957,35 +1975,40 @@ export function ContractVisualizer() {
                       >
                         <strong>
                           {relationship.status === "pending" ? "Pending " : ""}
-                          {relationship.kind.replace(/-/g, " ")}
+                          {relationship.functionContext?.signature ??
+                            relationship.kind.replace(/-/g, " ")}
                         </strong>
+                        <FunctionDocumentation
+                          value={relationship.functionContext}
+                        />
+                        {relationship.targetCode && (
+                          <p className="mt-1 text-gray-500">
+                            {relationship.targetCode === "present"
+                              ? "Target has deployed code at the observation block."
+                              : "Target has no code at the observation block; address type is not inferred."}
+                          </p>
+                        )}
                         {relationship.target ? (
                           <p className="mt-1 break-all">
-                            <a
-                              className="text-blue-600"
-                              href={getEtherscanLink(
-                                relationship.source,
-                                selectedChainId
-                              )}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title={relationship.source}
-                            >
-                              {shortenAddress(relationship.source)}
-                            </a>
-                            {" → "}
-                            <a
-                              className="text-blue-600"
-                              href={getEtherscanLink(
-                                relationship.target,
-                                selectedChainId
-                              )}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title={relationship.target}
-                            >
-                              {shortenAddress(relationship.target)}
-                            </a>
+                            {getRelationshipPath(relationship).map(
+                              (address, index) => (
+                                <span key={address}>
+                                  {index > 0 && " → "}
+                                  <a
+                                    className="text-blue-600"
+                                    href={getEtherscanLink(
+                                      address,
+                                      selectedChainId
+                                    )}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title={address}
+                                  >
+                                    {shortenAddress(address)}
+                                  </a>
+                                </span>
+                              )
+                            )}
                           </p>
                         ) : (
                           <p>
@@ -2011,7 +2034,7 @@ export function ContractVisualizer() {
                           {relationship.status === "reference" &&
                             relationship.getter && (
                               <p className="mt-1 text-gray-500">
-                                Contract reference from{" "}
+                                Address reference from{" "}
                                 {relationship.getter.split(":")[0]}(
                                 {relationship.scope?.token}).
                               </p>

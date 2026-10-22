@@ -23,7 +23,7 @@ registerHooks({
         shortCircuit: true,
       };
     }
-    if (url.endsWith(".json")) {
+    if (url.endsWith(".json") && !url.includes("/node_modules/")) {
       return {
         format: "module",
         source: `export default ${readFileSync(new URL(url), "utf8")}`,

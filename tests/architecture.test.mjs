@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import "../apps/indexer/scripts/register-typescript.mjs";
-const { getArchitectureView } = await import(
+const { getArchitectureView, layoutArchitectureSections } = await import(
   "../apps/frontend/src/components/contract-visualizer/architecture.ts"
 );
 
@@ -50,7 +50,7 @@ test("focused permissions remain visible even when the source graph fades them",
   assert.ok(faded.every((edge) => edge.style.opacity === 0.1));
 });
 
-test("architecture overview groups contracts and roles without duplicating shared actors", () => {
+test("architecture sections preserve visible canonical contracts, shared actors and exact connections", () => {
   const view = getArchitectureView(
     [...nodes, nodes[4]],
     [...edges, edges[5]],
@@ -58,27 +58,33 @@ test("architecture overview groups contracts and roles without duplicating share
     filters,
     null
   );
-  assert.equal(new Set(view.nodes.map((n) => n.id)).size, view.nodes.length);
-  assert.equal(view.nodes.filter((n) => n.id === "actor").length, 1);
-  assert.equal(
-    view.nodes.find((n) => n.data.subsystemId === "cooler").data.memberCount,
-    2
-  );
-  assert.equal(
-    view.nodes.find((n) => n.data.subsystemId === "inactive").data.memberCount,
-    1
-  );
-  const refs = view.edges.find((e) => e.data.kind === "reference");
-  assert.equal(refs.data.members.length, 2);
+  assert.equal(view.nodes.length, nodes.length);
+  assert.equal(view.edges.length, edges.length);
+  assert.equal(view.nodes.filter((node) => node.id === "actor").length, 1);
+  const sectioned = layoutArchitectureSections(view.nodes);
   assert.deepEqual(
-    new Set(refs.data.members.map((e) => e.id)),
-    new Set(["ref-one", "ref-two"])
+    new Set(
+      sectioned.filter((node) => node.type !== "group").map((node) => node.id)
+    ),
+    new Set(nodes.map((node) => node.id))
   );
-  assert.equal(view.edges.filter((e) => e.data.kind === "control").length, 3);
-  const controls = view.edges.filter(
-    (e) => e.source === "actor" && e.target === "subsystem-bridging"
+  for (const node of sectioned.filter((node) => node.type !== "group")) {
+    const containers = sectioned.filter(
+      (group) =>
+        group.type === "group" &&
+        node.position.x >= group.position.x &&
+        node.position.x + (node.style?.width ?? 180) <=
+          group.position.x + group.style.width &&
+        node.position.y >= group.position.y + 50 &&
+        node.position.y + 120 <= group.position.y + group.style.height
+    );
+    assert.equal(containers.length, 1);
+  }
+  assert.ok(
+    sectioned.some((node) => node.data.label === "Not installed in Kernel")
   );
-  assert.equal(new Set(controls.map((e) => e.labelStyle.transform)).size, 2);
+  assert.deepEqual(layoutArchitectureSections(view.nodes), sectioned);
+  assert.deepEqual(layoutArchitectureSections([]), []);
 });
 
 test("subsystem drilldown reveals its contracts and immediate boundary without following shared owners", () => {
@@ -112,8 +118,8 @@ test("relationship filters retain distinct pending controls and full graph remai
     { ...filters, permission: false, control: false },
     null
   );
-  assert.equal(view.edges.length, 1);
-  assert.equal(view.edges[0].data.kind, "reference");
+  assert.equal(view.edges.length, 2);
+  assert.ok(view.edges.every((edge) => edge.data.kind === "reference"));
   const all = getArchitectureView(nodes, edges, "all", filters, null);
   assert.deepEqual(all.nodes, nodes);
   assert.deepEqual(all.edges, edges);

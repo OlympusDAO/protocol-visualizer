@@ -1,5 +1,5 @@
 import type { Edge, Node } from "reactflow";
-import { getContractNodeWidth } from "./graph";
+import { getGraphNodeWidth } from "./graph";
 
 export const SUBSYSTEMS = [
   { id: "core", name: "Kernel & modules" },
@@ -17,6 +17,7 @@ export type ConnectionKind = "permission" | "control" | "reference";
 export type ConnectionFilters = Record<ConnectionKind, boolean>;
 
 export function getSubsystem(node: Node): string | null {
+  if (node.data.name === "TokenAdminRegistry") return null;
   if (node.data.kernelInactive) return "inactive";
   if (node.id.startsWith("role-")) return "roles";
   if (node.data.assigneeAddress || /\bMS\b|Multisig/.test(node.data.name))
@@ -61,7 +62,13 @@ export function getArchitectureView(
         .map((node) => [node.id, node])
     ).values(),
   ];
-  const edges = inputEdges.filter((edge) => filters[getConnectionKind(edge)]);
+  const edges = [
+    ...new Map(
+      inputEdges
+        .filter((edge) => filters[getConnectionKind(edge)])
+        .map((edge) => [edge.id, edge])
+    ).values(),
+  ];
   if (selected || (view !== "overview" && view !== "all")) {
     const members = new Set(
       selected
@@ -72,9 +79,28 @@ export function getArchitectureView(
     );
     const ids = new Set(members);
     for (const edge of edges) {
-      if (members.has(edge.source) || members.has(edge.target)) {
+      const relationship = edge.data?.relationship;
+      const scopedMember =
+        relationship?.kind === "token-admin" &&
+        [relationship.scope?.registry, relationship.scope?.token].some(
+          (address) => address && members.has(address.toLowerCase())
+        );
+      if (
+        members.has(edge.source) ||
+        members.has(edge.target) ||
+        scopedMember
+      ) {
         ids.add(edge.source);
         ids.add(edge.target);
+        if (relationship?.kind === "token-admin") {
+          for (const address of [
+            relationship.source,
+            relationship.scope?.registry,
+            relationship.scope?.token,
+          ]) {
+            if (address) ids.add(address.toLowerCase());
+          }
+        }
       }
     }
     return {
@@ -86,87 +112,112 @@ export function getArchitectureView(
         ),
     };
   }
-  if (view === "all") return { nodes, edges };
+  return { nodes, edges };
+}
 
-  const groups = new Map<string, Node[]>();
-  const endpoints = new Map<string, string>();
-  const visible = nodes.filter((node) => {
-    const group = getSubsystem(node);
-    endpoints.set(node.id, group ? `subsystem-${group}` : node.id);
-    if (!group) return true;
-    const members = groups.get(group) ?? [];
-    members.push(node);
-    groups.set(group, members);
-    return false;
-  });
-  for (const definition of SUBSYSTEMS) {
-    const members = groups.get(definition.id);
-    if (!members?.length) continue;
-    const internalLinks = edges.filter(
-      (edge) =>
-        endpoints.get(edge.source) === `subsystem-${definition.id}` &&
-        endpoints.get(edge.target) === `subsystem-${definition.id}`
-    ).length;
-    visible.push({
-      id: `subsystem-${definition.id}`,
-      type: "subsystem",
-      position: { x: 0, y: 0 },
-      data: {
-        name: definition.name,
-        label: definition.name,
-        subsystemId: definition.id,
-        memberCount: members.length,
-        memberType: definition.id === "roles" ? "roles" : "contracts",
-        internalLinks,
+/** Keep canonical contract cards visible inside labelled sections. */
+export function layoutArchitectureSections(nodes: Node[]): Node[] {
+  const definitions = [
+    { id: "shared", name: "Shared controllers & registries" },
+    ...SUBSYSTEMS,
+  ];
+  const sections = definitions
+    .map((definition) => {
+      const members = nodes.filter(
+        (node) => (getSubsystem(node) ?? "shared") === definition.id
+      );
+      const columns = Math.min(
+        definition.id === "shared" ? 6 : 3,
+        members.length
+      );
+      const cellWidth = Math.max(180, ...members.map(getGraphNodeWidth)) + 40;
+      return {
+        ...definition,
+        members,
+        columns,
+        cellWidth,
+        width: columns * cellWidth + 40,
+        height: Math.ceil(members.length / (columns || 1)) * 150 + 80,
+      };
+    })
+    .filter((section) => section.members.length);
+  const backgrounds: Node[] = [];
+  const cards: Node[] = [];
+  const main = sections.filter(
+    (section) => !["inactive", "roles", "shared"].includes(section.id)
+  );
+  const columns = Math.min(3, main.length);
+  const widths = Array.from({ length: columns }, (_, column) =>
+    Math.max(
+      ...main
+        .filter((_, index) => index % columns === column)
+        .map((section) => section.width)
+    )
+  );
+  let rowY = 0;
+  const place = (section: (typeof sections)[number], x: number, y: number) => {
+    backgrounds.push({
+      id: `section-${section.id}`,
+      type: "group",
+      position: { x, y },
+      data: { name: section.name, label: section.name, sectionId: section.id },
+      selectable: false,
+      focusable: false,
+      draggable: false,
+      connectable: false,
+      zIndex: -1,
+      style: {
+        width: section.width,
+        height: section.height,
+        padding: "16px 24px",
+        fontSize: 20,
+        fontWeight: 600,
+        color: "#64748b",
+        background: "rgba(241,245,249,0.5)",
+        border: "1px solid #cbd5e1",
+        pointerEvents: "none",
       },
-      style: { width: getContractNodeWidth({ name: definition.name }) },
     });
-  }
-  const summaries = new Map<string, Edge>();
-  for (const edge of edges) {
-    const source = endpoints.get(edge.source);
-    const target = endpoints.get(edge.target);
-    if (!source || !target || source === target) continue;
-    const kind = getConnectionKind(edge);
-    const pending = Boolean(edge.data?.pending);
-    const id = `summary:${source}:${target}:${kind}:${pending}`;
-    const summary = summaries.get(id);
-    if (summary) {
-      if (!summary.data.members.some((member: Edge) => member.id === edge.id))
-        summary.data.members.push(edge);
-    } else
-      summaries.set(id, {
-        ...edge,
-        id,
-        source,
-        target,
-        sourceHandle: `${source}-source`,
-        targetHandle: `${target}-target`,
-        data: { kind, pending, members: [edge] },
+    section.members.forEach((node, index) => {
+      cards.push({
+        ...node,
+        position: {
+          x: x + 20 + (index % section.columns) * section.cellWidth,
+          y: y + 60 + Math.floor(index / section.columns) * 150,
+        },
       });
-  }
-  const pairs = new Map<string, Edge[]>();
-  for (const edge of summaries.values()) {
-    const pair = `${edge.source}:${edge.target}`;
-    const group = pairs.get(pair) ?? [];
-    group.push(edge);
-    pairs.set(pair, group);
-  }
-  return {
-    nodes: visible,
-    edges: [...pairs.values()].flatMap((group) =>
-      group.map((edge, index) => ({
-        ...edge,
-        labelStyle: {
-          ...edge.labelStyle,
-          transform: `translateY(${(index - (group.length - 1) / 2) * 18 - 12}px)`,
-        },
-        labelBgStyle: {
-          ...edge.labelBgStyle,
-          transform: `translateY(${(index - (group.length - 1) / 2) * 18 - 12}px)`,
-        },
-        label: `${edge.data.members.length} ${edge.data.pending ? "pending " : ""}${edge.data.kind === "permission" ? "permissions" : edge.data.kind === "reference" ? "references" : "control links"}`,
-      }))
-    ),
+    });
   };
+  const shared = sections.find((section) => section.id === "shared");
+  if (shared) {
+    place(shared, 0, 0);
+    rowY = shared.height + 100;
+  }
+  for (let row = 0; row < Math.ceil(main.length / (columns || 1)); row++) {
+    let x = 0;
+    for (let column = 0; column < columns; column++) {
+      const section = main[row * columns + column];
+      if (section) place(section, x, rowY);
+      x += (widths[column] ?? 0) + 100;
+    }
+    rowY +=
+      Math.max(
+        ...main
+          .slice(row * columns, (row + 1) * columns)
+          .map((section) => section.height)
+      ) + 100;
+  }
+  let sideY = 0;
+  const sideX =
+    Math.max(
+      widths.reduce((sum, width) => sum + width + 100, 0),
+      shared?.width ?? 0
+    ) + 100;
+  for (const section of sections.filter((section) =>
+    ["roles", "inactive"].includes(section.id)
+  )) {
+    place(section, sideX, sideY);
+    sideY += section.height + 100;
+  }
+  return [...backgrounds, ...cards];
 }

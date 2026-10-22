@@ -3,10 +3,24 @@ import {
   type SnapshotExtension,
   type SnapshotSchemaVersion,
   type AdditionalContract,
+  type FunctionContext,
 } from "../../../../packages/snapshot-artifacts/src/index";
 
 type ContractType = "kernel" | "module" | "policy";
 type EnvioContractType = "KERNEL" | "MODULE" | "POLICY";
+
+export type PolicyFunction = {
+  name: string;
+  roles: string[];
+  signature?: string;
+  canonicalSignature?: string;
+  documentation?: FunctionContext;
+};
+export type PolicyPermission = {
+  keycode: string;
+  function: string;
+  functionContext?: FunctionContext;
+};
 
 export type JsonValue =
   | null

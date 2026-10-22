@@ -6,6 +6,7 @@ import {
   type RelationshipField,
   type RelationshipState,
 } from "./ownership";
+import type { ProcessedContractData } from "../services/contracts/types";
 import type { EnvioContext } from "./types";
 
 const poolNames = new Set([
@@ -41,7 +42,10 @@ const ownedNames = new Set([
   "ConvertibleDepositActivator",
   "MigrationProposalHelper",
 ]);
-export function getRelationshipFields(chainId: number): RelationshipField[] {
+export function getRelationshipFields(
+  chainId: number,
+  firstIndexedBlock = 0
+): RelationshipField[] {
   const fields: RelationshipField[] = [];
   const known = new Map(
     otherContracts
@@ -127,6 +131,39 @@ export function getRelationshipFields(chainId: number): RelationshipField[] {
         "legacy-minter",
         "getter-only: gOHM.migrate changes approved without a change event; observed at checkpoints"
       );
+  }
+  const chainMetadata =
+    (metadata as Record<string, Record<string, ProcessedContractData>>)[
+      String(chainId)
+    ] ?? {};
+  for (const [address, contract] of Object.entries(chainMetadata)) {
+    for (const getter of contract.addressGetters ?? []) {
+      const functionContext = Object.values(contract.functionSelectors).find(
+        (fn) => fn.canonicalSignature === `${getter}()`
+      )?.documentation;
+      if (!functionContext?.source) continue;
+      if (
+        fields.some(
+          (field) =>
+            field.address.toLowerCase() === address && field.getter === getter
+        )
+      )
+        continue;
+      fields.push({
+        address,
+        getter,
+        kind: "contract-reference",
+        startBlock:
+          getContractStartBlock(address as `0x${string}`, chainId) ??
+          firstIndexedBlock,
+        coverage:
+          chainId === 1 &&
+          address === "0xdb591ea2e5db886da872654d58f6cc584b68e7cc" &&
+          ["ltvOracle", "treasuryBorrower"].includes(getter)
+            ? "Source-verified reference change events; state seeded at the first completed canonical checkpoint with deployed code."
+            : "getter-only: verified ABI address getter observed at completed canonical checkpoints; intervening changes and earlier state are not inferred",
+      });
+    }
   }
   return fields;
 }

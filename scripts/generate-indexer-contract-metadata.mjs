@@ -6,6 +6,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { processAbiMetadata } from "../apps/indexer/src/services/contracts/abi.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
@@ -44,7 +45,7 @@ const requireFromIndexer = createRequire(
 );
 // TypeScript 7's native compiler does not expose this JavaScript AST API.
 const ts = requireFromRepo("@typescript/typescript6");
-const { toFunctionSelector } = requireFromIndexer("viem");
+const { keccak256 } = requireFromIndexer("viem");
 
 const cliOptions = parseArgs(process.argv.slice(2));
 
@@ -56,11 +57,16 @@ function parseArgs(args) {
     force: false,
     includeUnknownType: false,
     cacheOnly: false,
+    verifiedSource: undefined,
   };
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === "--") {
+      continue;
+    }
+    if (arg === "--verified-source") {
+      options.verifiedSource = readRequiredArg(args, (index += 1), arg);
       continue;
     }
     if (arg === "--force") {
@@ -513,32 +519,6 @@ async function fetchContractSourceCode(chainId, address) {
   return sourceCode;
 }
 
-function getFunctionSignature(func) {
-  const inputs = (func.inputs ?? []).map((input) => input.type).join(",");
-  const outputs = (func.outputs ?? []).map((output) => output.type).join(",");
-  return `${func.name}(${inputs})(${outputs})`;
-}
-
-function processAbi(abi) {
-  const roleToFunctions = {};
-  const functionSelectors = {};
-
-  for (const item of abi) {
-    if (item.type !== "function") continue;
-
-    const signature = getFunctionSignature(item);
-    const selector = toFunctionSelector(item);
-    functionSelectors[selector] = {
-      name: item.name,
-      selector,
-      signature,
-      roles: [],
-    };
-  }
-
-  return { roleToFunctions, functionSelectors };
-}
-
 function findRoleFromModifier(name, functionDefinition, sourceCode) {
   const constantMatch = functionDefinition.match(
     /onlyRole\(([A-Z_][A-Z0-9_]*)\)/
@@ -599,7 +579,7 @@ async function fetchProcessedContract(contract) {
     contract.chainId,
     contract.address
   );
-  return processSourceCode(contract.name, sourceCode, processAbi(abi));
+  return processSourceCode(contract.name, sourceCode, processAbiMetadata(abi));
 }
 
 const existingMetadata = await readJsonIfExists(outputPath, {});
@@ -618,7 +598,39 @@ for (const [chainId, contracts] of Object.entries(cache)) {
   }
 }
 
-if (!cliOptions.cacheOnly) {
+if (cliOptions.verifiedSource) {
+  if (!cliOptions.chainId || !cliOptions.address)
+    throw new Error("--verified-source requires --chain-id and --address");
+  const verified = JSON.parse(
+    await readFile(cliOptions.verifiedSource, "utf8")
+  );
+  if (
+    String(verified.chainId) !== cliOptions.chainId ||
+    verified.address?.toLowerCase() !== cliOptions.address ||
+    !["match", "exact_match"].includes(verified.runtimeMatch) ||
+    !verified.runtimeBytecode?.onchainBytecode ||
+    !Array.isArray(verified.metadata?.output?.abi)
+  )
+    throw new Error(
+      "Verified source does not match the requested deployed contract"
+    );
+  const source = {
+    url: `https://sourcify.dev/server/v2/contract/${cliOptions.chainId}/${cliOptions.address}?fields=metadata`,
+    codeHash: keccak256(verified.runtimeBytecode.onchainBytecode),
+    match: verified.runtimeMatch === "exact_match" ? "exact" : "code",
+  };
+  const processed = processAbiMetadata(
+    verified.metadata.output.abi,
+    verified.metadata.output,
+    source
+  );
+  const previous = metadata[cliOptions.chainId]?.[cliOptions.address];
+  for (const [selector, details] of Object.entries(processed.functionSelectors))
+    details.roles = previous?.functionSelectors?.[selector]?.roles ?? [];
+  processed.roleToFunctions = previous?.roleToFunctions ?? {};
+  metadata[cliOptions.chainId] ??= {};
+  metadata[cliOptions.chainId][cliOptions.address] = processed;
+} else if (!cliOptions.cacheOnly) {
   if (!process.env.ETHERSCAN_API_KEY?.trim()) {
     throw new Error(
       "ETHERSCAN_API_KEY is required to fetch missing contract metadata"

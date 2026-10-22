@@ -61,12 +61,19 @@ export type ProtocolGraphqlData = {
   ContractState?: ContractState[];
   ContractRelationship?: (Omit<
     ContractRelationship,
-    "subject" | "getter" | "coverage" | "verification"
+    | "subject"
+    | "getter"
+    | "coverage"
+    | "verification"
+    | "functionContext"
+    | "targetCode"
   > & {
     subject?: string | null;
     getter?: string | null;
     coverage?: string | null;
     verification?: ContractRelationship["verification"] | null;
+    functionContext?: ContractRelationship["functionContext"] | null;
+    targetCode?: ContractRelationship["targetCode"] | null;
   })[];
   ChainObservation?: ChainObservation[];
   Contract?: GraphqlContract[];

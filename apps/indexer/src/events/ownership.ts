@@ -1,3 +1,4 @@
+import type { FunctionContext } from "../../../../packages/snapshot-artifacts/src/index";
 import type { ControlGetterResult } from "./control-reads";
 import type { ControlBlock } from "./control-state";
 import { contractId, controlTransitionId } from "./ids";
@@ -41,6 +42,8 @@ export type RelationshipState = {
     reason?: string;
   };
   coverage?: string;
+  functionContext?: FunctionContext;
+  targetCode?: "present" | "absent";
   scope?: { registry?: string; token?: string };
 };
 type Context = Pick<
@@ -62,6 +65,7 @@ export const relationshipId = (
 const isPending = (getter: string) => getter.startsWith("new");
 const reference = (kind: string) =>
   [
+    "contract-reference",
     "authority-reference",
     "registered-pool",
     "configured-policy",
@@ -96,7 +100,7 @@ async function present(
       ? "pending"
       : "current";
   if (!nonzero(state.value)) status = "unset";
-  if (isPending(state.getter)) {
+  if (!reference(state.kind) && isPending(state.getter)) {
     const current = await context.ContractRelationship.get<RelationshipState>(
       relationshipId(state.chainId, state.subject, currentGetter(state.getter))
     );
@@ -169,6 +173,12 @@ async function writeField(
     lastChange: event ? provenanceFor(event) : (previous?.lastChange ?? null),
     indexedThrough: previous?.indexedThrough ?? null,
     verification: { outcome: "unperformed" },
+    ...(previous?.functionContext
+      ? { functionContext: previous.functionContext }
+      : {}),
+    ...(previous?.targetCode && previous.value === value.toLowerCase()
+      ? { targetCode: previous.targetCode }
+      : {}),
     ...(coverage ? { coverage } : {}),
     ...((field.scope ?? previous?.scope)
       ? { scope: field.scope ?? previous?.scope }
@@ -198,7 +208,7 @@ async function writeField(
       getter: field.getter,
       value: state.value,
     });
-  if (!isPending(field.getter)) {
+  if (!reference(field.kind) && !isPending(field.getter)) {
     const pendingGetter = `new${field.getter.charAt(0).toUpperCase()}${field.getter.slice(1)}`;
     const pending = await context.ContractRelationship.get<RelationshipState>(
       relationshipId(chainId, field.address, pendingGetter)
@@ -361,6 +371,15 @@ export async function handleStakingReference(
   );
 }
 
+export async function handleContractReference(
+  context: Context,
+  event: RelationshipEvent,
+  getter: string,
+  value: unknown
+) {
+  await eventField(context, event, getter, "contract-reference", value);
+}
+
 /** Preflight the whole relationship inventory before another control family advances chain observation. */
 export async function relationshipAnchorsCanonical(
   context: Context,
@@ -453,6 +472,15 @@ export async function completeRelationshipBlock(
     context.ContractRelationship.set({
       ...(await present(context, state)),
       indexedThrough: block,
+      ...(result.status === "success"
+        ? {
+            functionContext: result.functionContext ?? state.functionContext,
+            targetCode:
+              state.value === result.value.toLowerCase()
+                ? (result.targetCode ?? state.targetCode)
+                : state.targetCode,
+          }
+        : {}),
       ...(field.inventoryPools?.length
         ? {
             coverage: poolDiscrepancy(field, state.value) ?? field.coverage,

@@ -438,6 +438,8 @@ export function createProtocolSnapshot({
           subject: relationship.subject ?? undefined,
           getter: relationship.getter ?? undefined,
           coverage: relationship.coverage ?? undefined,
+          functionContext: relationship.functionContext ?? undefined,
+          targetCode: relationship.targetCode ?? undefined,
           verification: relationship.verification ?? undefined,
         })
       ),

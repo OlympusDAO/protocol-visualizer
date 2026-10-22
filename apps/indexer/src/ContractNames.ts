@@ -57,9 +57,6 @@ const contractNames: MultiChainContracts = {
       version: "1.4",
       type: "policy",
     },
-    "0x0cf30dc0d48604a301df8010cdc028c055336b2e": {
-      name: "Policy MS",
-    },
     "0x1652b503e0f1cf38b6246ed3b91cb3786bb11656": {
       name: "Heart",
       version: "1.1",

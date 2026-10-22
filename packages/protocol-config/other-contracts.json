@@ -13,6 +13,11 @@
   },
   {
     "chainId": 1,
+    "address": "0x0cf30dc0d48604a301df8010cdc028c055336b2e",
+    "name": "Policy MS"
+  },
+  {
+    "chainId": 1,
     "address": "0x1c21f8ea7e39e2ba00bc12d2968d63f4acb38b7a",
     "name": "OlympusAuthority",
     "startBlock": 13674068

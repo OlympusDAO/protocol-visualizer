@@ -1,8 +1,8 @@
 # Build stage
-FROM node:24-alpine@sha256:01743339035a5c3c11a373cd7c83aeab6ed1457b55da6a69e014a95ac4e4700b AS builder
+FROM node:24.22.1-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS builder
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@11.13.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.28.7 --activate
 
 # Set working directory
 WORKDIR /app
@@ -28,7 +28,7 @@ ENV VITE_PROTOCOL_SNAPSHOT_BASE_URL=$VITE_PROTOCOL_SNAPSHOT_BASE_URL
 RUN pnpm run build
 
 # Production stage
-FROM nginxinc/nginx-unprivileged:alpine@sha256:601c823234c474696ded03d619e67f1e59538802731543099c691aea67e4a553
+FROM nginxinc/nginx-unprivileged:alpine@sha256:b5047b9b76845eac124358373c6852377c52e4b05834a47647e955dd91cb8f1e
 
 # Apply Alpine security updates
 USER root

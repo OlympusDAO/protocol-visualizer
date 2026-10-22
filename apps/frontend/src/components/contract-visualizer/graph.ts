@@ -24,6 +24,8 @@ export function getPreservedGraphNodes(
   const sameGroup =
     group?.position.x === oldGroup?.position.x &&
     group?.position.y === oldGroup?.position.y &&
+    group?.style?.width === oldGroup?.style?.width &&
+    group?.style?.height === oldGroup?.style?.height &&
     inactiveIds(next) === inactiveIds(previousLayout);
   return previous.filter(
     (node) =>
@@ -39,7 +41,12 @@ export function groupInactiveContracts(
 ): Node[] {
   if (!inactive.length) return active;
   const columns = Math.min(3, inactive.length);
-  const x = Math.max(0, ...active.map((node) => node.position.x + 240)) + 160;
+  const cellWidth = Math.max(220, ...inactive.map(getGraphNodeWidth)) + 40;
+  const x =
+    Math.max(
+      0,
+      ...active.map((node) => node.position.x + getGraphNodeWidth(node))
+    ) + 160;
   const y = Math.min(100, ...active.map((node) => node.position.y));
   return [
     {
@@ -56,7 +63,7 @@ export function groupInactiveContracts(
       connectable: false,
       zIndex: -1,
       style: {
-        width: columns * 300 + 48,
+        width: columns * cellWidth + 48,
         height: Math.ceil(inactive.length / columns) * 160 + 72,
         padding: "16px 24px",
         textAlign: "left",
@@ -71,7 +78,7 @@ export function groupInactiveContracts(
     ...inactive.map((node, index) => ({
       ...node,
       position: {
-        x: x + 24 + (index % columns) * 300,
+        x: x + 24 + (index % columns) * cellWidth,
         y: y + 48 + Math.floor(index / columns) * 160,
       },
     })),
@@ -85,6 +92,22 @@ export function getGraphContractName(contract: {
   return contract.version
     ? `${contract.name} (${contract.version})`
     : contract.name;
+}
+
+export function getContractNodeWidth(contract: {
+  name: string;
+  version?: string | null;
+}): number {
+  return Math.min(
+    360,
+    Math.max(180, getGraphContractName(contract).length * 8 + 48)
+  );
+}
+
+export function getGraphNodeWidth(node: Node): number {
+  return typeof node.style?.width === "number"
+    ? node.style.width
+    : (node.width ?? 180);
 }
 
 export function getKernelLabel(contract: {

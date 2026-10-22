@@ -38,6 +38,7 @@ test("uninstalled core contracts sit together beside the active graph", () => {
     id: `inactive-${i}`,
     position: { x: 0, y: 0 },
     data: { kernelInactive: true },
+    style: { width: i === 0 ? 360 : 220 },
   }));
   const nodes = groupInactiveContracts([active], inactive);
   assert.deepEqual(
@@ -50,9 +51,14 @@ test("uninstalled core contracts sit together beside the active graph", () => {
   for (const node of nodes.filter((node) => node.data.kernelInactive)) {
     assert.ok(node.position.x >= group.position.x + 24);
     assert.ok(node.position.y >= group.position.y + 48);
-    assert.ok(node.position.x + 220 <= group.position.x + group.style.width);
+    assert.ok(
+      node.position.x + node.style.width <= group.position.x + group.style.width
+    );
     assert.ok(node.position.y + 100 <= group.position.y + group.style.height);
   }
+  const first = nodes.find((node) => node.id === "inactive-0");
+  const second = nodes.find((node) => node.id === "inactive-1");
+  assert.ok(first.position.x + first.style.width < second.position.x);
   assert.equal(new Set(nodes.map((node) => node.id)).size, nodes.length);
   assert.deepEqual(groupInactiveContracts([active], []), [active]);
   const previous = nodes.map((node) => ({

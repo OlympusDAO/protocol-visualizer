@@ -29,6 +29,8 @@ import {
   getRelationshipGraph,
   getContractPalette,
   getGraphContractName,
+  getContractNodeWidth,
+  getGraphNodeWidth,
   getKernelLabel,
   refreshGraph,
   groupInactiveContracts,
@@ -234,7 +236,7 @@ const createAddressNode = (
             }}
           />
           <div
-            className="font-bold mb-1 wrap-break-word whitespace-pre-wrap max-w-[160px]"
+            className="font-bold mb-1 wrap-break-word"
             style={{ color: NODE_COLORS.assignee.text }}
           >
             {assigneeName}
@@ -266,7 +268,7 @@ const createAddressNode = (
       border: `1px solid ${NODE_COLORS.assignee.border}`,
       borderRadius: "8px",
       padding: "6px",
-      minWidth: "180px",
+      width: getContractNodeWidth({ name: assigneeName }),
     },
     targetPosition: Position.Left,
     sourcePosition: Position.Right,
@@ -376,8 +378,7 @@ const getLayoutedElements = (
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-  const nodeWidth = 180;
-  const nodeHeight = 100;
+  const nodeHeight = 120;
 
   // Set graph direction and spacing
   dagreGraph.setGraph({
@@ -391,7 +392,7 @@ const getLayoutedElements = (
   // Add nodes to dagre graph
   nodes.forEach((node) => {
     dagreGraph.setNode(node.id, {
-      width: nodeWidth,
+      width: getGraphNodeWidth(node),
       height: node.type === "role" ? 80 : nodeHeight,
     });
   });
@@ -410,7 +411,7 @@ const getLayoutedElements = (
     return {
       ...node,
       position: {
-        x: nodeWithPosition.x - nodeWidth / 2,
+        x: nodeWithPosition.x - getGraphNodeWidth(node) / 2,
         y: nodeWithPosition.y - (node.type === "role" ? 40 : nodeHeight / 2),
       },
     };
@@ -533,17 +534,17 @@ export function ContractVisualizer() {
                   border: `1px solid ${colors.border}`,
                 }}
               />
-              <div className="flex items-start justify-between gap-3 mb-1">
-                <div
-                  className="min-w-0 flex-1 font-bold wrap-break-word whitespace-pre-wrap max-w-[160px]"
-                  style={{ color: colors.text }}
-                >
-                  {formatContractName(contract)}
-                </div>
+              <div className="flex justify-end mb-1">
                 <ContractStatusIcons
                   contract={contract}
                   enablementLabel={control.badge}
                 />
+              </div>
+              <div
+                className="font-bold wrap-break-word mb-1"
+                style={{ color: colors.text }}
+              >
+                {formatContractName(contract)}
               </div>
               <a
                 href={getEtherscanLink(contract.address, selectedChainId)}
@@ -590,7 +591,7 @@ export function ContractVisualizer() {
           borderRadius: "8px",
           padding: "6px",
           opacity: contract.isEnabled ? 1 : 0.7,
-          minWidth: "180px",
+          width: getContractNodeWidth(contract),
           zIndex: hoveredPolicy === contract.address ? 1000 : 1,
         },
         targetPosition: Position.Left,
@@ -727,17 +728,17 @@ export function ContractVisualizer() {
                 type="target"
                 position={Position.Left}
               />
-              <div className="flex items-start justify-between gap-3 mb-1">
-                <div
-                  className="min-w-0 flex-1 font-semibold wrap-break-word"
-                  style={{ color: colors.text }}
-                >
-                  {getGraphContractName(contract)}
-                </div>
+              <div className="flex justify-end mb-1">
                 <ContractStatusIcons
                   contract={contract}
                   enablementLabel={control.badge}
                 />
+              </div>
+              <div
+                className="font-semibold wrap-break-word mb-1"
+                style={{ color: colors.text }}
+              >
+                {getGraphContractName(contract)}
               </div>
               <a
                 href={getEtherscanLink(contract.address, selectedChainId)}
@@ -769,7 +770,7 @@ export function ContractVisualizer() {
           background: colors.background,
           border: `1px solid ${colors.border}`,
           borderRadius: "8px",
-          minWidth: "180px",
+          width: getContractNodeWidth(contract),
         },
       });
     }

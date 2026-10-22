@@ -51,8 +51,7 @@
     "includes": [
       "**/*.{js,mjs,cjs,jsx,ts,tsx}",
       "!**/*.config.ts",
-      "!**/eslint.config.mjs",
-      "!**/postcss.config.mjs"
+      "!**/eslint.config.mjs"
     ],
     "rules": {
       "preset": "recommended",

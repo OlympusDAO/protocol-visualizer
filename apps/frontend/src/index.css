@@ -6,8 +6,8 @@
 }
 
 /*
-  Tailwind 4 changed two defaults of Tailwind 3. These rules keep the
-  Tailwind 3 look: gray-200 borders, and the pointer cursor on buttons.
+  Tailwind 4 changed some defaults of Tailwind 3. These rules restore two
+  of them: gray-200 borders, and the pointer cursor on buttons.
 */
 @layer base {
   *,

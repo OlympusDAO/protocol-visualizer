@@ -24,6 +24,13 @@ import dagre from "dagre";
 import { ChainSelector } from "../chain-selector";
 import { SUPPORTED_CHAINS } from "@/lib/constants";
 import { useGraphNavigation } from "./navigation";
+import {
+  getArchitectureView,
+  getSubsystem,
+  SUBSYSTEMS,
+  type ConnectionFilters,
+  type ConnectionKind,
+} from "./architecture";
 import otherContracts from "../../../../../packages/protocol-config/other-contracts.json";
 import {
   getEnablementPresentation,
@@ -35,11 +42,16 @@ import {
   getKernelLabel,
   refreshGraph,
   groupInactiveContracts,
-  getPreservedGraphNodes,
 } from "./graph";
 
 interface NodeData {
   name: string;
+  contractType?: string;
+  subsystemId?: string;
+  memberCount?: number;
+  memberType?: string;
+  internalLinks?: number;
+  onExpand?: () => void;
   kernelInactive?: boolean;
   label: React.ReactNode;
   assignees?: RoleAssignment[];
@@ -278,6 +290,28 @@ const createAddressNode = (
 
 // Node types configuration
 const nodeTypes: NodeTypes = {
+  subsystem: ({ id, data }: { id: string; data: NodeData }) => (
+    <div className="rounded-lg border border-slate-400 bg-slate-50 p-3 text-sm text-slate-800">
+      <Handle id={`${id}-target`} type="target" position={Position.Left} />
+      <strong>{data.name}</strong>
+      <div className="mt-1 text-xs text-slate-500">
+        {data.memberCount} {data.memberType}
+        {data.internalLinks ? ` · ${data.internalLinks} internal links` : ""}
+      </div>
+      <button
+        type="button"
+        className="nodrag nopan mt-2 text-xs text-blue-700 hover:underline"
+        aria-label={`Explore ${data.name}`}
+        onClick={(event) => {
+          event.stopPropagation();
+          data.onExpand?.();
+        }}
+      >
+        Explore →
+      </button>
+      <Handle id={`${id}-source`} type="source" position={Position.Right} />
+    </div>
+  ),
   group: ({ data }) => <div>{data.label}</div>,
   role: ({ data }: { data: NodeData }) => (
     // biome-ignore lint/a11y/noStaticElementInteractions: graph node hover state is handled by React Flow, not an interactive control.
@@ -436,7 +470,15 @@ export function ContractVisualizer() {
   } = useGraphNavigation();
   const [layouting, setLayouting] = useState(false);
   const [initialized, setInitialized] = useState(false);
-  const [originalLayout, setOriginalLayout] = useState<{
+  const [architectureView, setArchitectureView] = useState("overview");
+  const [connectionFilters, setConnectionFilters] = useState<ConnectionFilters>(
+    {
+      permission: true,
+      control: true,
+      reference: true,
+    }
+  );
+  const [canonicalGraph, setCanonicalGraph] = useState<{
     chainId: number;
     nodes: CustomNode[];
     edges: Edge[];
@@ -447,9 +489,10 @@ export function ContractVisualizer() {
     useState<ReactFlowInstance | null>(null);
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
-  const previousSelection = useRef<{
-    node: string;
-    instance: ReactFlowInstance;
+  const previousView = useRef<{
+    key: string;
+    instance: ReactFlowInstance | null;
+    fitted: boolean;
   } | null>(null);
 
   // Reset initialized state when chain ID changes
@@ -458,8 +501,9 @@ export function ContractVisualizer() {
     setInitialized(false);
     setNodes([]);
     setEdges([]);
-    setOriginalLayout(null);
-    previousSelection.current = null;
+    setCanonicalGraph(null);
+    setArchitectureView("overview");
+    previousView.current = null;
   }, [selectedChainId, setNodes, setEdges]);
 
   const isHistorical =
@@ -538,6 +582,7 @@ export function ContractVisualizer() {
         id,
         data: {
           name: formatContractName(contract),
+          contractType: type,
           kernelInactive: contract.isEnabled === false,
           label: (
             // biome-ignore lint/a11y/noStaticElementInteractions: graph node hover state is handled by React Flow, not an interactive control.
@@ -645,10 +690,11 @@ export function ContractVisualizer() {
         sourceHandle: sourceIsRole ? "role-source" : `${source}-source`,
         targetHandle: targetIsRole ? "role-target" : `${target}-target`,
         type: "smoothstep",
+        data: { kind: "permission" },
         style: {
           stroke: edgeColor,
           strokeWidth: 2,
-          opacity: 0.1,
+          opacity: 0.65,
           transition: "opacity 0.2s",
         },
         animated,
@@ -744,6 +790,7 @@ export function ContractVisualizer() {
         position: { x: 0, y: 0 },
         data: {
           name: getGraphContractName(contract),
+          contractType: contract.contractType?.toLowerCase(),
           kernelInactive: contract.category === "inactive-core",
           label: (
             <div className="p-2 text-sm">
@@ -907,6 +954,12 @@ export function ContractVisualizer() {
         id: edge.id,
         type: edge.pending ? "default" : "smoothstep",
         label: edge.label,
+        data: {
+          kind:
+            edge.relationship.status === "reference" ? "reference" : "control",
+          pending: edge.pending,
+          relationship: edge.relationship,
+        },
         style: {
           stroke: "#475569",
           strokeWidth: 2,
@@ -923,49 +976,13 @@ export function ContractVisualizer() {
       });
     }
 
-    const inactive = newNodes.filter((node) => node.data.kernelInactive);
-    const active = newNodes.filter((node) => !node.data.kernelInactive);
-    const activeIds = new Set(active.map((node) => node.id));
-    const { nodes: layoutedNodes } = getLayoutedElements(
-      active,
-      newEdges.filter(
-        (edge) => activeIds.has(edge.source) && activeIds.has(edge.target)
-      ),
-      "TB"
-    );
-
-    const previousLayout = selectedNode
-      ? (originalLayout?.nodes ?? [])
-      : nodesRef.current;
-    const stableActive = refreshGraph(
-      layoutedNodes,
-      getPreservedGraphNodes(layoutedNodes, previousLayout),
-      selectedNode
-    ).nodes;
-    const groupedNodes = groupInactiveContracts(stableActive, inactive);
-    const baseline = refreshGraph(
-      groupedNodes,
-      getPreservedGraphNodes(groupedNodes, previousLayout),
-      selectedNode
-    );
-    const refreshed = refreshGraph(
-      baseline.nodes,
-      getPreservedGraphNodes(
-        baseline.nodes,
-        nodesRef.current,
-        originalLayout?.nodes ?? nodesRef.current
-      ),
-      selectedNode
-    );
-    setOriginalLayout({
+    const canonical = refreshGraph(newNodes, [], selectedNode);
+    setCanonicalGraph({
       chainId: selectedChainId,
-      nodes: baseline.nodes,
+      nodes: canonical.nodes,
       edges: newEdges,
     });
-    reconcileSelection(refreshed.selectedNode);
-
-    setNodes(refreshed.nodes);
-    setEdges(newEdges);
+    reconcileSelection(canonical.selectedNode);
     setLayouting(false);
     setInitialized(true);
   }, [
@@ -978,151 +995,90 @@ export function ContractVisualizer() {
     createEdge,
     hoveredRole,
     selectedChainId,
-    originalLayout,
     selectedNode,
     reconcileSelection,
-    setNodes,
-    setEdges,
   ]);
 
-  // Add effect to handle node selection and layout
   useEffect(() => {
-    if (
-      !selectedNode ||
-      !originalLayout ||
-      originalLayout.chainId !== selectedChainId ||
-      !reactFlowInstance
-    )
-      return;
-
-    const connectedNodeIds = new Set([selectedNode]);
-    for (const edge of originalLayout.edges) {
-      if (edge.source === selectedNode) connectedNodeIds.add(edge.target);
-      if (edge.target === selectedNode) connectedNodeIds.add(edge.source);
-    }
-
-    // Calculate the center of the current view
-    const { x: viewX, y: viewY } = reactFlowInstance.getViewport();
-
-    // Create a subgraph of connected nodes
-    const relevantNodes = originalLayout.nodes
-      .filter((node) => node.type !== "group")
-      .map((node) => ({
-        ...node,
-        // Move unconnected nodes just outside the view
-        position: connectedNodeIds.has(node.id)
-          ? node.position
-          : {
-              x: node.position.x + viewX + 800,
-              y: node.position.y + viewY + 800,
+    if (!canonicalGraph || canonicalGraph.chainId !== selectedChainId) return;
+    const projected = getArchitectureView(
+      canonicalGraph.nodes,
+      canonicalGraph.edges,
+      architectureView,
+      connectionFilters,
+      selectedNode
+    );
+    const viewNodes = projected.nodes.map((node) =>
+      node.data.subsystemId
+        ? {
+            ...node,
+            data: {
+              ...node.data,
+              onExpand: () => setArchitectureView(node.data.subsystemId),
             },
-        style: {
-          ...node.style,
-          opacity: connectedNodeIds.has(node.id) ? 1 : 0.2,
-          transition: "all 0.5s ease-in-out",
-        },
-      }));
-
-    // Filter edges to only show those connecting selected nodes
-    const relevantEdges = originalLayout.edges.map((edge) => ({
-      ...edge,
-      style: {
-        ...edge.style,
-        opacity:
-          connectedNodeIds.has(edge.source) && connectedNodeIds.has(edge.target)
-            ? 1
-            : 0,
-        transition: "all 0.5s ease-in-out",
-      },
-    }));
-
-    // Re-layout the connected nodes to bring them closer
-    const { nodes: layoutedNodes } = getLayoutedElements(
-      relevantNodes.filter((node) => connectedNodeIds.has(node.id)),
-      relevantEdges.filter(
-        (edge) =>
-          connectedNodeIds.has(edge.source) && connectedNodeIds.has(edge.target)
+          }
+        : node
+    );
+    const inactive =
+      architectureView === "all" && !selectedNode
+        ? viewNodes.filter((node) => node.data.kernelInactive)
+        : [];
+    const inactiveIds = new Set(inactive.map((node) => node.id));
+    const active = viewNodes.filter((node) => !inactiveIds.has(node.id));
+    const activeIds = new Set(active.map((node) => node.id));
+    const layout = getLayoutedElements(
+      active,
+      projected.edges.filter(
+        (edge) => activeIds.has(edge.source) && activeIds.has(edge.target)
       ),
       "TB"
     );
-
-    // Combine the layouts
-    const finalNodes = relevantNodes.map((node) => {
-      const layoutedNode = layoutedNodes.find((n) => n.id === node.id);
-      return layoutedNode || node;
-    });
-
-    const selectionChanged =
-      previousSelection.current?.node !== selectedNode ||
-      previousSelection.current?.instance !== reactFlowInstance;
-    previousSelection.current = {
-      node: selectedNode,
+    const finalNodes = groupInactiveContracts(layout.nodes, inactive);
+    const key = JSON.stringify([
+      selectedChainId,
+      architectureView,
+      selectedNode,
+      finalNodes.map((node) => [
+        node.id,
+        node.style?.width,
+        node.style?.height,
+      ]),
+      projected.edges.map((edge) => [edge.id, edge.source, edge.target]),
+    ]);
+    const previous = previousView.current;
+    const same =
+      previous?.key === key && previous.instance === reactFlowInstance;
+    const current = {
+      key,
       instance: reactFlowInstance,
+      fitted: same ? previous.fitted : false,
     };
+    previousView.current = current;
     setNodes(
-      selectionChanged
-        ? finalNodes
-        : refreshGraph(finalNodes, nodesRef.current, selectedNode).nodes
+      same
+        ? refreshGraph(finalNodes, nodesRef.current, selectedNode).nodes
+        : finalNodes
     );
-    setEdges(relevantEdges);
-    if (!selectionChanged) return;
-
-    // Fit view to connected nodes after a short delay to allow transition
-    const fitViewTimeout = setTimeout(() => {
+    setEdges(projected.edges);
+    if (!reactFlowInstance || current.fitted) return;
+    const timer = setTimeout(() => {
       reactFlowInstance.fitView({
         padding: 0.2,
         duration: 0,
-        nodes: finalNodes.filter((node) => connectedNodeIds.has(node.id)),
+        nodes: finalNodes,
       });
+      current.fitted = true;
     }, 10);
-    return () => clearTimeout(fitViewTimeout);
+    return () => clearTimeout(timer);
   }, [
-    selectedNode,
+    canonicalGraph,
     selectedChainId,
-    originalLayout,
+    selectedNode,
+    architectureView,
+    connectionFilters,
     reactFlowInstance,
     setNodes,
     setEdges,
-  ]);
-
-  // Modify effect to reset layout when deselecting
-  // biome-ignore lint/correctness/useExhaustiveDependencies: setNodes/setEdges are stable React Flow setters; this restore effect only tracks selection state.
-  useEffect(() => {
-    if (
-      !selectedNode &&
-      originalLayout &&
-      originalLayout.chainId === selectedChainId &&
-      initialized &&
-      reactFlowInstance
-    ) {
-      const selectionChanged = previousSelection.current !== null;
-      previousSelection.current = null;
-      const restoredNodes = originalLayout.nodes.map((node) => ({
-        ...node,
-        style: {
-          ...node.style,
-          opacity: 1,
-          transition: "all 0.5s ease-in-out",
-        },
-      }));
-
-      setNodes(restoredNodes);
-      setEdges(originalLayout.edges);
-      if (!selectionChanged) return;
-
-      void setTimeout(() => {
-        reactFlowInstance.fitView({
-          padding: 0.2,
-          duration: 800,
-        });
-      }, 50);
-    }
-  }, [
-    selectedNode,
-    selectedChainId,
-    originalLayout,
-    initialized,
-    reactFlowInstance,
   ]);
 
   // Add initialization effect back
@@ -1135,6 +1091,10 @@ export function ContractVisualizer() {
   // Fix type for handleNodeClick
   const handleNodeClick = useCallback(
     (_: unknown, node: Node) => {
+      if (node.data.subsystemId) {
+        setArchitectureView(node.data.subsystemId);
+        return;
+      }
       setSelectedNode((prevSelected) =>
         prevSelected === node.id ? null : node.id
       );
@@ -1731,6 +1691,71 @@ export function ContractVisualizer() {
         selectedChainId={selectedChainId}
         onChainChange={setSelectedChainId}
       />
+      {!isHistorical && (
+        <div className="mb-3 flex flex-wrap items-center gap-4 text-xs text-slate-600">
+          <label>
+            View:{" "}
+            <select
+              aria-label="Architecture view"
+              className="rounded border border-slate-300 bg-white p-1"
+              value={architectureView}
+              onChange={(event) => {
+                setSelectedNode(null);
+                setArchitectureView(event.target.value);
+              }}
+            >
+              <option value="overview">Architecture overview</option>
+              <option value="all">Full graph</option>
+              {SUBSYSTEMS.filter((group) =>
+                canonicalGraph?.nodes.some(
+                  (node) => getSubsystem(node) === group.id
+                )
+              ).map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {(
+            [
+              ["permission", "Permissions"],
+              ["control", "Ownership / control"],
+              ["reference", "References"],
+            ] as [ConnectionKind, string][]
+          ).map(([kind, label]) => (
+            <label key={kind} className="flex items-center gap-1">
+              <input
+                type="checkbox"
+                checked={connectionFilters[kind]}
+                onChange={(event) =>
+                  setConnectionFilters((previous) => ({
+                    ...previous,
+                    [kind]: event.target.checked,
+                  }))
+                }
+              />
+              {label}
+            </label>
+          ))}
+          {selectedNode && (
+            <button
+              type="button"
+              className="text-blue-700 hover:underline"
+              onClick={() => setSelectedNode(null)}
+            >
+              Back to {architectureView === "overview" ? "overview" : "view"}
+            </button>
+          )}
+          <span>
+            {nodes.filter((node) => node.type !== "group").length} nodes ·{" "}
+            {edges.length} connections
+            {architectureView === "overview" && !selectedNode
+              ? " (summarized)"
+              : ""}
+          </span>
+        </div>
+      )}
       {navigationNotice && (
         <p role="status" className="mb-2 text-sm text-amber-800">
           {navigationNotice}

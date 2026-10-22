@@ -51,7 +51,7 @@ function EnablementIndicator({ label }: { label: string }) {
       role="img"
       aria-label={label}
       title={label}
-      className={`mt-1 inline-flex align-middle ${label === "Contract enabled" ? "text-emerald-700" : "text-rose-700"}`}
+      className={`inline-flex align-middle ${label === "Contract enabled" ? "text-emerald-700" : "text-rose-700"}`}
     >
       <svg
         aria-hidden="true"
@@ -69,6 +69,53 @@ function EnablementIndicator({ label }: { label: string }) {
           d={label === "Contract enabled" ? "m8 12 3 3 5-6" : "m6 6 12 12"}
         />
       </svg>
+    </span>
+  );
+}
+
+function ContractStatusIcons({
+  contract,
+  enablementLabel,
+}: {
+  contract: { isEnabled?: boolean; category?: string };
+  enablementLabel: string | null;
+}) {
+  const membership = getKernelLabel(contract);
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1.5">
+      {membership !== "External deployment" && (
+        <span
+          role="img"
+          aria-label={membership}
+          title={
+            membership === "Kernel active"
+              ? "Active in Kernel"
+              : "Inactive in Kernel"
+          }
+          className={
+            membership === "Kernel active"
+              ? "inline-flex text-blue-700"
+              : "inline-flex text-slate-500"
+          }
+        >
+          <svg
+            aria-hidden="true"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="6" y="6" width="15" height="15" rx="2" />
+            <path d="M17 3H5a2 2 0 0 0-2 2v12" />
+            {membership === "Kernel inactive" && <path d="m3 3 18 18" />}
+          </svg>
+        </span>
+      )}
+      {enablementLabel && <EnablementIndicator label={enablementLabel} />}
     </span>
   );
 }
@@ -455,11 +502,17 @@ export function ContractVisualizer() {
                   border: `1px solid ${colors.border}`,
                 }}
               />
-              <div
-                className="font-bold mb-1 wrap-break-word whitespace-pre-wrap max-w-[160px]"
-                style={{ color: colors.text }}
-              >
-                {formatContractName(contract)}
+              <div className="flex items-start justify-between gap-3 mb-1">
+                <div
+                  className="min-w-0 flex-1 font-bold wrap-break-word whitespace-pre-wrap max-w-[160px]"
+                  style={{ color: colors.text }}
+                >
+                  {formatContractName(contract)}
+                </div>
+                <ContractStatusIcons
+                  contract={contract}
+                  enablementLabel={control.badge}
+                />
               </div>
               <a
                 href={getEtherscanLink(contract.address, selectedChainId)}
@@ -470,8 +523,6 @@ export function ContractVisualizer() {
               >
                 {shortenAddress(contract.address)}
               </a>
-              <div className="text-xs mt-1">{getKernelLabel(contract)}</div>
-              {control.badge && <EnablementIndicator label={control.badge} />}
               {control.warning && (
                 <div className="text-xs mt-1 text-amber-800 max-w-[180px]">
                   {control.warning}
@@ -644,8 +695,17 @@ export function ContractVisualizer() {
                 type="target"
                 position={Position.Left}
               />
-              <div className="font-semibold" style={{ color: colors.text }}>
-                {getGraphContractName(contract)}
+              <div className="flex items-start justify-between gap-3 mb-1">
+                <div
+                  className="min-w-0 flex-1 font-semibold wrap-break-word"
+                  style={{ color: colors.text }}
+                >
+                  {getGraphContractName(contract)}
+                </div>
+                <ContractStatusIcons
+                  contract={contract}
+                  enablementLabel={control.badge}
+                />
               </div>
               <a
                 href={getEtherscanLink(contract.address, selectedChainId)}
@@ -655,10 +715,11 @@ export function ContractVisualizer() {
               >
                 {shortenAddress(contract.address)}
               </a>
-              <div className="mt-1 text-xs text-gray-500">
-                {getKernelLabel(contract)}
-              </div>
-              {control.badge && <EnablementIndicator label={control.badge} />}
+              {contract.category === "external" && (
+                <div className="mt-1 text-xs text-gray-500">
+                  External deployment
+                </div>
+              )}
               {control.warning && (
                 <div className="text-xs mt-1 text-amber-800 max-w-[180px]">
                   {control.warning}

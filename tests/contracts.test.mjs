@@ -12,10 +12,13 @@ const { decodeProtocolSnapshot, getAdditionalGraphContracts } = await import(
 );
 const {
   getEnablementPresentation,
+  getRelationshipGraph,
   getContractPalette,
   getGraphContractName,
   getKernelLabel,
   refreshGraph,
+  groupInactiveContracts,
+  getPreservedGraphNodes,
 } = await import(
   "../apps/frontend/src/components/contract-visualizer/graph.ts"
 );
@@ -28,6 +31,70 @@ const chain = {
 };
 const address = "0x00000000000000000000000000000000000000aa";
 const block = { number: "123", hash: "0xcanonical", timestamp: "1700000000" };
+
+test("uninstalled core contracts sit together beside the active graph", () => {
+  const active = { id: "active", position: { x: 400, y: 200 }, data: {} };
+  const inactive = Array.from({ length: 4 }, (_, i) => ({
+    id: `inactive-${i}`,
+    position: { x: 0, y: 0 },
+    data: { kernelInactive: true },
+  }));
+  const nodes = groupInactiveContracts([active], inactive);
+  assert.deepEqual(
+    nodes.find((node) => node.id === "active"),
+    active
+  );
+  const group = nodes.find((node) => node.type === "group");
+  assert.equal(group.data.label, "Not installed in Kernel");
+  assert.ok(group.position.x > active.position.x + 180);
+  for (const node of nodes.filter((node) => node.data.kernelInactive)) {
+    assert.ok(node.position.x >= group.position.x + 24);
+    assert.ok(node.position.y >= group.position.y + 48);
+    assert.ok(node.position.x + 220 <= group.position.x + group.style.width);
+    assert.ok(node.position.y + 100 <= group.position.y + group.style.height);
+  }
+  assert.equal(new Set(nodes.map((node) => node.id)).size, nodes.length);
+  assert.deepEqual(groupInactiveContracts([active], []), [active]);
+  const previous = nodes.map((node) => ({
+    ...node,
+    position: { ...node.position },
+  }));
+  const next = groupInactiveContracts(
+    [active],
+    [{ ...inactive[0], id: "new-inactive" }, ...inactive]
+  );
+  const refreshed = refreshGraph(
+    next,
+    getPreservedGraphNodes(next, previous),
+    null
+  ).nodes;
+  const cells = refreshed
+    .filter((node) => node.data.kernelInactive)
+    .map((node) => `${node.position.x}:${node.position.y}`);
+  assert.equal(new Set(cells).size, 5);
+  assert.deepEqual(
+    refreshed.find((node) => node.id === "inactive-0").position,
+    next.find((node) => node.id === "inactive-0").position
+  );
+  assert.equal(
+    getPreservedGraphNodes(nodes, previous).some(
+      (node) => node.id === "inactive-0"
+    ),
+    true
+  );
+  const focused = previous
+    .filter((node) => node.type !== "group")
+    .map((node) => ({ ...node, position: { x: 10, y: 20 } }));
+  const focusedRefresh = refreshGraph(
+    nodes,
+    getPreservedGraphNodes(nodes, focused, previous),
+    "inactive-0"
+  );
+  assert.deepEqual(
+    focusedRefresh.nodes.find((node) => node.id === "inactive-0").position,
+    { x: 10, y: 20 }
+  );
+});
 
 test("sample snapshot demonstrates Kernel active and Contract disabled independently", async () => {
   const sample = getSampleProtocolData(4663);
@@ -168,7 +235,15 @@ test("additional-only state roundtrips publisher, gateway, and frontend without 
     source: "0x00000000000000000000000000000000000000bb",
     target: address,
     status: "current",
-    provenance: block,
+    provenance: lastChange,
+    subject: address,
+    getter: "owner",
+    value: "0x00000000000000000000000000000000000000bb",
+    seed: block,
+    lastChange,
+    indexedThrough: block,
+    verification: { outcome: "mismatch", getterValue: address, block },
+    coverage: "Indexed ownership events",
   };
   const batch = await createSnapshotBatch({
     chains: [chain],
@@ -264,4 +339,78 @@ test("unavailable getter verification keeps established state in a manifest-last
     snapshot.data.contractStates[0].verification,
     state.verification
   );
+});
+
+test("sample ownership keeps one holder for governor and guardian with a separate nominee", async () => {
+  const sample = getSampleProtocolData(4663);
+  const relationships = sample.ContractRelationship;
+  assert.ok(relationships?.length >= 4);
+  const governor = relationships.find(
+    (entry) => entry.kind === "governor" && entry.status === "current"
+  );
+  const guardian = relationships.find((entry) => entry.kind === "guardian");
+  const pending = relationships.find((entry) => entry.status === "pending");
+  assert.equal(governor.source, guardian.source);
+  assert.notEqual(pending.source, governor.source);
+  assert.equal(pending.kind, "governor");
+  assert.equal(
+    relationships.find((entry) => entry.kind === "owner").source,
+    sample.RoleAssignment[0].assignee
+  );
+});
+
+test("relationship graph shares address identities, preserves kinds/scopes, and excludes unset/self links", () => {
+  const holder = "0x00000000000000000000000000000000000000bb";
+  const base = {
+    id: "same-field",
+    chainId: 4663,
+    source: holder.toUpperCase().replace("0X", "0x"),
+    target: address,
+    status: "current",
+    provenance: block,
+  };
+  const graph = getRelationshipGraph(
+    [
+      { ...base, kind: "governor" },
+      { ...base, kind: "guardian" },
+      { ...base, kind: "owner" },
+      { ...base, kind: "governor", status: "pending" },
+      { ...base, kind: "owner", scope: { token: holder } },
+      { ...base, kind: "owner", target: null, status: "unset" },
+      {
+        ...base,
+        kind: "authority-reference",
+        target: holder,
+        status: "reference",
+      },
+      { ...base, kind: "owner", chainId: 1 },
+    ],
+    4663
+  );
+  assert.deepEqual(new Set(graph.addresses), new Set([holder, address]));
+  assert.equal(graph.edges.length, 5);
+  assert.equal(new Set(graph.edges.map((edge) => edge.labelOffset)).size, 5);
+  assert.equal(new Set(graph.edges.map((edge) => edge.id)).size, 5);
+  assert.equal(graph.edges.filter((edge) => edge.pending).length, 1);
+  assert.match(
+    graph.edges.find((edge) => edge.pending).label,
+    /Pending governor/
+  );
+  assert.equal(
+    graph.edges.every((edge) => edge.source === holder),
+    true
+  );
+  const existing = [{ id: holder, position: { x: 1, y: 2 } }];
+  const refreshed = refreshGraph(
+    [
+      ...existing,
+      {
+        id: holder.toUpperCase().replace("0X", "0x"),
+        position: { x: 0, y: 0 },
+      },
+    ],
+    existing,
+    holder
+  );
+  assert.equal(refreshed.nodes.length, 1);
 });

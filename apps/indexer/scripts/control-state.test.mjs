@@ -244,3 +244,40 @@ test("an unavailable seed stays unknown and a changing hash rejects the read res
   assert.equal(result.status, "unavailable");
   assert.match(result.reason, /during getter read/);
 });
+
+test("source-backed ownership and authority getters are hash-bound address reads", async () => {
+  const calls = [];
+  const client = {
+    getBlock: async () => ({ hash: "0xcanonical" }),
+    readContract: async (input) => {
+      calls.push(input);
+      return address.toUpperCase().replace("0X", "0x");
+    },
+  };
+  for (const getter of [
+    "owner",
+    "authority",
+    "governor",
+    "newGovernor",
+    "guardian",
+    "newGuardian",
+    "policy",
+    "newPolicy",
+    "vault",
+    "newVault",
+    "approved",
+    "stakingContract",
+  ]) {
+    const result = await readPinnedControlGetter(client, {
+      chainId: 1,
+      address,
+      blockNumber: 10n,
+      blockHash: "0xcanonical",
+      getter,
+    });
+    assert.deepEqual(result, { status: "success", value: address });
+    assert.equal(calls.at(-1).functionName, getter);
+    assert.equal(calls.at(-1).blockHash, "0xcanonical");
+    assert.equal(calls.at(-1).requireCanonical, true);
+  }
+});

@@ -115,15 +115,36 @@ test("includes inactive and inventory-only contracts without changing active cor
 });
 
 test("creates valid protocol snapshots from GraphQL data", () => {
+  const input = getSampleProtocolData(1);
+  const relationship = input.ContractRelationship?.[0];
+  assert(relationship);
+  input.ContractRelationship = JSON.parse(
+    JSON.stringify([
+      {
+        ...relationship,
+        subject: null,
+        getter: null,
+        coverage: null,
+        verification: null,
+        value: null,
+      },
+    ])
+  );
   const snapshot = createProtocolSnapshot({
     chainId: 1,
     generatedAt: "2026-05-25T00:00:00.000Z",
-    graphqlData: getSampleProtocolData(1),
+    graphqlData: input,
   });
 
   assert.deepEqual(validateProtocolSnapshot(snapshot), []);
   assert.equal(snapshot.data.contracts[0]?.type, "kernel");
   assert.equal(snapshot.recordCounts.contracts, 3);
+  const serialized = JSON.parse(
+    JSON.stringify(snapshot.data.relationships?.[0])
+  );
+  for (const key of ["subject", "getter", "coverage", "verification"])
+    assert.equal(key in serialized, false);
+  assert.equal(serialized.value, null);
 });
 
 test("rejects mismatched record counts", () => {

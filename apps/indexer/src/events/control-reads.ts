@@ -1,4 +1,4 @@
-import type { Address, Hex } from "viem";
+import type { Abi, Address, Hex } from "viem";
 
 export type ControlGetterInput = {
   chainId: number;
@@ -10,21 +10,26 @@ export type ControlGetterInput = {
 export type ControlGetterResult =
   | { status: "success"; value: string }
   | { status: "unavailable"; reason: string };
-const enabledAbi = [
-  {
-    type: "function",
-    name: "isEnabled",
-    inputs: [],
-    outputs: [{ type: "bool" }],
-    stateMutability: "view",
-  },
-] as const;
+const addressGetters = new Set([
+  "owner",
+  "authority",
+  "governor",
+  "newGovernor",
+  "guardian",
+  "newGuardian",
+  "policy",
+  "newPolicy",
+  "vault",
+  "newVault",
+  "approved",
+  "stakingContract",
+]);
 type ControlReadClient = {
   getBlock: (input: { blockNumber: bigint }) => Promise<{ hash: Hex | null }>;
   readContract: (input: {
     address: Address;
-    abi: typeof enabledAbi;
-    functionName: "isEnabled";
+    abi: Abi;
+    functionName: string;
     blockHash: Hex;
     requireCanonical: true;
   }) => Promise<unknown>;
@@ -36,7 +41,7 @@ export async function readPinnedControlGetter(
   input: ControlGetterInput
 ): Promise<ControlGetterResult> {
   try {
-    if (input.getter !== "isEnabled")
+    if (input.getter !== "isEnabled" && !addressGetters.has(input.getter))
       return { status: "unavailable", reason: "getter is not configured" };
     const before = await client.getBlock({ blockNumber: input.blockNumber });
     if (before.hash?.toLowerCase() !== input.blockHash.toLowerCase())
@@ -46,8 +51,18 @@ export async function readPinnedControlGetter(
       };
     const value = await client.readContract({
       address: input.address,
-      abi: enabledAbi,
-      functionName: "isEnabled",
+      abi: [
+        {
+          type: "function",
+          name: input.getter,
+          inputs: [],
+          outputs: [
+            { type: input.getter === "isEnabled" ? "bool" : "address" },
+          ],
+          stateMutability: "view",
+        },
+      ],
+      functionName: input.getter,
       blockHash: input.blockHash as Hex,
       requireCanonical: true,
     });
@@ -57,12 +72,16 @@ export async function readPinnedControlGetter(
         status: "unavailable",
         reason: "canonical block hash changed during getter read",
       };
-    if (typeof value !== "boolean")
+    if (
+      input.getter === "isEnabled"
+        ? typeof value !== "boolean"
+        : typeof value !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(value)
+    )
       return {
         status: "unavailable",
-        reason: "isEnabled did not return a boolean",
+        reason: "getter returned an unexpected value",
       };
-    return { status: "success", value: String(value) };
+    return { status: "success", value: String(value).toLowerCase() };
   } catch {
     return {
       status: "unavailable",

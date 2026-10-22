@@ -1,7 +1,82 @@
 import type {
   ContractState,
+  ContractRelationship,
   ChainObservation,
 } from "../../../../../packages/snapshot-artifacts/src/index";
+import type { Node } from "reactflow";
+
+export function getPreservedGraphNodes(
+  next: Node[],
+  previous: Node[],
+  previousLayout: Node[] = previous
+): Node[] {
+  const inactiveById = new Map(
+    next.map((node) => [node.id, node.data.kernelInactive])
+  );
+  const group = next.find((node) => node.type === "group");
+  const oldGroup = previousLayout.find((node) => node.type === "group");
+  const inactiveIds = (nodes: Node[]) =>
+    nodes
+      .filter((node) => node.data.kernelInactive)
+      .map((node) => node.id)
+      .sort()
+      .join(":");
+  const sameGroup =
+    group?.position.x === oldGroup?.position.x &&
+    group?.position.y === oldGroup?.position.y &&
+    inactiveIds(next) === inactiveIds(previousLayout);
+  return previous.filter(
+    (node) =>
+      node.type !== "group" &&
+      node.data.kernelInactive === inactiveById.get(node.id) &&
+      (!node.data.kernelInactive || sameGroup)
+  );
+}
+
+export function groupInactiveContracts(
+  active: Node[],
+  inactive: Node[]
+): Node[] {
+  if (!inactive.length) return active;
+  const columns = Math.min(3, inactive.length);
+  const x = Math.max(0, ...active.map((node) => node.position.x + 240)) + 160;
+  const y = Math.min(100, ...active.map((node) => node.position.y));
+  return [
+    {
+      id: "kernel-inactive-group",
+      type: "group",
+      position: { x, y },
+      data: {
+        name: "Not installed in Kernel",
+        label: "Not installed in Kernel",
+      },
+      selectable: false,
+      focusable: false,
+      draggable: false,
+      connectable: false,
+      zIndex: -1,
+      style: {
+        width: columns * 300 + 48,
+        height: Math.ceil(inactive.length / columns) * 160 + 72,
+        padding: "16px 24px",
+        textAlign: "left",
+        fontSize: 14,
+        color: "#64748b",
+        background: "rgba(241,245,249,0.6)",
+        border: "1px dashed #cbd5e1",
+        pointerEvents: "none",
+      },
+    },
+    ...active,
+    ...inactive.map((node, index) => ({
+      ...node,
+      position: {
+        x: x + 24 + (index % columns) * 300,
+        y: y + 48 + Math.floor(index / columns) * 160,
+      },
+    })),
+  ];
+}
 
 export function getGraphContractName(contract: {
   name: string;
@@ -128,4 +203,70 @@ export function refreshGraph<
   const selectedNode =
     selected && nodes.has(normalize(selected)) ? normalize(selected) : null;
   return { nodes: [...nodes.values()], selectedNode };
+}
+
+/** One address node can hold several distinct controls; field, scope and status retain separate edges. */
+export function getRelationshipGraph(
+  relationships: ContractRelationship[],
+  chainId: number
+) {
+  const addresses = new Set<string>();
+  const edges = new Map<
+    string,
+    {
+      id: string;
+      source: string;
+      target: string;
+      label: string;
+      pending: boolean;
+      relationship: ContractRelationship;
+    }
+  >();
+  for (const relationship of relationships) {
+    if (
+      relationship.chainId !== chainId ||
+      relationship.status === "unset" ||
+      !relationship.target
+    )
+      continue;
+    const source = relationship.source.toLowerCase();
+    const target = relationship.target.toLowerCase();
+    if (
+      [source, target].some(
+        (address) =>
+          !/^0x[0-9a-f]{40}$/.test(address) || /^0x0{40}$/.test(address)
+      ) ||
+      source === target
+    )
+      continue;
+    addresses.add(source);
+    addresses.add(target);
+    const pending = relationship.status === "pending";
+    const name = relationship.kind.replace(/-/g, " ");
+    const label = pending
+      ? `Pending ${name}`
+      : name.charAt(0).toUpperCase() + name.slice(1);
+    const scope = [relationship.scope?.registry, relationship.scope?.token]
+      .map((value) => value?.toLowerCase() ?? "")
+      .join(":");
+    const id = `${relationship.id}:${relationship.kind}:${relationship.status}:${scope}:${source}:${target}`;
+    edges.set(id, { id, source, target, label, pending, relationship });
+  }
+  const graphEdges = [...edges.values()];
+  const parallel = new Map<string, typeof graphEdges>();
+  for (const edge of graphEdges) {
+    const key = `${edge.source}:${edge.target}`;
+    const group = parallel.get(key) ?? [];
+    group.push(edge);
+    parallel.set(key, group);
+  }
+  return {
+    addresses: [...addresses],
+    edges: [...parallel.values()].flatMap((group) =>
+      group.map((edge, index) => ({
+        ...edge,
+        labelOffset: (index - (group.length - 1) / 2) * 18,
+      }))
+    ),
+  };
 }

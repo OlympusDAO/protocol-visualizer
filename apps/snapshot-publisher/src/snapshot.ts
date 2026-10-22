@@ -432,7 +432,15 @@ export function createProtocolSnapshot({
         a.id.localeCompare(b.id)
       ),
       contractStates: contractStates.sort((a, b) => a.id.localeCompare(b.id)),
-      relationships: graphqlData.ContractRelationship ?? [],
+      relationships: (graphqlData.ContractRelationship ?? []).map(
+        (relationship) => ({
+          ...relationship,
+          subject: relationship.subject ?? undefined,
+          getter: relationship.getter ?? undefined,
+          coverage: relationship.coverage ?? undefined,
+          verification: relationship.verification ?? undefined,
+        })
+      ),
       observation:
         graphqlData.ChainObservation?.find(
           (observation) => observation.chainId === chainId

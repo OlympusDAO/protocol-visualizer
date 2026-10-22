@@ -53,7 +53,7 @@ export async function completeEnablementBlock(
   contracts: EnablerContract[],
   read: (address: string) => Promise<ControlGetterResult>,
   readCanonicalBlock: (number: string) => Promise<ControlBlock | undefined>
-): Promise<void> {
+): Promise<boolean> {
   const deployed = contracts.filter(
     (contract) => contract.startBlock <= Number(block.number)
   );
@@ -82,7 +82,7 @@ export async function completeEnablementBlock(
             "Indexed state anchor is not confirmed on the observed canonical chain.",
         },
       });
-      return;
+      return false;
     }
   }
   const results = new Map<string, ControlGetterResult>();
@@ -106,4 +106,5 @@ export async function completeEnablementBlock(
   for (const [address, result] of results) {
     await verifyControlState(context, chainId, address, block, result);
   }
+  return true;
 }

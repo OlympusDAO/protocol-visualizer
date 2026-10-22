@@ -63,6 +63,14 @@ export type ContractRelationship = {
   status: "current" | "pending" | "reference" | "unset";
   scope?: { registry?: string; token?: string } | null;
   provenance: EventProvenance | BlockObservation;
+  subject?: string;
+  getter?: string;
+  value?: string | null;
+  seed?: BlockObservation | null;
+  lastChange?: EventProvenance | null;
+  indexedThrough?: BlockObservation | null;
+  verification?: GetterVerification;
+  coverage?: string;
 };
 export type ChainObservation = {
   chainId: number;
@@ -568,6 +576,16 @@ export const protocolSnapshotSchema = {
         status: { enum: ["current", "pending", "reference", "unset"] },
         scope: { type: ["object", "null"] },
         provenance: { $ref: "#/$defs/block" },
+        subject: { type: "string" },
+        getter: { type: "string" },
+        value: { type: ["string", "null"] },
+        seed: { anyOf: [{ $ref: "#/$defs/block" }, { type: "null" }] },
+        lastChange: { anyOf: [{ $ref: "#/$defs/block" }, { type: "null" }] },
+        indexedThrough: {
+          anyOf: [{ $ref: "#/$defs/block" }, { type: "null" }],
+        },
+        verification: { $ref: "#/$defs/contractState/properties/verification" },
+        coverage: { type: "string" },
       },
     },
     observation: {

@@ -171,6 +171,14 @@ type ContractRelationship {
   status: String!
   scope: Json
   provenance: Json!
+  subject: String @index
+  getter: String
+  value: String
+  seed: Json
+  lastChange: Json
+  indexedThrough: Json
+  verification: Json
+  coverage: String
 }
 
 type ChainObservation {

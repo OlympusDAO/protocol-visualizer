@@ -26,14 +26,18 @@ import { DEFAULT_CHAIN_ID, SUPPORTED_CHAINS } from "@/lib/constants";
 import otherContracts from "../../../../../packages/protocol-config/other-contracts.json";
 import {
   getEnablementPresentation,
+  getRelationshipGraph,
   getContractPalette,
   getGraphContractName,
   getKernelLabel,
   refreshGraph,
+  groupInactiveContracts,
+  getPreservedGraphNodes,
 } from "./graph";
 
 interface NodeData {
   name: string;
+  kernelInactive?: boolean;
   label: React.ReactNode;
   assignees?: RoleAssignment[];
   policiesCount?: number;
@@ -45,12 +49,37 @@ interface NodeData {
 
 type CustomNode = Node<NodeData>;
 
+function StatusTooltip({
+  label,
+  className,
+  children,
+}: {
+  label: string;
+  className: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={(event) => event.stopPropagation()}
+      className={`nodrag nopan group/status relative inline-flex rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${className}`}
+    >
+      {children}
+      <span
+        role="tooltip"
+        className="pointer-events-none invisible absolute right-0 top-full z-50 mt-2 whitespace-nowrap rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-normal text-slate-800 shadow-md group-hover/status:visible group-focus/status:visible"
+      >
+        {label}
+      </span>
+    </button>
+  );
+}
+
 function EnablementIndicator({ label }: { label: string }) {
   return (
-    <span
-      role="img"
-      aria-label={label}
-      title={label}
+    <StatusTooltip
+      label={label}
       className={`inline-flex align-middle ${label === "Contract enabled" ? "text-emerald-700" : "text-rose-700"}`}
     >
       <svg
@@ -69,7 +98,7 @@ function EnablementIndicator({ label }: { label: string }) {
           d={label === "Contract enabled" ? "m8 12 3 3 5-6" : "m6 6 12 12"}
         />
       </svg>
-    </span>
+    </StatusTooltip>
   );
 }
 
@@ -84,10 +113,8 @@ function ContractStatusIcons({
   return (
     <span className="inline-flex shrink-0 items-center gap-1.5">
       {membership !== "External deployment" && (
-        <span
-          role="img"
-          aria-label={membership}
-          title={
+        <StatusTooltip
+          label={
             membership === "Kernel active"
               ? "Active in Kernel"
               : "Inactive in Kernel"
@@ -113,7 +140,7 @@ function ContractStatusIcons({
             <path d="M17 3H5a2 2 0 0 0-2 2v12" />
             {membership === "Kernel inactive" && <path d="m3 3 18 18" />}
           </svg>
-        </span>
+        </StatusTooltip>
       )}
       {enablementLabel && <EnablementIndicator label={enablementLabel} />}
     </span>
@@ -181,9 +208,8 @@ const NODE_COLORS = {
   },
 };
 
-// Create a node for a non-contract assignee
-const createAssigneeNode = (
-  assignee: RoleAssignment,
+const createAddressNode = (
+  assignee: Pick<RoleAssignment, "assignee" | "assigneeName">,
   id: string,
   chainId: number
 ) => {
@@ -249,6 +275,7 @@ const createAssigneeNode = (
 
 // Node types configuration
 const nodeTypes: NodeTypes = {
+  group: ({ data }) => <div>{data.label}</div>,
   role: ({ data }: { data: NodeData }) => (
     // biome-ignore lint/a11y/noStaticElementInteractions: graph node hover state is handled by React Flow, not an interactive control.
     <div
@@ -440,7 +467,10 @@ export function ContractVisualizer() {
   const hasNoContractData =
     !isLoading &&
     !error &&
-    (contracts?.length ?? 0) + (data?.additionalContracts.length ?? 0) === 0;
+    (contracts?.length ?? 0) +
+      (data?.additionalContracts.length ?? 0) +
+      (data?.relationships.length ?? 0) ===
+      0;
 
   useEffect(() => {
     if (!data) return;
@@ -483,6 +513,7 @@ export function ContractVisualizer() {
         id,
         data: {
           name: formatContractName(contract),
+          kernelInactive: contract.isEnabled === false,
           label: (
             // biome-ignore lint/a11y/noStaticElementInteractions: graph node hover state is handled by React Flow, not an interactive control.
             <div
@@ -688,6 +719,7 @@ export function ContractVisualizer() {
         position: { x: 0, y: 0 },
         data: {
           name: getGraphContractName(contract),
+          kernelInactive: contract.category === "inactive-core",
           label: (
             <div className="p-2 text-sm">
               <Handle
@@ -790,9 +822,9 @@ export function ContractVisualizer() {
           newEdges.push(createEdge(assignment.assignee, roleId, false));
         } else {
           // Create node for non-contract assignee
-          const assigneeId = `assignee-${assignment.assignee}`;
+          const assigneeId = assignment.assignee.toLowerCase();
           newNodes.push({
-            ...createAssigneeNode(assignment, assigneeId, selectedChainId),
+            ...createAddressNode(assignment, assigneeId, selectedChainId),
             position: { x: 0, y: 0 },
           });
 
@@ -818,28 +850,92 @@ export function ContractVisualizer() {
       });
     });
 
-    // Apply dagre layout
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-      newNodes,
-      newEdges,
+    const relationships = getRelationshipGraph(
+      data?.relationships ?? [],
+      selectedChainId
+    );
+    const nodeIds = new Set(newNodes.map((node) => node.id));
+    for (const address of relationships.addresses) {
+      if (nodeIds.has(address)) continue;
+      const assigneeName =
+        roleAssignments.find(
+          (assignment) => assignment.assignee.toLowerCase() === address
+        )?.assigneeName ??
+        otherContracts.find(
+          (contract) =>
+            contract.chainId === selectedChainId && contract.address === address
+        )?.name ??
+        "UNKNOWN";
+      newNodes.push({
+        ...createAddressNode(
+          { assignee: address, assigneeName },
+          address,
+          selectedChainId
+        ),
+        position: { x: 0, y: 0 },
+      });
+      nodeIds.add(address);
+    }
+    for (const edge of relationships.edges) {
+      newEdges.push({
+        ...createEdge(edge.source, edge.target),
+        id: edge.id,
+        label: edge.label,
+        style: {
+          stroke: "#475569",
+          strokeWidth: 2,
+          opacity: 0.7,
+          ...(edge.pending ? { strokeDasharray: "6 4" } : {}),
+        },
+        labelStyle: {
+          fontSize: 11,
+          fill: "#334155",
+          transform: `translateY(${edge.labelOffset}px)`,
+        },
+        labelBgStyle: { transform: `translateY(${edge.labelOffset}px)` },
+        markerEnd: { type: MarkerType.Arrow, color: "#475569" },
+      });
+    }
+
+    const inactive = newNodes.filter((node) => node.data.kernelInactive);
+    const active = newNodes.filter((node) => !node.data.kernelInactive);
+    const activeIds = new Set(active.map((node) => node.id));
+    const { nodes: layoutedNodes } = getLayoutedElements(
+      active,
+      newEdges.filter(
+        (edge) => activeIds.has(edge.source) && activeIds.has(edge.target)
+      ),
       "TB"
     );
 
-    const baseline = refreshGraph(
+    const previousLayout = selectedNode
+      ? (originalLayout?.nodes ?? [])
+      : nodesRef.current;
+    const stableActive = refreshGraph(
       layoutedNodes,
-      selectedNode ? (originalLayout?.nodes ?? []) : nodesRef.current,
+      getPreservedGraphNodes(layoutedNodes, previousLayout),
+      selectedNode
+    ).nodes;
+    const groupedNodes = groupInactiveContracts(stableActive, inactive);
+    const baseline = refreshGraph(
+      groupedNodes,
+      getPreservedGraphNodes(groupedNodes, previousLayout),
       selectedNode
     );
     const refreshed = refreshGraph(
       baseline.nodes,
-      nodesRef.current,
+      getPreservedGraphNodes(
+        baseline.nodes,
+        nodesRef.current,
+        originalLayout?.nodes ?? nodesRef.current
+      ),
       selectedNode
     );
-    setOriginalLayout({ nodes: baseline.nodes, edges: layoutedEdges });
+    setOriginalLayout({ nodes: baseline.nodes, edges: newEdges });
     setSelectedNode(refreshed.selectedNode);
 
     setNodes(refreshed.nodes);
-    setEdges(layoutedEdges);
+    setEdges(newEdges);
     setLayouting(false);
     setInitialized(true);
   }, [
@@ -872,21 +968,23 @@ export function ContractVisualizer() {
     const { x: viewX, y: viewY } = reactFlowInstance.current.getViewport();
 
     // Create a subgraph of connected nodes
-    const relevantNodes = originalLayout.nodes.map((node) => ({
-      ...node,
-      // Move unconnected nodes just outside the view
-      position: connectedNodeIds.has(node.id)
-        ? node.position
-        : {
-            x: node.position.x + viewX + 800,
-            y: node.position.y + viewY + 800,
-          },
-      style: {
-        ...node.style,
-        opacity: connectedNodeIds.has(node.id) ? 1 : 0.2,
-        transition: "all 0.5s ease-in-out",
-      },
-    }));
+    const relevantNodes = originalLayout.nodes
+      .filter((node) => node.type !== "group")
+      .map((node) => ({
+        ...node,
+        // Move unconnected nodes just outside the view
+        position: connectedNodeIds.has(node.id)
+          ? node.position
+          : {
+              x: node.position.x + viewX + 800,
+              y: node.position.y + viewY + 800,
+            },
+        style: {
+          ...node.style,
+          opacity: connectedNodeIds.has(node.id) ? 1 : 0.2,
+          transition: "all 0.5s ease-in-out",
+        },
+      }));
 
     // Filter edges to only show those connecting selected nodes
     const relevantEdges = originalLayout.edges.map((edge) => ({
@@ -993,10 +1091,10 @@ export function ContractVisualizer() {
 
   // Render tooltip for hovered assignee
   const renderAssigneeTooltip = () => {
-    if (!selectedNode?.startsWith("assignee-") || !roleAssignments) return null;
+    if (!selectedNode?.startsWith("0x") || !roleAssignments) return null;
 
     // Extract assignee address from node ID
-    const assigneeAddress = selectedNode.replace("assignee-", "");
+    const assigneeAddress = selectedNode;
 
     // Find the node data
     const selectedNodeData = nodes.find(
@@ -1182,10 +1280,12 @@ export function ContractVisualizer() {
                       type="button"
                       className="text-pink-600 hover:text-pink-800 hover:underline text-left"
                       onClick={() =>
-                        setSelectedNode(`assignee-${assignee.address}`)
+                        setSelectedNode(assignee.address.toLowerCase())
                       }
                     >
-                      {assignee.name === "UNKNOWN" ? "EOA" : assignee.name}
+                      {assignee.name === "UNKNOWN"
+                        ? "Unknown address"
+                        : assignee.name}
                     </button>
                     <a
                       href={getEtherscanLink(assignee.address, selectedChainId)}
@@ -1547,6 +1647,16 @@ export function ContractVisualizer() {
     ...(contracts ?? []),
     ...(data ? getAdditionalGraphContracts(data) : []),
   ].find((contract) => contract.address === selectedNode);
+  const selectedAddressNode = selectedNode?.startsWith("0x")
+    ? nodes.find((node) => node.id === selectedNode)
+    : undefined;
+  const selectedRelationships =
+    data?.relationships.filter(
+      (relationship) =>
+        relationship.subject?.toLowerCase() === selectedNode ||
+        relationship.source.toLowerCase() === selectedNode ||
+        relationship.target?.toLowerCase() === selectedNode
+    ) ?? [];
   const selectedState = data?.contractStates.find(
     (state) => state.address.toLowerCase() === selectedNode
   );
@@ -1564,6 +1674,12 @@ export function ContractVisualizer() {
       {error && data && !isHistorical && (
         <p role="status" className="mb-2 text-sm text-amber-800">
           Snapshot refresh failed. Showing the last loaded snapshot.
+        </p>
+      )}
+      {!isHistorical && (data?.relationships.length ?? 0) > 0 && (
+        <p className="mb-2 text-xs text-gray-500">
+          Control and reference links are labelled. Dashed links show pending
+          nominations.
         </p>
       )}
       <div className="h-[800px] border border-gray-200 rounded-lg">
@@ -1640,7 +1756,7 @@ export function ContractVisualizer() {
               <Background />
               <Controls />
             </ReactFlow>
-            {selectedNode?.startsWith("assignee-")
+            {selectedAddressNode?.data.assigneeAddress
               ? renderAssigneeTooltip()
               : selectedNode?.startsWith("role-")
                 ? renderRoleTooltip()
@@ -1653,13 +1769,17 @@ export function ContractVisualizer() {
                         ?.type === "module"
                     ? renderModuleTooltip()
                     : null}
-            {selectedContract && (
+            {(selectedContract || selectedAddressNode) && selectedNode && (
               <aside
                 className="fixed bottom-4 left-4 z-50 max-w-[min(420px,calc(100vw-2rem))] max-h-[40vh] overflow-auto rounded-lg border border-gray-200 bg-white p-4 text-xs shadow-lg"
                 aria-label="Contract control state"
               >
                 <div className="flex justify-between gap-4">
-                  <strong>{getGraphContractName(selectedContract)}</strong>
+                  <strong>
+                    {selectedContract
+                      ? getGraphContractName(selectedContract)
+                      : selectedAddressNode?.data.name}
+                  </strong>
                   <button
                     type="button"
                     onClick={() => setSelectedNode(null)}
@@ -1668,8 +1788,18 @@ export function ContractVisualizer() {
                     ×
                   </button>
                 </div>
-                <div className="mt-1">{getKernelLabel(selectedContract)}</div>
-                {selectedControl.badge && (
+                <a
+                  className="mt-1 block break-all text-blue-600"
+                  href={getEtherscanLink(selectedNode, selectedChainId)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {selectedNode}
+                </a>
+                {selectedContract && (
+                  <div className="mt-1">{getKernelLabel(selectedContract)}</div>
+                )}
+                {selectedContract && selectedControl.badge && (
                   <EnablementIndicator label={selectedControl.badge} />
                 )}
                 {selectedControl.warning && (
@@ -1677,13 +1807,137 @@ export function ContractVisualizer() {
                     {selectedControl.warning}
                   </p>
                 )}
-                {selectedControl.details
+                {(selectedContract ? selectedControl.details : [])
                   .filter((detail) => detail !== selectedControl.warning)
                   .map((detail) => (
                     <p key={detail} className="mt-2 break-all text-gray-600">
                       {detail}
                     </p>
                   ))}
+                {selectedRelationships.length > 0 && (
+                  <section
+                    className="mt-3 border-t border-gray-200 pt-2"
+                    aria-label="Control relationships"
+                  >
+                    <h4 className="font-semibold">Relationships</h4>
+                    <p className="mt-1 text-gray-500">
+                      {
+                        selectedRelationships.filter(
+                          (relationship) => relationship.status === "current"
+                        ).length
+                      }{" "}
+                      current control links. Pending nominations are separate.
+                    </p>
+                    {selectedRelationships.map((relationship) => (
+                      <div
+                        key={relationship.id}
+                        className="mt-2 border-t border-gray-100 pt-2"
+                      >
+                        <strong>
+                          {relationship.status === "pending" ? "Pending " : ""}
+                          {relationship.kind.replace(/-/g, " ")}
+                        </strong>
+                        {relationship.target ? (
+                          <p className="mt-1 break-all">
+                            <a
+                              className="text-blue-600"
+                              href={getEtherscanLink(
+                                relationship.source,
+                                selectedChainId
+                              )}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {relationship.source}
+                            </a>
+                            {" → "}
+                            <a
+                              className="text-blue-600"
+                              href={getEtherscanLink(
+                                relationship.target,
+                                selectedChainId
+                              )}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {relationship.target}
+                            </a>
+                          </p>
+                        ) : (
+                          <p>
+                            {relationship.value == null
+                              ? "Unknown; no successful observation establishes this field."
+                              : relationship.getter?.startsWith("new")
+                                ? "No pending nomination."
+                                : "Unset."}
+                          </p>
+                        )}
+                        <p className="mt-1 break-all text-gray-500">
+                          Observed at block {relationship.provenance.number} (
+                          {relationship.provenance.hash})
+                          {"transactionHash" in relationship.provenance
+                            ? `; transaction ${relationship.provenance.transactionHash}, log ${relationship.provenance.logIndex}`
+                            : "; getter observation"}
+                          .
+                        </p>
+                        {relationship.indexedThrough && (
+                          <p className="mt-1 text-gray-500">
+                            Indexed through block{" "}
+                            {relationship.indexedThrough.number}.
+                          </p>
+                        )}
+                        {relationship.lastChange &&
+                          (!relationship.indexedThrough ||
+                            BigInt(relationship.lastChange.number) >
+                              BigInt(relationship.indexedThrough.number)) && (
+                            <p className="mt-1 text-amber-800">
+                              Latest relationship change awaits a completed
+                              verification checkpoint.
+                            </p>
+                          )}
+                        {data?.observation &&
+                          (!relationship.indexedThrough ||
+                            BigInt(relationship.indexedThrough.number) <
+                              BigInt(
+                                data.observation.indexedThrough.number
+                              )) && (
+                            <p className="mt-1 text-amber-800">
+                              Relationship coverage is behind chain observation
+                              block {data.observation.indexedThrough.number}.
+                            </p>
+                          )}
+                        {relationship.coverage && (
+                          <p className="mt-1 text-amber-800">
+                            {relationship.coverage}
+                          </p>
+                        )}
+                        {relationship.verification?.outcome === "mismatch" && (
+                          <p className="mt-1 break-all text-amber-800">
+                            Verification mismatch: indexed {relationship.value},
+                            getter {relationship.verification.getterValue} at
+                            block {relationship.verification.block?.number} (
+                            {relationship.verification.block?.hash}). Indexed
+                            state is retained.
+                          </p>
+                        )}
+                        {relationship.verification?.outcome ===
+                          "unavailable" && (
+                          <p className="mt-1 text-amber-800">
+                            Getter verification unavailable at block{" "}
+                            {relationship.verification.block?.number}.
+                            Established indexed state is retained.
+                          </p>
+                        )}
+                        {relationship.verification?.outcome === "match" && (
+                          <p className="mt-1 text-gray-500">
+                            Getter matches at block{" "}
+                            {relationship.verification.block?.number}.
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </section>
+                )}
               </aside>
             )}
           </>

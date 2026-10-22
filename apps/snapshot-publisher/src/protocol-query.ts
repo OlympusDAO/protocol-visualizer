@@ -10,7 +10,7 @@ export const PROTOCOL_VISUALIZER_QUERIES: ProtocolVisualizerQuery[] = [
       query ProtocolVisualizerData($chainId: Int!) {
         KnownContract: contract(where: { chainId: { _eq: $chainId } }, orderBy: { name: asc }) { id chainId address lastUpdatedTimestamp lastUpdatedBlockNumber name version contractType isEnabled policyPermissions policyFunctions }
         ContractState: contractState(where: { chainId: { _eq: $chainId } }) { id chainId address enablerCapability enabled seed lastChange indexedThrough verification }
-        ContractRelationship: contractRelationship(where: { chainId: { _eq: $chainId } }) { id chainId kind source target status scope provenance }
+        ContractRelationship: contractRelationship(where: { chainId: { _eq: $chainId } }) { id chainId kind source target status scope provenance subject getter value seed lastChange indexedThrough verification coverage }
         ChainObservation: chainObservation(where: { chainId: { _eq: $chainId } }) { chainId indexedThrough }
         Contract: contract(
           where: { chainId: { _eq: $chainId }, isEnabled: { _eq: true } }
@@ -55,7 +55,7 @@ export const PROTOCOL_VISUALIZER_QUERIES: ProtocolVisualizerQuery[] = [
       query ProtocolVisualizerData($chainId: Int!) {
         KnownContract: Contract(where: { chainId: { _eq: $chainId } }, order_by: { name: asc }) { id chainId address lastUpdatedTimestamp lastUpdatedBlockNumber name version contractType isEnabled policyPermissions policyFunctions }
         ContractState: ContractState(where: { chainId: { _eq: $chainId } }) { id chainId address enablerCapability enabled seed lastChange indexedThrough verification }
-        ContractRelationship: ContractRelationship(where: { chainId: { _eq: $chainId } }) { id chainId kind source target status scope provenance }
+        ContractRelationship: ContractRelationship(where: { chainId: { _eq: $chainId } }) { id chainId kind source target status scope provenance subject getter value seed lastChange indexedThrough verification coverage }
         ChainObservation: ChainObservation(where: { chainId: { _eq: $chainId } }) { chainId indexedThrough }
         Contract(
           where: { chainId: { _eq: $chainId }, isEnabled: { _eq: true } }

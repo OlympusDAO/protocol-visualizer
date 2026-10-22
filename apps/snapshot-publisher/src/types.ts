@@ -59,7 +59,15 @@ export type InventoryContract = {
 export type ProtocolGraphqlData = {
   KnownContract?: GraphqlContract[];
   ContractState?: ContractState[];
-  ContractRelationship?: ContractRelationship[];
+  ContractRelationship?: (Omit<
+    ContractRelationship,
+    "subject" | "getter" | "coverage" | "verification"
+  > & {
+    subject?: string | null;
+    getter?: string | null;
+    coverage?: string | null;
+    verification?: ContractRelationship["verification"] | null;
+  })[];
   ChainObservation?: ChainObservation[];
   Contract?: GraphqlContract[];
   Role?: GraphqlRole[];

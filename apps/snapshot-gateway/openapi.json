@@ -646,6 +646,51 @@
               },
               "provenance": {
                 "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+              },
+              "subject": {
+                "type": "string"
+              },
+              "getter": {
+                "type": "string"
+              },
+              "value": {
+                "type": ["string", "null"]
+              },
+              "seed": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "lastChange": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "indexedThrough": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "verification": {
+                "$ref": "#/components/schemas/ProtocolSnapshot/$defs/contractState/properties/verification"
+              },
+              "coverage": {
+                "type": "string"
               }
             }
           },

@@ -39,9 +39,45 @@ contracts:
     events:
       - event: "Transition(address indexed by, bool indexed enable, bytes data, uint48 at)"
 
+  - name: Owned
+    abi_file_path: ./abis/json/Owned.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "OwnershipTransferred(address indexed user, address indexed newOwner)"
+
+  - name: OlympusAccessControlled
+    abi_file_path: ./abis/json/OlympusAccessControlled.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "AuthorityUpdated(address indexed authority)"
+
+  - name: StakedOHM
+    abi_file_path: ./abis/json/StakedOHM.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "LogStakingContractUpdated(address stakingContract)"
+
+  - name: OlympusAuthority
+    abi_file_path: ./abis/json/OlympusAuthority.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "GovernorPushed(address indexed from, address indexed to, bool _effectiveImmediately)"
+      - event: "GovernorPulled(address indexed from, address indexed to)"
+      - event: "GuardianPushed(address indexed from, address indexed to, bool _effectiveImmediately)"
+      - event: "GuardianPulled(address indexed from, address indexed to)"
+      - event: "PolicyPushed(address indexed from, address indexed to, bool _effectiveImmediately)"
+      - event: "PolicyPulled(address indexed from, address indexed to)"
+      - event: "VaultPushed(address indexed from, address indexed to, bool _effectiveImmediately)"
+      - event: "VaultPulled(address indexed from, address indexed to)"
+
+  - name: GovernanceOHM
+    abi_file_path: ./abis/json/GovernanceOHM.json
+    handler: ./src/EventHandlers.ts
+    events: []
+
 chains:
   - id: 84532
-    start_block: 21445241
+    start_block: 21445237
     rpc:
       - url: ${ENVIO_RPC_URL_84532:-https://sepolia.base.org}
         for: ${ENVIO_RPC_MODE:-sync}
@@ -63,10 +99,21 @@ chains:
           - "0x6577cfd3b625a6bd0b708da1f066855c19ac8360"
           - "0xd28d3910191900699558c9d8066080df644d9db3"
         start_block: 26633650
-
+      - name: Owned
+        address:
+          - "0xd28d3910191900699558c9d8066080df644d9db3"
+        start_block: 26633652
+      - name: OlympusAccessControlled
+        address:
+          - "0x18878df23e2a36f81e820e4b47b4a40576d3159c"
+        start_block: 21445239
+      - name: OlympusAuthority
+        address:
+          - "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0"
+        start_block: 21445237
 
   - id: 421614
-    start_block: 273448353
+    start_block: 273448345
     rpc:
       - url: ${ENVIO_RPC_URL_421614:-https://sepolia-rollup.arbitrum.io/rpc}
         for: ${ENVIO_RPC_MODE:-sync}
@@ -89,10 +136,21 @@ chains:
           - "0x0f953d861347414698f34b75dbfd6e7df1a73493"
           - "0x1d316c489bab10b755cb0562759a6cf285f89814"
         start_block: 273448382
-
+      - name: Owned
+        address:
+          - "0xc8431feb345b46c30a4576c1b5faf080fdc54e2f"
+        start_block: 273448390
+      - name: OlympusAccessControlled
+        address:
+          - "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0"
+        start_block: 273448349
+      - name: OlympusAuthority
+        address:
+          - "0x13dfeff85779118136bb9826dcad8f3bd25153a3"
+        start_block: 273448345
 
   - id: 4663
-    start_block: 94168504
+    start_block: 94168343
     rpc:
       - url: ${ENVIO_RPC_URL_4663:-https://rpc.mainnet.chain.robinhood.com}
         for: ${ENVIO_RPC_MODE:-sync}
@@ -119,10 +177,21 @@ chains:
           - "0x6d94b3745b0ecf908b3b467907b947b43fba5f15"
           - "0x9f08c2603e919a46d6d98289c9ada5250b310558"
         start_block: 94169625
-
+      - name: Owned
+        address:
+          - "0x5261fba7b50aa22b19b9edf939b771d109de991f"
+        start_block: 94169198
+      - name: OlympusAccessControlled
+        address:
+          - "0x9c859dc91db65bd7375660341231227336daa134"
+        start_block: 94168423
+      - name: OlympusAuthority
+        address:
+          - "0xca6cd4f0a0033f8c20cf68d6df277e7001a386f9"
+        start_block: 94168343
 
   - id: 1
-    start_block: 15998125
+    start_block: 13674068
     rpc:
       - url: ${ENVIO_RPC_URL_1:-https://eth.llamarpc.com}
         for: ${ENVIO_RPC_MODE:-sync}
@@ -162,10 +231,35 @@ chains:
           - "0x2cea7b722dbd6b03f0e857d11e53ecb698cc2b4e"
           - "0xf489f38bf8d98a5c10a030f8c16624f6764cd27a"
         start_block: 26232434
-
+      - name: Owned
+        address:
+          - "0x62633b567ed4fc4078db75a5cb4b896b3d44a5d4"
+          - "0x6593768febf9c95ac857fb7ef244d5738d1c57fd"
+          - "0x7d8f82a0d5b67d5fdd1b77a899ff517818fafc2e"
+          - "0xa0ca0f496b6295f949edda2df5fcd3877d5a253e"
+          - "0xe045bd0a0d85e980aa152064c06eae6b6ae358d2"
+          - "0xfbf6383dc3f6010d403ecdf12ddc1311701d143d"
+        start_block: 22515497
+      - name: OlympusAccessControlled
+        address:
+          - "0x64aa3364f17a4d01c6f1751fd97c2bd3d7e7f1d5"
+          - "0xb63cac384247597756545b500253ff8e607a8020"
+        start_block: 13782589
+      - name: StakedOHM
+        address:
+          - "0x04906695d6d12cf5459975d7c3c03356e4ccd460"
+        start_block: 13803969
+      - name: OlympusAuthority
+        address:
+          - "0x1c21f8ea7e39e2ba00bc12d2968d63f4acb38b7a"
+        start_block: 13674068
+      - name: GovernanceOHM
+        address:
+          - "0x0ab87046fbb341d058f17cbc4c1133f25a20a52f"
+        start_block: 13674957
 
   - id: 42161
-    start_block: 85886527
+    start_block: 85886461
     rpc:
       - url: ${ENVIO_RPC_URL_42161:-https://arb1.arbitrum.io/rpc}
         for: ${ENVIO_RPC_MODE:-sync}
@@ -192,10 +286,21 @@ chains:
           - "0x5261fba7b50aa22b19b9edf939b771d109de991f"
           - "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb"
         start_block: 516537728
-
+      - name: Owned
+        address:
+          - "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50"
+        start_block: 516537697
+      - name: OlympusAccessControlled
+        address:
+          - "0xf0cb2dc0db5e6c66b9a70ac27b06b878da017028"
+        start_block: 85886493
+      - name: OlympusAuthority
+        address:
+          - "0x78f84998c73655ac2da0aa1e1270f6cb985a343e"
+        start_block: 85886461
 
   - id: 8453
-    start_block: 13204831
+    start_block: 13204824
     rpc:
       - url: ${ENVIO_RPC_URL_8453:-https://base.llamarpc.com}
         for: ${ENVIO_RPC_MODE:-sync}
@@ -222,10 +327,21 @@ chains:
           - "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50"
           - "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a"
         start_block: 52847128
-
+      - name: Owned
+        address:
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+        start_block: 52847123
+      - name: OlympusAccessControlled
+        address:
+          - "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0"
+        start_block: 13204827
+      - name: OlympusAuthority
+        address:
+          - "0x13dfeff85779118136bb9826dcad8f3bd25153a3"
+        start_block: 13204824
 
   - id: 80094
-    start_block: 780016
+    start_block: 780011
     rpc:
       - url: ${ENVIO_RPC_URL_80094:-https://rpc.berachain.com}
         for: ${ENVIO_RPC_MODE:-sync}
@@ -252,10 +368,21 @@ chains:
           - "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb"
           - "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50"
         start_block: 27734765
-
+      - name: Owned
+        address:
+          - "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a"
+        start_block: 27734760
+      - name: OlympusAccessControlled
+        address:
+          - "0x18878df23e2a36f81e820e4b47b4a40576d3159c"
+        start_block: 780014
+      - name: OlympusAuthority
+        address:
+          - "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0"
+        start_block: 780011
 
   - id: 10
-    start_block: 98531655
+    start_block: 98531613
     rpc:
       - url: ${ENVIO_RPC_URL_10:-https://optimism.llamarpc.com}
         for: ${ENVIO_RPC_MODE:-sync}
@@ -282,10 +409,21 @@ chains:
           - "0x20a3d8510f2e1176e8db4cea9883a8287a9029db"
           - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
         start_block: 158442676
-
+      - name: Owned
+        address:
+          - "0xcb4e21eb404d80f3e1db781aad9ad6a1217fbbf2"
+        start_block: 158442672
+      - name: OlympusAccessControlled
+        address:
+          - "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0"
+        start_block: 98531633
+      - name: OlympusAuthority
+        address:
+          - "0x13dfeff85779118136bb9826dcad8f3bd25153a3"
+        start_block: 98531613
 
   - id: 11155111
-    start_block: 8226369
+    start_block: 8226228
     rpc:
       - url: ${ENVIO_RPC_URL_11155111:-https://ethereum-sepolia-rpc.publicnode.com}
         for: ${ENVIO_RPC_MODE:-sync}
@@ -332,3 +470,28 @@ chains:
           - "0x992ea219636777de4b99b63bbb0b08b90a3d57da"
           - "0xcfe75cca2b7a9354f7c25e889b1216f977dec6a5"
         start_block: 8226491
+      - name: Owned
+        address:
+          - "0x70233d8f47042d3a5813026e2157b5181c608cd0"
+          - "0x7e655891ce813887613ee4eef0b9610f7a243144"
+          - "0x992ea219636777de4b99b63bbb0b08b90a3d57da"
+          - "0xcfe75cca2b7a9354f7c25e889b1216f977dec6a5"
+          - "0xef64bab08c3431bbc527b063354b95d1c5b549b0"
+        start_block: 8226526
+      - name: OlympusAccessControlled
+        address:
+          - "0x784ca0c006b8651bab183829a99fa46bece50dbc"
+          - "0xbc2778f2f24864d35d806aa968a1db445988a5e9"
+        start_block: 8226232
+      - name: StakedOHM
+        address:
+          - "0x7aee38dbb5465a05ee809d00d1c34db76f8c5b72"
+        start_block: 10279154
+      - name: OlympusAuthority
+        address:
+          - "0x81057bef097462957b9388d8dcb7d4ab0699cadb"
+        start_block: 8226228
+      - name: GovernanceOHM
+        address:
+          - "0x0f7f33f915b29476ca2b2606c8a3e06a5fc7e896"
+        start_block: 10279155

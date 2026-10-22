@@ -2,22 +2,32 @@
   {
     "chainId": 1,
     "address": "0x04906695d6d12cf5459975d7c3c03356e4ccd460",
-    "name": "sOHM"
+    "name": "sOHM",
+    "startBlock": 13803969
   },
   {
     "chainId": 1,
     "address": "0x0ab87046fbb341d058f17cbc4c1133f25a20a52f",
-    "name": "gOHM"
+    "name": "gOHM",
+    "startBlock": 13674957
   },
   {
     "chainId": 1,
-    "address": "0x4a8c9502a34962a2c6d73c5d181daaef3dcdc88d",
-    "name": "OlympusAuthority"
+    "address": "0x1c21f8ea7e39e2ba00bc12d2968d63f4acb38b7a",
+    "name": "OlympusAuthority",
+    "startBlock": 13674068
+  },
+  {
+    "chainId": 1,
+    "address": "0x62633b567ed4fc4078db75a5cb4b896b3d44a5d4",
+    "name": "MigrationProposalHelper",
+    "startBlock": 24440534
   },
   {
     "chainId": 1,
     "address": "0x64aa3364f17a4d01c6f1751fd97c2bd3d7e7f1d5",
-    "name": "OHM"
+    "name": "OHM",
+    "startBlock": 13782589
   },
   {
     "chainId": 1,
@@ -33,6 +43,12 @@
   },
   {
     "chainId": 1,
+    "address": "0xa0ca0f496b6295f949edda2df5fcd3877d5a253e",
+    "name": "ConvertibleDepositActivator",
+    "startBlock": 23824876
+  },
+  {
+    "chainId": 1,
     "address": "0xa5588e518ce5ee0e4628c005e4edabd5e87de3ad",
     "name": "CCIPLockReleaseTokenPool",
     "startBlock": 22696743
@@ -45,7 +61,8 @@
   {
     "chainId": 1,
     "address": "0xb63cac384247597756545b500253ff8e607a8020",
-    "name": "Staking"
+    "name": "Staking",
+    "startBlock": 13804019
   },
   {
     "chainId": 1,
@@ -207,17 +224,20 @@
   {
     "chainId": 10,
     "address": "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0",
-    "name": "OHM"
+    "name": "OHM",
+    "startBlock": 98531633
   },
   {
     "chainId": 10,
     "address": "0x0b5740c6b4a97f90ef2f0220651cca420b868ffb",
-    "name": "gOHM"
+    "name": "gOHM",
+    "startBlock": 3711162
   },
   {
     "chainId": 10,
     "address": "0x13dfeff85779118136bb9826dcad8f3bd25153a3",
-    "name": "OlympusAuthority"
+    "name": "OlympusAuthority",
+    "startBlock": 98531613
   },
   {
     "chainId": 10,
@@ -256,12 +276,14 @@
   {
     "chainId": 8453,
     "address": "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0",
-    "name": "OHM"
+    "name": "OHM",
+    "startBlock": 13204827
   },
   {
     "chainId": 8453,
     "address": "0x13dfeff85779118136bb9826dcad8f3bd25153a3",
-    "name": "OlympusAuthority"
+    "name": "OlympusAuthority",
+    "startBlock": 13204824
   },
   {
     "chainId": 8453,
@@ -282,12 +304,14 @@
   {
     "chainId": 42161,
     "address": "0x78f84998c73655ac2da0aa1e1270f6cb985a343e",
-    "name": "OlympusAuthority"
+    "name": "OlympusAuthority",
+    "startBlock": 85886461
   },
   {
     "chainId": 42161,
     "address": "0x8d9ba570d6cb60c7e3e0f31343efe75ab8e65fb1",
-    "name": "gOHM"
+    "name": "gOHM",
+    "startBlock": 3311260
   },
   {
     "chainId": 42161,
@@ -298,7 +322,8 @@
   {
     "chainId": 42161,
     "address": "0xf0cb2dc0db5e6c66b9a70ac27b06b878da017028",
-    "name": "OHM"
+    "name": "OHM",
+    "startBlock": 85886493
   },
   {
     "chainId": 80084,
@@ -386,12 +411,14 @@
   {
     "chainId": 84532,
     "address": "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0",
-    "name": "OlympusAuthority"
+    "name": "OlympusAuthority",
+    "startBlock": 21445237
   },
   {
     "chainId": 84532,
     "address": "0x18878df23e2a36f81e820e4b47b4a40576d3159c",
-    "name": "OHM"
+    "name": "OHM",
+    "startBlock": 21445239
   },
   {
     "chainId": 84532,
@@ -402,12 +429,14 @@
   {
     "chainId": 421614,
     "address": "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0",
-    "name": "OHM"
+    "name": "OHM",
+    "startBlock": 273448349
   },
   {
     "chainId": 421614,
     "address": "0x13dfeff85779118136bb9826dcad8f3bd25153a3",
-    "name": "OlympusAuthority"
+    "name": "OlympusAuthority",
+    "startBlock": 273448345
   },
   {
     "chainId": 421614,
@@ -418,7 +447,8 @@
   {
     "chainId": 11155111,
     "address": "0x0f7f33f915b29476ca2b2606c8a3e06a5fc7e896",
-    "name": "gOHM"
+    "name": "gOHM",
+    "startBlock": 10279155
   },
   {
     "chainId": 11155111,
@@ -429,17 +459,26 @@
   {
     "chainId": 11155111,
     "address": "0x784ca0c006b8651bab183829a99fa46bece50dbc",
-    "name": "OHM"
+    "name": "OHM",
+    "startBlock": 8226232
   },
   {
     "chainId": 11155111,
     "address": "0x7aee38dbb5465a05ee809d00d1c34db76f8c5b72",
-    "name": "sOHM"
+    "name": "sOHM",
+    "startBlock": 10279154
+  },
+  {
+    "chainId": 11155111,
+    "address": "0x7e655891ce813887613ee4eef0b9610f7a243144",
+    "name": "ConvertibleDepositActivator",
+    "startBlock": 9578184
   },
   {
     "chainId": 11155111,
     "address": "0x81057bef097462957b9388d8dcb7d4ab0699cadb",
-    "name": "OlympusAuthority"
+    "name": "OlympusAuthority",
+    "startBlock": 8226228
   },
   {
     "chainId": 11155111,
@@ -455,7 +494,8 @@
   {
     "chainId": 11155111,
     "address": "0xbc2778f2f24864d35d806aa968a1db445988a5e9",
-    "name": "Staking"
+    "name": "Staking",
+    "startBlock": 10279156
   },
   {
     "chainId": 11155111,

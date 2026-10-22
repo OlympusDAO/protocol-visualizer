@@ -149,3 +149,29 @@ A separate local Anvil and PostgreSQL replay verified Envio rollback. The first 
 This runtime check also exposed a JSONB history-write failure with primitive boolean transition payloads. Transition values now use JSON objects. Concrete production enablement and ownership subscriptions follow in the next milestones; this foundation does not claim those fields are already observed.
 
 Getter calls use EIP-1898 canonical block hashes, including across RPC fallbacks. The shared readiness parser uses the actual Envio 3.14.1 metric, `envio_progress_block_time_seconds`. Missing block-time metrics remain unavailable; scrape or publication time cannot replace them.
+
+## Ownership and legacy authority
+
+The ownership subscription uses the indexed two-address `OwnershipTransferred` event from Solmate 6.2.0 `Owned`. The Cooler composites, Cooler migrator, cross-chain bridge periphery, and proposal helpers use that source. The LimitOrders periphery uses OpenZeppelin Ownable with the same event signature. The getter is lowercase `owner()`; uppercase `OWNER` in the inspected source is a test variable. Zero ownership is unset. BLVault template `owner()` reads immutable clone arguments rather than Solmate ownership; the listed templates return zero and do not emit ownership-transfer events.
+
+The additional-contract list corrects Mainnet's environment-labelled Authority, `0x4a8c9502a34962a2c6d73c5d181daaef3dcdc88d`, which has no deployed code. At block 26246707, both OHM and Staking reference `0x1c21f8ea7e39e2ba00bc12d2968d63f4acb38b7a`. That Authority was created at block 13674068 in transaction `0x04a8cf7a0f4c8e9d0e27b36baffe48642db6ebd48750bff76356bae4e94fffde`. Other indexed OHM consumers matched their recorded Authority addresses at the comparison blocks in the IEnabler table.
+
+Three additional proposal helpers have successful creation receipts, matching address/block hashes, code at creation and no code in the preceding block:
+
+| Chain | Contract | Creation block | Transaction |
+| --- | --- | ---: | --- |
+| Ethereum | ConvertibleDepositActivator | 23824876 | `0x43be8ba00f66b0f32d16221733cbcf49177be8bd71412d78af87662958e49a08` |
+| Ethereum | MigrationProposalHelper | 24440534 | `0x8f5138d8f0fbbe47aa272920684e5ea074fc479df856ae250ca88941f9669765` |
+| Sepolia | ConvertibleDepositActivator | 9578184 | `0xbf0fc46c83dbf8319e8ee1b036a2ff2fc2c701b05275c26d35052624f7291474` |
+
+Authority push/pull events establish governor, guardian, policy and vault holders separately. An immediate push emits after changing the current holder, so its `from` argument is not previous-state evidence. Constructor pushes establish initial holders without assigning `new*`; those getters are seeded at the completed creation block. Ordinary deferred pushes change the nominee; pulls change the holder. A persistent `new*` getter equal to the current holder does not show a pending handover. Authority self-references are omitted.
+
+Consumers follow `AuthorityUpdated`, including newly referenced Authority event sources. A newly discovered Authority has event coverage from its reference block and is seeded at the next completed checkpoint; details disclose that earlier state came from the getter. Existing deployment anchors still include constructor events.
+
+Legacy sOHM emits `LogStakingContractUpdated`. Mainnet and Sepolia gOHM expose the separate `approved()` mint/burn controller: `migrate()` changes it without a change event. These fields use hash-bound checkpoint observations with an explicit getter-only coverage notice; no synthetic transaction or event history is invented. Optimism and Arbitrum gOHM wrappers did not expose this getter and do not receive that capability. These links do not assign ownership or the Bophades MINTR role.
+
+At Mainnet block 26246707, the DAO MS `0x245cc372c84b3645bf0ffe6538620b04a217988b` is both governor and guardian. The graph retains both labels on one address node. Mainnet's pending governor/guardian getters are zero; persistent policy/vault nominees equal their current holders. Robinhood's four nominees equal their holders, so none is a pending handover. These getter comparisons are source/capability checks; replay evidence is recorded separately.
+
+Production control-event history replay matched all 95 relationship fields across eight indexed chains, with each event delivered twice to check idempotence. Constructor events ran before completed creation-block seeds. Berachain's ten comparison getters succeeded, but its public RPC returned an incomplete historical log response, including no logs for a known Authority creation event. That historical response is unavailable evidence, not an empty event history.
+
+Actual Envio/PostgreSQL replay verified all ten Robinhood relationship fields through block `94951973` and all eighteen Mainnet fields in the bounded window `26230000–26246707`. A full Mainnet replay encountered provider rate limits; the bounded runtime check and separate control-event history replay establish different parts of coverage. A local reorg restored ten matching fields, removed five orphaned transition rows and eight relationship rows discovered on the orphaned branch, and completed verification against the replacement block hash.

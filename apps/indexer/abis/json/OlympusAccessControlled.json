@@ -1,0 +1,14 @@
+[
+  {
+    "type": "event",
+    "name": "AuthorityUpdated",
+    "inputs": [
+      {
+        "name": "authority",
+        "type": "address",
+        "indexed": true
+      }
+    ],
+    "anonymous": false
+  }
+]

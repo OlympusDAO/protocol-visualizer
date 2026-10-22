@@ -20218,6 +20218,2069 @@
       "roleToFunctions": {}
     }
   },
+  "84532": {
+    "0x0d33c811d0fcc711bcb388dfb3a152de445be66f": {
+      "functionSelectors": {
+        "0x22f3e2d4": {
+          "name": "isActive",
+          "roles": [],
+          "selector": "0x22f3e2d4",
+          "signature": "isActive()(bool)"
+        },
+        "0x4657b36c": {
+          "name": "changeKernel",
+          "roles": [],
+          "selector": "0x4657b36c",
+          "signature": "changeKernel(address)()"
+        },
+        "0x5924be70": {
+          "name": "requestPermissions",
+          "roles": [],
+          "selector": "0x5924be70",
+          "signature": "requestPermissions()(tuple[])"
+        },
+        "0x59bb98a0": {
+          "name": "revokePolicyApprovals",
+          "roles": ["custodian"],
+          "selector": "0x59bb98a0",
+          "signature": "revokePolicyApprovals(address,address[])()"
+        },
+        "0x5d60f33e": {
+          "name": "reduceDebtorApproval",
+          "roles": ["custodian"],
+          "selector": "0x5d60f33e",
+          "signature": "reduceDebtorApproval(address,address,uint256)()"
+        },
+        "0x6de24492": {
+          "name": "increaseDebt",
+          "roles": ["custodian"],
+          "selector": "0x6de24492",
+          "signature": "increaseDebt(address,address,uint256)()"
+        },
+        "0x72d2f718": {
+          "name": "reduceWithdrawerApproval",
+          "roles": ["custodian"],
+          "selector": "0x72d2f718",
+          "signature": "reduceWithdrawerApproval(address,address,uint256)()"
+        },
+        "0x80cee4ab": {
+          "name": "TRSRY",
+          "roles": [],
+          "selector": "0x80cee4ab",
+          "signature": "TRSRY()(address)"
+        },
+        "0x90341e1b": {
+          "name": "withdrawReservesTo",
+          "roles": ["custodian"],
+          "selector": "0x90341e1b",
+          "signature": "withdrawReservesTo(address,address,uint256)()"
+        },
+        "0x923cb952": {
+          "name": "ROLES",
+          "roles": [],
+          "selector": "0x923cb952",
+          "signature": "ROLES()(address)"
+        },
+        "0x9459b875": {
+          "name": "configureDependencies",
+          "roles": [],
+          "selector": "0x9459b875",
+          "signature": "configureDependencies()(bytes5[])"
+        },
+        "0xbc9c21ca": {
+          "name": "grantWithdrawerApproval",
+          "roles": ["custodian"],
+          "selector": "0xbc9c21ca",
+          "signature": "grantWithdrawerApproval(address,address,uint256)()"
+        },
+        "0xc11e37a4": {
+          "name": "grantDebtorApproval",
+          "roles": ["custodian"],
+          "selector": "0xc11e37a4",
+          "signature": "grantDebtorApproval(address,address,uint256)()"
+        },
+        "0xd4aae0c4": {
+          "name": "kernel",
+          "roles": [],
+          "selector": "0xd4aae0c4",
+          "signature": "kernel()(address)"
+        },
+        "0xed60f188": {
+          "name": "decreaseDebt",
+          "roles": ["custodian"],
+          "selector": "0xed60f188",
+          "signature": "decreaseDebt(address,address,uint256)()"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0x0f953d861347414698f34b75dbfd6e7df1a73493": {
+      "functionSelectors": {
+        "0x1a70b681": {
+          "name": "addCategory",
+          "roles": ["minter_admin"],
+          "selector": "0x1a70b681",
+          "signature": "addCategory(bytes32)()"
+        },
+        "0x1e458bee": {
+          "name": "mint",
+          "roles": ["minter_admin"],
+          "selector": "0x1e458bee",
+          "signature": "mint(address,uint256,bytes32)()"
+        },
+        "0x22f3e2d4": {
+          "name": "isActive",
+          "roles": [],
+          "selector": "0x22f3e2d4",
+          "signature": "isActive()(bool)"
+        },
+        "0x4657b36c": {
+          "name": "changeKernel",
+          "roles": [],
+          "selector": "0x4657b36c",
+          "signature": "changeKernel(address)()"
+        },
+        "0x4db0412c": {
+          "name": "getCategories",
+          "roles": [],
+          "selector": "0x4db0412c",
+          "signature": "getCategories()(bytes32[])"
+        },
+        "0x5924be70": {
+          "name": "requestPermissions",
+          "roles": [],
+          "selector": "0x5924be70",
+          "signature": "requestPermissions()(tuple[])"
+        },
+        "0x8cc62ef7": {
+          "name": "removeCategory",
+          "roles": ["minter_admin"],
+          "selector": "0x8cc62ef7",
+          "signature": "removeCategory(bytes32)()"
+        },
+        "0x923cb952": {
+          "name": "ROLES",
+          "roles": [],
+          "selector": "0x923cb952",
+          "signature": "ROLES()(address)"
+        },
+        "0x9459b875": {
+          "name": "configureDependencies",
+          "roles": [],
+          "selector": "0x9459b875",
+          "signature": "configureDependencies()(bytes5[])"
+        },
+        "0xc6cdbe5e": {
+          "name": "categories",
+          "roles": [],
+          "selector": "0xc6cdbe5e",
+          "signature": "categories(uint256)(bytes32)"
+        },
+        "0xd4aae0c4": {
+          "name": "kernel",
+          "roles": [],
+          "selector": "0xd4aae0c4",
+          "signature": "kernel()(address)"
+        },
+        "0xd9620c87": {
+          "name": "categoryApproved",
+          "roles": [],
+          "selector": "0xd9620c87",
+          "signature": "categoryApproved(bytes32)(bool)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0x22ae99d07584a2ae1af748de573c83f1b9cdb4c0": {
+      "functionSelectors": {
+        "0x1ae7ec2e": {
+          "name": "KEYCODE",
+          "roles": [],
+          "selector": "0x1ae7ec2e",
+          "signature": "KEYCODE()(bytes5)"
+        },
+        "0x40e312f8": {
+          "name": "ensureValidRole",
+          "roles": [],
+          "selector": "0x40e312f8",
+          "signature": "ensureValidRole(bytes32)()"
+        },
+        "0x4657b36c": {
+          "name": "changeKernel",
+          "roles": [],
+          "selector": "0x4657b36c",
+          "signature": "changeKernel(address)()"
+        },
+        "0x656361ff": {
+          "name": "saveRole",
+          "roles": [],
+          "selector": "0x656361ff",
+          "signature": "saveRole(bytes32,address)()"
+        },
+        "0xac4ab3fb": {
+          "name": "hasRole",
+          "roles": [],
+          "selector": "0xac4ab3fb",
+          "signature": "hasRole(address,bytes32)(bool)"
+        },
+        "0xd09a20c5": {
+          "name": "requireRole",
+          "roles": [],
+          "selector": "0xd09a20c5",
+          "signature": "requireRole(bytes32,address)()"
+        },
+        "0xd4aae0c4": {
+          "name": "kernel",
+          "roles": [],
+          "selector": "0xd4aae0c4",
+          "signature": "kernel()(address)"
+        },
+        "0xea643914": {
+          "name": "INIT",
+          "roles": [],
+          "selector": "0xea643914",
+          "signature": "INIT()()"
+        },
+        "0xf6ba0007": {
+          "name": "removeRole",
+          "roles": [],
+          "selector": "0xf6ba0007",
+          "signature": "removeRole(bytes32,address)()"
+        },
+        "0xffa1ad74": {
+          "name": "VERSION",
+          "roles": [],
+          "selector": "0xffa1ad74",
+          "signature": "VERSION()(uint8,uint8)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0x623164a9ee2556d524b08f34f1d2389d7b4e1a1c": {
+      "functionSelectors": {
+        "0x000dd95d": {
+          "name": "moduleDependents",
+          "roles": [],
+          "selector": "0x000dd95d",
+          "signature": "moduleDependents(bytes5,uint256)(address)"
+        },
+        "0x03c02f42": {
+          "name": "getDependentIndex",
+          "roles": [],
+          "selector": "0x03c02f42",
+          "signature": "getDependentIndex(bytes5,address)(uint256)"
+        },
+        "0x5af099c9": {
+          "name": "activePolicies",
+          "roles": [],
+          "selector": "0x5af099c9",
+          "signature": "activePolicies(uint256)(address)"
+        },
+        "0x63a6e3b5": {
+          "name": "getPolicyIndex",
+          "roles": [],
+          "selector": "0x63a6e3b5",
+          "signature": "getPolicyIndex(address)(uint256)"
+        },
+        "0xae5f76fa": {
+          "name": "getKeycodeForModule",
+          "roles": [],
+          "selector": "0xae5f76fa",
+          "signature": "getKeycodeForModule(address)(bytes5)"
+        },
+        "0xb4dc00b4": {
+          "name": "getModuleForKeycode",
+          "roles": [],
+          "selector": "0xb4dc00b4",
+          "signature": "getModuleForKeycode(bytes5)(address)"
+        },
+        "0xc34c08e5": {
+          "name": "executor",
+          "roles": [],
+          "selector": "0xc34c08e5",
+          "signature": "executor()(address)"
+        },
+        "0xc4d1f8f1": {
+          "name": "executeAction",
+          "roles": [],
+          "selector": "0xc4d1f8f1",
+          "signature": "executeAction(uint8,address)()"
+        },
+        "0xdbb61ee7": {
+          "name": "allKeycodes",
+          "roles": [],
+          "selector": "0xdbb61ee7",
+          "signature": "allKeycodes(uint256)(bytes5)"
+        },
+        "0xe52223bb": {
+          "name": "isPolicyActive",
+          "roles": [],
+          "selector": "0xe52223bb",
+          "signature": "isPolicyActive(address)(bool)"
+        },
+        "0xf166d9eb": {
+          "name": "modulePermissions",
+          "roles": [],
+          "selector": "0xf166d9eb",
+          "signature": "modulePermissions(bytes5,address,bytes4)(bool)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0x6577cfd3b625a6bd0b708da1f066855c19ac8360": {
+      "functionSelectors": {
+        "0x01ffc9a7": {
+          "name": "supportsInterface",
+          "roles": [],
+          "selector": "0x01ffc9a7",
+          "signature": "supportsInterface(bytes4)(bool)"
+        },
+        "0x0c959556": {
+          "name": "enable",
+          "roles": ["admin"],
+          "selector": "0x0c959556",
+          "signature": "enable(bytes)()"
+        },
+        "0x181f5a77": {
+          "name": "typeAndVersion",
+          "roles": [],
+          "selector": "0x181f5a77",
+          "signature": "typeAndVersion()(string)"
+        },
+        "0x21df0da7": {
+          "name": "getToken",
+          "roles": [],
+          "selector": "0x21df0da7",
+          "signature": "getToken()(address)"
+        },
+        "0x22f3e2d4": {
+          "name": "isActive",
+          "roles": [],
+          "selector": "0x22f3e2d4",
+          "signature": "isActive()(bool)"
+        },
+        "0x240028e8": {
+          "name": "isSupportedToken",
+          "roles": [],
+          "selector": "0x240028e8",
+          "signature": "isSupportedToken(address)(bool)"
+        },
+        "0x24f65ee7": {
+          "name": "getTokenDecimals",
+          "roles": [],
+          "selector": "0x24f65ee7",
+          "signature": "getTokenDecimals()(uint8)"
+        },
+        "0x39077537": {
+          "name": "releaseOrMint",
+          "roles": [],
+          "selector": "0x39077537",
+          "signature": "releaseOrMint(tuple)(tuple)"
+        },
+        "0x4657b36c": {
+          "name": "changeKernel",
+          "roles": [],
+          "selector": "0x4657b36c",
+          "signature": "changeKernel(address)()"
+        },
+        "0x4c5ef0ed": {
+          "name": "isRemotePool",
+          "roles": [],
+          "selector": "0x4c5ef0ed",
+          "signature": "isRemotePool(uint64,bytes)(bool)"
+        },
+        "0x54c8a4f3": {
+          "name": "applyAllowListUpdates",
+          "roles": [],
+          "selector": "0x54c8a4f3",
+          "signature": "applyAllowListUpdates(address[],address[])()"
+        },
+        "0x577de7d0": {
+          "name": "MINTR",
+          "roles": [],
+          "selector": "0x577de7d0",
+          "signature": "MINTR()(address)"
+        },
+        "0x5924be70": {
+          "name": "requestPermissions",
+          "roles": [],
+          "selector": "0x5924be70",
+          "signature": "requestPermissions()(tuple[])"
+        },
+        "0x62ddd3c4": {
+          "name": "addRemotePool",
+          "roles": [],
+          "selector": "0x62ddd3c4",
+          "signature": "addRemotePool(uint64,bytes)()"
+        },
+        "0x6aa633b6": {
+          "name": "isEnabled",
+          "roles": [],
+          "selector": "0x6aa633b6",
+          "signature": "isEnabled()(bool)"
+        },
+        "0x6d3d1a58": {
+          "name": "getRateLimitAdmin",
+          "roles": [],
+          "selector": "0x6d3d1a58",
+          "signature": "getRateLimitAdmin()(address)"
+        },
+        "0x79ba5097": {
+          "name": "acceptOwnership",
+          "roles": [],
+          "selector": "0x79ba5097",
+          "signature": "acceptOwnership()()"
+        },
+        "0x7d54534e": {
+          "name": "setRateLimitAdmin",
+          "roles": [],
+          "selector": "0x7d54534e",
+          "signature": "setRateLimitAdmin(address)()"
+        },
+        "0x8926f54f": {
+          "name": "isSupportedChain",
+          "roles": [],
+          "selector": "0x8926f54f",
+          "signature": "isSupportedChain(uint64)(bool)"
+        },
+        "0x8da5cb5b": {
+          "name": "owner",
+          "roles": [],
+          "selector": "0x8da5cb5b",
+          "signature": "owner()(address)"
+        },
+        "0x8fc925aa": {
+          "name": "disable",
+          "roles": ["emergency"],
+          "selector": "0x8fc925aa",
+          "signature": "disable(bytes)()"
+        },
+        "0x923cb952": {
+          "name": "ROLES",
+          "roles": [],
+          "selector": "0x923cb952",
+          "signature": "ROLES()(address)"
+        },
+        "0x9459b875": {
+          "name": "configureDependencies",
+          "roles": [],
+          "selector": "0x9459b875",
+          "signature": "configureDependencies()(bytes5[])"
+        },
+        "0x962d4020": {
+          "name": "setChainRateLimiterConfigs",
+          "roles": [],
+          "selector": "0x962d4020",
+          "signature": "setChainRateLimiterConfigs(uint64[],tuple[],tuple[])()"
+        },
+        "0x9a4575b9": {
+          "name": "lockOrBurn",
+          "roles": [],
+          "selector": "0x9a4575b9",
+          "signature": "lockOrBurn(tuple)(tuple)"
+        },
+        "0xa42a7b8b": {
+          "name": "getRemotePools",
+          "roles": [],
+          "selector": "0xa42a7b8b",
+          "signature": "getRemotePools(uint64)(bytes[])"
+        },
+        "0xa7cd63b7": {
+          "name": "getAllowList",
+          "roles": [],
+          "selector": "0xa7cd63b7",
+          "signature": "getAllowList()(address[])"
+        },
+        "0xacfecf91": {
+          "name": "removeRemotePool",
+          "roles": [],
+          "selector": "0xacfecf91",
+          "signature": "removeRemotePool(uint64,bytes)()"
+        },
+        "0xaf58d59f": {
+          "name": "getCurrentInboundRateLimiterState",
+          "roles": [],
+          "selector": "0xaf58d59f",
+          "signature": "getCurrentInboundRateLimiterState(uint64)(tuple)"
+        },
+        "0xb0f479a1": {
+          "name": "getRouter",
+          "roles": [],
+          "selector": "0xb0f479a1",
+          "signature": "getRouter()(address)"
+        },
+        "0xb7946580": {
+          "name": "getRemoteToken",
+          "roles": [],
+          "selector": "0xb7946580",
+          "signature": "getRemoteToken(uint64)(bytes)"
+        },
+        "0xc0d78655": {
+          "name": "setRouter",
+          "roles": [],
+          "selector": "0xc0d78655",
+          "signature": "setRouter(address)()"
+        },
+        "0xc4bffe2b": {
+          "name": "getSupportedChains",
+          "roles": [],
+          "selector": "0xc4bffe2b",
+          "signature": "getSupportedChains()(uint64[])"
+        },
+        "0xc75eea9c": {
+          "name": "getCurrentOutboundRateLimiterState",
+          "roles": [],
+          "selector": "0xc75eea9c",
+          "signature": "getCurrentOutboundRateLimiterState(uint64)(tuple)"
+        },
+        "0xcf7401f3": {
+          "name": "setChainRateLimiterConfig",
+          "roles": [],
+          "selector": "0xcf7401f3",
+          "signature": "setChainRateLimiterConfig(uint64,tuple,tuple)()"
+        },
+        "0xd4aae0c4": {
+          "name": "kernel",
+          "roles": [],
+          "selector": "0xd4aae0c4",
+          "signature": "kernel()(address)"
+        },
+        "0xdc0bd971": {
+          "name": "getRmnProxy",
+          "roles": [],
+          "selector": "0xdc0bd971",
+          "signature": "getRmnProxy()(address)"
+        },
+        "0xe0351e13": {
+          "name": "getAllowListEnabled",
+          "roles": [],
+          "selector": "0xe0351e13",
+          "signature": "getAllowListEnabled()(bool)"
+        },
+        "0xe8a1da17": {
+          "name": "applyChainUpdates",
+          "roles": [],
+          "selector": "0xe8a1da17",
+          "signature": "applyChainUpdates(uint64[],tuple[])()"
+        },
+        "0xf2fde38b": {
+          "name": "transferOwnership",
+          "roles": [],
+          "selector": "0xf2fde38b",
+          "signature": "transferOwnership(address)()"
+        },
+        "0xfe7f56f7": {
+          "name": "getBridgedSupply",
+          "roles": [],
+          "selector": "0xfe7f56f7",
+          "signature": "getBridgedSupply()(uint256)"
+        },
+        "0xffa1ad74": {
+          "name": "VERSION",
+          "roles": [],
+          "selector": "0xffa1ad74",
+          "signature": "VERSION()(uint8,uint8)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0xb1fa0ac44d399b778b14af0aaf4bcf8af3437ad1": {
+      "functionSelectors": {
+        "0x01a91e5c": {
+          "name": "increaseDebtorApproval",
+          "roles": [],
+          "selector": "0x01a91e5c",
+          "signature": "increaseDebtorApproval(address,address,uint256)()"
+        },
+        "0x02fb0c5e": {
+          "name": "active",
+          "roles": [],
+          "selector": "0x02fb0c5e",
+          "signature": "active()(bool)"
+        },
+        "0x0f15f4c0": {
+          "name": "activate",
+          "roles": [],
+          "selector": "0x0f15f4c0",
+          "signature": "activate()()"
+        },
+        "0x15226b54": {
+          "name": "getReserveBalance",
+          "roles": [],
+          "selector": "0x15226b54",
+          "signature": "getReserveBalance(address)(uint256)"
+        },
+        "0x1ae7ec2e": {
+          "name": "KEYCODE",
+          "roles": [],
+          "selector": "0x1ae7ec2e",
+          "signature": "KEYCODE()(bytes5)"
+        },
+        "0x1ff517ff": {
+          "name": "totalDebt",
+          "roles": [],
+          "selector": "0x1ff517ff",
+          "signature": "totalDebt(address)(uint256)"
+        },
+        "0x28a4ace5": {
+          "name": "reserveDebt",
+          "roles": [],
+          "selector": "0x28a4ace5",
+          "signature": "reserveDebt(address,address)(uint256)"
+        },
+        "0x2f42aef5": {
+          "name": "withdrawReserves",
+          "roles": [],
+          "selector": "0x2f42aef5",
+          "signature": "withdrawReserves(address,address,uint256)()"
+        },
+        "0x32b43ad2": {
+          "name": "debtApproval",
+          "roles": [],
+          "selector": "0x32b43ad2",
+          "signature": "debtApproval(address,address)(uint256)"
+        },
+        "0x4657b36c": {
+          "name": "changeKernel",
+          "roles": [],
+          "selector": "0x4657b36c",
+          "signature": "changeKernel(address)()"
+        },
+        "0x4aae164b": {
+          "name": "setDebt",
+          "roles": [],
+          "selector": "0x4aae164b",
+          "signature": "setDebt(address,address,uint256)()"
+        },
+        "0x51b42b00": {
+          "name": "deactivate",
+          "roles": [],
+          "selector": "0x51b42b00",
+          "signature": "deactivate()()"
+        },
+        "0x5f0736a1": {
+          "name": "withdrawApproval",
+          "roles": [],
+          "selector": "0x5f0736a1",
+          "signature": "withdrawApproval(address,address)(uint256)"
+        },
+        "0x724000c1": {
+          "name": "incurDebt",
+          "roles": [],
+          "selector": "0x724000c1",
+          "signature": "incurDebt(address,uint256)()"
+        },
+        "0x8b7f3fb9": {
+          "name": "decreaseWithdrawApproval",
+          "roles": [],
+          "selector": "0x8b7f3fb9",
+          "signature": "decreaseWithdrawApproval(address,address,uint256)()"
+        },
+        "0xd4aae0c4": {
+          "name": "kernel",
+          "roles": [],
+          "selector": "0xd4aae0c4",
+          "signature": "kernel()(address)"
+        },
+        "0xe6eb207a": {
+          "name": "increaseWithdrawApproval",
+          "roles": [],
+          "selector": "0xe6eb207a",
+          "signature": "increaseWithdrawApproval(address,address,uint256)()"
+        },
+        "0xea643914": {
+          "name": "INIT",
+          "roles": [],
+          "selector": "0xea643914",
+          "signature": "INIT()()"
+        },
+        "0xf5b92c73": {
+          "name": "repayDebt",
+          "roles": [],
+          "selector": "0xf5b92c73",
+          "signature": "repayDebt(address,address,uint256)()"
+        },
+        "0xfb393f24": {
+          "name": "decreaseDebtorApproval",
+          "roles": [],
+          "selector": "0xfb393f24",
+          "signature": "decreaseDebtorApproval(address,address,uint256)()"
+        },
+        "0xffa1ad74": {
+          "name": "VERSION",
+          "roles": [],
+          "selector": "0xffa1ad74",
+          "signature": "VERSION()(uint8,uint8)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0xba42be149e5260eba4b82418a6306f55d532ea47": {
+      "functionSelectors": {
+        "0x001d3567": {
+          "name": "lzReceive",
+          "roles": [],
+          "selector": "0x001d3567",
+          "signature": "lzReceive(uint16,bytes,uint64,bytes)()"
+        },
+        "0x02b1d239": {
+          "name": "ohm",
+          "roles": [],
+          "selector": "0x02b1d239",
+          "signature": "ohm()(address)"
+        },
+        "0x07e0db17": {
+          "name": "setSendVersion",
+          "roles": ["bridge_admin"],
+          "selector": "0x07e0db17",
+          "signature": "setSendVersion(uint16)()"
+        },
+        "0x10ddb137": {
+          "name": "setReceiveVersion",
+          "roles": ["bridge_admin"],
+          "selector": "0x10ddb137",
+          "signature": "setReceiveVersion(uint16)()"
+        },
+        "0x1b2083dc": {
+          "name": "estimateSendFee",
+          "roles": [],
+          "selector": "0x1b2083dc",
+          "signature": "estimateSendFee(uint16,address,uint256,bytes)(uint256,uint256)"
+        },
+        "0x22f3e2d4": {
+          "name": "isActive",
+          "roles": [],
+          "selector": "0x22f3e2d4",
+          "signature": "isActive()(bool)"
+        },
+        "0x2556e453": {
+          "name": "sendOhm",
+          "roles": [],
+          "selector": "0x2556e453",
+          "signature": "sendOhm(uint16,address,uint256)()"
+        },
+        "0x3d8b38f6": {
+          "name": "isTrustedRemote",
+          "roles": [],
+          "selector": "0x3d8b38f6",
+          "signature": "isTrustedRemote(uint16,bytes)(bool)"
+        },
+        "0x42d65a8d": {
+          "name": "forceResumeReceive",
+          "roles": ["bridge_admin"],
+          "selector": "0x42d65a8d",
+          "signature": "forceResumeReceive(uint16,bytes)()"
+        },
+        "0x4657b36c": {
+          "name": "changeKernel",
+          "roles": [],
+          "selector": "0x4657b36c",
+          "signature": "changeKernel(address)()"
+        },
+        "0x577de7d0": {
+          "name": "MINTR",
+          "roles": [],
+          "selector": "0x577de7d0",
+          "signature": "MINTR()(address)"
+        },
+        "0x5924be70": {
+          "name": "requestPermissions",
+          "roles": [],
+          "selector": "0x5924be70",
+          "signature": "requestPermissions()(tuple[])"
+        },
+        "0x5b8c41e6": {
+          "name": "failedMessages",
+          "roles": [],
+          "selector": "0x5b8c41e6",
+          "signature": "failedMessages(uint16,bytes,uint64)(bytes32)"
+        },
+        "0x6edb3d3c": {
+          "name": "receiveMessage",
+          "roles": [],
+          "selector": "0x6edb3d3c",
+          "signature": "receiveMessage(uint16,bytes,uint64,bytes)()"
+        },
+        "0x7533d788": {
+          "name": "trustedRemoteLookup",
+          "roles": [],
+          "selector": "0x7533d788",
+          "signature": "trustedRemoteLookup(uint16)(bytes)"
+        },
+        "0x923cb952": {
+          "name": "ROLES",
+          "roles": [],
+          "selector": "0x923cb952",
+          "signature": "ROLES()(address)"
+        },
+        "0x9459b875": {
+          "name": "configureDependencies",
+          "roles": [],
+          "selector": "0x9459b875",
+          "signature": "configureDependencies()(bytes5[])"
+        },
+        "0x950c8a74": {
+          "name": "precrime",
+          "roles": [],
+          "selector": "0x950c8a74",
+          "signature": "precrime()(address)"
+        },
+        "0x9f38369a": {
+          "name": "getTrustedRemoteAddress",
+          "roles": [],
+          "selector": "0x9f38369a",
+          "signature": "getTrustedRemoteAddress(uint16)(bytes)"
+        },
+        "0xa6c3d165": {
+          "name": "setTrustedRemoteAddress",
+          "roles": ["bridge_admin"],
+          "selector": "0xa6c3d165",
+          "signature": "setTrustedRemoteAddress(uint16,bytes)()"
+        },
+        "0xb353aaa7": {
+          "name": "lzEndpoint",
+          "roles": [],
+          "selector": "0xb353aaa7",
+          "signature": "lzEndpoint()(address)"
+        },
+        "0xbaf3292d": {
+          "name": "setPrecrime",
+          "roles": ["bridge_admin"],
+          "selector": "0xbaf3292d",
+          "signature": "setPrecrime(address)()"
+        },
+        "0xcbed8b9c": {
+          "name": "setConfig",
+          "roles": ["bridge_admin"],
+          "selector": "0xcbed8b9c",
+          "signature": "setConfig(uint16,uint16,uint256,bytes)()"
+        },
+        "0xd1deba1f": {
+          "name": "retryMessage",
+          "roles": [],
+          "selector": "0xd1deba1f",
+          "signature": "retryMessage(uint16,bytes,uint64,bytes)()"
+        },
+        "0xd4aae0c4": {
+          "name": "kernel",
+          "roles": [],
+          "selector": "0xd4aae0c4",
+          "signature": "kernel()(address)"
+        },
+        "0xd58a8483": {
+          "name": "setBridgeStatus",
+          "roles": ["bridge_admin"],
+          "selector": "0xd58a8483",
+          "signature": "setBridgeStatus(bool)()"
+        },
+        "0xead93c8f": {
+          "name": "bridgeActive",
+          "roles": [],
+          "selector": "0xead93c8f",
+          "signature": "bridgeActive()(bool)"
+        },
+        "0xeb8d72b7": {
+          "name": "setTrustedRemote",
+          "roles": ["bridge_admin"],
+          "selector": "0xeb8d72b7",
+          "signature": "setTrustedRemote(uint16,bytes)()"
+        },
+        "0xf5ecbdbc": {
+          "name": "getConfig",
+          "roles": [],
+          "selector": "0xf5ecbdbc",
+          "signature": "getConfig(uint16,uint16,address,uint256)(bytes)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0xbc9ee0d911739cbc72cd094ada26f56e0c49eeae": {
+      "functionSelectors": {
+        "0x02b1d239": {
+          "name": "ohm",
+          "roles": [],
+          "selector": "0x02b1d239",
+          "signature": "ohm()(address)"
+        },
+        "0x02fb0c5e": {
+          "name": "active",
+          "roles": [],
+          "selector": "0x02fb0c5e",
+          "signature": "active()(bool)"
+        },
+        "0x0f15f4c0": {
+          "name": "activate",
+          "roles": [],
+          "selector": "0x0f15f4c0",
+          "signature": "activate()()"
+        },
+        "0x1ae7ec2e": {
+          "name": "KEYCODE",
+          "roles": [],
+          "selector": "0x1ae7ec2e",
+          "signature": "KEYCODE()(bytes5)"
+        },
+        "0x1b0a68f2": {
+          "name": "decreaseMintApproval",
+          "roles": [],
+          "selector": "0x1b0a68f2",
+          "signature": "decreaseMintApproval(address,uint256)()"
+        },
+        "0x359fe780": {
+          "name": "increaseMintApproval",
+          "roles": [],
+          "selector": "0x359fe780",
+          "signature": "increaseMintApproval(address,uint256)()"
+        },
+        "0x3a56e307": {
+          "name": "mintOhm",
+          "roles": [],
+          "selector": "0x3a56e307",
+          "signature": "mintOhm(address,uint256)()"
+        },
+        "0x4657b36c": {
+          "name": "changeKernel",
+          "roles": [],
+          "selector": "0x4657b36c",
+          "signature": "changeKernel(address)()"
+        },
+        "0x51b42b00": {
+          "name": "deactivate",
+          "roles": [],
+          "selector": "0x51b42b00",
+          "signature": "deactivate()()"
+        },
+        "0x664aecb0": {
+          "name": "mintApproval",
+          "roles": [],
+          "selector": "0x664aecb0",
+          "signature": "mintApproval(address)(uint256)"
+        },
+        "0xaaf0ad5a": {
+          "name": "burnOhm",
+          "roles": [],
+          "selector": "0xaaf0ad5a",
+          "signature": "burnOhm(address,uint256)()"
+        },
+        "0xd4aae0c4": {
+          "name": "kernel",
+          "roles": [],
+          "selector": "0xd4aae0c4",
+          "signature": "kernel()(address)"
+        },
+        "0xea643914": {
+          "name": "INIT",
+          "roles": [],
+          "selector": "0xea643914",
+          "signature": "INIT()()"
+        },
+        "0xffa1ad74": {
+          "name": "VERSION",
+          "roles": [],
+          "selector": "0xffa1ad74",
+          "signature": "VERSION()(uint8,uint8)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0xca7240a7b439c9d458b47831d38c3d69c1287469": {
+      "functionSelectors": {
+        "0x01ffa059": {
+          "name": "restartWithdrawals",
+          "roles": ["emergency_restart"],
+          "selector": "0x01ffa059",
+          "signature": "restartWithdrawals()()"
+        },
+        "0x1ef3755d": {
+          "name": "restart",
+          "roles": ["emergency_restart"],
+          "selector": "0x1ef3755d",
+          "signature": "restart()()"
+        },
+        "0x22f3e2d4": {
+          "name": "isActive",
+          "roles": [],
+          "selector": "0x22f3e2d4",
+          "signature": "isActive()(bool)"
+        },
+        "0x4657b36c": {
+          "name": "changeKernel",
+          "roles": [],
+          "selector": "0x4657b36c",
+          "signature": "changeKernel(address)()"
+        },
+        "0x46745468": {
+          "name": "shutdownMinting",
+          "roles": ["emergency_shutdown"],
+          "selector": "0x46745468",
+          "signature": "shutdownMinting()()"
+        },
+        "0x577de7d0": {
+          "name": "MINTR",
+          "roles": [],
+          "selector": "0x577de7d0",
+          "signature": "MINTR()(address)"
+        },
+        "0x5924be70": {
+          "name": "requestPermissions",
+          "roles": [],
+          "selector": "0x5924be70",
+          "signature": "requestPermissions()(tuple[])"
+        },
+        "0x80cee4ab": {
+          "name": "TRSRY",
+          "roles": [],
+          "selector": "0x80cee4ab",
+          "signature": "TRSRY()(address)"
+        },
+        "0x923cb952": {
+          "name": "ROLES",
+          "roles": [],
+          "selector": "0x923cb952",
+          "signature": "ROLES()(address)"
+        },
+        "0x9459b875": {
+          "name": "configureDependencies",
+          "roles": [],
+          "selector": "0x9459b875",
+          "signature": "configureDependencies()(bytes5[])"
+        },
+        "0xc12954fa": {
+          "name": "restartMinting",
+          "roles": ["emergency_restart"],
+          "selector": "0xc12954fa",
+          "signature": "restartMinting()()"
+        },
+        "0xd4aae0c4": {
+          "name": "kernel",
+          "roles": [],
+          "selector": "0xd4aae0c4",
+          "signature": "kernel()(address)"
+        },
+        "0xec3984f6": {
+          "name": "shutdownWithdrawals",
+          "roles": ["emergency_shutdown"],
+          "selector": "0xec3984f6",
+          "signature": "shutdownWithdrawals()()"
+        },
+        "0xfc0e74d1": {
+          "name": "shutdown",
+          "roles": ["emergency_shutdown"],
+          "selector": "0xfc0e74d1",
+          "signature": "shutdown()()"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0xe37d9a2791707bbb858012d219960d5fbd190794": {
+      "functionSelectors": {
+        "0x03346696": {
+          "name": "pushNewAdmin",
+          "roles": ["RolesAdmin"],
+          "selector": "0x03346696",
+          "signature": "pushNewAdmin(address)()"
+        },
+        "0x22f3e2d4": {
+          "name": "isActive",
+          "roles": [],
+          "selector": "0x22f3e2d4",
+          "signature": "isActive()(bool)"
+        },
+        "0x2f2ff15d": {
+          "name": "grantRole",
+          "roles": ["RolesAdmin"],
+          "selector": "0x2f2ff15d",
+          "signature": "grantRole(bytes32,address)()"
+        },
+        "0x3ea26384": {
+          "name": "newAdmin",
+          "roles": [],
+          "selector": "0x3ea26384",
+          "signature": "newAdmin()(address)"
+        },
+        "0x4657b36c": {
+          "name": "changeKernel",
+          "roles": [],
+          "selector": "0x4657b36c",
+          "signature": "changeKernel(address)()"
+        },
+        "0x5924be70": {
+          "name": "requestPermissions",
+          "roles": [],
+          "selector": "0x5924be70",
+          "signature": "requestPermissions()(tuple[])"
+        },
+        "0x72b0bb49": {
+          "name": "pullNewAdmin",
+          "roles": [],
+          "selector": "0x72b0bb49",
+          "signature": "pullNewAdmin()()"
+        },
+        "0x923cb952": {
+          "name": "ROLES",
+          "roles": [],
+          "selector": "0x923cb952",
+          "signature": "ROLES()(address)"
+        },
+        "0x9459b875": {
+          "name": "configureDependencies",
+          "roles": [],
+          "selector": "0x9459b875",
+          "signature": "configureDependencies()(bytes5[])"
+        },
+        "0xd4aae0c4": {
+          "name": "kernel",
+          "roles": [],
+          "selector": "0xd4aae0c4",
+          "signature": "kernel()(address)"
+        },
+        "0xd547741f": {
+          "name": "revokeRole",
+          "roles": ["RolesAdmin"],
+          "selector": "0xd547741f",
+          "signature": "revokeRole(bytes32,address)()"
+        },
+        "0xf851a440": {
+          "name": "admin",
+          "roles": [],
+          "selector": "0xf851a440",
+          "signature": "admin()(address)"
+        }
+      },
+      "roleToFunctions": {}
+    }
+  },
+  "421614": {
+    "0x0d33c811d0fcc711bcb388dfb3a152de445be66f": {
+      "functionSelectors": {
+        "0x01ffc9a7": {
+          "name": "supportsInterface",
+          "roles": [],
+          "selector": "0x01ffc9a7",
+          "signature": "supportsInterface(bytes4)(bool)"
+        },
+        "0x02b1d239": {
+          "name": "ohm",
+          "roles": [],
+          "selector": "0x02b1d239",
+          "signature": "ohm()(address)"
+        },
+        "0x0aaf0213": {
+          "name": "setOutRateLimits",
+          "roles": [],
+          "selector": "0x0aaf0213",
+          "signature": "setOutRateLimits(tuple[])()"
+        },
+        "0x0c959556": {
+          "name": "enable",
+          "roles": [],
+          "selector": "0x0c959556",
+          "signature": "enable(bytes)()"
+        },
+        "0x11c301e0": {
+          "name": "bridgedSupply",
+          "roles": [],
+          "selector": "0x11c301e0",
+          "signature": "bridgedSupply()(uint256)"
+        },
+        "0x13137d65": {
+          "name": "lzReceive",
+          "roles": [],
+          "selector": "0x13137d65",
+          "signature": "lzReceive(tuple,bytes32,bytes,address,bytes)()"
+        },
+        "0x22f3e2d4": {
+          "name": "isActive",
+          "roles": [],
+          "selector": "0x22f3e2d4",
+          "signature": "isActive()(bool)"
+        },
+        "0x2e1a3f36": {
+          "name": "setInRateLimits",
+          "roles": [],
+          "selector": "0x2e1a3f36",
+          "signature": "setInRateLimits(tuple[])()"
+        },
+        "0x311cfa95": {
+          "name": "outRateLimits",
+          "roles": [],
+          "selector": "0x311cfa95",
+          "signature": "outRateLimits(uint32)(uint256,uint256,uint32,uint48)"
+        },
+        "0x3400288b": {
+          "name": "setPeer",
+          "roles": ["admin"],
+          "selector": "0x3400288b",
+          "signature": "setPeer(uint32,bytes32)()"
+        },
+        "0x39790659": {
+          "name": "estimateSendFee",
+          "roles": [],
+          "selector": "0x39790659",
+          "signature": "estimateSendFee(uint32,address,uint256,bytes)(tuple)"
+        },
+        "0x3b436509": {
+          "name": "validateSetDelegate",
+          "roles": [],
+          "selector": "0x3b436509",
+          "signature": "validateSetDelegate(address)()"
+        },
+        "0x4222ddb6": {
+          "name": "setGracePeriod",
+          "roles": [],
+          "selector": "0x4222ddb6",
+          "signature": "setGracePeriod(uint32)()"
+        },
+        "0x458d01db": {
+          "name": "increaseBridgedSupply",
+          "roles": [],
+          "selector": "0x458d01db",
+          "signature": "increaseBridgedSupply(uint256)()"
+        },
+        "0x4657b36c": {
+          "name": "changeKernel",
+          "roles": [],
+          "selector": "0x4657b36c",
+          "signature": "changeKernel(address)()"
+        },
+        "0x49ee2c60": {
+          "name": "MSG_BRIDGE_OHM",
+          "roles": [],
+          "selector": "0x49ee2c60",
+          "signature": "MSG_BRIDGE_OHM()(uint8)"
+        },
+        "0x4fdf5d1d": {
+          "name": "rescue",
+          "roles": [],
+          "selector": "0x4fdf5d1d",
+          "signature": "rescue(address,address)()"
+        },
+        "0x5535d461": {
+          "name": "enforcedOptions",
+          "roles": [],
+          "selector": "0x5535d461",
+          "signature": "enforcedOptions(uint32,uint16)(bytes)"
+        },
+        "0x577de7d0": {
+          "name": "MINTR",
+          "roles": [],
+          "selector": "0x577de7d0",
+          "signature": "MINTR()(address)"
+        },
+        "0x580a74a4": {
+          "name": "validateIncreaseBridgedSupply",
+          "roles": [],
+          "selector": "0x580a74a4",
+          "signature": "validateIncreaseBridgedSupply(uint256)()"
+        },
+        "0x5924be70": {
+          "name": "requestPermissions",
+          "roles": [],
+          "selector": "0x5924be70",
+          "signature": "requestPermissions()(tuple[])"
+        },
+        "0x5e15f9b4": {
+          "name": "receivable",
+          "roles": [],
+          "selector": "0x5e15f9b4",
+          "signature": "receivable(uint32)(uint256,uint256)"
+        },
+        "0x64c91f74": {
+          "name": "clearOutboundInFlight",
+          "roles": [],
+          "selector": "0x64c91f74",
+          "signature": "clearOutboundInFlight(uint32[])()"
+        },
+        "0x6aa633b6": {
+          "name": "isEnabled",
+          "roles": [],
+          "selector": "0x6aa633b6",
+          "signature": "isEnabled()(bool)"
+        },
+        "0x6be00aec": {
+          "name": "sendable",
+          "roles": [],
+          "selector": "0x6be00aec",
+          "signature": "sendable(uint32)(uint256,uint256)"
+        },
+        "0x7382f13b": {
+          "name": "reEnable",
+          "roles": [],
+          "selector": "0x7382f13b",
+          "signature": "reEnable()()"
+        },
+        "0x7d25a05e": {
+          "name": "nextNonce",
+          "roles": [],
+          "selector": "0x7d25a05e",
+          "signature": "nextNonce(uint32,bytes32)(uint64)"
+        },
+        "0x8693e82e": {
+          "name": "validateDecreaseBridgedSupply",
+          "roles": [],
+          "selector": "0x8693e82e",
+          "signature": "validateDecreaseBridgedSupply(uint256)()"
+        },
+        "0x8fc925aa": {
+          "name": "disable",
+          "roles": [],
+          "selector": "0x8fc925aa",
+          "signature": "disable(bytes)()"
+        },
+        "0x923cb952": {
+          "name": "ROLES",
+          "roles": [],
+          "selector": "0x923cb952",
+          "signature": "ROLES()(address)"
+        },
+        "0x9459b875": {
+          "name": "configureDependencies",
+          "roles": [],
+          "selector": "0x9459b875",
+          "signature": "configureDependencies()(bytes5[])"
+        },
+        "0x94854278": {
+          "name": "initializeBridgedSupply",
+          "roles": [],
+          "selector": "0x94854278",
+          "signature": "initializeBridgedSupply(uint256)()"
+        },
+        "0xa06db7dc": {
+          "name": "gracePeriod",
+          "roles": [],
+          "selector": "0xa06db7dc",
+          "signature": "gracePeriod()(uint32)"
+        },
+        "0xa0c8b758": {
+          "name": "setIsReceiveEnabled",
+          "roles": ["emergency"],
+          "selector": "0xa0c8b758",
+          "signature": "setIsReceiveEnabled(bool)()"
+        },
+        "0xb57b3ef6": {
+          "name": "clearInboundInFlight",
+          "roles": [],
+          "selector": "0xb57b3ef6",
+          "signature": "clearInboundInFlight(uint32[])()"
+        },
+        "0xb7452dd5": {
+          "name": "lastTransitionAt",
+          "roles": [],
+          "selector": "0xb7452dd5",
+          "signature": "lastTransitionAt()(uint48)"
+        },
+        "0xb98bd070": {
+          "name": "setEnforcedOptions",
+          "roles": ["admin"],
+          "selector": "0xb98bd070",
+          "signature": "setEnforcedOptions(tuple[])()"
+        },
+        "0xbb0b6a53": {
+          "name": "peers",
+          "roles": [],
+          "selector": "0xbb0b6a53",
+          "signature": "peers(uint32)(bytes32)"
+        },
+        "0xbc70b354": {
+          "name": "combineOptions",
+          "roles": [],
+          "selector": "0xbc70b354",
+          "signature": "combineOptions(uint32,uint16,bytes)(bytes)"
+        },
+        "0xca5eb5e1": {
+          "name": "setDelegate",
+          "roles": [],
+          "selector": "0xca5eb5e1",
+          "signature": "setDelegate(address)()"
+        },
+        "0xcd4d1c64": {
+          "name": "LZ_ENDPOINT",
+          "roles": [],
+          "selector": "0xcd4d1c64",
+          "signature": "LZ_ENDPOINT()(address)"
+        },
+        "0xd4aae0c4": {
+          "name": "kernel",
+          "roles": [],
+          "selector": "0xd4aae0c4",
+          "signature": "kernel()(address)"
+        },
+        "0xd8858e7d": {
+          "name": "bridgedSupplyInitialized",
+          "roles": [],
+          "selector": "0xd8858e7d",
+          "signature": "bridgedSupplyInitialized()(bool)"
+        },
+        "0xe3e9971a": {
+          "name": "decreaseBridgedSupply",
+          "roles": [],
+          "selector": "0xe3e9971a",
+          "signature": "decreaseBridgedSupply(uint256)()"
+        },
+        "0xf32539dd": {
+          "name": "burnAndSend",
+          "roles": [],
+          "selector": "0xf32539dd",
+          "signature": "burnAndSend(uint32,address,uint256,address,bytes)(tuple)"
+        },
+        "0xf83b59a9": {
+          "name": "isReceiveEnabled",
+          "roles": [],
+          "selector": "0xf83b59a9",
+          "signature": "isReceiveEnabled()(bool)"
+        },
+        "0xff3ffe68": {
+          "name": "IS_CANONICAL",
+          "roles": [],
+          "selector": "0xff3ffe68",
+          "signature": "IS_CANONICAL()(bool)"
+        },
+        "0xff7bd03d": {
+          "name": "allowInitializePath",
+          "roles": [],
+          "selector": "0xff7bd03d",
+          "signature": "allowInitializePath(tuple)(bool)"
+        },
+        "0xff7dca08": {
+          "name": "inRateLimits",
+          "roles": [],
+          "selector": "0xff7dca08",
+          "signature": "inRateLimits(uint32)(uint256,uint256,uint32,uint48)"
+        },
+        "0xffa1ad74": {
+          "name": "VERSION",
+          "roles": [],
+          "selector": "0xffa1ad74",
+          "signature": "VERSION()(uint8,uint8)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0x0f953d861347414698f34b75dbfd6e7df1a73493": {
+      "functionSelectors": {
+        "0x01ffc9a7": {
+          "name": "supportsInterface",
+          "roles": [],
+          "selector": "0x01ffc9a7",
+          "signature": "supportsInterface(bytes4)(bool)"
+        },
+        "0x0c959556": {
+          "name": "enable",
+          "roles": [],
+          "selector": "0x0c959556",
+          "signature": "enable(bytes)()"
+        },
+        "0x22f3e2d4": {
+          "name": "isActive",
+          "roles": [],
+          "selector": "0x22f3e2d4",
+          "signature": "isActive()(bool)"
+        },
+        "0x338c5371": {
+          "name": "GATEWAY",
+          "roles": [],
+          "selector": "0x338c5371",
+          "signature": "GATEWAY()(address)"
+        },
+        "0x4657b36c": {
+          "name": "changeKernel",
+          "roles": [],
+          "selector": "0x4657b36c",
+          "signature": "changeKernel(address)()"
+        },
+        "0x5924be70": {
+          "name": "requestPermissions",
+          "roles": [],
+          "selector": "0x5924be70",
+          "signature": "requestPermissions()(tuple[])"
+        },
+        "0x66bf43d6": {
+          "name": "setReceiveLibraryTimeout",
+          "roles": [],
+          "selector": "0x66bf43d6",
+          "signature": "setReceiveLibraryTimeout(uint32,address,uint256)()"
+        },
+        "0x6aa633b6": {
+          "name": "isEnabled",
+          "roles": [],
+          "selector": "0x6aa633b6",
+          "signature": "isEnabled()(bool)"
+        },
+        "0x8fc925aa": {
+          "name": "disable",
+          "roles": [],
+          "selector": "0x8fc925aa",
+          "signature": "disable(bytes)()"
+        },
+        "0x923cb952": {
+          "name": "ROLES",
+          "roles": [],
+          "selector": "0x923cb952",
+          "signature": "ROLES()(address)"
+        },
+        "0x9459b875": {
+          "name": "configureDependencies",
+          "roles": [],
+          "selector": "0x9459b875",
+          "signature": "configureDependencies()(bytes5[])"
+        },
+        "0x965183d4": {
+          "name": "clear",
+          "roles": [],
+          "selector": "0x965183d4",
+          "signature": "clear(tuple,bytes32,bytes)()"
+        },
+        "0xa1717123": {
+          "name": "nilify",
+          "roles": [],
+          "selector": "0xa1717123",
+          "signature": "nilify(uint32,bytes32,uint64,bytes32)()"
+        },
+        "0xb7452dd5": {
+          "name": "lastTransitionAt",
+          "roles": [],
+          "selector": "0xb7452dd5",
+          "signature": "lastTransitionAt()(uint48)"
+        },
+        "0xb8849ac9": {
+          "name": "setReceiveLibrary",
+          "roles": [],
+          "selector": "0xb8849ac9",
+          "signature": "setReceiveLibrary(uint32,address,uint256)()"
+        },
+        "0xcd4d1c64": {
+          "name": "LZ_ENDPOINT",
+          "roles": [],
+          "selector": "0xcd4d1c64",
+          "signature": "LZ_ENDPOINT()(address)"
+        },
+        "0xd4aae0c4": {
+          "name": "kernel",
+          "roles": [],
+          "selector": "0xd4aae0c4",
+          "signature": "kernel()(address)"
+        },
+        "0xde56f56c": {
+          "name": "setEndpointConfig",
+          "roles": [],
+          "selector": "0xde56f56c",
+          "signature": "setEndpointConfig(address,tuple[])()"
+        },
+        "0xe16f964d": {
+          "name": "setSendLibrary",
+          "roles": [],
+          "selector": "0xe16f964d",
+          "signature": "setSendLibrary(uint32,address)()"
+        },
+        "0xeaeacd63": {
+          "name": "skip",
+          "roles": [],
+          "selector": "0xeaeacd63",
+          "signature": "skip(uint32,bytes32,uint64)()"
+        },
+        "0xefdb1f2d": {
+          "name": "burn",
+          "roles": [],
+          "selector": "0xefdb1f2d",
+          "signature": "burn(uint32,bytes32,uint64,bytes32)()"
+        },
+        "0xffa1ad74": {
+          "name": "VERSION",
+          "roles": [],
+          "selector": "0xffa1ad74",
+          "signature": "VERSION()(uint8,uint8)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0x18878df23e2a36f81e820e4b47b4a40576d3159c": {
+      "functionSelectors": {
+        "0x000dd95d": {
+          "name": "moduleDependents",
+          "roles": [],
+          "selector": "0x000dd95d",
+          "signature": "moduleDependents(bytes5,uint256)(address)"
+        },
+        "0x03c02f42": {
+          "name": "getDependentIndex",
+          "roles": [],
+          "selector": "0x03c02f42",
+          "signature": "getDependentIndex(bytes5,address)(uint256)"
+        },
+        "0x5af099c9": {
+          "name": "activePolicies",
+          "roles": [],
+          "selector": "0x5af099c9",
+          "signature": "activePolicies(uint256)(address)"
+        },
+        "0x63a6e3b5": {
+          "name": "getPolicyIndex",
+          "roles": [],
+          "selector": "0x63a6e3b5",
+          "signature": "getPolicyIndex(address)(uint256)"
+        },
+        "0xae5f76fa": {
+          "name": "getKeycodeForModule",
+          "roles": [],
+          "selector": "0xae5f76fa",
+          "signature": "getKeycodeForModule(address)(bytes5)"
+        },
+        "0xb4dc00b4": {
+          "name": "getModuleForKeycode",
+          "roles": [],
+          "selector": "0xb4dc00b4",
+          "signature": "getModuleForKeycode(bytes5)(address)"
+        },
+        "0xc34c08e5": {
+          "name": "executor",
+          "roles": [],
+          "selector": "0xc34c08e5",
+          "signature": "executor()(address)"
+        },
+        "0xc4d1f8f1": {
+          "name": "executeAction",
+          "roles": [],
+          "selector": "0xc4d1f8f1",
+          "signature": "executeAction(uint8,address)()"
+        },
+        "0xdbb61ee7": {
+          "name": "allKeycodes",
+          "roles": [],
+          "selector": "0xdbb61ee7",
+          "signature": "allKeycodes(uint256)(bytes5)"
+        },
+        "0xe52223bb": {
+          "name": "isPolicyActive",
+          "roles": [],
+          "selector": "0xe52223bb",
+          "signature": "isPolicyActive(address)(bool)"
+        },
+        "0xf166d9eb": {
+          "name": "modulePermissions",
+          "roles": [],
+          "selector": "0xf166d9eb",
+          "signature": "modulePermissions(bytes5,address,bytes4)(bool)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0x1d316c489bab10b755cb0562759a6cf285f89814": {
+      "functionSelectors": {
+        "0x01ffc9a7": {
+          "name": "supportsInterface",
+          "roles": [],
+          "selector": "0x01ffc9a7",
+          "signature": "supportsInterface(bytes4)(bool)"
+        },
+        "0x059e024c": {
+          "name": "queueSetTargetGateway",
+          "roles": [],
+          "selector": "0x059e024c",
+          "signature": "queueSetTargetGateway(address)(uint64)"
+        },
+        "0x0c959556": {
+          "name": "enable",
+          "roles": [],
+          "selector": "0x0c959556",
+          "signature": "enable(bytes)()"
+        },
+        "0x1123626e": {
+          "name": "queueSetTargetDelegate",
+          "roles": [],
+          "selector": "0x1123626e",
+          "signature": "queueSetTargetDelegate(address)(uint64)"
+        },
+        "0x116191b6": {
+          "name": "gateway",
+          "roles": [],
+          "selector": "0x116191b6",
+          "signature": "gateway()(address)"
+        },
+        "0x169070eb": {
+          "name": "MIN_TIMELOCK_DELAY",
+          "roles": [],
+          "selector": "0x169070eb",
+          "signature": "MIN_TIMELOCK_DELAY()(uint48)"
+        },
+        "0x22f3e2d4": {
+          "name": "isActive",
+          "roles": [],
+          "selector": "0x22f3e2d4",
+          "signature": "isActive()(bool)"
+        },
+        "0x2a083ca3": {
+          "name": "MAX_TIMELOCK_DELAY",
+          "roles": [],
+          "selector": "0x2a083ca3",
+          "signature": "MAX_TIMELOCK_DELAY()(uint48)"
+        },
+        "0x3e65164a": {
+          "name": "EXECUTION_WINDOW",
+          "roles": [],
+          "selector": "0x3e65164a",
+          "signature": "EXECUTION_WINDOW()(uint48)"
+        },
+        "0x4657b36c": {
+          "name": "changeKernel",
+          "roles": [],
+          "selector": "0x4657b36c",
+          "signature": "changeKernel(address)()"
+        },
+        "0x46abe73a": {
+          "name": "nextActionId",
+          "roles": [],
+          "selector": "0x46abe73a",
+          "signature": "nextActionId()(uint64)"
+        },
+        "0x5924be70": {
+          "name": "requestPermissions",
+          "roles": [],
+          "selector": "0x5924be70",
+          "signature": "requestPermissions()(tuple[])"
+        },
+        "0x5faedf93": {
+          "name": "getQueuedActionLength",
+          "roles": [],
+          "selector": "0x5faedf93",
+          "signature": "getQueuedActionLength(uint64)(uint256)"
+        },
+        "0x6aa633b6": {
+          "name": "isEnabled",
+          "roles": [],
+          "selector": "0x6aa633b6",
+          "signature": "isEnabled()(bool)"
+        },
+        "0x7797cee4": {
+          "name": "facilitator",
+          "roles": [],
+          "selector": "0x7797cee4",
+          "signature": "facilitator()(address)"
+        },
+        "0x7a184454": {
+          "name": "getQueuedSubAction",
+          "roles": [],
+          "selector": "0x7a184454",
+          "signature": "getQueuedSubAction(uint64,uint256)(address,bytes4,bytes)"
+        },
+        "0x83d2a969": {
+          "name": "queueSetTargetFacilitator",
+          "roles": [],
+          "selector": "0x83d2a969",
+          "signature": "queueSetTargetFacilitator(address)(uint64)"
+        },
+        "0x8b79670e": {
+          "name": "cancelQueuedAction",
+          "roles": [],
+          "selector": "0x8b79670e",
+          "signature": "cancelQueuedAction(uint64)()"
+        },
+        "0x8fc925aa": {
+          "name": "disable",
+          "roles": [],
+          "selector": "0x8fc925aa",
+          "signature": "disable(bytes)()"
+        },
+        "0x923cb952": {
+          "name": "ROLES",
+          "roles": [],
+          "selector": "0x923cb952",
+          "signature": "ROLES()(address)"
+        },
+        "0x944cc2fc": {
+          "name": "queueSetTimelockDelay",
+          "roles": [],
+          "selector": "0x944cc2fc",
+          "signature": "queueSetTimelockDelay(uint48)(uint64)"
+        },
+        "0x9459b875": {
+          "name": "configureDependencies",
+          "roles": [],
+          "selector": "0x9459b875",
+          "signature": "configureDependencies()(bytes5[])"
+        },
+        "0xb7452dd5": {
+          "name": "lastTransitionAt",
+          "roles": [],
+          "selector": "0xb7452dd5",
+          "signature": "lastTransitionAt()(uint48)"
+        },
+        "0xb862133e": {
+          "name": "queue",
+          "roles": [],
+          "selector": "0xb862133e",
+          "signature": "queue(tuple[])(uint64)"
+        },
+        "0xc89e4361": {
+          "name": "delegate",
+          "roles": [],
+          "selector": "0xc89e4361",
+          "signature": "delegate()(address)"
+        },
+        "0xd4aae0c4": {
+          "name": "kernel",
+          "roles": [],
+          "selector": "0xd4aae0c4",
+          "signature": "kernel()(address)"
+        },
+        "0xe0b6e404": {
+          "name": "executeQueuedAction",
+          "roles": [],
+          "selector": "0xe0b6e404",
+          "signature": "executeQueuedAction(uint64)()"
+        },
+        "0xea5a5277": {
+          "name": "getQueuedAction",
+          "roles": [],
+          "selector": "0xea5a5277",
+          "signature": "getQueuedAction(uint64)(tuple)"
+        },
+        "0xeef09bad": {
+          "name": "timelockDelay",
+          "roles": [],
+          "selector": "0xeef09bad",
+          "signature": "timelockDelay()(uint48)"
+        },
+        "0xffa1ad74": {
+          "name": "VERSION",
+          "roles": [],
+          "selector": "0xffa1ad74",
+          "signature": "VERSION()(uint8,uint8)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0x22ae99d07584a2ae1af748de573c83f1b9cdb4c0": {
+      "functionSelectors": {
+        "0x03346696": {
+          "name": "pushNewAdmin",
+          "roles": ["RolesAdmin"],
+          "selector": "0x03346696",
+          "signature": "pushNewAdmin(address)()"
+        },
+        "0x22f3e2d4": {
+          "name": "isActive",
+          "roles": [],
+          "selector": "0x22f3e2d4",
+          "signature": "isActive()(bool)"
+        },
+        "0x2f2ff15d": {
+          "name": "grantRole",
+          "roles": ["RolesAdmin"],
+          "selector": "0x2f2ff15d",
+          "signature": "grantRole(bytes32,address)()"
+        },
+        "0x3ea26384": {
+          "name": "newAdmin",
+          "roles": [],
+          "selector": "0x3ea26384",
+          "signature": "newAdmin()(address)"
+        },
+        "0x4657b36c": {
+          "name": "changeKernel",
+          "roles": [],
+          "selector": "0x4657b36c",
+          "signature": "changeKernel(address)()"
+        },
+        "0x5924be70": {
+          "name": "requestPermissions",
+          "roles": [],
+          "selector": "0x5924be70",
+          "signature": "requestPermissions()(tuple[])"
+        },
+        "0x72b0bb49": {
+          "name": "pullNewAdmin",
+          "roles": [],
+          "selector": "0x72b0bb49",
+          "signature": "pullNewAdmin()()"
+        },
+        "0x923cb952": {
+          "name": "ROLES",
+          "roles": [],
+          "selector": "0x923cb952",
+          "signature": "ROLES()(address)"
+        },
+        "0x9459b875": {
+          "name": "configureDependencies",
+          "roles": [],
+          "selector": "0x9459b875",
+          "signature": "configureDependencies()(bytes5[])"
+        },
+        "0xd4aae0c4": {
+          "name": "kernel",
+          "roles": [],
+          "selector": "0xd4aae0c4",
+          "signature": "kernel()(address)"
+        },
+        "0xd547741f": {
+          "name": "revokeRole",
+          "roles": ["RolesAdmin"],
+          "selector": "0xd547741f",
+          "signature": "revokeRole(bytes32,address)()"
+        },
+        "0xf851a440": {
+          "name": "admin",
+          "roles": [],
+          "selector": "0xf851a440",
+          "signature": "admin()(address)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0x623164a9ee2556d524b08f34f1d2389d7b4e1a1c": {
+      "functionSelectors": {
+        "0x02b1d239": {
+          "name": "ohm",
+          "roles": [],
+          "selector": "0x02b1d239",
+          "signature": "ohm()(address)"
+        },
+        "0x02fb0c5e": {
+          "name": "active",
+          "roles": [],
+          "selector": "0x02fb0c5e",
+          "signature": "active()(bool)"
+        },
+        "0x0f15f4c0": {
+          "name": "activate",
+          "roles": [],
+          "selector": "0x0f15f4c0",
+          "signature": "activate()()"
+        },
+        "0x1ae7ec2e": {
+          "name": "KEYCODE",
+          "roles": [],
+          "selector": "0x1ae7ec2e",
+          "signature": "KEYCODE()(bytes5)"
+        },
+        "0x1b0a68f2": {
+          "name": "decreaseMintApproval",
+          "roles": [],
+          "selector": "0x1b0a68f2",
+          "signature": "decreaseMintApproval(address,uint256)()"
+        },
+        "0x359fe780": {
+          "name": "increaseMintApproval",
+          "roles": [],
+          "selector": "0x359fe780",
+          "signature": "increaseMintApproval(address,uint256)()"
+        },
+        "0x3a56e307": {
+          "name": "mintOhm",
+          "roles": [],
+          "selector": "0x3a56e307",
+          "signature": "mintOhm(address,uint256)()"
+        },
+        "0x4657b36c": {
+          "name": "changeKernel",
+          "roles": [],
+          "selector": "0x4657b36c",
+          "signature": "changeKernel(address)()"
+        },
+        "0x51b42b00": {
+          "name": "deactivate",
+          "roles": [],
+          "selector": "0x51b42b00",
+          "signature": "deactivate()()"
+        },
+        "0x664aecb0": {
+          "name": "mintApproval",
+          "roles": [],
+          "selector": "0x664aecb0",
+          "signature": "mintApproval(address)(uint256)"
+        },
+        "0xaaf0ad5a": {
+          "name": "burnOhm",
+          "roles": [],
+          "selector": "0xaaf0ad5a",
+          "signature": "burnOhm(address,uint256)()"
+        },
+        "0xd4aae0c4": {
+          "name": "kernel",
+          "roles": [],
+          "selector": "0xd4aae0c4",
+          "signature": "kernel()(address)"
+        },
+        "0xea643914": {
+          "name": "INIT",
+          "roles": [],
+          "selector": "0xea643914",
+          "signature": "INIT()()"
+        },
+        "0xffa1ad74": {
+          "name": "VERSION",
+          "roles": [],
+          "selector": "0xffa1ad74",
+          "signature": "VERSION()(uint8,uint8)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0xbc9ee0d911739cbc72cd094ada26f56e0c49eeae": {
+      "functionSelectors": {
+        "0x1ae7ec2e": {
+          "name": "KEYCODE",
+          "roles": [],
+          "selector": "0x1ae7ec2e",
+          "signature": "KEYCODE()(bytes5)"
+        },
+        "0x40e312f8": {
+          "name": "ensureValidRole",
+          "roles": [],
+          "selector": "0x40e312f8",
+          "signature": "ensureValidRole(bytes32)()"
+        },
+        "0x4657b36c": {
+          "name": "changeKernel",
+          "roles": [],
+          "selector": "0x4657b36c",
+          "signature": "changeKernel(address)()"
+        },
+        "0x656361ff": {
+          "name": "saveRole",
+          "roles": [],
+          "selector": "0x656361ff",
+          "signature": "saveRole(bytes32,address)()"
+        },
+        "0xac4ab3fb": {
+          "name": "hasRole",
+          "roles": [],
+          "selector": "0xac4ab3fb",
+          "signature": "hasRole(address,bytes32)(bool)"
+        },
+        "0xd09a20c5": {
+          "name": "requireRole",
+          "roles": [],
+          "selector": "0xd09a20c5",
+          "signature": "requireRole(bytes32,address)()"
+        },
+        "0xd4aae0c4": {
+          "name": "kernel",
+          "roles": [],
+          "selector": "0xd4aae0c4",
+          "signature": "kernel()(address)"
+        },
+        "0xea643914": {
+          "name": "INIT",
+          "roles": [],
+          "selector": "0xea643914",
+          "signature": "INIT()()"
+        },
+        "0xf6ba0007": {
+          "name": "removeRole",
+          "roles": [],
+          "selector": "0xf6ba0007",
+          "signature": "removeRole(bytes32,address)()"
+        },
+        "0xffa1ad74": {
+          "name": "VERSION",
+          "roles": [],
+          "selector": "0xffa1ad74",
+          "signature": "VERSION()(uint8,uint8)"
+        }
+      },
+      "roleToFunctions": {}
+    }
+  },
   "11155111": {
     "0x0be69702e83f06a027e6841b614f6946d1265441": {
       "functionSelectors": {

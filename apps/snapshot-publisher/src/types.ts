@@ -14,6 +14,8 @@ export type ChainConfig = {
   chainId: number;
   name: string;
   explorerBaseUrl: string;
+  availability?: "indexed" | "historical";
+  environment?: "production" | "testnet";
 };
 
 export type GraphqlContract = {

@@ -97,5 +97,5 @@ to complete a full backfill.
 
 `stack:config` and `stack:up` require `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY`,
 `ENVIO_RPC_URL_1`, `ENVIO_RPC_URL_10`, `ENVIO_RPC_URL_42161`,
-`ENVIO_RPC_URL_4663`, `ENVIO_RPC_URL_8453`, `ENVIO_RPC_URL_80094`, and `ENVIO_RPC_URL_11155111` to be
+`ENVIO_RPC_URL_421614`, `ENVIO_RPC_URL_84532`, `ENVIO_RPC_URL_4663`, `ENVIO_RPC_URL_8453`, `ENVIO_RPC_URL_80094`, and `ENVIO_RPC_URL_11155111` to be
 present in `.env` or the shell environment.

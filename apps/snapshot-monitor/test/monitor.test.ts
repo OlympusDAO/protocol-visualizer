@@ -202,7 +202,15 @@ test("fetches current indexing readiness from Envio metrics", async () => {
   try {
     const readiness = await fetchIndexerMetricsReadiness({
       metricsUrl: "http://indexer.internal/metrics",
-      chains: [{ key: "Mainnet", chainId: 1, name: "Mainnet" }],
+      chains: [
+        { key: "Mainnet", chainId: 1, name: "Mainnet" },
+        {
+          key: "Goerli",
+          chainId: 5,
+          name: "Goerli",
+          availability: "historical",
+        },
+      ],
     });
     assert.equal(readiness.ready, true);
     assert.deepEqual(readiness.readyChainIds, [1]);

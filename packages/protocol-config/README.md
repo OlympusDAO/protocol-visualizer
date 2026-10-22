@@ -15,3 +15,8 @@ choose and name generated snapshots, and the gateway uses it to allowlist
 
 `SNAPSHOT_CHAIN_IDS` can narrow a publisher run to a subset, but it must not add
 chains that are absent from this file.
+
+Each chain has an `environment` (`production` or `testnet`) and `availability`
+(`indexed` or `historical`). Publisher defaults and monitor readiness include
+indexed chains only. The frontend lists every catalog chain, with recorded
+deployments instead of snapshot requests for historical networks.

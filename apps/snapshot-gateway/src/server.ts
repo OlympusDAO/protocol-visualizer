@@ -22,6 +22,8 @@ type ChainConfig = {
   chainId: number;
   name: string;
   explorerBaseUrl: string;
+  environment?: "production" | "testnet";
+  availability?: "indexed" | "historical";
 };
 
 export type ObjectReader = {
@@ -629,6 +631,8 @@ export function createSnapshotGateway(config: GatewayConfig) {
             data: manifest.chains.map((chain) => ({
               ...chain,
               path: restProtocolPath(chain.chainId),
+              environment: allowedChains.get(chain.chainId)?.environment,
+              availability: allowedChains.get(chain.chainId)?.availability,
             })),
           },
           "public, s-maxage=300, stale-while-revalidate=3600"

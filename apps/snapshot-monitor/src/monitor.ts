@@ -31,6 +31,7 @@ type ChainConfig = {
   key: string;
   chainId: number;
   name: string;
+  availability?: "indexed" | "historical";
 };
 
 type MonitorStore = {
@@ -233,7 +234,10 @@ export async function fetchIndexerMetricsReadiness(input: {
       )} failed with HTTP ${response.status}`
     );
   }
-  return parseEnvioMetricsReadiness(await response.text(), input.chains);
+  return parseEnvioMetricsReadiness(
+    await response.text(),
+    input.chains.filter((chain) => chain.availability !== "historical")
+  );
 }
 
 const ageHours = (from: string, to: Date): number | undefined => {

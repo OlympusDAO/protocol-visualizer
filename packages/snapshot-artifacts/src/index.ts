@@ -535,6 +535,14 @@ export function createOpenApiDocument(): OpenApiDocument {
                 properties: {
                   chainId: { type: "integer" },
                   name: { type: "string" },
+                  environment: {
+                    type: "string",
+                    enum: ["production", "testnet"],
+                  },
+                  availability: {
+                    type: "string",
+                    enum: ["indexed", "historical"],
+                  },
                   path: { type: "string" },
                   generatedAt: { type: "string", format: "date-time" },
                   recordCounts: { type: "object" },

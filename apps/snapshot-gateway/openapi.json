@@ -336,6 +336,14 @@
                 "name": {
                   "type": "string"
                 },
+                "environment": {
+                  "type": "string",
+                  "enum": ["production", "testnet"]
+                },
+                "availability": {
+                  "type": "string",
+                  "enum": ["indexed", "historical"]
+                },
                 "path": {
                   "type": "string"
                 },

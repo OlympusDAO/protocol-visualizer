@@ -123,6 +123,14 @@ const createTestConfig = (
       name: "Mainnet",
       explorerBaseUrl: "https://etherscan.io",
     },
+    {
+      key: "Goerli",
+      chainId: 5,
+      name: "Goerli",
+      explorerBaseUrl: "https://goerli.etherscan.io",
+      environment: "testnet",
+      availability: "historical",
+    },
   ],
 });
 
@@ -239,6 +247,16 @@ test("serves REST protocol snapshots through active manifest artifact keys", asy
     reader.keys.includes("v1/deployments/deployment-a/chain/1/protocol.json")
   );
   assert.equal(JSON.parse(text).chainId, 1);
+});
+
+test("catalog-only historical networks do not become published snapshots or readiness requirements", async () => {
+  const { response, text } = await request("/v1/chains");
+  assert.equal(response.status, 200);
+  assert.deepEqual(
+    JSON.parse(text).data.map((chain: { chainId: number }) => chain.chainId),
+    [1]
+  );
+  assert.equal((await request("/ready")).response.status, 200);
 });
 
 test("rejects old static routes and unsupported query params", async () => {

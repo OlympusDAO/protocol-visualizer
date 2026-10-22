@@ -47,7 +47,7 @@ export async function loadSupportedChains(): Promise<ChainConfig[]> {
         throw new Error("chain config must be an array of chain definitions");
       }
       validateUniqueChainIds(chains);
-      return chains;
+      return chains.filter((chain) => chain.availability !== "historical");
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       errors.push(`${configPath}: ${message}`);

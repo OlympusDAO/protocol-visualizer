@@ -53,6 +53,8 @@ Set one RPC URL for each enabled chain:
 ENVIO_RPC_URL_1=
 ENVIO_RPC_URL_10=
 ENVIO_RPC_URL_42161=
+ENVIO_RPC_URL_421614=<arbitrum sepolia archive RPC>
+ENVIO_RPC_URL_84532=<base sepolia archive RPC>
 ENVIO_RPC_URL_4663=
 ENVIO_RPC_URL_8453=
 ENVIO_RPC_URL_80094=

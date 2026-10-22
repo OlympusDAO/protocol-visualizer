@@ -6,6 +6,8 @@ export enum ChainId {
   Optimism = 10,
   Sepolia = 11155111,
   Robinhood = 4663,
+  BaseSepolia = 84532,
+  ArbitrumSepolia = 421614,
 }
 
 type ChainContractConstants = {
@@ -16,6 +18,20 @@ type ChainContractConstants = {
 };
 
 const KERNEL_CONSTANTS: Record<number, ChainContractConstants> = {
+  [ChainId.BaseSepolia]: {
+    creationTransactionHash:
+      "0xe73b840e56891a1d605bb8714666f99993153f9564154d9a5a697e651964a7ff",
+    creationBlockNumber: 21445241,
+    creationTimestamp: 1738658770,
+    address: "0x623164a9ee2556d524b08f34f1d2389d7b4e1a1c",
+  },
+  [ChainId.ArbitrumSepolia]: {
+    creationTransactionHash:
+      "0x9af587abb9efcfed12b24290f4cc669b55ed1b8880834e072ed52c4f4d21b978",
+    creationBlockNumber: 273448353,
+    creationTimestamp: 1780491101,
+    address: "0x18878df23e2a36f81e820e4b47b4a40576d3159c",
+  },
   [ChainId.Robinhood]: {
     creationTransactionHash:
       "0xd85c0f9ffa9910d4a94b0ef01b7de1d472ec3f33525a97b5e36450d3ced9dc99",
@@ -77,6 +93,20 @@ export const getKernelConstants = (chainId: number) => {
 };
 
 const ROLES_CONSTANTS: Record<number, ChainContractConstants> = {
+  [ChainId.BaseSepolia]: {
+    creationTransactionHash:
+      "0xaf1c59b3736caf6dbf937af7fe818d47101f5603841a955351f25ba55338159c",
+    creationBlockNumber: 21445245,
+    creationTimestamp: 1738658778,
+    address: "0x22ae99d07584a2ae1af748de573c83f1b9cdb4c0",
+  },
+  [ChainId.ArbitrumSepolia]: {
+    creationTransactionHash:
+      "0xc9bf7d155b2cf4d5385ba203fa3871a14ac251096277316c731156016db2f218",
+    creationBlockNumber: 273448359,
+    creationTimestamp: 1780491103,
+    address: "0xbc9ee0d911739cbc72cd094ada26f56e0c49eeae",
+  },
   [ChainId.Robinhood]: {
     creationTransactionHash:
       "0x442a153c3d82fd0449e239dd2dce08e55d26e1a07d90dfd165088ec60af7db3d",
@@ -138,6 +168,20 @@ export const getRolesConstants = (chainId: number) => {
 };
 
 const ROLES_ADMIN_CONSTANTS: Record<number, ChainContractConstants> = {
+  [ChainId.BaseSepolia]: {
+    creationTransactionHash:
+      "0x844988a28087920c53734a9f3416c24d75de4988fa4f8a0ff9b00a011523c270",
+    creationBlockNumber: 21445251,
+    creationTimestamp: 1738658790,
+    address: "0xe37d9a2791707bbb858012d219960d5fbd190794",
+  },
+  [ChainId.ArbitrumSepolia]: {
+    creationTransactionHash:
+      "0xf9c4756877cbbc683eff498aec069724c3799ba41b332e496ba9907bfcefb85d",
+    creationBlockNumber: 273448362,
+    creationTimestamp: 1780491104,
+    address: "0x22ae99d07584a2ae1af748de573c83f1b9cdb4c0",
+  },
   [ChainId.Robinhood]: {
     creationTransactionHash:
       "0x88b12105ca02e377d460d82667e0c624b56fe78103e88f937ee5665c6409e507",

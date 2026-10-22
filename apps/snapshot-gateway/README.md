@@ -83,3 +83,7 @@ pnpm --filter snapshot-gateway run openapi:check
 ```
 
 Do not hand-edit `openapi.json`.
+
+The `/v1/chains` endpoint lists published snapshots, with optional environment
+and availability metadata. The full catalog and historical deployments are
+bundled with the frontend; they do not require published snapshots.

@@ -92,6 +92,10 @@ test("loads shared protocol chain config", async () => {
 
   assert(chains.some((chain) => chain.chainId === 1));
   assert(chains.some((chain) => chain.chainId === 80094));
+  assert(!chains.some((chain) => chain.chainId === 5));
+  assert(!chains.some((chain) => chain.chainId === 80084));
+  assert(chains.some((chain) => chain.chainId === 421614));
+  assert(chains.some((chain) => chain.chainId === 84532));
 });
 
 test("reports Hasura network failures with safe context", async () => {

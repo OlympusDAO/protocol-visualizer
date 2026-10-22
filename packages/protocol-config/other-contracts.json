@@ -60,6 +60,151 @@
     "startBlock": 22696744
   },
   {
+    "chainId": 5,
+    "address": "0x0595328847af962f951a4f8f8ee9a3bf261e4f6b",
+    "name": "OHM"
+  },
+  {
+    "chainId": 5,
+    "address": "0x0a58698a671932b4a2c22466ef8a5e830d993644",
+    "name": "BLVaultLusd"
+  },
+  {
+    "chainId": 5,
+    "address": "0x15915be9d272b353ba06fa5ce3918ae7d27f5463",
+    "name": "OlympusPriceConfig"
+  },
+  {
+    "chainId": 5,
+    "address": "0x196a59fb453da942f062be4407d923129c759435",
+    "name": "Emergency"
+  },
+  {
+    "chainId": 5,
+    "address": "0x1e5a6834a71770067fccbaeddbc86b6d8dfdcb27",
+    "name": "BondManager"
+  },
+  {
+    "chainId": 5,
+    "address": "0x24963bea5a156e3dab8aba4fcb8a2dbe8c1aaa14",
+    "name": "BLREG"
+  },
+  {
+    "chainId": 5,
+    "address": "0x255467f1ca090cd0ed20014dc957e942d846843b",
+    "name": "Operator"
+  },
+  {
+    "chainId": 5,
+    "address": "0x2716a1451bde2b011f0d10ad6599e411d54ec491",
+    "name": "Distributor"
+  },
+  {
+    "chainId": 5,
+    "address": "0x302ed9be7fcb6513e8ba1400092d4b44a8d6ce0d",
+    "name": "OlympusHeart"
+  },
+  {
+    "chainId": 5,
+    "address": "0x343880fd866ec000e07f92ee06c4878dd97234d7",
+    "name": "BondCallback"
+  },
+  {
+    "chainId": 5,
+    "address": "0x3dae418f8b6382b3d3d0cb9008924ba83d2e0e87",
+    "name": "TreasuryCustodian"
+  },
+  {
+    "chainId": 5,
+    "address": "0x3ef13f5b6818f7746e0a1c70cc27fa2da0441695",
+    "name": "ZeroDistributor"
+  },
+  {
+    "chainId": 5,
+    "address": "0x446f06f8df7d5f627b073c6349b948b95c1f9185",
+    "name": "RANGE"
+  },
+  {
+    "chainId": 5,
+    "address": "0x4efe119f4949319f2acb12efd615a7b63896482b",
+    "name": "sOHM"
+  },
+  {
+    "chainId": 5,
+    "address": "0x54ffca586cd1b01e96a5682df93a55d7ef91eff0",
+    "name": "RolesAdmin"
+  },
+  {
+    "chainId": 5,
+    "address": "0x7263372b9ff6e619d8774aeb046ce313677e2ec7",
+    "name": "Staking"
+  },
+  {
+    "chainId": 5,
+    "address": "0x733f6a19e989a0b5e561f6695c0c1a8dd0199027",
+    "name": "BLVaultManagerLusd"
+  },
+  {
+    "chainId": 5,
+    "address": "0x9da48c71d3a5b6a6fe800096dc9707402068ce74",
+    "name": "Bookkeeper"
+  },
+  {
+    "chainId": 5,
+    "address": "0xa192ffbf73858831a137dd098a706139ca96abd5",
+    "name": "MINTR"
+  },
+  {
+    "chainId": 5,
+    "address": "0xa5588e518ce5ee0e4628c005e4edabd5e87de3ad",
+    "name": "BLVaultLido"
+  },
+  {
+    "chainId": 5,
+    "address": "0xb3e1df7951a62ffb5ef7d3b1c9d80cf09325580a",
+    "name": "Treasury"
+  },
+  {
+    "chainId": 5,
+    "address": "0xbfd98b062fab4f7bf0a670d744d73d3d22cf9969",
+    "name": "InverseBondDepository"
+  },
+  {
+    "chainId": 5,
+    "address": "0xc1863141dc1861122d5410fb5973951c82871d98",
+    "name": "gOHM"
+  },
+  {
+    "chainId": 5,
+    "address": "0xd8c59cfe5afbdb83d904e56d379028a2f6a07a2d",
+    "name": "TRSRY"
+  },
+  {
+    "chainId": 5,
+    "address": "0xd9ace3be2d80006ef4d90a2d35d861a5c9f98252",
+    "name": "PRICE"
+  },
+  {
+    "chainId": 5,
+    "address": "0xdb7cf68154bd422df5196d90285cea057786b4c3",
+    "name": "Kernel"
+  },
+  {
+    "chainId": 5,
+    "address": "0xe1d2524ce7d64d710be1c9e3c3d371a1730c6e34",
+    "name": "Clearinghouse"
+  },
+  {
+    "chainId": 5,
+    "address": "0xe9a9d80ce3ee32fff7279dce4c2962ec8098f71b",
+    "name": "ROLES"
+  },
+  {
+    "chainId": 5,
+    "address": "0xfbf6383dc3f6010d403ecdf12ddc1311701d143d",
+    "name": "BLVaultManagerLido"
+  },
+  {
     "chainId": 10,
     "address": "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0",
     "name": "OHM"
@@ -156,6 +301,66 @@
     "name": "OHM"
   },
   {
+    "chainId": 80084,
+    "address": "0x1a5309f208f161a393e8b5a253de8ab894a67188",
+    "name": "DAO MS"
+  },
+  {
+    "chainId": 80084,
+    "address": "0x290e5dbf3504de3b7f155ffaa5e50712115ebeef",
+    "name": "Emergency"
+  },
+  {
+    "chainId": 80084,
+    "address": "0x460aee09da47e9d6a069ca80553bf6af193d7a3f",
+    "name": "MINTR"
+  },
+  {
+    "chainId": 80084,
+    "address": "0x6d694bfb78efb5c4a3412f6e1c890c65060fba0b",
+    "name": "TreasuryCustodian"
+  },
+  {
+    "chainId": 80084,
+    "address": "0x6daebd9d834436dbf1c543f167cf627e1f17a280",
+    "name": "OlympusAuthority"
+  },
+  {
+    "chainId": 80084,
+    "address": "0x7fa68e6e579206cbce5add8a82396a7a2b83fcbf",
+    "name": "Minter"
+  },
+  {
+    "chainId": 80084,
+    "address": "0x88c8550ddba9f25b70124b0093e0591041e71252",
+    "name": "ROLES"
+  },
+  {
+    "chainId": 80084,
+    "address": "0x98b6eaa7f3330b003146112f8c56ef5f42fbe386",
+    "name": "RolesAdmin"
+  },
+  {
+    "chainId": 80084,
+    "address": "0x9f2b871fb2b1eef654f218e61de61ac03af0d72c",
+    "name": "OHM"
+  },
+  {
+    "chainId": 80084,
+    "address": "0xb49632d4be548fb734d908bee1e274635193550a",
+    "name": "Kernel"
+  },
+  {
+    "chainId": 80084,
+    "address": "0xbc6b74156269a8f523038be9350e1ff0d0424efe",
+    "name": "CrossChainBridge"
+  },
+  {
+    "chainId": 80084,
+    "address": "0xca0654df90847c4b3de5d5bce2e22f8b6302f40c",
+    "name": "TRSRY"
+  },
+  {
     "chainId": 80094,
     "address": "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0",
     "name": "OlympusAuthority",
@@ -177,6 +382,37 @@
     "address": "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a",
     "name": "CCIPCrossChainBridge",
     "startBlock": 27734760
+  },
+  {
+    "chainId": 84532,
+    "address": "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0",
+    "name": "OlympusAuthority"
+  },
+  {
+    "chainId": 84532,
+    "address": "0x18878df23e2a36f81e820e4b47b4a40576d3159c",
+    "name": "OHM"
+  },
+  {
+    "chainId": 84532,
+    "address": "0xd28d3910191900699558c9d8066080df644d9db3",
+    "name": "CCIPCrossChainBridge"
+  },
+  {
+    "chainId": 421614,
+    "address": "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0",
+    "name": "OHM"
+  },
+  {
+    "chainId": 421614,
+    "address": "0x13dfeff85779118136bb9826dcad8f3bd25153a3",
+    "name": "OlympusAuthority"
+  },
+  {
+    "chainId": 421614,
+    "address": "0xc8431feb345b46c30a4576c1b5faf080fdc54e2f",
+    "name": "LZCrossChainBridge",
+    "startBlock": 273448390
   },
   {
     "chainId": 11155111,

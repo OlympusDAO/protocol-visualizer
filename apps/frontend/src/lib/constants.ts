@@ -5,6 +5,8 @@ export type ProtocolChain = {
   chainId: number;
   name: string;
   explorerBaseUrl: string;
+  environment: string;
+  availability: string;
 };
 
 export const SUPPORTED_CHAINS = protocolChains satisfies ProtocolChain[];

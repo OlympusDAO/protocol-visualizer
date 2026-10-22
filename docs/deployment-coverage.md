@@ -78,3 +78,24 @@ Other-contract completeness, event-derived enablement/ownership, and live getter
 | Sepolia | 8226369–11967872 | Full configured core history replayed; real snapshot has 33 contracts, 19 roles, and 26 current assignments |
 
 These runs used explicit archive RPCs and completed successfully. The four empty deployment-window snapshots were correctly not ready for publication. They do not replace full-chain snapshots or establish complete chain-head coverage. Getter checks of `isActive()` confirm Kernel membership only, independently of IEnabler state. Ethereum's new config policies both report active. No ownership or enablement value is asserted by this milestone.
+
+## EVM chain coverage
+
+The catalog includes all eleven EVM entries from the same Olympus source revision. `solana` and `solana-devnet` are excluded. Six production chains and three testnets have configured indexing; Goerli and Berachain Bartio have a local historical deployment view. They require no snapshot or RPC and do not participate in publisher or monitor readiness. Missing addresses, including Arbitrum Sepolia multisigs, stay unset.
+
+Goerli is deprecated according to the [Ethereum Foundation sunset notice](https://blog.ethereum.org/2023/11/30/goerli-lts-update). Bartio is retained as historical coverage of this deployment file, with no live indexer configured. This does not substitute current Bepolia deployments for the source Bartio addresses.
+
+| Chain | Contract | Creation block | Timestamp | Transaction |
+| --- | --- | ---: | ---: | --- |
+| 421614 | Kernel | 273448353 | 1780491101 | `0x9af587abb9efcfed12b24290f4cc669b55ed1b8880834e072ed52c4f4d21b978` |
+| 421614 | OlympusRoles | 273448359 | 1780491103 | `0xc9bf7d155b2cf4d5385ba203fa3871a14ac251096277316c731156016db2f218` |
+| 421614 | RolesAdmin | 273448362 | 1780491104 | `0xf9c4756877cbbc683eff498aec069724c3799ba41b332e496ba9907bfcefb85d` |
+| 84532 | Kernel | 21445241 | 1738658770 | `0xe73b840e56891a1d605bb8714666f99993153f9564154d9a5a697e651964a7ff` |
+| 84532 | OlympusRoles | 21445245 | 1738658778 | `0xaf1c59b3736caf6dbf937af7fe818d47101f5603841a955351f25ba55338159c` |
+| 84532 | RolesAdmin | 21445251 | 1738658790 | `0x844988a28087920c53734a9f3416c24d75de4988fa4f8a0ff9b00a011523c270` |
+
+Arbitrum Sepolia receipts: `broadcast/LZBridgeTestnetDeploy.s.sol/421614/run-1780491115557.json`. Base Sepolia receipts: `broadcast/L2Deploy.s.sol/84532/run-1738659035.json`. RPC verification matched receipt status, contract address, and canonical block hash. Historical code was present at each creation block and absent immediately before it.
+
+The Arbitrum Sepolia broadcast also contains successful creations for LZBridgeGateway, LZEndpointDelegate, LZCrossChainBridge, and LZBridgeAndDelegateConfig. Kernel replay discovered the three policies, so their receipt-backed labels are included even though the older environment entries omit them. The periphery bridge is listed separately. This adds no LayerZero deployment to Robinhood.
+
+Both new networks completed archive-RPC Envio replay with zero latest-state fallbacks. Arbitrum Sepolia blocks `273448353–273458353` produced seven named core contracts, five roles, and five assignments. Base Sepolia blocks `21445241–21455241` produced nine named core contracts, five roles, and five assignments. Real Hasura snapshots validated successfully for both. These are deployment-window checks, not complete chain-head coverage claims.

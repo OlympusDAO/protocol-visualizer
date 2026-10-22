@@ -6,6 +6,40 @@ const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 
 const dockerfileContent = (path) => readFileSync(path, "utf8");
 
+test("EVM catalog groups all eleven source networks and indexes nine", () => {
+  const chains = readJson("packages/protocol-config/protocol-chains.json");
+  assert.equal(chains.length, 11);
+  assert.equal(new Set(chains.map((chain) => chain.chainId)).size, 11);
+  assert.equal(
+    chains.filter((chain) => chain.environment === "production").length,
+    6
+  );
+  assert.equal(
+    chains.filter((chain) => chain.environment === "testnet").length,
+    5
+  );
+  assert.deepEqual(
+    chains
+      .filter((chain) => chain.availability === "historical")
+      .map((chain) => chain.chainId)
+      .sort((a, b) => a - b),
+    [5, 80084]
+  );
+  const indexedIds = chains
+    .filter((chain) => chain.availability === "indexed")
+    .map((chain) => chain.chainId)
+    .sort((a, b) => a - b);
+  const configuredIds = [
+    ...readFileSync("apps/indexer/config.yaml", "utf8").matchAll(
+      /^  - id: (\d+)$/gm
+    ),
+  ]
+    .map((match) => Number(match[1]))
+    .sort((a, b) => a - b);
+  assert.deepEqual(configuredIds, indexedIds);
+  assert(chains.every((chain) => !chain.key.toLowerCase().includes("solana")));
+});
+
 test("other contracts are valid, unique chain-scoped identities", () => {
   const contracts = readJson("packages/protocol-config/other-contracts.json");
   const identities = new Set();
@@ -174,6 +208,8 @@ test("Compose requires Envio API token, Etherscan key, and RPC URLs for local in
     "1",
     "10",
     "42161",
+    "421614",
+    "84532",
     "4663",
     "8453",
     "80094",

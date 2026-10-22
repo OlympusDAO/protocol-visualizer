@@ -22,6 +22,7 @@ import {
 import dagre from "dagre";
 import { ChainSelector } from "../chain-selector";
 import { DEFAULT_CHAIN_ID, SUPPORTED_CHAINS } from "@/lib/constants";
+import otherContracts from "../../../../../packages/protocol-config/other-contracts.json";
 
 interface NodeData {
   name: string;
@@ -331,9 +332,13 @@ export function ContractVisualizer() {
     setSelectedNode(null);
   }, [selectedChainId, setNodes, setEdges]);
 
+  const isHistorical =
+    SUPPORTED_CHAINS.find((chain) => chain.chainId === selectedChainId)
+      ?.availability === "historical";
   const { data, isLoading, error } = useQuery({
     queryKey: ["protocol-visualizer", selectedChainId],
     queryFn: () => getProtocolVisualizerData(selectedChainId),
+    enabled: !isHistorical,
   });
 
   const contracts = data?.contracts;
@@ -1341,7 +1346,29 @@ export function ContractVisualizer() {
         onChainChange={setSelectedChainId}
       />
       <div className="h-[800px] border border-gray-200 rounded-lg">
-        {error ? (
+        {isHistorical ? (
+          <div className="h-full overflow-auto p-4">
+            <p className="mb-4 text-sm text-gray-600">
+              Historical network. Recorded deployments are shown below; live
+              indexing and contract state are unavailable.
+            </p>
+            <ul className="space-y-3">
+              {otherContracts
+                .filter((contract) => contract.chainId === selectedChainId)
+                .map((contract) => (
+                  <li
+                    key={contract.address}
+                    className="border-b border-gray-200 pb-2"
+                  >
+                    <div className="font-medium">{contract.name}</div>
+                    <code className="break-all text-xs text-gray-600">
+                      {contract.address}
+                    </code>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        ) : error ? (
           <div className="w-full h-full flex items-center justify-center">
             <div className="max-w-md text-center">
               <div className="text-lg font-semibold">

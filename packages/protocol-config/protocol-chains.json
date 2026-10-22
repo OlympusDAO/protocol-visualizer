@@ -3,42 +3,88 @@
     "key": "Mainnet",
     "chainId": 1,
     "name": "Ethereum Mainnet",
-    "explorerBaseUrl": "https://etherscan.io"
+    "explorerBaseUrl": "https://etherscan.io",
+    "environment": "production",
+    "availability": "indexed"
   },
   {
     "key": "Optimism",
     "chainId": 10,
     "name": "Optimism",
-    "explorerBaseUrl": "https://optimistic.etherscan.io"
+    "explorerBaseUrl": "https://optimistic.etherscan.io",
+    "environment": "production",
+    "availability": "indexed"
   },
   {
     "key": "Arbitrum",
     "chainId": 42161,
     "name": "Arbitrum",
-    "explorerBaseUrl": "https://arbiscan.io"
+    "explorerBaseUrl": "https://arbiscan.io",
+    "environment": "production",
+    "availability": "indexed"
   },
   {
     "key": "Base",
     "chainId": 8453,
     "name": "Base",
-    "explorerBaseUrl": "https://basescan.org"
+    "explorerBaseUrl": "https://basescan.org",
+    "environment": "production",
+    "availability": "indexed"
   },
   {
     "key": "Berachain",
     "chainId": 80094,
     "name": "Berachain",
-    "explorerBaseUrl": "https://berascan.com"
+    "explorerBaseUrl": "https://berascan.com",
+    "environment": "production",
+    "availability": "indexed"
   },
   {
     "key": "Robinhood",
     "chainId": 4663,
     "name": "Robinhood Chain",
-    "explorerBaseUrl": "https://robinhoodchain.blockscout.com"
+    "explorerBaseUrl": "https://robinhoodchain.blockscout.com",
+    "environment": "production",
+    "availability": "indexed"
   },
   {
     "key": "Sepolia",
     "chainId": 11155111,
     "name": "Sepolia",
-    "explorerBaseUrl": "https://sepolia.etherscan.io"
+    "explorerBaseUrl": "https://sepolia.etherscan.io",
+    "environment": "testnet",
+    "availability": "indexed"
+  },
+  {
+    "key": "ArbitrumSepolia",
+    "chainId": 421614,
+    "name": "Arbitrum Sepolia",
+    "explorerBaseUrl": "https://sepolia.arbiscan.io",
+    "environment": "testnet",
+    "availability": "indexed"
+  },
+  {
+    "key": "BaseSepolia",
+    "chainId": 84532,
+    "name": "Base Sepolia",
+    "explorerBaseUrl": "https://sepolia.basescan.org",
+    "environment": "testnet",
+    "availability": "indexed"
+  },
+  {
+    "key": "Goerli",
+    "chainId": 5,
+    "name": "Goerli",
+    "explorerBaseUrl": "https://goerli.etherscan.io",
+    "environment": "testnet",
+    "availability": "historical"
+  },
+  {
+    "key": "BerachainBartio",
+    "chainId": 80084,
+    "name": "Berachain Bartio",
+    "explorerBaseUrl": "https://bartio.beratrail.io",
+    "environment": "testnet",
+    "availability": "historical"
   }
 ]

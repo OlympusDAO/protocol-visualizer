@@ -8,6 +8,8 @@ const validEnv = {
   HASURA_GRAPHQL_ADMIN_SECRET: "secret",
   ENVIO_RPC_URL_1: "https://example.com/1",
   ENVIO_RPC_URL_10: "https://example.com/10",
+  ENVIO_RPC_URL_421614: "https://example.com/421614",
+  ENVIO_RPC_URL_84532: "https://example.com/84532",
   ENVIO_RPC_URL_42161: "https://example.com/42161",
   ENVIO_RPC_URL_4663: "https://example.com/4663",
   ENVIO_RPC_URL_8453: "https://example.com/8453",

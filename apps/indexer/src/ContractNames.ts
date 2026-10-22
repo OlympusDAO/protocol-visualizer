@@ -991,6 +991,90 @@ const contractNames: MultiChainContracts = {
       name: "Emergency MS",
     },
   },
+  [ChainId.ArbitrumSepolia]: {
+    "0x0d33c811d0fcc711bcb388dfb3a152de445be66f": {
+      name: "LZBridgeGateway",
+      type: "policy",
+      startBlock: 273448382,
+    },
+    "0x0f953d861347414698f34b75dbfd6e7df1a73493": {
+      name: "LZEndpointDelegate",
+      type: "policy",
+      startBlock: 273448386,
+    },
+    "0x1d316c489bab10b755cb0562759a6cf285f89814": {
+      name: "LZBridgeAndDelegateConfig",
+      type: "policy",
+      startBlock: 273448393,
+    },
+    "0x18878df23e2a36f81e820e4b47b4a40576d3159c": {
+      name: "Kernel",
+      type: "kernel",
+      startBlock: 273448353,
+    },
+    "0x623164a9ee2556d524b08f34f1d2389d7b4e1a1c": {
+      name: "MINTR",
+      type: "module",
+    },
+    "0xbc9ee0d911739cbc72cd094ada26f56e0c49eeae": {
+      name: "ROLES",
+      type: "module",
+      startBlock: 273448359,
+    },
+    "0x22ae99d07584a2ae1af748de573c83f1b9cdb4c0": {
+      name: "RolesAdmin",
+      type: "policy",
+      startBlock: 273448362,
+    },
+  },
+  [ChainId.BaseSepolia]: {
+    "0x623164a9ee2556d524b08f34f1d2389d7b4e1a1c": {
+      name: "Kernel",
+      type: "kernel",
+      startBlock: 21445241,
+    },
+    "0xbc9ee0d911739cbc72cd094ada26f56e0c49eeae": {
+      name: "MINTR",
+      type: "module",
+    },
+    "0x22ae99d07584a2ae1af748de573c83f1b9cdb4c0": {
+      name: "ROLES",
+      type: "module",
+      startBlock: 21445245,
+    },
+    "0xb1fa0ac44d399b778b14af0aaf4bcf8af3437ad1": {
+      name: "TRSRY",
+      type: "module",
+    },
+    "0x1a5309f208f161a393e8b5a253de8ab894a67188": {
+      name: "DAO / Emergency address",
+    },
+    "0x6577cfd3b625a6bd0b708da1f066855c19ac8360": {
+      name: "CCIPBurnMintTokenPool",
+      type: "policy",
+    },
+    "0xba42be149e5260eba4b82418a6306f55d532ea47": {
+      name: "CrossChainBridge",
+      type: "policy",
+    },
+    "0xca7240a7b439c9d458b47831d38c3d69c1287469": {
+      name: "Emergency",
+      type: "policy",
+    },
+    "0x0f953d861347414698f34b75dbfd6e7df1a73493": {
+      name: "Minter",
+      type: "policy",
+    },
+    "0xe37d9a2791707bbb858012d219960d5fbd190794": {
+      name: "RolesAdmin",
+      type: "policy",
+      startBlock: 21445251,
+    },
+    "0x0d33c811d0fcc711bcb388dfb3a152de445be66f": {
+      name: "TreasuryCustodian",
+      type: "policy",
+    },
+  },
 };
 
 const getContractDetails = (

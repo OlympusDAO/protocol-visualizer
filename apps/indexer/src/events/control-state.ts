@@ -75,7 +75,6 @@ export async function seedControlState(
     (await context.ContractState.get<ControlStateEntity>(
       contractId(chainId, address)
     )) ?? unknownState(chainId, address);
-  // An event-established value or an earlier successful seed always wins over a late seed.
   if (state.enabled !== null) return;
   if (result.status === "unavailable") {
     context.ContractState.set({

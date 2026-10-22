@@ -872,9 +872,10 @@ export function ContractVisualizer() {
 
       // Process assignees
       roleAssignmentsList.forEach((assignment) => {
-        const contractNode = [...contracts, ...additional].find(
-          (c) => c.address.toLowerCase() === assignment.assignee.toLowerCase()
-        );
+        const isAssignee = (contract: { address: string }) =>
+          contract.address.toLowerCase() === assignment.assignee.toLowerCase();
+        const contractNode =
+          contracts.find(isAssignee) ?? additional.find(isAssignee);
 
         if (contractNode) {
           // Add edge to existing contract node
@@ -1682,13 +1683,28 @@ export function ContractVisualizer() {
     );
   }
 
-  const selectedContract = [
-    ...(contracts ?? []),
-    ...(data ? getAdditionalGraphContracts(data) : []),
-  ].find((contract) => contract.address === selectedNode);
+  const selectedCoreContract = contracts?.find(
+    (contract) => contract.address === selectedNode
+  );
+  const selectedContract =
+    selectedCoreContract ??
+    (selectedNode && data
+      ? getAdditionalGraphContracts(data).find(
+          (contract) => contract.address === selectedNode
+        )
+      : undefined);
   const selectedAddressNode = selectedNode?.startsWith("0x")
     ? nodes.find((node) => node.id === selectedNode)
     : undefined;
+  const renderSelectedTooltip = () => {
+    if (selectedAddressNode?.data.assigneeAddress)
+      return renderAssigneeTooltip();
+    if (selectedNode?.startsWith("role-")) return renderRoleTooltip();
+    if (!selectedNode?.startsWith("0x")) return null;
+    if (selectedCoreContract?.type === "policy") return renderPolicyTooltip();
+    if (selectedCoreContract?.type === "module") return renderModuleTooltip();
+    return null;
+  };
   const selectedRelationships =
     data?.relationships.filter(
       (relationship) =>
@@ -1875,19 +1891,7 @@ export function ContractVisualizer() {
               <Controls />
               <MiniMap pannable zoomable />
             </ReactFlow>
-            {selectedAddressNode?.data.assigneeAddress
-              ? renderAssigneeTooltip()
-              : selectedNode?.startsWith("role-")
-                ? renderRoleTooltip()
-                : selectedNode?.startsWith("0x") &&
-                    contracts?.find((c) => c.address === selectedNode)?.type ===
-                      "policy"
-                  ? renderPolicyTooltip()
-                  : selectedNode?.startsWith("0x") &&
-                      contracts?.find((c) => c.address === selectedNode)
-                        ?.type === "module"
-                    ? renderModuleTooltip()
-                    : null}
+            {renderSelectedTooltip()}
             {(selectedContract || selectedAddressNode) && selectedNode && (
               <aside
                 className="fixed bottom-4 right-4 z-50 max-w-[min(420px,calc(100vw-2rem))] max-h-[40vh] overflow-auto rounded-lg border border-gray-200 bg-white p-4 text-xs shadow-lg"

@@ -168,7 +168,6 @@ export function getRelationshipFields(
   return fields;
 }
 
-/** AuthorityUpdated registers new event sources immediately. Its first completed checkpoint seeds earlier unknown state. */
 export async function getObservedAuthorityFields(
   context: Pick<EnvioContext, "ContractRelationship">,
   chainId: number,

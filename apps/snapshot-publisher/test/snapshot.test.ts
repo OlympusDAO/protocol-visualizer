@@ -39,8 +39,10 @@ test("includes inactive and inventory-only contracts without changing active cor
   const policy = contracts[2];
   assert(policy);
   const inactive = {
-    ...policy,
     address: "0x0000000000000000000000000000000000000099",
+    name: policy.name,
+    version: policy.version,
+    contractType: policy.contractType,
     isEnabled: false,
   };
   input.KnownContract = [...contracts, inactive];

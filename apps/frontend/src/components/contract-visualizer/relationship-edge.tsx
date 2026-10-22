@@ -1,7 +1,6 @@
 import { BaseEdge, type EdgeProps } from "reactflow";
 import { getRelationshipCurve } from "./graph";
 
-/** Curves avoid shared orthogonal trunks; parallel relationships get separate lanes. */
 export function RelationshipEdge({
   sourceX,
   sourceY,

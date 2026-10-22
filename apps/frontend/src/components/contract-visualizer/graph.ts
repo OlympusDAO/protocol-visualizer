@@ -231,7 +231,6 @@ export function refreshGraph<
   return { nodes: [...nodes.values()], selectedNode };
 }
 
-/** One address node can hold several distinct controls; field, scope and status retain separate edges. */
 export function getRelationshipGraph(
   relationships: ContractRelationship[],
   chainId: number
@@ -274,17 +273,19 @@ export function getRelationshipGraph(
       relationship.status === "reference"
         ? relationship.getter?.split(":")[0]
         : undefined;
-    const token = relationship.scope?.token?.toLowerCase();
-    const tokenName =
-      otherContracts.find(
-        (contract) =>
-          contract.chainId === chainId &&
-          contract.address.toLowerCase() === token
-      )?.name ?? (token ? `${token.slice(0, 6)}…${token.slice(-4)}` : "Token");
+    let tokenName = "Token";
     let label: string;
-    if (relationship.kind === "token-admin")
+    if (relationship.kind === "token-admin") {
+      const token = relationship.scope?.token?.toLowerCase();
+      if (token)
+        tokenName =
+          otherContracts.find(
+            (contract) =>
+              contract.chainId === chainId &&
+              contract.address.toLowerCase() === token
+          )?.name ?? `${token.slice(0, 6)}…${token.slice(-4)}`;
       label = `${pending ? "Pending " : ""}${tokenName} admin`;
-    else if (pending) label = `Pending ${name}`;
+    } else if (pending) label = `Pending ${name}`;
     else if (getter)
       label =
         relationship.functionContext?.signature ??

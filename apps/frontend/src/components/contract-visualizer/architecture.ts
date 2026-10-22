@@ -115,7 +115,6 @@ export function getArchitectureView(
   return { nodes, edges };
 }
 
-/** Keep canonical contract cards visible inside labelled sections. */
 export function layoutArchitectureSections(nodes: Node[]): Node[] {
   const definitions = [
     { id: "shared", name: "Shared controllers & registries" },

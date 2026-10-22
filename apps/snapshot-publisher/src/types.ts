@@ -58,7 +58,10 @@ export type InventoryContract = {
 };
 
 export type ProtocolGraphqlData = {
-  KnownContract?: GraphqlContract[];
+  KnownContract?: Pick<
+    GraphqlContract,
+    "address" | "name" | "version" | "contractType" | "isEnabled"
+  >[];
   ContractState?: ContractState[];
   ContractRelationship?: (Omit<
     ContractRelationship,

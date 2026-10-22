@@ -157,7 +157,6 @@ export function decodeProtocolSnapshot(
   };
 }
 
-/** Additional nodes never acquire invented Kernel membership through the legacy contract type. */
 export function getAdditionalGraphContracts(
   data: ProtocolVisualizerData
 ): AdditionalContract[] {

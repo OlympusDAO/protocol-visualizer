@@ -188,11 +188,7 @@ export async function readPinnedControlGetter(
     return {
       status: "success",
       value: String(value).toLowerCase(),
-      ...(functionContext
-        ? { functionContext }
-        : generic
-          ? { functionContext: { signature: `${getter}()` } }
-          : {}),
+      ...(functionContext ? { functionContext } : {}),
       ...(targetCode ? { targetCode } : {}),
     };
   } catch {

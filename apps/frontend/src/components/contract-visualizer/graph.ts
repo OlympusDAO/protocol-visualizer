@@ -124,6 +124,7 @@ export function getEnablementPresentation(
         ? "Contract enabled"
         : "Contract disabled";
   const details: string[] = [];
+  const notices: string[] = [];
   if (state?.enablerCapability === "unsupported")
     details.push("Verified ABI does not implement IEnabler.");
   else if (state?.enabled == null)
@@ -145,7 +146,7 @@ export function getEnablementPresentation(
     (!state.indexedThrough ||
       BigInt(state.lastChange.number) > BigInt(state.indexedThrough.number))
   )
-    details.push(
+    notices.push(
       "Latest transition awaits a completed verification checkpoint."
     );
   if (state?.indexedThrough)
@@ -158,7 +159,7 @@ export function getEnablementPresentation(
       BigInt(state.indexedThrough.number) <
         BigInt(observation.indexedThrough.number))
   )
-    details.push(
+    notices.push(
       `Enablement coverage is behind chain observation block ${observation.indexedThrough.number}.`
     );
   const verification = state?.verification;
@@ -167,7 +168,7 @@ export function getEnablementPresentation(
     warning = `Verification mismatch: indexed ${state?.enabled}, getter ${verification.getterValue} at block ${verification.block?.number} (${verification.block?.hash}).`;
     details.push(warning);
   } else if (verification?.outcome === "unavailable") {
-    details.push(
+    notices.push(
       `Getter verification unavailable${verification.block ? ` at block ${verification.block.number}` : ""}; established indexed state is retained.`
     );
   } else if (verification?.outcome === "match") {
@@ -175,7 +176,7 @@ export function getEnablementPresentation(
       `Getter matches indexed state at block ${verification.block?.number}.`
     );
   }
-  return { badge, warning, details };
+  return { badge, warning, details, notices };
 }
 
 export function refreshGraph<

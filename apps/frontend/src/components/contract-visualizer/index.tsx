@@ -1803,37 +1803,61 @@ export function ContractVisualizer() {
                   {selectedNode}
                 </a>
                 {selectedContract && (
-                  <div className="mt-1">{getKernelLabel(selectedContract)}</div>
-                )}
-                {selectedContract && selectedControl.badge && (
-                  <EnablementIndicator label={selectedControl.badge} />
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
+                    <span className="inline-flex items-center gap-1.5">
+                      <ContractStatusIcons
+                        contract={selectedContract}
+                        enablementLabel={null}
+                      />
+                      {getKernelLabel(selectedContract)}
+                    </span>
+                    {selectedControl.badge && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <EnablementIndicator label={selectedControl.badge} />
+                        {selectedControl.badge === "Contract enabled"
+                          ? "Enabled"
+                          : "Disabled"}
+                      </span>
+                    )}
+                  </div>
                 )}
                 {selectedControl.warning && (
                   <p className="mt-2 text-amber-800 break-all">
                     {selectedControl.warning}
                   </p>
                 )}
-                {(selectedContract ? selectedControl.details : [])
-                  .filter((detail) => detail !== selectedControl.warning)
-                  .map((detail) => (
-                    <p key={detail} className="mt-2 break-all text-gray-600">
-                      {detail}
-                    </p>
-                  ))}
+                {selectedContract && (
+                  <>
+                    {selectedControl.notices.map((notice) => (
+                      <p key={notice} className="mt-2 text-amber-800">
+                        {notice}
+                      </p>
+                    ))}
+                    <details key={selectedNode} className="mt-2">
+                      <summary className="cursor-pointer text-gray-500">
+                        Indexing &amp; verification
+                      </summary>
+                      {selectedControl.details
+                        .filter((detail) => detail !== selectedControl.warning)
+                        .map((detail) => (
+                          <p
+                            key={detail}
+                            className="mt-2 break-all text-gray-600"
+                          >
+                            {detail}
+                          </p>
+                        ))}
+                    </details>
+                  </>
+                )}
                 {selectedRelationships.length > 0 && (
                   <section
                     className="mt-3 border-t border-gray-200 pt-2"
                     aria-label="Control relationships"
                   >
-                    <h4 className="font-semibold">Relationships</h4>
-                    <p className="mt-1 text-gray-500">
-                      {
-                        selectedRelationships.filter(
-                          (relationship) => relationship.status === "current"
-                        ).length
-                      }{" "}
-                      current control links. Pending nominations are separate.
-                    </p>
+                    <h4 className="font-semibold">
+                      Relationships ({selectedRelationships.length})
+                    </h4>
                     {selectedRelationships.map((relationship) => (
                       <div
                         key={relationship.id}
@@ -1853,8 +1877,9 @@ export function ContractVisualizer() {
                               )}
                               target="_blank"
                               rel="noopener noreferrer"
+                              title={relationship.source}
                             >
-                              {relationship.source}
+                              {shortenAddress(relationship.source)}
                             </a>
                             {" → "}
                             <a
@@ -1865,8 +1890,9 @@ export function ContractVisualizer() {
                               )}
                               target="_blank"
                               rel="noopener noreferrer"
+                              title={relationship.target}
                             >
-                              {relationship.target}
+                              {shortenAddress(relationship.target)}
                             </a>
                           </p>
                         ) : (
@@ -1880,34 +1906,51 @@ export function ContractVisualizer() {
                                   : "Unset."}
                           </p>
                         )}
-                        {relationship.scope && (
-                          <p className="mt-1 break-all text-gray-500">
-                            Registry: {relationship.scope.registry}; token:{" "}
-                            {relationship.scope.token}.
-                          </p>
-                        )}
-                        {relationship.status === "reference" &&
-                          relationship.getter && (
-                            <p className="mt-1 text-gray-500">
-                              Contract reference from{" "}
-                              {relationship.getter.split(":")[0]}(
-                              {relationship.scope?.token}).
+                        <details className="mt-1">
+                          <summary className="cursor-pointer text-gray-500">
+                            Evidence
+                          </summary>
+                          {relationship.scope && (
+                            <p className="mt-1 break-all text-gray-500">
+                              Registry: {relationship.scope.registry}; token:{" "}
+                              {relationship.scope.token}.
                             </p>
                           )}
-                        <p className="mt-1 break-all text-gray-500">
-                          Observed at block {relationship.provenance.number} (
-                          {relationship.provenance.hash})
-                          {"transactionHash" in relationship.provenance
-                            ? `; transaction ${relationship.provenance.transactionHash}, log ${relationship.provenance.logIndex}`
-                            : "; getter observation"}
-                          .
-                        </p>
-                        {relationship.indexedThrough && (
-                          <p className="mt-1 text-gray-500">
-                            Indexed through block{" "}
-                            {relationship.indexedThrough.number}.
+                          {relationship.status === "reference" &&
+                            relationship.getter && (
+                              <p className="mt-1 text-gray-500">
+                                Contract reference from{" "}
+                                {relationship.getter.split(":")[0]}(
+                                {relationship.scope?.token}).
+                              </p>
+                            )}
+                          <p className="mt-1 break-all text-gray-500">
+                            Observed at block {relationship.provenance.number} (
+                            {relationship.provenance.hash})
+                            {"transactionHash" in relationship.provenance
+                              ? `; transaction ${relationship.provenance.transactionHash}, log ${relationship.provenance.logIndex}`
+                              : "; getter observation"}
+                            .
                           </p>
-                        )}
+                          {relationship.indexedThrough && (
+                            <p className="mt-1 text-gray-500">
+                              Indexed through block{" "}
+                              {relationship.indexedThrough.number}.
+                            </p>
+                          )}
+                          {relationship.verification?.outcome === "match" && (
+                            <p className="mt-1 text-gray-500">
+                              Getter matches at block{" "}
+                              {relationship.verification.block?.number}.
+                            </p>
+                          )}
+                          {relationship.status === "reference" &&
+                            relationship.coverage && (
+                              <p className="mt-1 text-gray-500">
+                                {relationship.coverage}
+                              </p>
+                            )}
+                        </details>
                         {relationship.lastChange &&
                           (!relationship.indexedThrough ||
                             BigInt(relationship.lastChange.number) >
@@ -1928,11 +1971,12 @@ export function ContractVisualizer() {
                               block {data.observation.indexedThrough.number}.
                             </p>
                           )}
-                        {relationship.coverage && (
-                          <p className="mt-1 text-amber-800">
-                            {relationship.coverage}
-                          </p>
-                        )}
+                        {relationship.status !== "reference" &&
+                          relationship.coverage && (
+                            <p className="mt-1 text-amber-800">
+                              {relationship.coverage}
+                            </p>
+                          )}
                         {relationship.verification?.outcome === "mismatch" && (
                           <p className="mt-1 break-all text-amber-800">
                             Verification mismatch: indexed {relationship.value},
@@ -1948,12 +1992,6 @@ export function ContractVisualizer() {
                             Getter verification unavailable at block{" "}
                             {relationship.verification.block?.number}.
                             Established indexed state is retained.
-                          </p>
-                        )}
-                        {relationship.verification?.outcome === "match" && (
-                          <p className="mt-1 text-gray-500">
-                            Getter matches at block{" "}
-                            {relationship.verification.block?.number}.
                           </p>
                         )}
                       </div>

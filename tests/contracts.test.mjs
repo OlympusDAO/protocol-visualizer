@@ -158,7 +158,7 @@ test("graph keeps Kernel membership independent from three-state enablement", ()
     getEnablementPresentation({
       ...state,
       verification: { outcome: "unavailable", block },
-    }).details.join(" "),
+    }).notices.join(" "),
     /unavailable/
   );
 });

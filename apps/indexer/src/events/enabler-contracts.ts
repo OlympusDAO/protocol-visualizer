@@ -29,6 +29,7 @@ export function getEnablerCapability(
   return otherContracts.some(
     (entry) =>
       entry.chainId === chainId &&
+      !entry.labelOnly &&
       entry.address === address.toLowerCase() &&
       peripheryNames.has(entry.name)
   )
@@ -41,7 +42,10 @@ export function getEnablerContracts(chainId: number): EnablerContract[] {
     ...Object.keys(verifiedMetadata[String(chainId)] ?? {}),
     ...otherContracts
       .filter(
-        (entry) => entry.chainId === chainId && peripheryNames.has(entry.name)
+        (entry) =>
+          entry.chainId === chainId &&
+          !entry.labelOnly &&
+          peripheryNames.has(entry.name)
       )
       .map((entry) => entry.address),
   ]);

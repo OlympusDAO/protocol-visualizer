@@ -10,6 +10,9 @@ import { getSampleProtocolData } from "../apps/snapshot-publisher/src/sample-dat
 const { decodeProtocolSnapshot, getAdditionalGraphContracts } = await import(
   "../apps/frontend/src/services/contracts.ts"
 );
+const { getRelationshipFields } = await import(
+  "../apps/indexer/src/events/ownership-contracts.ts"
+);
 const {
   getEnablementPresentation,
   getRelationshipGraph,
@@ -31,6 +34,76 @@ const chain = {
 };
 const address = "0x00000000000000000000000000000000000000aa";
 const block = { number: "123", hash: "0xcanonical", timestamp: "1700000000" };
+
+test("verified address labels repair old unknown names without adding deployments or hiding unresolved addresses", async () => {
+  const policy = "0x018b747ca7a2b9346f80aed5a9b7a417fb57f313";
+  const bridge = "0x3edd66de21fa6a4b141ad6971cb24f656e66ad4a";
+  const unresolved = "0x1505f3ad833e9c82facd8b4d3ff4319b1ef6eb99";
+  const batch = await createSnapshotBatch({
+    chains: [{ ...chain, chainId: 11155111 }],
+    deploymentId: "address-labels",
+    additionalContracts: [
+      {
+        chainId: 11155111,
+        address: bridge,
+        name: "LZCrossChainBridge",
+        labelOnly: true,
+      },
+    ],
+    loadProtocolData: () => ({
+      Contract: [
+        {
+          id: policy,
+          address: policy,
+          name: "UNKNOWN",
+          contractType: "POLICY",
+          isEnabled: true,
+          lastUpdatedBlockNumber: "1",
+          lastUpdatedTimestamp: "1",
+        },
+      ],
+      RoleAssignment: [bridge, unresolved].map((assignee) => ({
+        id: assignee,
+        role: "test",
+        assignee: assignee.toUpperCase().replace("0X", "0x"),
+        assigneeName: "UNKNOWN",
+        isGranted: true,
+        lastUpdatedBlockNumber: "1",
+        lastUpdatedTimestamp: "1",
+      })),
+    }),
+  });
+  const snapshot = JSON.parse(batch.files[0].body);
+  const decoded = decodeProtocolSnapshot(snapshot);
+  assert.equal(decoded.contracts[0].name, "LZBridgeAndDelegateConfig");
+  assert.equal(decoded.roleAssignments[0].assigneeName, "LZCrossChainBridge");
+  assert.equal(decoded.roleAssignments[1].assigneeName, "UNKNOWN");
+  assert.equal(decoded.additionalContracts.length, 0);
+  assert.equal(
+    getRelationshipFields(11155111).some((field) => field.address === bridge),
+    false
+  );
+  snapshot.data.additionalContracts.push({
+    id: bridge,
+    chainId: 11155111,
+    address: bridge,
+    name: "UNKNOWN",
+    category: "external",
+  });
+  assert.equal(
+    decodeProtocolSnapshot(snapshot).additionalContracts[0].name,
+    "LZCrossChainBridge"
+  );
+  assert.equal(snapshot.data.contracts[0].name, "UNKNOWN");
+  snapshot.data.contracts[0].name = "Existing alias";
+  assert.equal(
+    decodeProtocolSnapshot(snapshot).contracts[0].name,
+    "Existing alias"
+  );
+  snapshot.chainId = 1;
+  snapshot.data.contracts[0].name = "UNKNOWN";
+  assert.equal(decodeProtocolSnapshot(snapshot).contracts[0].name, "UNKNOWN");
+});
 
 test("uninstalled core contracts sit together beside the active graph", () => {
   const active = { id: "active", position: { x: 400, y: 200 }, data: {} };

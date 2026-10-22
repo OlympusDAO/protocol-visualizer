@@ -49,7 +49,7 @@ export function getRelationshipFields(
   const fields: RelationshipField[] = [];
   const known = new Map(
     otherContracts
-      .filter((entry) => entry.chainId === chainId)
+      .filter((entry) => entry.chainId === chainId && !entry.labelOnly)
       .map((entry) => [entry.address, entry.name])
   );
   for (const address of Object.keys(

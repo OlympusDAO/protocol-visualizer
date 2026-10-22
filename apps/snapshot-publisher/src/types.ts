@@ -54,6 +54,7 @@ export type InventoryContract = {
   address: string;
   name: string;
   startBlock?: number;
+  labelOnly?: boolean;
 };
 
 export type ProtocolGraphqlData = {

@@ -5,6 +5,7 @@ import {
   type AdditionalContract,
   type FunctionContext,
 } from "../../../../packages/snapshot-artifacts/src/index";
+import otherContracts from "../../../../packages/protocol-config/other-contracts.json";
 
 type ContractType = "kernel" | "module" | "policy";
 type EnvioContractType = "KERNEL" | "MODULE" | "POLICY";
@@ -129,15 +130,29 @@ export function decodeProtocolSnapshot(
   snapshot: ProtocolSnapshot
 ): ProtocolVisualizerData {
   const data = readSnapshotData(snapshot);
+  const resolveName = (address: string, name: string) =>
+    name === "UNKNOWN"
+      ? (otherContracts.find(
+          (entry) =>
+            entry.chainId === snapshot.chainId &&
+            entry.address === address.toLowerCase()
+        )?.name ?? name)
+      : name;
   return {
     ...data,
     contracts: data.contracts.map((contract) => ({
       ...contract,
       address: contract.address.toLowerCase(),
+      name: resolveName(contract.address, contract.name),
+    })),
+    additionalContracts: data.additionalContracts.map((contract) => ({
+      ...contract,
+      name: resolveName(contract.address, contract.name),
     })),
     roleAssignments: data.roleAssignments.map((assignment) => ({
       ...assignment,
       assignee: assignment.assignee.toLowerCase(),
+      assigneeName: resolveName(assignment.assignee, assignment.assigneeName),
     })),
   };
 }

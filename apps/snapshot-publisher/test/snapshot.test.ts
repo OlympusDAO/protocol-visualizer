@@ -267,12 +267,20 @@ test("validates other-contract inventory before returning typed entries", async 
       [{ ...valid, address: "0x0000000000000000000000000000000000000000" }],
       [{ ...valid, name: "" }],
       [{ ...valid, startBlock: -1 }],
+      [{ ...valid, labelOnly: "true" }],
     ]) {
       await writeFile(configPath, JSON.stringify(invalid));
       await assert.rejects(loadOtherContracts(), /other-contract inventory/);
     }
     await writeFile(configPath, JSON.stringify([valid]));
     assert.deepEqual(await loadOtherContracts(), [valid]);
+    await writeFile(
+      configPath,
+      JSON.stringify([{ ...valid, labelOnly: true }])
+    );
+    assert.deepEqual(await loadOtherContracts(), [
+      { ...valid, labelOnly: true },
+    ]);
   } finally {
     if (previous === undefined) delete process.env.OTHER_CONTRACTS_CONFIG_PATH;
     else process.env.OTHER_CONTRACTS_CONFIG_PATH = previous;

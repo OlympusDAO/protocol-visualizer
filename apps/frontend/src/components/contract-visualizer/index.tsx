@@ -1797,7 +1797,10 @@ export function ContractVisualizer() {
             </p>
             <ul className="space-y-3">
               {otherContracts
-                .filter((contract) => contract.chainId === selectedChainId)
+                .filter(
+                  (contract) =>
+                    contract.chainId === selectedChainId && !contract.labelOnly
+                )
                 .map((contract) => (
                   <li
                     key={contract.address}

@@ -70,6 +70,8 @@ const isInventoryContract = (value: unknown): value is InventoryContract => {
     !/^0x0{40}$/i.test(contract.address) &&
     typeof contract.name === "string" &&
     contract.name.trim().length > 0 &&
+    (contract.labelOnly === undefined ||
+      typeof contract.labelOnly === "boolean") &&
     (contract.startBlock === undefined ||
       (Number.isInteger(contract.startBlock) &&
         Number(contract.startBlock) >= 0))

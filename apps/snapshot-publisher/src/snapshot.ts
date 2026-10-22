@@ -343,7 +343,7 @@ export function createProtocolSnapshot({
   const known = graphqlData.KnownContract ?? graphqlData.Contract ?? [];
   const additions = new Map<string, AdditionalContract>();
   for (const contract of additionalContracts.filter(
-    (contract) => contract.chainId === chainId
+    (contract) => contract.chainId === chainId && !contract.labelOnly
   )) {
     const id = identity(contract.address);
     if (!active.has(id))

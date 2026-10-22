@@ -89,6 +89,7 @@ async function protocolSnapshotRequest(
 
   const response = await fetch(url, {
     method: "GET",
+    cache: "no-cache",
     headers: { accept: "application/json" },
   });
 

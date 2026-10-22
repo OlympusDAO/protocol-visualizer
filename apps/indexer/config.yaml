@@ -26,6 +26,19 @@ contracts:
     events:
       - event: "NewAdminPulled(address indexed newAdmin_)"
 
+  - name: IEnabler
+    abi_file_path: ./abis/json/IEnabler.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "Enabled()"
+      - event: "Disabled()"
+
+  - name: IEnablerV2
+    abi_file_path: ./abis/json/IEnabler.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "Transition(address indexed by, bool indexed enable, bytes data, uint48 at)"
+
 chains:
   - id: 84532
     start_block: 21445241
@@ -45,6 +58,12 @@ chains:
         address:
           - "0xe37d9a2791707bbb858012d219960d5fbd190794"
         start_block: 21445251
+      - name: IEnabler
+        address:
+          - "0x6577cfd3b625a6bd0b708da1f066855c19ac8360"
+          - "0xd28d3910191900699558c9d8066080df644d9db3"
+        start_block: 26633650
+
 
   - id: 421614
     start_block: 273448353
@@ -64,6 +83,13 @@ chains:
         address:
           - "0x22ae99d07584a2ae1af748de573c83f1b9cdb4c0"
         start_block: 273448362
+      - name: IEnablerV2
+        address:
+          - "0x0d33c811d0fcc711bcb388dfb3a152de445be66f"
+          - "0x0f953d861347414698f34b75dbfd6e7df1a73493"
+          - "0x1d316c489bab10b755cb0562759a6cf285f89814"
+        start_block: 273448382
+
 
   - id: 4663
     start_block: 94168504
@@ -83,6 +109,17 @@ chains:
         address:
           - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
         start_block: 94168691
+      - name: IEnabler
+        address:
+          - "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb"
+          - "0x5261fba7b50aa22b19b9edf939b771d109de991f"
+        start_block: 94169097
+      - name: IEnablerV2
+        address:
+          - "0x6d94b3745b0ecf908b3b467907b947b43fba5f15"
+          - "0x9f08c2603e919a46d6d98289c9ada5250b310558"
+        start_block: 94169625
+
 
   - id: 1
     start_block: 15998125
@@ -102,6 +139,30 @@ chains:
         address:
           - "0xb216d714d91eeC4F7120a732c11428857C659eC8"
         start_block: 15998137
+      - name: IEnabler
+        address:
+          - "0x5131654efcd63f7b797e00118792e0d0dd90b8b0"
+          - "0x5c69f61d384e41b55699c3b10523ed81c5ef9cbd"
+          - "0xd58d7406e9ce34c90cf849fc3eed3764eb3779b0"
+          - "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a"
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+          - "0xcb4e21eb404d80f3e1db781aad9ad6a1217fbbf2"
+          - "0x20a3d8510f2e1176e8db4cea9883a8287a9029db"
+          - "0xa61b846d5d8b757e3d541e0e4f80390e28f0b6ff"
+          - "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb"
+          - "0xca6cd4f0a0033f8c20cf68d6df277e7001a386f9"
+          - "0x9f08c2603e919a46d6d98289c9ada5250b310558"
+          - "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50"
+          - "0x6593768febf9c95ac857fb7ef244d5738d1c57fd"
+          - "0xe045bd0a0d85e980aa152064c06eae6b6ae358d2"
+          - "0xfbf6383dc3f6010d403ecdf12ddc1311701d143d"
+        start_block: 22423120
+      - name: IEnablerV2
+        address:
+          - "0x2cea7b722dbd6b03f0e857d11e53ecb698cc2b4e"
+          - "0xf489f38bf8d98a5c10a030f8c16624f6764cd27a"
+        start_block: 26232434
+
 
   - id: 42161
     start_block: 85886527
@@ -121,6 +182,17 @@ chains:
         address:
           - "0x69168c08AcF66f002fd02E1B169f38C022c93b70"
         start_block: 85886660
+      - name: IEnabler
+        address:
+          - "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a"
+          - "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50"
+        start_block: 516537665
+      - name: IEnablerV2
+        address:
+          - "0x5261fba7b50aa22b19b9edf939b771d109de991f"
+          - "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb"
+        start_block: 516537728
+
 
   - id: 8453
     start_block: 13204831
@@ -140,6 +212,17 @@ chains:
         address:
           - "0xb1fA0Ac44d399b778B14af0AAF4bCF8af3437ad1"
         start_block: 13204846
+      - name: IEnabler
+        address:
+          - "0x20a3d8510f2e1176e8db4cea9883a8287a9029db"
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+        start_block: 52847117
+      - name: IEnablerV2
+        address:
+          - "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50"
+          - "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a"
+        start_block: 52847128
+
 
   - id: 80094
     start_block: 780016
@@ -159,6 +242,17 @@ chains:
         address:
           - "0xe37D9a2791707BBB858012d219960D5FBD190794"
         start_block: 780026
+      - name: IEnabler
+        address:
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+          - "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a"
+        start_block: 27734756
+      - name: IEnablerV2
+        address:
+          - "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb"
+          - "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50"
+        start_block: 27734765
+
 
   - id: 10
     start_block: 98531655
@@ -178,6 +272,17 @@ chains:
         address:
           - "0xb1fA0Ac44d399b778B14af0AAF4bCF8af3437ad1"
         start_block: 98531717
+      - name: IEnabler
+        address:
+          - "0xd98b5b2e4d5d6cd554115de19efb7a9084beddd1"
+          - "0xcb4e21eb404d80f3e1db781aad9ad6a1217fbbf2"
+        start_block: 158442667
+      - name: IEnablerV2
+        address:
+          - "0x20a3d8510f2e1176e8db4cea9883a8287a9029db"
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+        start_block: 158442676
+
 
   - id: 11155111
     start_block: 8226369
@@ -197,3 +302,33 @@ chains:
         address:
           - "0xf33133E5356B9534e794468dAcD424D11007f1cF"
         start_block: 8226374
+      - name: IEnabler
+        address:
+          - "0x79cf5d3824cabd3c7617f8470b94033eb10b28ca"
+          - "0x3024ceabec7e120647ad585bd5836eb13d247de7"
+          - "0x74feaede88962139f4d36a2f1998bcf56088d519"
+          - "0x9dc1920981fcf74786c838bf6f6c3683a8713576"
+          - "0xad381c116f27f56f8c0853431f4fcd9e9b142aff"
+          - "0x46a01ae30571855fbb5988eed9d116aa2a3f2377"
+          - "0xf8abe1d9502bbcad4576433490d851d03c22a6b4"
+          - "0x2c9658b32e59cc4eb5ac90e2a3795c9e7fcaa644"
+          - "0x93acada86ad23c85e96869d46945fa6ffb7a4036"
+          - "0x247f1989adc0f63d07b91bf645de879b9de06fbb"
+          - "0x0be69702e83f06a027e6841b614f6946d1265441"
+          - "0x1dc2c4e15189a7aa61eff2b3dd3d5eae8fa03377"
+          - "0x84785e392bfd02f97a9b84f85d86dec11933ef81"
+          - "0x2364bf0a9aa544039bc12130d3ae167dffbb93a5"
+          - "0x5261fba7b50aa22b19b9edf939b771d109de991f"
+          - "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb"
+          - "0x69b2be653bab628116b360818be75a2d97b45c4a"
+          - "0x87568265eb6ea27f37613d242d4192b6f6771269"
+          - "0xa386b4f750f493a6c9f33fbbf8702718b785969a"
+          - "0xa61b846d5d8b757e3d541e0e4f80390e28f0b6ff"
+          - "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50"
+          - "0xc14156af3bf6c11b1c40c8f51f64ba5496870126"
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+          - "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a"
+          - "0x70233d8f47042d3a5813026e2157b5181c608cd0"
+          - "0x992ea219636777de4b99b63bbb0b08b90a3d57da"
+          - "0xcfe75cca2b7a9354f7c25e889b1216f977dec6a5"
+        start_block: 8226491

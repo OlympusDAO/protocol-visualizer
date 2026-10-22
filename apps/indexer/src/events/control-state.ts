@@ -6,6 +6,9 @@ export type ControlBlock = { number: string; hash: string; timestamp: string };
 type ControlProvenance = ControlBlock & {
   transactionHash: string;
   logIndex: number;
+  caller?: string;
+  data?: string;
+  lastTransitionAt?: string;
 };
 export type ControlStateEntity = {
   id: string;
@@ -45,6 +48,20 @@ const unknownState = (
   indexedThrough: null,
   verification: { outcome: "unperformed" },
 });
+
+export async function setControlCapability(
+  context: ControlContext,
+  chainId: number,
+  address: string,
+  capability: ControlStateEntity["enablerCapability"]
+): Promise<void> {
+  if (capability === "unknown") return;
+  const state =
+    (await context.ContractState.get<ControlStateEntity>(
+      contractId(chainId, address)
+    )) ?? unknownState(chainId, address);
+  context.ContractState.set({ ...state, enablerCapability: capability });
+}
 
 /** A seed describes the end of a completed block; only later blocks may replay over it. */
 export async function seedControlState(
@@ -90,7 +107,8 @@ export async function applyControlTransition(
   context: ControlContext,
   event: ControlEvent,
   kind: "enabled",
-  value: boolean
+  value: boolean,
+  metadata: { caller?: string; data?: string; lastTransitionAt?: string } = {}
 ): Promise<void> {
   const id = controlTransitionId(event, kind);
   if (await context.ControlTransition.get(id)) return;
@@ -108,6 +126,7 @@ export async function applyControlTransition(
   )
     throw new Error("control events must replay in canonical log order");
   const provenance: ControlProvenance = {
+    ...metadata,
     number: String(event.block.number),
     hash: event.block.hash,
     timestamp: String(event.block.timestamp),
@@ -120,7 +139,7 @@ export async function applyControlTransition(
     address: state.address,
     kind,
     previousValue: { enabled: state.enabled },
-    value: { enabled: value },
+    value: { enabled: value, ...metadata },
     blockNumber: BigInt(event.block.number),
     blockHash: event.block.hash,
     timestamp: BigInt(event.block.timestamp),

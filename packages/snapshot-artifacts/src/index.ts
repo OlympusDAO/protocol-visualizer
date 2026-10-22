@@ -22,6 +22,9 @@ export type BlockObservation = {
 export type EventProvenance = BlockObservation & {
   transactionHash: string;
   logIndex: number;
+  caller?: string;
+  data?: string;
+  lastTransitionAt?: string;
 };
 export type GetterVerification = {
   outcome: "unperformed" | "match" | "mismatch" | "unavailable";
@@ -482,6 +485,9 @@ export const protocolSnapshotSchema = {
         timestamp: { type: "string" },
         transactionHash: { type: "string" },
         logIndex: { type: "integer" },
+        caller: { type: "string" },
+        data: { type: "string" },
+        lastTransitionAt: { type: "string" },
       },
     },
     additionalContract: {

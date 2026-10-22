@@ -29,18 +29,33 @@ export function getSampleProtocolData(chainId: number): ProtocolGraphqlData {
     policyFunctions:
       type === "policy" ? [{ name: "operate", roles: ["operator"] }] : null,
   }));
+  const block = {
+    number: "1000000",
+    hash: `0x${chainId.toString(16).padStart(64, "0")}`,
+    timestamp: "1700000000",
+  };
 
   return {
     Contract: contracts,
     KnownContract: contracts,
+    ContractState: [
+      {
+        id: `${chainId}:${addressFor(chainId, 3)}`,
+        chainId,
+        address: addressFor(chainId, 3),
+        kernelMembership: "active",
+        enablerCapability: "supported",
+        enabled: false,
+        seed: block,
+        lastChange: null,
+        indexedThrough: block,
+        verification: { outcome: "match", block, getterValue: "false" },
+      },
+    ],
     ChainObservation: [
       {
         chainId,
-        indexedThrough: {
-          number: "1000000",
-          hash: `0x${chainId.toString(16).padStart(64, "0")}`,
-          timestamp: "1700000000",
-        },
+        indexedThrough: block,
       },
     ],
     Role: [{ id: `${chainId}-operator`, chainId, role: "operator" }],

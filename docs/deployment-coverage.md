@@ -2,6 +2,44 @@
 
 Source comparison: Olympus V3 Robinhood `a48ec8281b51db9136fbd6a8fd24d1b65cf2a929`, CCIP `e4034d5850bd0969983e3fc46c8405a4c9bc25c2`, and primary `8462498ac39772c53120cb8159f5a356d378471f`.
 
+## IEnabler capabilities and replay boundaries
+
+The IEnabler subscriptions cover 69 verified implementations. Creation anchors remain in the existing core address book and additional-contract list. Capability and dialect come from verified ABI function metadata: `isEnabled()` establishes support, and `lastTransitionAt()` identifies V2. A complete verified ABI without `isEnabled()` is unsupported. An unavailable call does not prove absence.
+
+Seven additional periphery deployments use the verified `CoolerComposites`, `CoolerV2Migrator`, and `CCIPCrossChainBridge` source ABIs. The two Cooler implementations expose IEnabler without ERC165; no interface probe is required. Their legacy `Enabled()` and `Disabled()` logs assign state. Source `EnablerV2.sol` emits a legacy log followed by `Transition(address,bool,bytes,uint48)`, so V2 subscriptions process only `Transition`. Multiple transitions in one transaction remain separate by log index. Caller, payload, and `lastTransitionAt` remain attached to the transition.
+
+Archive checks found code at all 69 creation blocks, no code at the preceding block, and a successful hash-bound `isEnabled()` read at each chain's comparison block below. For 38 addresses, creation receipts independently matched successful status, address, and block hash. Other entries retain their earlier deployment evidence with the fresh code-boundary check. These are capability and anchor checks; they do not replace an event replay.
+
+| Chain | Legacy | V2 | Pinned getter comparison block |
+| --- | ---: | ---: | ---: |
+| Ethereum (1) | 15 | 2 | 26246707 |
+| Optimism (10) | 2 | 2 | 158528364 |
+| Robinhood (4663) | 2 | 2 | 94951973 |
+| Base (8453) | 2 | 2 | 52933079 |
+| Arbitrum (42161) | 2 | 2 | 517163908 |
+| Berachain (80094) | 2 | 2 | 27820285 |
+| Base Sepolia (84532) | 2 | 0 | 48667686 |
+| Arbitrum Sepolia (421614) | 0 | 3 | 321660483 |
+| Sepolia (11155111) | 27 | 0 | 11968102 |
+
+The additional receipt sources are `broadcast/DeployV2.sol/1/run-1746515932.json`; `broadcast/DeployV2.sol/11155111/run-1746018785.json` and `run-1757579486838.json`; and these `broadcast/DeployV3.s.sol` runs:
+
+- Ethereum: `run-1762519979550.json`, `run-1762527193097.json`, `run-1763455275960.json`, `run-1770897446914.json`.
+- Sepolia: `run-1747831755.json`, `run-1756119151300.json`, `run-1756289976118.json`, `run-1757577000241.json`, `run-1762501753186.json`, `run-1762502461771.json`.
+- Base Sepolia: `run-1749035627.json`.
+
+Explorer creation records supplied the remaining missing PriceConfig (Ethereum, block 25330340), EmissionManager (Sepolia, block 10279234), and CCIPCrossChainBridge (Base Sepolia) anchors; archive code boundaries were checked independently.
+
+Seeds run at the end of each creation block, after constructor logs. A replay starting later seeds at its configured start, after that block's events. Existing event state wins over a seed. Completed checkpoints verify at 10,000-block intervals during historical replay, 100-block intervals while realtime indexing is active, and the exact configured end block. Hash-bound getter effects never substitute latest state. A failed comparison preserves indexed state; a mismatch preserves the indexed badge and exposes the differing getter value and comparison block. Last transition, completed coverage, and publication time remain separate.
+
+Synthetic sample snapshots demonstrate a Kernel-active policy with IEnabler disabled. They do not assert that a production bridge or its linked contracts are operational.
+
+Production event checks fetched all enablement logs for these 69 addresses from their creation anchors through the pinned comparison blocks above. Replaying 52 raw logs produced 50 logical transitions; duplicate delivery added no rows. Every final state matched its hash-bound getter. This helper replay complements full Envio/PostgreSQL runs for Mainnet and Robinhood: Mainnet had 17 observed implementations and 17 transitions; Robinhood had four implementations and no enablement transitions. Both runs matched every final getter at their comparison block.
+
+A separate local Anvil run used the production event registrations. Constructor logs and contracts without logs established the correct state. Legacy and V2 calls with two transitions each produced two logical transitions per transaction. A reorg removed six orphaned transitions and restored the previous states; all three contracts matched getters at replacement block 101. This uses local transactions only.
+
+Browser inspection verified an open, selected contract changed from enabled to disabled after a new snapshot, retaining its selection and node positions. Mutable snapshot requests revalidate the HTTP cache. Mainnet inspection found 119 unique rendered node IDs; repeated contract names refer to distinct deployment addresses, with versions retained. Inactive core contracts keep their module or policy colors.
+
 The Robinhood and CCIP branches agree on current and previous deployments for all six existing visualizer chains. The primary checkout agrees where entries overlap, but lacks recent CCIP deployments. Successful creation receipts support those additions. Desired `config` values and zero addresses are excluded.
 
 Core labels remain in `apps/indexer/src/ContractNames.ts`. The short `packages/protocol-config/other-contracts.json` list contains only additional contracts needed for enablement, ownership, authority, and CCIP views. It is not a mirror of the Olympus environment file. Existing historical aliases remain intact.

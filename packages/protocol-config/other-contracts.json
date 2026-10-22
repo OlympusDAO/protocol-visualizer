@@ -396,7 +396,8 @@
   {
     "chainId": 84532,
     "address": "0xd28d3910191900699558c9d8066080df644d9db3",
-    "name": "CCIPCrossChainBridge"
+    "name": "CCIPCrossChainBridge",
+    "startBlock": 26633652
   },
   {
     "chainId": 421614,

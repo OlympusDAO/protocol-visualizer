@@ -19,6 +19,7 @@ import type {
 } from "./types";
 import { normalizeAddress } from "./ids";
 import { getPublicClient, isHistoricalStateUnavailable } from "./rpc";
+import type { ControlBlock } from "./control-state";
 
 const contractProcessors = new Map<number, ContractProcessor>();
 const processedContracts = new Map<string, Promise<ProcessedContractData>>();
@@ -431,4 +432,43 @@ export async function getControlGetter(
     address: normalizeAddress(input.address) as Address,
     blockHash: input.blockHash.toLowerCase(),
   })) as ControlGetterResult;
+}
+
+// A height's header may change on rollback. Never persist a height-only header cache.
+const readControlBlockEffect = createEffect(
+  {
+    name: "readControlBlock",
+    input: { chainId: S.number, blockNumber: S.bigint },
+    rateLimit: { calls: 25, per: "second" },
+    output: S.optional(
+      S.schema({ number: S.string, hash: S.string, timestamp: S.string })
+    ),
+    cache: false,
+  },
+  async ({ input }) => {
+    try {
+      const block = await getPublicClient(input.chainId).getBlock({
+        blockNumber: input.blockNumber,
+      });
+      if (!block.hash) return undefined;
+      return {
+        number: input.blockNumber.toString(),
+        hash: block.hash.toLowerCase(),
+        timestamp: block.timestamp.toString(),
+      };
+    } catch {
+      return undefined;
+    }
+  }
+);
+
+export async function getControlBlock(
+  context: EnvioContext,
+  chainId: number,
+  blockNumber: number
+): Promise<ControlBlock | undefined> {
+  return context.effect(readControlBlockEffect, {
+    chainId,
+    blockNumber: BigInt(blockNumber),
+  });
 }

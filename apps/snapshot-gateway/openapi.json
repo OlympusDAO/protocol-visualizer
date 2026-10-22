@@ -473,6 +473,15 @@
               },
               "logIndex": {
                 "type": "integer"
+              },
+              "caller": {
+                "type": "string"
+              },
+              "data": {
+                "type": "string"
+              },
+              "lastTransitionAt": {
+                "type": "string"
               }
             }
           },

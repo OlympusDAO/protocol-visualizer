@@ -24,6 +24,13 @@ import dagre from "dagre";
 import { ChainSelector } from "../chain-selector";
 import { DEFAULT_CHAIN_ID, SUPPORTED_CHAINS } from "@/lib/constants";
 import otherContracts from "../../../../../packages/protocol-config/other-contracts.json";
+import {
+  getEnablementPresentation,
+  getContractPalette,
+  getGraphContractName,
+  getKernelLabel,
+  refreshGraph,
+} from "./graph";
 
 interface NodeData {
   name: string;
@@ -37,6 +44,34 @@ interface NodeData {
 }
 
 type CustomNode = Node<NodeData>;
+
+function EnablementIndicator({ label }: { label: string }) {
+  return (
+    <span
+      role="img"
+      aria-label={label}
+      title={label}
+      className={`mt-1 inline-flex align-middle ${label === "Contract enabled" ? "text-emerald-700" : "text-rose-700"}`}
+    >
+      <svg
+        aria-hidden="true"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="12" cy="12" r="9" />
+        <path
+          d={label === "Contract enabled" ? "m8 12 3 3 5-6" : "m6 6 12 12"}
+        />
+      </svg>
+    </span>
+  );
+}
 
 // Helper functions
 const shortenAddress = (address: string) => {
@@ -56,9 +91,7 @@ const getEtherscanLink = (address: string, chainId: number) => {
 // Helper function to format contract name with version
 const formatContractName = (contract: Contract) => {
   if (!contract.name) return "Unknown";
-  return contract.version
-    ? `${contract.name} (${contract.version})`
-    : contract.name;
+  return getGraphContractName(contract);
 };
 
 // Extract keycode from module name (e.g., "MINTR" from "MINTR: Minter")
@@ -69,6 +102,11 @@ const extractKeycode = (moduleName: string): string | null => {
 
 // Node color scheme
 const NODE_COLORS = {
+  external: {
+    background: "#f9fafb",
+    border: "#9ca3af",
+    text: "#374151",
+  },
   kernel: {
     background: "#fef3c7", // Amber 100
     border: "#d97706", // Amber 600
@@ -324,6 +362,9 @@ export function ContractVisualizer() {
 
   // Add ref for ReactFlow instance
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+  const previousSelection = useRef<string | null>(null);
 
   // Reset initialized state when chain ID changes
   // biome-ignore lint/correctness/useExhaustiveDependencies: selectedChainId intentionally triggers a graph reset.
@@ -333,6 +374,7 @@ export function ContractVisualizer() {
     setEdges([]);
     setOriginalLayout(null);
     setSelectedNode(null);
+    previousSelection.current = null;
   }, [selectedChainId, setNodes, setEdges]);
 
   const isHistorical =
@@ -342,6 +384,7 @@ export function ContractVisualizer() {
     queryKey: ["protocol-visualizer", selectedChainId],
     queryFn: () => getProtocolVisualizerData(selectedChainId),
     enabled: !isHistorical,
+    refetchInterval: 60_000,
   });
 
   const contracts = data?.contracts;
@@ -355,13 +398,17 @@ export function ContractVisualizer() {
   useEffect(() => {
     if (!data) return;
     setInitialized(false);
-    setOriginalLayout(null);
-    setSelectedNode(null);
   }, [data]);
 
   const createNodeFromContract = useCallback(
     (contract: Contract, id: string) => {
       const type = contract.type;
+      const control = getEnablementPresentation(
+        data?.contractStates.find(
+          (state) => state.address.toLowerCase() === contract.address
+        ),
+        data?.observation
+      );
       const colors =
         type === "kernel"
           ? NODE_COLORS.kernel
@@ -423,8 +470,12 @@ export function ContractVisualizer() {
               >
                 {shortenAddress(contract.address)}
               </a>
-              {!contract.isEnabled && (
-                <div className="text-xs mt-1 text-red-500">Disabled</div>
+              <div className="text-xs mt-1">{getKernelLabel(contract)}</div>
+              {control.badge && <EnablementIndicator label={control.badge} />}
+              {control.warning && (
+                <div className="text-xs mt-1 text-amber-800 max-w-[180px]">
+                  {control.warning}
+                </div>
               )}
               {type === "policy" && modulesUsedCount > 0 && (
                 <div
@@ -464,7 +515,7 @@ export function ContractVisualizer() {
         sourcePosition: Position.Right,
       };
     },
-    [hoveredPolicy, selectedChainId]
+    [hoveredPolicy, selectedChainId, data]
   );
 
   // Memoize the edge creation function
@@ -505,7 +556,6 @@ export function ContractVisualizer() {
     []
   );
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: setNodes/setEdges are stable React Flow setters; this layout reset only tracks chain changes.
   const setupGraph = useCallback(() => {
     if (!contracts || !roles || !roleAssignments || layouting) return;
 
@@ -580,11 +630,13 @@ export function ContractVisualizer() {
       const state = data?.contractStates.find(
         (state) => state.address.toLowerCase() === contract.address
       );
+      const control = getEnablementPresentation(state, data?.observation);
+      const colors = NODE_COLORS[getContractPalette(contract)];
       newNodes.push({
         id: contract.address,
         position: { x: 0, y: 0 },
         data: {
-          name: contract.name,
+          name: getGraphContractName(contract),
           label: (
             <div className="p-2 text-sm">
               <Handle
@@ -592,7 +644,9 @@ export function ContractVisualizer() {
                 type="target"
                 position={Position.Left}
               />
-              <div className="font-semibold">{contract.name}</div>
+              <div className="font-semibold" style={{ color: colors.text }}>
+                {getGraphContractName(contract)}
+              </div>
               <a
                 href={getEtherscanLink(contract.address, selectedChainId)}
                 target="_blank"
@@ -602,13 +656,12 @@ export function ContractVisualizer() {
                 {shortenAddress(contract.address)}
               </a>
               <div className="mt-1 text-xs text-gray-500">
-                {contract.category === "inactive-core"
-                  ? "Kernel inactive"
-                  : "External deployment"}
+                {getKernelLabel(contract)}
               </div>
-              {state?.enabled != null && (
-                <div className="text-xs text-gray-500">
-                  {state.enabled ? "Enabled" : "Disabled"}
+              {control.badge && <EnablementIndicator label={control.badge} />}
+              {control.warning && (
+                <div className="text-xs mt-1 text-amber-800 max-w-[180px]">
+                  {control.warning}
                 </div>
               )}
               <Handle
@@ -620,8 +673,8 @@ export function ContractVisualizer() {
           ),
         },
         style: {
-          background: "#f9fafb",
-          border: "1px solid #9ca3af",
+          background: colors.background,
+          border: `1px solid ${colors.border}`,
           borderRadius: "8px",
           minWidth: "180px",
         },
@@ -711,10 +764,20 @@ export function ContractVisualizer() {
       "TB"
     );
 
-    // Store the original layout for resetting
-    setOriginalLayout({ nodes: layoutedNodes, edges: layoutedEdges });
+    const baseline = refreshGraph(
+      layoutedNodes,
+      selectedNode ? (originalLayout?.nodes ?? []) : nodesRef.current,
+      selectedNode
+    );
+    const refreshed = refreshGraph(
+      baseline.nodes,
+      nodesRef.current,
+      selectedNode
+    );
+    setOriginalLayout({ nodes: baseline.nodes, edges: layoutedEdges });
+    setSelectedNode(refreshed.selectedNode);
 
-    setNodes(layoutedNodes);
+    setNodes(refreshed.nodes);
     setEdges(layoutedEdges);
     setLayouting(false);
     setInitialized(true);
@@ -728,6 +791,10 @@ export function ContractVisualizer() {
     createEdge,
     hoveredRole,
     selectedChainId,
+    originalLayout,
+    selectedNode,
+    setNodes,
+    setEdges,
   ]);
 
   // Add effect to handle node selection and layout
@@ -789,8 +856,15 @@ export function ContractVisualizer() {
       return layoutedNode || node;
     });
 
-    setNodes(finalNodes);
+    const selectionChanged = previousSelection.current !== selectedNode;
+    previousSelection.current = selectedNode;
+    setNodes(
+      selectionChanged
+        ? finalNodes
+        : refreshGraph(finalNodes, nodesRef.current, selectedNode).nodes
+    );
     setEdges(relevantEdges);
+    if (!selectionChanged) return;
 
     // Fit view to connected nodes after a short delay to allow transition
     const fitViewTimeout = setTimeout(() => {
@@ -814,6 +888,8 @@ export function ContractVisualizer() {
       initialized &&
       reactFlowInstance.current
     ) {
+      const selectionChanged = previousSelection.current !== null;
+      previousSelection.current = null;
       const restoredNodes = originalLayout.nodes.map((node) => ({
         ...node,
         style: {
@@ -825,6 +901,7 @@ export function ContractVisualizer() {
 
       setNodes(restoredNodes);
       setEdges(originalLayout.edges);
+      if (!selectionChanged) return;
 
       void setTimeout(() => {
         if (reactFlowInstance.current) {
@@ -1405,12 +1482,29 @@ export function ContractVisualizer() {
     );
   }
 
+  const selectedContract = [
+    ...(contracts ?? []),
+    ...(data ? getAdditionalGraphContracts(data) : []),
+  ].find((contract) => contract.address === selectedNode);
+  const selectedState = data?.contractStates.find(
+    (state) => state.address.toLowerCase() === selectedNode
+  );
+  const selectedControl = getEnablementPresentation(
+    selectedState,
+    data?.observation
+  );
+
   return (
     <div className="w-full">
       <ChainSelector
         selectedChainId={selectedChainId}
         onChainChange={setSelectedChainId}
       />
+      {error && data && !isHistorical && (
+        <p role="status" className="mb-2 text-sm text-amber-800">
+          Snapshot refresh failed. Showing the last loaded snapshot.
+        </p>
+      )}
       <div className="h-[800px] border border-gray-200 rounded-lg">
         {isHistorical ? (
           <div className="h-full overflow-auto p-4">
@@ -1434,7 +1528,7 @@ export function ContractVisualizer() {
                 ))}
             </ul>
           </div>
-        ) : error ? (
+        ) : error && !data ? (
           <div className="w-full h-full flex items-center justify-center">
             <div className="max-w-md text-center">
               <div className="text-lg font-semibold">
@@ -1498,6 +1592,39 @@ export function ContractVisualizer() {
                         ?.type === "module"
                     ? renderModuleTooltip()
                     : null}
+            {selectedContract && (
+              <aside
+                className="fixed bottom-4 left-4 z-50 max-w-[min(420px,calc(100vw-2rem))] max-h-[40vh] overflow-auto rounded-lg border border-gray-200 bg-white p-4 text-xs shadow-lg"
+                aria-label="Contract control state"
+              >
+                <div className="flex justify-between gap-4">
+                  <strong>{getGraphContractName(selectedContract)}</strong>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedNode(null)}
+                    aria-label="Close control details"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="mt-1">{getKernelLabel(selectedContract)}</div>
+                {selectedControl.badge && (
+                  <EnablementIndicator label={selectedControl.badge} />
+                )}
+                {selectedControl.warning && (
+                  <p className="mt-2 text-amber-800 break-all">
+                    {selectedControl.warning}
+                  </p>
+                )}
+                {selectedControl.details
+                  .filter((detail) => detail !== selectedControl.warning)
+                  .map((detail) => (
+                    <p key={detail} className="mt-2 break-all text-gray-600">
+                      {detail}
+                    </p>
+                  ))}
+              </aside>
+            )}
           </>
         )}
       </div>

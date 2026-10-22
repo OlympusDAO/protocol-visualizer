@@ -880,6 +880,7 @@ export function ContractVisualizer() {
       newEdges.push({
         ...createEdge(edge.source, edge.target),
         id: edge.id,
+        type: edge.pending ? "default" : "smoothstep",
         label: edge.label,
         style: {
           stroke: "#475569",
@@ -1771,7 +1772,7 @@ export function ContractVisualizer() {
                     : null}
             {(selectedContract || selectedAddressNode) && selectedNode && (
               <aside
-                className="fixed bottom-4 left-4 z-50 max-w-[min(420px,calc(100vw-2rem))] max-h-[40vh] overflow-auto rounded-lg border border-gray-200 bg-white p-4 text-xs shadow-lg"
+                className="fixed bottom-4 right-4 z-50 max-w-[min(420px,calc(100vw-2rem))] max-h-[40vh] overflow-auto rounded-lg border border-gray-200 bg-white p-4 text-xs shadow-lg"
                 aria-label="Contract control state"
               >
                 <div className="flex justify-between gap-4">
@@ -1869,9 +1870,25 @@ export function ContractVisualizer() {
                               ? "Unknown; no successful observation establishes this field."
                               : relationship.getter?.startsWith("new")
                                 ? "No pending nomination."
-                                : "Unset."}
+                                : relationship.kind === "registered-pool"
+                                  ? "OHM is unregistered; no pool is selected."
+                                  : "Unset."}
                           </p>
                         )}
+                        {relationship.scope && (
+                          <p className="mt-1 break-all text-gray-500">
+                            Registry: {relationship.scope.registry}; token:{" "}
+                            {relationship.scope.token}.
+                          </p>
+                        )}
+                        {relationship.status === "reference" &&
+                          relationship.getter && (
+                            <p className="mt-1 text-gray-500">
+                              Contract reference from{" "}
+                              {relationship.getter.split(":")[0]}(
+                              {relationship.scope?.token}).
+                            </p>
+                          )}
                         <p className="mt-1 break-all text-gray-500">
                           Observed at block {relationship.provenance.number} (
                           {relationship.provenance.hash})

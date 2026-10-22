@@ -56,7 +56,8 @@
   {
     "chainId": 1,
     "address": "0xb22764f98dd05c789929716d677382df22c05cb6",
-    "name": "TokenAdminRegistry"
+    "name": "TokenAdminRegistry",
+    "startBlock": 20735575
   },
   {
     "chainId": 1,
@@ -242,7 +243,8 @@
   {
     "chainId": 10,
     "address": "0x657c42abe4cd8aa731aec322f871b5b90cf6274f",
-    "name": "TokenAdminRegistry"
+    "name": "TokenAdminRegistry",
+    "startBlock": 125790041
   },
   {
     "chainId": 10,
@@ -253,7 +255,8 @@
   {
     "chainId": 4663,
     "address": "0x1912c3cfafe8a76a32a92861d815ac2837f237ca",
-    "name": "TokenAdminRegistry"
+    "name": "TokenAdminRegistry",
+    "startBlock": 4758
   },
   {
     "chainId": 4663,
@@ -288,7 +291,8 @@
   {
     "chainId": 8453,
     "address": "0x6f6c373d09c07425baae72317863d7f6bb731e37",
-    "name": "TokenAdminRegistry"
+    "name": "TokenAdminRegistry",
+    "startBlock": 20193207
   },
   {
     "chainId": 8453,
@@ -299,7 +303,8 @@
   {
     "chainId": 42161,
     "address": "0x39ae1032cf4b334a1ed41cdd0833bdd7c7e7751e",
-    "name": "TokenAdminRegistry"
+    "name": "TokenAdminRegistry",
+    "startBlock": 256834238
   },
   {
     "chainId": 42161,
@@ -394,7 +399,8 @@
   {
     "chainId": 80094,
     "address": "0x0944c3fb1db7d165336569221995b31cbe6c8a55",
-    "name": "TokenAdminRegistry"
+    "name": "TokenAdminRegistry",
+    "startBlock": 1023691
   },
   {
     "chainId": 80094,
@@ -483,7 +489,8 @@
   {
     "chainId": 11155111,
     "address": "0x95f29fee11c5c55d26cccf1db6772de953b37b82",
-    "name": "TokenAdminRegistry"
+    "name": "TokenAdminRegistry",
+    "startBlock": 6577288
   },
   {
     "chainId": 11155111,

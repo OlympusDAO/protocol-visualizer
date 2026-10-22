@@ -9,6 +9,8 @@ export type RelationshipField = {
   getter: string;
   kind: string;
   coverage?: string;
+  scope?: { registry?: string; token?: string };
+  inventoryPools?: string[];
 };
 type Provenance = ControlBlock & {
   transactionHash?: string;
@@ -39,6 +41,7 @@ export type RelationshipState = {
     reason?: string;
   };
   coverage?: string;
+  scope?: { registry?: string; token?: string };
 };
 type Context = Pick<
   EnvioContext,
@@ -49,14 +52,39 @@ type Context = Pick<
 >;
 type RelationshipEvent = ControlEvent & { params: Record<string, unknown> };
 const zero = `0x${"0".repeat(40)}`;
-const nonzero = (value: string | null) => value !== null && value !== zero;
+const nonzero = (value: string | null | undefined) =>
+  value != null && value !== zero;
 export const relationshipId = (
   chainId: number,
   address: string,
   getter: string
 ) => `${contractId(chainId, address)}:${getter}`;
 const isPending = (getter: string) => getter.startsWith("new");
-const reference = (kind: string) => kind === "authority-reference";
+const reference = (kind: string) =>
+  [
+    "authority-reference",
+    "registered-pool",
+    "configured-policy",
+    "configured-pool",
+    "cooler-reference",
+    "token-reference",
+  ].includes(kind);
+const currentGetter = (getter: string) =>
+  getter.charAt(3).toLowerCase() + getter.slice(4);
+const poolDiscrepancy = (
+  field: RelationshipField,
+  value: string | null | undefined
+) => {
+  if (
+    value == null ||
+    !field.inventoryPools?.length ||
+    field.inventoryPools.includes(value.toLowerCase())
+  )
+    return undefined;
+  return value.toLowerCase() === zero
+    ? `OHM is unregistered; inventory pools: ${field.inventoryPools.join(", ")}.`
+    : `Registered pool ${value.toLowerCase()} differs from inventory pool ${field.inventoryPools.join(", ")}.`;
+};
 
 async function present(
   context: Context,
@@ -70,7 +98,7 @@ async function present(
   if (!nonzero(state.value)) status = "unset";
   if (isPending(state.getter)) {
     const current = await context.ContractRelationship.get<RelationshipState>(
-      relationshipId(state.chainId, state.subject, state.kind)
+      relationshipId(state.chainId, state.subject, currentGetter(state.getter))
     );
     if (current?.value === state.value) status = "unset";
   }
@@ -87,7 +115,9 @@ async function present(
         ? null
         : reference(state.kind)
           ? state.value
-          : state.subject,
+          : state.kind === "token-admin"
+            ? (state.scope?.token ?? state.subject)
+            : state.subject,
   };
 }
 
@@ -104,7 +134,8 @@ async function writeField(
   const id = relationshipId(chainId, field.address, field.getter);
   const previous =
     await context.ContractRelationship.get<RelationshipState>(id);
-  const coverage = field.coverage ?? previous?.coverage;
+  const coverage =
+    poolDiscrepancy(field, value) ?? field.coverage ?? previous?.coverage;
   const transitionId =
     event && controlTransitionId(event, `relationship:${field.getter}`);
   if (transitionId && (await context.ControlTransition.get(transitionId)))
@@ -139,6 +170,9 @@ async function writeField(
     indexedThrough: previous?.indexedThrough ?? null,
     verification: { outcome: "unperformed" },
     ...(coverage ? { coverage } : {}),
+    ...((field.scope ?? previous?.scope)
+      ? { scope: field.scope ?? previous?.scope }
+      : {}),
   });
   context.ContractRelationship.set(state);
   if (event && transitionId)
@@ -185,14 +219,21 @@ async function eventField(
   event: RelationshipEvent,
   getter: string,
   kind: string,
-  value: unknown
+  value: unknown,
+  scope?: RelationshipField["scope"]
 ) {
   if (typeof value !== "string")
     throw new Error("relationship event lacks address");
   await writeField(
     context,
     event.chainId,
-    { address: event.srcAddress, startBlock: 0, getter, kind },
+    {
+      address: event.srcAddress,
+      startBlock: 0,
+      getter,
+      kind,
+      ...(scope ? { scope } : {}),
+    },
     value,
     provenanceFor(event),
     event
@@ -203,6 +244,74 @@ export async function handleOwnershipEvent(
   event: RelationshipEvent
 ) {
   await eventField(context, event, "owner", "owner", event.params.newOwner);
+}
+/** Chainlink ConfirmedOwner uses from/to and does not expose its private pending owner. */
+export async function handleChainlinkOwnershipEvent(
+  context: Context,
+  event: RelationshipEvent,
+  action: "OwnershipTransferRequested" | "OwnershipTransferred",
+  kind: "pool-owner" | "registry-owner"
+) {
+  if (action === "OwnershipTransferRequested")
+    await eventField(context, event, "newOwner", kind, event.params.to);
+  else {
+    await eventField(context, event, "owner", kind, event.params.to);
+    await eventField(context, event, "newOwner", kind, zero);
+  }
+}
+
+export async function handleRegistryEvent(
+  context: Context,
+  event: RelationshipEvent,
+  action:
+    | "AdministratorTransferRequested"
+    | "AdministratorTransferred"
+    | "PoolSet",
+  token: string
+) {
+  if (
+    typeof event.params.token !== "string" ||
+    event.params.token.toLowerCase() !== token.toLowerCase()
+  )
+    return;
+  token = token.toLowerCase();
+  const scope = { registry: event.srcAddress.toLowerCase(), token };
+  if (action === "PoolSet")
+    await eventField(
+      context,
+      event,
+      `getPool:${token}`,
+      "registered-pool",
+      event.params.newPool,
+      scope
+    );
+  else if (action === "AdministratorTransferRequested")
+    await eventField(
+      context,
+      event,
+      `newAdministrator:${token}`,
+      "token-admin",
+      event.params.newAdmin,
+      scope
+    );
+  else {
+    await eventField(
+      context,
+      event,
+      `administrator:${token}`,
+      "token-admin",
+      event.params.newAdmin,
+      scope
+    );
+    await eventField(
+      context,
+      event,
+      `newAdministrator:${token}`,
+      "token-admin",
+      zero,
+      scope
+    );
+  }
 }
 export async function handleAuthorityEvent(
   context: Context,
@@ -338,11 +447,17 @@ export async function completeRelationshipBlock(
         indexedThrough: null,
         verification: { outcome: "unperformed" },
         ...(field.coverage ? { coverage: field.coverage } : {}),
+        ...(field.scope ? { scope: field.scope } : {}),
       };
     }
     context.ContractRelationship.set({
       ...(await present(context, state)),
       indexedThrough: block,
+      ...(field.inventoryPools?.length
+        ? {
+            coverage: poolDiscrepancy(field, state.value) ?? field.coverage,
+          }
+        : {}),
       verification:
         result.status === "unavailable"
           ? { outcome: "unavailable", block, reason: result.reason }

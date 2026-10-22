@@ -12,6 +12,11 @@ export type ControlGetterResult =
   | { status: "unavailable"; reason: string };
 const addressGetters = new Set([
   "owner",
+  "config",
+  "pool",
+  "COOLER",
+  "COOLERV2",
+  "OHM",
   "authority",
   "governor",
   "newGovernor",
@@ -32,6 +37,7 @@ type ControlReadClient = {
     functionName: string;
     blockHash: Hex;
     requireCanonical: true;
+    args?: readonly Address[];
   }) => Promise<unknown>;
 };
 
@@ -41,7 +47,22 @@ export async function readPinnedControlGetter(
   input: ControlGetterInput
 ): Promise<ControlGetterResult> {
   try {
-    if (input.getter !== "isEnabled" && !addressGetters.has(input.getter))
+    const [getter = "", token] = input.getter.split(":");
+    const registryGetter =
+      token &&
+      /^0x[0-9a-fA-F]{40}$/.test(token) &&
+      ["administrator", "newAdministrator", "getPool"].includes(getter);
+    if (getter === "newOwner")
+      return {
+        status: "unavailable",
+        reason:
+          "Pending owner has no public getter; only replayed transfer requests establish the nominee.",
+      };
+    if (
+      input.getter !== "isEnabled" &&
+      !addressGetters.has(input.getter) &&
+      !registryGetter
+    )
       return { status: "unavailable", reason: "getter is not configured" };
     const before = await client.getBlock({ blockNumber: input.blockNumber });
     if (before.hash?.toLowerCase() !== input.blockHash.toLowerCase())
@@ -49,23 +70,43 @@ export async function readPinnedControlGetter(
         status: "unavailable",
         reason: "canonical block hash changed before getter read",
       };
-    const value = await client.readContract({
+    let value = await client.readContract({
       address: input.address,
       abi: [
         {
           type: "function",
-          name: input.getter,
-          inputs: [],
+          name:
+            registryGetter && getter !== "getPool" ? "getTokenConfig" : getter,
+          inputs: registryGetter ? [{ name: "token", type: "address" }] : [],
           outputs: [
-            { type: input.getter === "isEnabled" ? "bool" : "address" },
+            registryGetter && getter !== "getPool"
+              ? {
+                  type: "tuple",
+                  components: [
+                    { name: "administrator", type: "address" },
+                    { name: "pendingAdministrator", type: "address" },
+                    { name: "tokenPool", type: "address" },
+                  ],
+                }
+              : { type: input.getter === "isEnabled" ? "bool" : "address" },
           ],
           stateMutability: "view",
         },
       ],
-      functionName: input.getter,
+      functionName:
+        registryGetter && getter !== "getPool" ? "getTokenConfig" : getter,
+      ...(registryGetter ? { args: [token as Address] } : {}),
       blockHash: input.blockHash as Hex,
       requireCanonical: true,
     });
+    if (registryGetter && getter !== "getPool") {
+      const index = getter === "administrator" ? 0 : 1;
+      value = Array.isArray(value)
+        ? value[index]
+        : (value as Record<string, unknown>)?.[
+            index === 0 ? "administrator" : "pendingAdministrator"
+          ];
+    }
     const after = await client.getBlock({ blockNumber: input.blockNumber });
     if (after.hash?.toLowerCase() !== input.blockHash.toLowerCase())
       return {

@@ -75,6 +75,21 @@ contracts:
     handler: ./src/EventHandlers.ts
     events: []
 
+  - name: ChainlinkOwned
+    abi_file_path: ./abis/json/ChainlinkOwned.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "OwnershipTransferRequested(address indexed from, address indexed to)"
+      - event: "OwnershipTransferred(address indexed from, address indexed to)"
+
+  - name: TokenAdminRegistry
+    abi_file_path: ./abis/json/TokenAdminRegistry.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "AdministratorTransferRequested(address indexed token, address indexed currentAdmin, address indexed newAdmin)"
+      - event: "AdministratorTransferred(address indexed token, address indexed newAdmin)"
+      - event: "PoolSet(address indexed token, address indexed previousPool, address indexed newPool)"
+
 chains:
   - id: 84532
     start_block: 21445237
@@ -111,6 +126,10 @@ chains:
         address:
           - "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0"
         start_block: 21445237
+      - name: ChainlinkOwned
+        address:
+          - "0x6577cfd3b625a6bd0b708da1f066855c19ac8360"
+        start_block: 26633650
 
   - id: 421614
     start_block: 273448345
@@ -150,7 +169,7 @@ chains:
         start_block: 273448345
 
   - id: 4663
-    start_block: 94168343
+    start_block: 4758
     rpc:
       - url: ${ENVIO_RPC_URL_4663:-https://rpc.mainnet.chain.robinhood.com}
         for: ${ENVIO_RPC_MODE:-sync}
@@ -189,6 +208,15 @@ chains:
         address:
           - "0xca6cd4f0a0033f8c20cf68d6df277e7001a386f9"
         start_block: 94168343
+      - name: ChainlinkOwned
+        address:
+          - "0x1912c3cfafe8a76a32a92861d815ac2837f237ca"
+          - "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb"
+        start_block: 4758
+      - name: TokenAdminRegistry
+        address:
+          - "0x1912c3cfafe8a76a32a92861d815ac2837f237ca"
+        start_block: 4758
 
   - id: 1
     start_block: 13674068
@@ -257,6 +285,15 @@ chains:
         address:
           - "0x0ab87046fbb341d058f17cbc4c1133f25a20a52f"
         start_block: 13674957
+      - name: ChainlinkOwned
+        address:
+          - "0xa5588e518ce5ee0e4628c005e4edabd5e87de3ad"
+          - "0xb22764f98dd05c789929716d677382df22c05cb6"
+        start_block: 20735575
+      - name: TokenAdminRegistry
+        address:
+          - "0xb22764f98dd05c789929716d677382df22c05cb6"
+        start_block: 20735575
 
   - id: 42161
     start_block: 85886461
@@ -298,6 +335,15 @@ chains:
         address:
           - "0x78f84998c73655ac2da0aa1e1270f6cb985a343e"
         start_block: 85886461
+      - name: ChainlinkOwned
+        address:
+          - "0x39ae1032cf4b334a1ed41cdd0833bdd7c7e7751e"
+          - "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a"
+        start_block: 256834238
+      - name: TokenAdminRegistry
+        address:
+          - "0x39ae1032cf4b334a1ed41cdd0833bdd7c7e7751e"
+        start_block: 256834238
 
   - id: 8453
     start_block: 13204824
@@ -339,6 +385,15 @@ chains:
         address:
           - "0x13dfeff85779118136bb9826dcad8f3bd25153a3"
         start_block: 13204824
+      - name: ChainlinkOwned
+        address:
+          - "0x6f6c373d09c07425baae72317863d7f6bb731e37"
+          - "0x20a3d8510f2e1176e8db4cea9883a8287a9029db"
+        start_block: 20193207
+      - name: TokenAdminRegistry
+        address:
+          - "0x6f6c373d09c07425baae72317863d7f6bb731e37"
+        start_block: 20193207
 
   - id: 80094
     start_block: 780011
@@ -380,6 +435,15 @@ chains:
         address:
           - "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0"
         start_block: 780011
+      - name: ChainlinkOwned
+        address:
+          - "0x0944c3fb1db7d165336569221995b31cbe6c8a55"
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+        start_block: 1023691
+      - name: TokenAdminRegistry
+        address:
+          - "0x0944c3fb1db7d165336569221995b31cbe6c8a55"
+        start_block: 1023691
 
   - id: 10
     start_block: 98531613
@@ -421,9 +485,18 @@ chains:
         address:
           - "0x13dfeff85779118136bb9826dcad8f3bd25153a3"
         start_block: 98531613
+      - name: ChainlinkOwned
+        address:
+          - "0x657c42abe4cd8aa731aec322f871b5b90cf6274f"
+          - "0xd98b5b2e4d5d6cd554115de19efb7a9084beddd1"
+        start_block: 125790041
+      - name: TokenAdminRegistry
+        address:
+          - "0x657c42abe4cd8aa731aec322f871b5b90cf6274f"
+        start_block: 125790041
 
   - id: 11155111
-    start_block: 8226228
+    start_block: 6577288
     rpc:
       - url: ${ENVIO_RPC_URL_11155111:-https://ethereum-sepolia-rpc.publicnode.com}
         for: ${ENVIO_RPC_MODE:-sync}
@@ -495,3 +568,13 @@ chains:
         address:
           - "0x0f7f33f915b29476ca2b2606c8a3e06a5fc7e896"
         start_block: 10279155
+      - name: ChainlinkOwned
+        address:
+          - "0x95f29fee11c5c55d26cccf1db6772de953b37b82"
+          - "0xf166375e8ee42565f93e244c606b8c09b9f67dbc"
+          - "0x3024ceabec7e120647ad585bd5836eb13d247de7"
+        start_block: 6577288
+      - name: TokenAdminRegistry
+        address:
+          - "0x95f29fee11c5c55d26cccf1db6772de953b37b82"
+        start_block: 6577288

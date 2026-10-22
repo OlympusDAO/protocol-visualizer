@@ -281,3 +281,37 @@ test("source-backed ownership and authority getters are hash-bound address reads
     assert.equal(calls.at(-1).requireCanonical, true);
   }
 });
+
+test("CCIP reads decode three-address token config and preserve scoped hash binding", async () => {
+  const token = "0x0000000000000000000000000000000000000004";
+  const pending = "0x0000000000000000000000000000000000000005";
+  const pool = "0x0000000000000000000000000000000000000006";
+  const calls = [];
+  const client = {
+    getBlock: async () => ({ hash: "0xcanonical" }),
+    readContract: async (input) => {
+      calls.push(input);
+      return input.functionName === "getPool" ? pool : [address, pending, pool];
+    },
+  };
+  for (const [getter, value] of [
+    [`administrator:${token}`, address],
+    [`newAdministrator:${token}`, pending],
+    [`getPool:${token}`, pool],
+  ]) {
+    assert.deepEqual(
+      await readPinnedControlGetter(client, {
+        chainId: 1,
+        address,
+        blockNumber: 10n,
+        blockHash: "0xcanonical",
+        getter,
+      }),
+      { status: "success", value }
+    );
+    assert.deepEqual(calls.at(-1).args, [token]);
+    assert.equal(calls.at(-1).requireCanonical, true);
+    if (!getter.startsWith("getPool"))
+      assert.equal(calls.at(-1).abi[0].outputs[0].components.length, 3);
+  }
+});

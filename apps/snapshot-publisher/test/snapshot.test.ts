@@ -147,6 +147,47 @@ test("creates valid protocol snapshots from GraphQL data", () => {
   assert.equal(serialized.value, null);
 });
 
+test("preserves token scope and distinct references beside control on the same addresses", () => {
+  const input = getSampleProtocolData(1);
+  const base = input.ContractRelationship?.[0];
+  assert(base);
+  const scope = { registry: base.source, token: base.target ?? base.source };
+  input.ContractRelationship = [
+    {
+      ...base,
+      id: "token-admin",
+      kind: "token-admin",
+      status: "current",
+      scope,
+    },
+    { ...base, id: "pool-owner", kind: "pool-owner", status: "current" },
+    {
+      ...base,
+      id: "configured-pool",
+      kind: "configured-pool",
+      status: "reference",
+      getter: "pool",
+    },
+    {
+      ...base,
+      id: "pending-admin",
+      kind: "token-admin",
+      status: "pending",
+      scope,
+    },
+  ];
+  const snapshot = createProtocolSnapshot({
+    chainId: 1,
+    generatedAt: "2026-10-22T00:00:00.000Z",
+    graphqlData: input,
+  });
+  assert.deepEqual(validateProtocolSnapshot(snapshot), []);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(snapshot.data.relationships)),
+    input.ContractRelationship
+  );
+});
+
 test("rejects mismatched record counts", () => {
   const snapshot = createProtocolSnapshot({
     chainId: 1,

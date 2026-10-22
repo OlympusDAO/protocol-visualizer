@@ -208,7 +208,7 @@ test("legacy data defaults to unknown control state and no additional nodes", ()
   );
 });
 
-test("additional-only state roundtrips publisher, gateway, and frontend without invented core membership", async () => {
+test("disabled additional contracts retain observed references through publisher, gateway and frontend", async () => {
   const lastChange = {
     ...block,
     transactionHash: "0xtx",
@@ -245,13 +245,26 @@ test("additional-only state roundtrips publisher, gateway, and frontend without 
     verification: { outcome: "mismatch", getterValue: address, block },
     coverage: "Indexed ownership events",
   };
+  const reference = {
+    ...relationship,
+    id: "cooler-reference",
+    kind: "cooler-reference",
+    source: address,
+    target: relationship.source,
+    status: "reference",
+    getter: "COOLERV2",
+    value: relationship.source,
+    provenance: block,
+    lastChange: null,
+    verification: { outcome: "match", getterValue: relationship.source, block },
+  };
   const batch = await createSnapshotBatch({
     chains: [chain],
     deploymentId: "reader-roundtrip",
-    additionalContracts: [{ chainId: 4663, address, name: "External pool" }],
+    additionalContracts: [{ chainId: 4663, address, name: "CoolerV2Migrator" }],
     loadProtocolData: () => ({
       ContractState: [state],
-      ContractRelationship: [relationship],
+      ContractRelationship: [relationship, reference],
       ChainObservation: [{ chainId: 4663, indexedThrough: block }],
     }),
   });
@@ -278,12 +291,22 @@ test("additional-only state roundtrips publisher, gateway, and frontend without 
     assert.equal(payload.schemaVersion, "1.1.0");
     const data = decodeProtocolSnapshot(payload);
     assert.deepEqual(data.contracts, []);
-    assert.equal(getAdditionalGraphContracts(data)[0].name, "External pool");
+    assert.equal(getAdditionalGraphContracts(data)[0].name, "CoolerV2Migrator");
     assert.equal(data.contractStates[0].kernelMembership, "unknown");
     assert.equal(data.contractStates[0].enabled, false);
     assert.deepEqual(data.contractStates[0].verification, state.verification);
     assert.deepEqual(data.contractStates[0].lastChange, lastChange);
-    assert.deepEqual(data.relationships, [relationship]);
+    assert.deepEqual(data.relationships, [relationship, reference]);
+    const graph = getRelationshipGraph(data.relationships, 4663);
+    assert.equal(graph.edges.length, 2);
+    assert.ok(
+      graph.edges.some(
+        (edge) =>
+          edge.source === address &&
+          edge.target === relationship.source &&
+          edge.relationship.getter === "COOLERV2"
+      )
+    );
     assert.deepEqual(data.observation.indexedThrough, block);
   } finally {
     server.closeAllConnections();
@@ -376,6 +399,13 @@ test("relationship graph shares address identities, preserves kinds/scopes, and 
       { ...base, kind: "owner" },
       { ...base, kind: "governor", status: "pending" },
       { ...base, kind: "owner", scope: { token: holder } },
+      {
+        ...base,
+        kind: "token-admin",
+        scope: { registry: address, token: holder },
+      },
+      { ...base, kind: "pool-owner" },
+      { ...base, kind: "configured-pool", status: "reference" },
       { ...base, kind: "owner", target: null, status: "unset" },
       {
         ...base,
@@ -388,9 +418,9 @@ test("relationship graph shares address identities, preserves kinds/scopes, and 
     4663
   );
   assert.deepEqual(new Set(graph.addresses), new Set([holder, address]));
-  assert.equal(graph.edges.length, 5);
-  assert.equal(new Set(graph.edges.map((edge) => edge.labelOffset)).size, 5);
-  assert.equal(new Set(graph.edges.map((edge) => edge.id)).size, 5);
+  assert.equal(graph.edges.length, 8);
+  assert.equal(new Set(graph.edges.map((edge) => edge.labelOffset)).size, 8);
+  assert.equal(new Set(graph.edges.map((edge) => edge.id)).size, 8);
   assert.equal(graph.edges.filter((edge) => edge.pending).length, 1);
   assert.match(
     graph.edges.find((edge) => edge.pending).label,

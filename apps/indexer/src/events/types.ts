@@ -4,6 +4,7 @@ import type { Address, Hex } from "viem";
 export type EntityStore = {
   get: <T>(id: string) => Promise<T | undefined>;
   set: (entity: Record<string, unknown>) => void;
+  getWhere: <T>(filter: Record<string, unknown>) => Promise<T[]>;
 };
 
 export type EnvioContext = EvmOnEventContext & {

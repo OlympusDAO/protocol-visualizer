@@ -2,9 +2,13 @@ import { indexer } from "envio";
 import {
   getRelationshipFields,
   getObservedAuthorityFields,
+  getObservedPoolFields,
+  getCcipRegistry,
 } from "./events/ownership-contracts";
 import {
   handleOwnershipEvent,
+  handleRegistryEvent,
+  handleChainlinkOwnershipEvent,
   handleAuthorityEvent,
   handleAuthorityReference,
   handleStakingReference,
@@ -96,6 +100,63 @@ indexer.onEvent(
   },
   ({ event, context }) => handleOwnershipEvent(context as EnvioContext, event)
 );
+for (const action of [
+  "OwnershipTransferRequested",
+  "OwnershipTransferred",
+] as const) {
+  indexer.onEvent(
+    {
+      contract: "ChainlinkOwned",
+      event: action,
+      fields: { block: ["hash", "timestamp"], transaction: ["hash"] },
+    },
+    ({ event, context }) =>
+      handleChainlinkOwnershipEvent(
+        context as EnvioContext,
+        event,
+        action,
+        indexer.chains[event.chainId].TokenAdminRegistry.addresses.some(
+          (address) => address.toLowerCase() === event.srcAddress.toLowerCase()
+        )
+          ? "registry-owner"
+          : "pool-owner"
+      )
+  );
+}
+indexer.contractRegister(
+  { contract: "TokenAdminRegistry", event: "PoolSet" },
+  async ({ event, context }) => {
+    const registry = getCcipRegistry(event.chainId);
+    if (
+      registry?.token === event.params.token.toLowerCase() &&
+      !/^0x0{40}$/i.test(event.params.newPool)
+    )
+      context.chain.ChainlinkOwned.add(event.params.newPool);
+  }
+);
+for (const action of [
+  "AdministratorTransferRequested",
+  "AdministratorTransferred",
+  "PoolSet",
+] as const) {
+  indexer.onEvent(
+    {
+      contract: "TokenAdminRegistry",
+      event: action,
+      fields: { block: ["hash", "timestamp"], transaction: ["hash"] },
+    },
+    async ({ event, context }) => {
+      const registry = getCcipRegistry(event.chainId);
+      if (registry)
+        await handleRegistryEvent(
+          context as EnvioContext,
+          event,
+          action,
+          registry.token
+        );
+    }
+  );
+}
 indexer.contractRegister(
   { contract: "OlympusAccessControlled", event: "AuthorityUpdated" },
   async ({ event, context }) => {
@@ -214,6 +275,7 @@ for (const chainId of indexer.chainIds) {
   const relationshipFields: RelationshipField[] = [];
   for (const [name, getters] of [
     ["Owned", ["owner"]],
+    ["ChainlinkOwned", ["owner", "newOwner"]],
     ["OlympusAccessControlled", ["authority"]],
     ["StakedOHM", ["stakingContract"]],
     ["GovernanceOHM", ["approved"]],
@@ -243,15 +305,22 @@ for (const chainId of indexer.chainIds) {
             startBlock: chain.startBlock,
             getter,
             kind:
-              getter === "authority"
-                ? "authority-reference"
-                : getter === "stakingContract"
-                  ? "staking-contract"
-                  : getter === "approved"
-                    ? "legacy-minter"
-                    : getter.startsWith("new")
-                      ? getter.slice(3).toLowerCase()
-                      : getter,
+              name === "ChainlinkOwned"
+                ? chain.TokenAdminRegistry.addresses.some(
+                    (registry) =>
+                      registry.toLowerCase() === address.toLowerCase()
+                  )
+                  ? "registry-owner"
+                  : "pool-owner"
+                : getter === "authority"
+                  ? "authority-reference"
+                  : getter === "stakingContract"
+                    ? "staking-contract"
+                    : getter === "approved"
+                      ? "legacy-minter"
+                      : getter.startsWith("new")
+                        ? getter.slice(3).toLowerCase()
+                        : getter,
             ...(getter === "approved"
               ? {
                   coverage:
@@ -262,13 +331,53 @@ for (const chainId of indexer.chainIds) {
         );
       }
   }
+  const registryToken = getCcipRegistry(chainId)?.token;
+  if (registryToken)
+    for (const address of chain.TokenAdminRegistry.addresses) {
+      for (const getter of ["administrator", "newAdministrator", "getPool"]) {
+        const scopedGetter = `${getter}:${registryToken}`;
+        relationshipFields.push(
+          knownRelationships.find(
+            (field) =>
+              field.address === address.toLowerCase() &&
+              field.getter === scopedGetter
+          ) ?? {
+            address: address.toLowerCase(),
+            startBlock: chain.startBlock,
+            getter: scopedGetter,
+            kind: getter === "getPool" ? "registered-pool" : "token-admin",
+            scope: { registry: address.toLowerCase(), token: registryToken },
+          }
+        );
+      }
+    }
+  for (const field of knownRelationships) {
+    if (
+      !relationshipFields.some(
+        (existing) =>
+          existing.address.toLowerCase() === field.address &&
+          existing.getter === field.getter
+      )
+    )
+      relationshipFields.push(field);
+  }
   const complete = async (context: EnvioContext, number: number) => {
     const block = await getControlBlock(context, chainId, number);
     if (!block) return;
-    const observedFields = await getObservedAuthorityFields(
+    const readBlock = (number: string) =>
+      getControlBlock(context, chainId, Number(number));
+    const readGetter = (address: string, getter: string) =>
+      getControlGetter(context, {
+        chainId,
+        address: address as `0x${string}`,
+        blockNumber: BigInt(number),
+        blockHash: block.hash,
+        getter,
+      });
+    const observedFields = await getObservedPoolFields(
       context,
       chainId,
-      relationshipFields
+      await getObservedAuthorityFields(context, chainId, relationshipFields)
     );
     if (
       !(await relationshipAnchorsCanonical(
@@ -276,7 +385,7 @@ for (const chainId of indexer.chainIds) {
         chainId,
         block,
         observedFields,
-        (number) => getControlBlock(context, chainId, Number(number))
+        readBlock
       ))
     )
       return;
@@ -285,32 +394,33 @@ for (const chainId of indexer.chainIds) {
       chainId,
       block,
       contracts,
-      (address) =>
-        getControlGetter(context, {
-          chainId,
-          address: address as `0x${string}`,
-          blockNumber: BigInt(number),
-          blockHash: block.hash,
-          getter: "isEnabled",
-        }),
-      (number) => getControlBlock(context, chainId, Number(number))
+      (address) => readGetter(address, "isEnabled"),
+      readBlock
     );
     if (!enabledComplete) return;
-    await completeRelationshipBlock(
+    const completed = await completeRelationshipBlock(
       context,
       chainId,
       block,
       observedFields,
-      (address, getter) =>
-        getControlGetter(context, {
-          chainId,
-          address: address as `0x${string}`,
-          blockNumber: BigInt(number),
-          blockHash: block.hash,
-          getter,
-        }),
-      (number) => getControlBlock(context, chainId, Number(number))
+      readGetter,
+      readBlock
     );
+    if (!completed) return;
+    const expanded = await getObservedPoolFields(
+      context,
+      chainId,
+      await getObservedAuthorityFields(context, chainId, observedFields)
+    );
+    if (expanded.length !== observedFields.length)
+      await completeRelationshipBlock(
+        context,
+        chainId,
+        block,
+        expanded,
+        readGetter,
+        readBlock
+      );
   };
   // Creation boundaries run after constructor logs; a truncated replay seeds at its own start.
   for (const boundary of new Set(

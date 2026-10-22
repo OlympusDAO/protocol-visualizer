@@ -310,7 +310,8 @@ test("disabled additional contracts retain observed references through publisher
         (edge) =>
           edge.source === address &&
           edge.target === relationship.source &&
-          edge.relationship.getter === "COOLERV2"
+          edge.relationship.getter === "COOLERV2" &&
+          edge.label === "COOLERV2()"
       )
     );
     assert.deepEqual(data.observation.indexedThrough, block);
@@ -412,6 +413,13 @@ test("relationship graph shares address identities, preserves kinds/scopes, and 
       },
       { ...base, kind: "pool-owner" },
       { ...base, kind: "configured-pool", status: "reference" },
+      {
+        ...base,
+        kind: "registered-pool",
+        status: "reference",
+        getter: `getPool:${holder}`,
+        scope: { registry: address, token: holder },
+      },
       { ...base, kind: "owner", target: null, status: "unset" },
       {
         ...base,
@@ -424,9 +432,19 @@ test("relationship graph shares address identities, preserves kinds/scopes, and 
     4663
   );
   assert.deepEqual(new Set(graph.addresses), new Set([holder, address]));
-  assert.equal(graph.edges.length, 8);
-  assert.equal(new Set(graph.edges.map((edge) => edge.labelOffset)).size, 8);
-  assert.equal(new Set(graph.edges.map((edge) => edge.id)).size, 8);
+  assert.equal(graph.edges.length, 9);
+  assert.equal(new Set(graph.edges.map((edge) => edge.labelOffset)).size, 9);
+  assert.equal(new Set(graph.edges.map((edge) => edge.id)).size, 9);
+  assert.equal(
+    graph.edges.find((edge) => edge.relationship.getter?.startsWith("getPool:"))
+      .label,
+    "getPool(address)"
+  );
+  assert.equal(
+    graph.edges.find((edge) => edge.relationship.kind === "configured-pool")
+      .label,
+    "Configured pool"
+  );
   assert.equal(graph.edges.filter((edge) => edge.pending).length, 1);
   assert.match(
     graph.edges.find((edge) => edge.pending).label,

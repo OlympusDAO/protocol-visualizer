@@ -267,9 +267,15 @@ export function getRelationshipGraph(
     addresses.add(target);
     const pending = relationship.status === "pending";
     const name = relationship.kind.replace(/-/g, " ");
+    const getter =
+      relationship.status === "reference"
+        ? relationship.getter?.split(":")[0]
+        : undefined;
     const label = pending
       ? `Pending ${name}`
-      : name.charAt(0).toUpperCase() + name.slice(1);
+      : getter
+        ? `${getter}(${relationship.scope?.token ? "address" : ""})`
+        : name.charAt(0).toUpperCase() + name.slice(1);
     const scope = [relationship.scope?.registry, relationship.scope?.token]
       .map((value) => value?.toLowerCase() ?? "")
       .join(":");

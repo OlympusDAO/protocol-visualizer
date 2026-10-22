@@ -892,9 +892,9 @@ export function ContractVisualizer() {
         labelStyle: {
           fontSize: 11,
           fill: "#334155",
-          transform: `translateY(${edge.labelOffset}px)`,
+          transform: `translateY(${edge.labelOffset - 12}px)`,
         },
-        labelBgStyle: { transform: `translateY(${edge.labelOffset}px)` },
+        labelBgStyle: { transform: `translateY(${edge.labelOffset - 12}px)` },
         markerEnd: { type: MarkerType.Arrow, color: "#475569" },
       });
     }

@@ -14,7 +14,7 @@ execution: code
 - **Objective:** A viewer can find Olympus deployments on every recorded EVM network, see whether a contract is enabled, and trace who controls it.
 - **Means:** Extend Envio event indexing and the snapshot pipeline with a deployment inventory, current state, and transition records (KTD1–KTD5).
 - **Authority:** Deployment records identify addresses. Verified contract events establish state changes. Block-pinned getter reads establish initial state and verify replay results. Deployment intentions do not establish completed handovers.
-- **Execution:** Eight local implementation milestones below. U7 adds shareable navigation; U8 follows with a Mainnet graph readability assessment and improvements. This document authorizes no chain transactions or deployment. Publication remains a separate user decision.
+- **Execution:** Nine local implementation milestones below. U7 adds shareable navigation; U8 improves Mainnet readability; U9 generalizes address-getter references and adds function documentation context. This document authorizes no chain transactions or deployment. Publication remains a separate user decision.
 - **Milestone commits:** Validate each milestone. Run the privacy gate before its separate local commit. Commit before the next milestone, with the U-ID in the message. Keep unrelated work outside each commit.
 - **Stop conditions:** Preserve conflicting source records and resolve their provenance before importing them. Never replace missing observations with assumed owners or enabled values.
 
@@ -59,6 +59,7 @@ The current graph describes Bophades permissions but omits much of the surroundi
 - R13. Show source-backed contract references as well as control: ConfigTimelock → configured policy, CCIPTokenPoolConfig → configured pool, and analogous verified links. Label references independently from ownership, and retain both when their endpoints coincide.
 - R14. Keep the selected chain and graph node (role, contract, or address actor) in a shareable URL. Opening or reloading that URL restores the same chain, selection, focused graph, and details. Browser Back/Forward restores prior navigation.
 - R15. Make dense networks such as Mainnet understandable at an architectural level, with a clear route from an overview to individual contracts and their relationships. Grouping and filtering must preserve access to every node, relationship kind, status, and provenance without duplicating shared actors.
+- R16. Discover additional contract references from verified read-only getters returning a single address, and explain connections using the getter or function signature and available NatSpec. Keep documentation separate from observed on-chain values and control semantics.
 
 ### Acceptance Examples
 
@@ -72,6 +73,7 @@ The current graph describes Bophades permissions but omits much of the surroundi
 - AE8. Ownership and enablement events update current entities and transition records. Duplicate replay produces no duplicate changes. Reorg rollback restores the canonical state and removes orphaned transitions. Covers R5, R9, R12.
 - AE9. Selecting Robinhood and a role updates the URL. Opening it in another tab restores that chain and role after data loads. Contract and actor links work the same way, including disabled and uninstalled contracts. Covers R14.
 - AE10. A viewer can locate the Cooler and CCIP subsystems from Mainnet's overview, inspect their contracts and control relationships, and return to the overview. A direct contract URL reveals its group and details. Shared owners retain one address identity. Covers R10, R14–R15.
+- AE11. A verified `treasuryBorrower()` getter creates a directed reference to its observed contract address. The line displays `treasuryBorrower()`; hover or selection reveals the matching function notice when available. Missing documentation leaves a useful getter label, and mutable references update without being mistaken for ownership. Covers R13, R16.
 
 ### Scope Boundaries
 
@@ -354,6 +356,24 @@ Reuse and simplify the existing focus behavior rather than adding a competing se
 
 **Verification and decision:** Compare before/after Mainnet screenshots at a normal laptop viewport and check the smaller Robinhood graph. Verify that a viewer can locate a subsystem, trace Migrator → MonoCooler and ConfigTimelock → policy → pool, identify current versus pending controllers, and return to the overview. Record readability observations and any measured performance changes. Add focused checks for group membership, aggregate-edge counts, cross-group shared identities, expansion, filtering, URL restoration, and refresh. Choose and implement the smallest approach that materially improves these tasks; run applicable frontend checks and commit U8 separately.
 
+### U9. Discover address-getter references and explain connections with NatSpec
+
+**Goal:** Contract references are not limited to a small hand-maintained getter list, and viewers can understand what each connection means. **Requirements:** R10–R13, R15–R16. **Dependencies:** U3, U6–U8. **Timing:** Later milestone, after URL navigation and Mainnet layout work, as requested by the user.
+
+**Current evidence:** `ownership-contracts.ts` lists six reference getter families explicitly. The metadata generator retains selectors, simplified signatures, and role assignments, but discards ABI mutability/return metadata and NatSpec. Local Olympus compiler artifacts contain `output.userdoc` and `output.devdoc`, including public variable getters and inherited interface notices. Examples include Migrator `COOLERV2()` and MonoCooler `ltvOracle()`, `collateralToken()`, and `treasuryBorrower()`. These local artifacts are discovery evidence; they do not establish that a particular deployed revision has identical code or documentation.
+
+**Files:** Existing metadata generator and contract metadata types/artifacts; indexer reference discovery and pinned reads; compatible optional snapshot metadata and publisher/gateway checks if needed; frontend edge labels, hover/selection context, details, and graph tests. Extend the existing pipeline rather than adding a parallel documentation registry or browser RPC requests.
+
+**Approach:** Discover candidates from the deployed contract's verified ABI: `view`/`pure`, no inputs, and exactly one `address` output, including Solidity contract-typed public getters. Exclude state-changing methods, multi-value/tuple returns, and getters needing unknown arguments. Retain explicit support for scoped getters such as `getPool(address)`; do not guess arguments or enumerate mappings. Start with known deployed contracts and add referenced targets as nodes without recursively crawling arbitrary contracts. Document missing ABI/source coverage rather than assuming there are no references.
+
+Read values at completed canonical blocks using the existing seed, hash-bound read, verification, and rollback rules. Establish a valid first-observation boundary for newly covered getters; do not require or invent a creation anchor that is unavailable. A returned address is not proof of a contract or of ownership: use pinned code/source evidence for classification, preserve known actor relationships, and label generic connections as references. Keep zero/self links out of the graph and preserve distinct getters to the same target. Inspect source for mutability and verified change events; use those events where available, with disclosed checkpoint observations where no complete event exists. Never label every getter immutable. Failures preserve established values with the existing availability/provenance distinctions.
+
+Show the exact getter signature above reference lines, preserving case and scoped arguments. Keep long prose out of the overview. Prefer the compiler's `userdoc` notice as hover/selection context; put `devdoc` details, parameter/return descriptions, full signature, source link, and observation evidence in the details panel. Join docs by canonical ABI signature and verified chain/address/implementation revision, not function name alone. Use compiler-resolved inheritance and `@inheritdoc`; do not add a regex-based NatSpec parser or invent descriptions when docs are absent. Render docs as text without executing embedded expressions. See [Solidity's NatSpec output and signature keys](https://docs.soliditylang.org/en/latest/natspec-format.html#documentation-output).
+
+Use the same function metadata to explain permission edges: identify the policy functions gated by a role and the module functions permitted to a policy. Keep an aggregate label for multiple functions and reveal signatures/notices on hover or selection. Documentation explains intent; observed role assignments, permission requests, getter values, and events still establish the actual relationship. Preserve current/pending control edges and avoid duplicating them as generic references.
+
+**Verification:** Cover inherited and undocumented getters, overloads, public contract-typed getters, mutable and immutable references, scoped arguments, zero/EOA/unavailable results, multiple getters sharing a target, and duplicate/reorg handling. Verify docs against the deployed revision, round-trip optional metadata through snapshots and gateway with legacy fallbacks, and inspect representative live-chain references at the same completed block. Check that permission/function context and longer notices do not crowd Mainnet's overview or break U7 links and U8 grouping. Validate and commit U9 separately.
+
 ---
 
 ## Verification Contract
@@ -378,6 +398,7 @@ At each milestone boundary, run its verification and the applicable repository c
 - [ ] U6: Token-scoped registry events and pool ownership events independently drive the displayed CCIP relationships.
 - [ ] U7: URL navigation round-trips the selected chain and role/contract/actor, including direct loads, reload, and Back/Forward.
 - [ ] U8: Dense-network rendering has been assessed against Mainnet tasks, and the selected grouping/focus approach improves readability while preserving graph identities and relationships.
+- [ ] U9: Verified address getters expose additional contract references, and getter/function signatures with available NatSpec explain reference and permission connections without inventing on-chain state.
 - [ ] Existing role/module views still work; meaningful checks pass; abandoned implementation attempts are removed.
 - [ ] Each completed milestone has its own validated, privacy-gate-clean local commit with its U-ID.
 - [ ] No transaction, push, PR, or deployment is implied by local implementation completion.

@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import "../apps/indexer/scripts/register-typescript.mjs";
-const { getArchitectureView, layoutArchitectureSections } = await import(
+const {
+  getArchitectureView,
+  layoutArchitectureSections,
+  getSubsystem,
+  SUBSYSTEMS,
+} = await import(
   "../apps/frontend/src/components/contract-visualizer/architecture.ts"
 );
 
@@ -35,6 +40,63 @@ const edges = [
   edge("ref-two", "cooler", "bridge", "reference"),
 ];
 const filters = { permission: true, control: true, reference: true };
+
+test("contract sections separate infrastructure, proposal helpers and Olympus tokens", () => {
+  const sections = {
+    "reserve-tokens": [
+      "USDS",
+      "sUSDS",
+      "DAI",
+      "sDAI",
+      "DaiUsdsMigrator",
+      "Mock sUSDS",
+      "MockDaiUsds",
+    ],
+    ccip: [
+      "TokenAdminRegistry",
+      "CCIP RBACTimelock",
+      "CCIPLockReleaseTokenPool",
+      "LockReleaseTokenPool (1.5.1)",
+    ],
+    proposals: ["ConvertibleDepositActivator", "MigrationProposalHelper"],
+    governance: [
+      "TreasuryCustodian",
+      "CCIPTokenPoolConfig (1.0)",
+      "CCIPTokenPoolConfigTimelock",
+    ],
+    tokens: ["OHM (2.0)", "sOHM", "gOHM", "Staking", "V1Migrator"],
+    "bond-protocol": ["BondFixedTermSDA"],
+    bridging: ["CCIPCrossChainBridge", "LZCrossChainBridge"],
+    cooler: ["CoolerV2Composites"],
+  };
+  const cards = [];
+  for (const [section, names] of Object.entries(sections)) {
+    for (const name of names) {
+      // Referenced controllers can enter the graph through the address-node path.
+      const card = node(name, name, { assigneeAddress: name });
+      assert.equal(getSubsystem(card), section, name);
+      cards.push(card);
+    }
+  }
+  const layout = layoutArchitectureSections(cards);
+  for (const section of Object.keys(sections))
+    assert.ok(layout.some((card) => card.id === `section-${section}`));
+  assert.equal(
+    layout.filter((card) => card.type !== "group").length,
+    cards.length
+  );
+  assert.equal(
+    SUBSYSTEMS.find((section) => section.id === "tokens").name,
+    "Olympus Tokens"
+  );
+  assert.equal(getSubsystem(node("policy-ms", "Policy MS")), null);
+  assert.equal(
+    getSubsystem(
+      node("unknown", "Unknown address", { assigneeAddress: "unknown" })
+    ),
+    null
+  );
+});
 
 test("focused permissions remain visible even when the source graph fades them", () => {
   const faded = edges.map((edge) => ({ ...edge, style: { opacity: 0.1 } }));

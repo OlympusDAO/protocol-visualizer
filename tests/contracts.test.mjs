@@ -17,6 +17,7 @@ const {
   getEnablementPresentation,
   getRelationshipGraph,
   getContractPalette,
+  getContractDeploymentLabel,
   getGraphContractName,
   getKernelLabel,
   refreshGraph,
@@ -319,6 +320,49 @@ test("graph keeps Kernel membership independent from three-state enablement", ()
       verification: { outcome: "unavailable", block },
     }).notices.join(" "),
     /unavailable/
+  );
+});
+
+test("periphery labels and multisig colours are independent of snapshot external categories", () => {
+  for (const name of [
+    "CCIPCrossChainBridge",
+    "CoolerV2Composites",
+    "CoolerV2Migrator",
+    "V1Migrator",
+  ]) {
+    const contract = { name, category: "external" };
+    assert.equal(getContractDeploymentLabel(contract), "Periphery");
+    assert.equal(getContractPalette(contract), "periphery");
+    assert.equal(getKernelLabel(contract), null);
+  }
+  assert.equal(
+    getContractPalette({ name: "Policy MS", category: "external" }),
+    getContractPalette({ name: "DAO MS" })
+  );
+  assert.equal(getContractPalette({ name: "Policy MS" }), "assignee");
+  assert.equal(
+    getContractDeploymentLabel({ name: "ConvertibleDepositActivator" }),
+    "Proposal helper"
+  );
+  assert.equal(
+    getContractDeploymentLabel({ name: "MigrationProposalHelper" }),
+    "Proposal helper"
+  );
+  assert.equal(
+    getContractDeploymentLabel({ name: "TokenAdminRegistry" }),
+    "External deployment"
+  );
+  assert.equal(
+    getContractDeploymentLabel({ name: "BondFixedTermSDA" }),
+    "External deployment"
+  );
+  assert.equal(
+    getContractPalette({
+      name: "CoolerV2Composites",
+      category: "inactive-core",
+      contractType: "POLICY",
+    }),
+    "policy"
   );
 });
 

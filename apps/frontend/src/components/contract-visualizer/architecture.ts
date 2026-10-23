@@ -5,10 +5,14 @@ export const SUBSYSTEMS = [
   { id: "core", name: "Kernel & modules" },
   { id: "cooler", name: "Cooler & lending" },
   { id: "bridging", name: "Cross-chain bridges" },
+  { id: "ccip", name: "CCIP" },
   { id: "deposits", name: "Deposits & reserves" },
+  { id: "reserve-tokens", name: "Reserve tokens" },
   { id: "monetary", name: "Monetary policy" },
   { id: "governance", name: "Governance & configuration" },
-  { id: "tokens", name: "Tokens & staking" },
+  { id: "tokens", name: "Olympus Tokens" },
+  { id: "proposals", name: "Proposal helpers" },
+  { id: "bond-protocol", name: "Bond Protocol" },
   { id: "roles", name: "Roles" },
   { id: "other", name: "Other contracts" },
   { id: "inactive", name: "Not installed in Kernel" },
@@ -17,31 +21,39 @@ export type ConnectionKind = "permission" | "control" | "reference";
 export type ConnectionFilters = Record<ConnectionKind, boolean>;
 
 export function getSubsystem(node: Node): string | null {
-  if (node.data.name === "TokenAdminRegistry") return null;
   if (node.data.kernelInactive) return "inactive";
   if (node.id.startsWith("role-")) return "roles";
-  if (node.data.assigneeAddress || /\bMS\b|Multisig/.test(node.data.name))
-    return null;
+  if (/\bMS\b|Multisig/.test(node.data.name)) return null;
   if (["kernel", "module"].includes(node.data.contractType)) return "core";
-  const name = node.data.name as string;
-  if (/Cooler|Clearinghouse|BLVault/.test(name)) return "cooler";
-  if (/CCIP|CrossChainBridge|TokenAdminRegistry|LayerZero/.test(name))
-    return "bridging";
-  if (/Deposit|Reserve/.test(name)) return "deposits";
+  const name = (node.data.name as string).replace(/ \([^)]*\)$/, "");
+  if (/ProposalHelper$|^ConvertibleDepositActivator$/.test(name))
+    return "proposals";
+  if (/^BondFixedTermSDA$/.test(name)) return "bond-protocol";
   if (
-    /Bond|Emission|Heart|Operator|Distributor|YieldRepurchase|TreasuryCustodian|pOLY/.test(
+    /^(?:(?:Mock )?(?:USDS|sUSDS|DAI|sDAI)|DaiUsdsMigrator|MockDaiUsds)$/.test(
       name
     )
   )
-    return "monetary";
+    return "reserve-tokens";
   if (
-    /RolesAdmin|PriceConfig|RegistryAdmin|Authority|ProposalHelper|Emergency|Governor/.test(
+    /CCIPTokenPoolConfig|TreasuryCustodian|RolesAdmin|PriceConfig|RegistryAdmin|Authority|Emergency|Governor/.test(
       name
     )
   )
     return "governance";
-  if (/^(OHM|sOHM|gOHM|Staking)$/.test(name)) return "tokens";
-  return "other";
+  if (/Cooler|Clearinghouse|BLVault/.test(name)) return "cooler";
+  if (/CrossChainBridge|LayerZero|^LZ/.test(name)) return "bridging";
+  if (
+    /CCIP|TokenAdminRegistry|LockReleaseTokenPool|BurnMintTokenPool/.test(name)
+  )
+    return "ccip";
+  if (/Deposit|Reserve/.test(name)) return "deposits";
+  if (
+    /Bond|Emission|Heart|Operator|Distributor|YieldRepurchase|pOLY/.test(name)
+  )
+    return "monetary";
+  if (/^(OHM|sOHM|gOHM|Staking|Minter|V1Migrator)$/.test(name)) return "tokens";
+  return node.data.assigneeAddress ? null : "other";
 }
 
 function getConnectionKind(edge: Edge): ConnectionKind {

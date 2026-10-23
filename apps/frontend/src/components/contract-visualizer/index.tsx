@@ -44,6 +44,7 @@ import {
   getRelationshipGraph,
   getRelationshipPath,
   getContractPalette,
+  getContractDeploymentLabel,
   getGraphContractName,
   getContractNodeWidth,
   getGraphNodeWidth,
@@ -130,7 +131,7 @@ function ContractStatusIcons({
   const membership = getKernelLabel(contract);
   return (
     <span className="inline-flex shrink-0 items-center gap-1.5">
-      {membership !== "External deployment" && (
+      {membership && (
         <StatusTooltip
           label={
             membership === "Kernel active"
@@ -194,6 +195,11 @@ const extractKeycode = (moduleName: string): string | null => {
 
 // Node color scheme
 const NODE_COLORS = {
+  periphery: {
+    background: "#e0e7ff",
+    border: "#6366f1",
+    text: "#3730a3",
+  },
   external: {
     background: "#f9fafb",
     border: "#9ca3af",
@@ -232,13 +238,23 @@ const createAddressNode = (
   chainId: number,
   contract = false
 ) => {
+  const knownContract =
+    contract ||
+    otherContracts.some(
+      (entry) =>
+        entry.chainId === chainId &&
+        entry.address === id &&
+        !/\bMS\b|Multisig|^Deployer$/.test(entry.name)
+    );
   const assigneeName =
     assignee.assigneeName === "UNKNOWN"
-      ? contract
+      ? knownContract
         ? "Unknown contract"
         : "Unknown address"
       : assignee.assigneeName;
-  const colors = contract ? NODE_COLORS.external : NODE_COLORS.assignee;
+  const colors = knownContract
+    ? NODE_COLORS[getContractPalette({ name: assigneeName })]
+    : NODE_COLORS.assignee;
 
   return {
     id,
@@ -281,7 +297,7 @@ const createAddressNode = (
           />
         </div>
       ),
-      ...(contract ? {} : { assigneeAddress: assignee.assignee }),
+      ...(knownContract ? {} : { assigneeAddress: assignee.assignee }),
     },
     style: {
       background: colors.background,
@@ -808,7 +824,7 @@ export function ContractVisualizer() {
               </a>
               {contract.category === "external" && (
                 <div className="mt-1 text-xs text-gray-500">
-                  External deployment
+                  {getContractDeploymentLabel(contract)}
                 </div>
               )}
               {control.warning && (
@@ -1934,7 +1950,8 @@ export function ContractVisualizer() {
                         contract={selectedContract}
                         enablementLabel={null}
                       />
-                      {getKernelLabel(selectedContract)}
+                      {getKernelLabel(selectedContract) ??
+                        getContractDeploymentLabel(selectedContract)}
                     </span>
                     {selectedControl.badge && (
                       <span className="inline-flex items-center gap-1.5">

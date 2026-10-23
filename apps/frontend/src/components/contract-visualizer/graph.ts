@@ -116,27 +116,50 @@ export function getGraphNodeWidth(node: Node): number {
 export function getKernelLabel(contract: {
   isEnabled?: boolean;
   category?: string;
-}): string {
+}): string | null {
   return typeof contract.isEnabled === "boolean"
     ? `Kernel ${contract.isEnabled ? "active" : "inactive"}`
     : contract.category === "inactive-core"
       ? "Kernel inactive"
-      : "External deployment";
+      : null;
+}
+
+export function getContractDeploymentLabel(contract: {
+  name?: string;
+}): string {
+  const name = contract.name ?? "";
+  if (/\bMS\b|Multisig/.test(name)) return "Multisig";
+  if (/ProposalHelper$|^ConvertibleDepositActivator$/.test(name))
+    return "Proposal helper";
+  if (
+    /^(?:CCIPCrossChainBridge|LZCrossChainBridge|CrossChainBridge|CoolerV2Composites|CoolerV2Migrator|ConvertibleDepositAuctioneerLimitOrders|CCIPLockReleaseTokenPool|CCIPBurnMintTokenPool|V1Migrator)$/.test(
+      name
+    )
+  )
+    return "Periphery";
+  if (/^(?:OHM|sOHM|gOHM|Staking|Minter|OlympusAuthority)$/.test(name))
+    return "Olympus contract";
+  return "External deployment";
 }
 
 export function getContractPalette(contract: {
+  name?: string;
   type?: string;
   category?: string;
   contractType?: string;
-}): "kernel" | "module" | "policy" | "external" {
+}): "kernel" | "module" | "policy" | "external" | "periphery" | "assignee" {
   const type =
     contract.type ??
     (contract.category === "inactive-core"
       ? contract.contractType?.toLowerCase()
       : undefined);
-  return type === "kernel" || type === "module" || type === "policy"
-    ? type
-    : "external";
+  if (type === "kernel" || type === "module" || type === "policy") return type;
+  const label = getContractDeploymentLabel(contract);
+  return label === "Multisig"
+    ? "assignee"
+    : label === "Periphery"
+      ? "periphery"
+      : "external";
 }
 
 export function getEnablementPresentation(

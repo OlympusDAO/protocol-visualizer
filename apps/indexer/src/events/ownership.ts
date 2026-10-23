@@ -70,6 +70,7 @@ const isPending = (getter: string) => getter.startsWith("new");
 const reference = (kind: string) =>
   [
     "contract-reference",
+    "module-dependency",
     "task-call",
     "authority-reference",
     "registered-pool",

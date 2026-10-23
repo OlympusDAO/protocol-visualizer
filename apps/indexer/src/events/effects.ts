@@ -23,6 +23,10 @@ import { getPublicClient, isHistoricalStateUnavailable } from "./rpc";
 import type { ControlBlock } from "./control-state";
 import { readPinnedBridgeConfiguration } from "./bridge-reads";
 import type { BridgeReadResult } from "./bridge-config";
+import {
+  readPinnedModuleDependencies,
+  type DependencyReadResult,
+} from "./module-dependencies";
 
 const contractProcessors = new Map<number, ContractProcessor>();
 const processedContracts = new Map<string, Promise<ProcessedContractData>>();
@@ -513,6 +517,50 @@ export async function getControlGetter(
     address: normalizeAddress(input.address) as Address,
     blockHash: input.blockHash.toLowerCase(),
   })) as ControlGetterResult;
+}
+
+const readModuleDependenciesEffect = createEffect(
+  {
+    name: "readModuleDependencies",
+    input: {
+      chainId: S.number,
+      kernel: S.address,
+      keycode: S.string,
+      blockNumber: S.bigint,
+      blockHash: S.string,
+    },
+    output: {
+      status: S.string,
+      module: S.optional(S.string),
+      policies: S.optional(S.array(S.string)),
+      reason: S.optional(S.string),
+    },
+    rateLimit: { calls: 10, per: "second" },
+    cache: true,
+  },
+  async ({ input, context }) => {
+    const result = await readPinnedModuleDependencies(
+      getPublicClient(input.chainId),
+      input
+    );
+    if (result.status === "unavailable") context.cache = false;
+    return result;
+  }
+);
+export async function getModuleDependencies(
+  context: EnvioContext,
+  input: {
+    chainId: number;
+    kernel: `0x${string}`;
+    keycode: string;
+    blockNumber: bigint;
+    blockHash: string;
+  }
+): Promise<DependencyReadResult> {
+  return (await context.effect(
+    readModuleDependenciesEffect,
+    input
+  )) as DependencyReadResult;
 }
 
 const readBridgeConfigurationEffect = createEffect(

@@ -1,4 +1,9 @@
 import { indexer } from "envio";
+import { getKernelConstants } from "./constants";
+import {
+  completeModuleDependencies,
+  getModuleDependencyFields,
+} from "./events/module-dependencies";
 import { getCoreContracts, seedCoreContracts } from "./events/kernel-history";
 import {
   getBridgeContracts,
@@ -45,6 +50,7 @@ import {
 } from "./events/enabler";
 import {
   getControlBlock,
+  getModuleDependencies,
   readCodeHashEffect,
   getControlGetter,
   getBridgeConfiguration,
@@ -514,6 +520,17 @@ for (const chainId of indexer.chainIds) {
       ))
     )
       return;
+    const dependencyFields = await getModuleDependencyFields(context, chainId);
+    if (
+      !(await relationshipAnchorsCanonical(
+        context,
+        chainId,
+        block,
+        dependencyFields,
+        readBlock
+      ))
+    )
+      return;
     const observedFields = await getObservedPoolFields(
       context,
       chainId,
@@ -590,6 +607,24 @@ for (const chainId of indexer.chainIds) {
         readGetter,
         readBlock
       );
+    if (
+      !(await completeModuleDependencies(
+        context,
+        chainId,
+        block,
+        dependencyFields,
+        (keycode) =>
+          getModuleDependencies(context, {
+            chainId,
+            kernel: getKernelConstants(chainId).address,
+            keycode,
+            blockNumber: BigInt(block.number),
+            blockHash: block.hash,
+          }),
+        readBlock
+      ))
+    )
+      return;
     await seedCoreContracts(
       context,
       chainId,

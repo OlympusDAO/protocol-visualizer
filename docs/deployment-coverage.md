@@ -218,4 +218,13 @@ Missing discovered references do not establish missing dependencies.
 The [contract metadata update procedure](../apps/indexer/README.md#contract-metadata) covers new contracts, verified-source imports, event coverage, and publication.
 It also explains how `--force` can remove imported verification records and disable generic links.
 
+The metadata refresh now supports `pnpm run indexer:metadata -- --refresh-getters`.
+It scans both contract inventories, upgrades older records, preserves role mappings, and reports unavailable verification without replacing established records.
+At Mainnet block `26252800`, 446 generic getter observations succeeded, including Auctioneer's `CD_FACILITY()` reference to ConvertibleDepositFacility.
+The Kernel registry supplied 87 module-dependency links across ten module keycodes.
+PRICE had eight active policy dependents, including Operator (1.5) and YieldRepurchaseFacility (1.2).
+These dependencies also appear in module details and policy module counts, independently of requested permissions.
+Other available snapshots supplied 3 dependency links on Optimism, 3 on Arbitrum, 3 on Base, 8 on Berachain, and 58 on Sepolia.
+These completed-block observations do not establish every historical transition.
+
 Following layout review, collapsed subsystem summaries were replaced by labelled sections containing the actual contract cards. Controllers and the registry remain shared identities; roles and uninstalled contracts sit to the side. Subsystem and contract focus remain optional. Permission edges are opt-in, without function-count captions; their function details remain in the existing panels. Curved reference/control edges separate parallel paths. OHM administration is drawn through the registry: controller → TokenAdminRegistry → OHM, with separate current/pending labels, global registry ownership, and registered-pool links. The registry and token context stay visible in a focused controller view.

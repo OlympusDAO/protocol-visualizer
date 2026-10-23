@@ -34,12 +34,15 @@ import {
   getSubsystem,
   SUBSYSTEMS,
   type ConnectionFilters,
+  DEFAULT_CONNECTION_FILTERS,
   type ConnectionKind,
 } from "./architecture";
 import { RelationshipEdge } from "./relationship-edge";
 import otherContracts from "../../../../../packages/protocol-config/other-contracts.json";
 import {
   getFunctionTooltip,
+  getPolicyModuleKeycodes,
+  getPoliciesUsingModule,
   getEnablementPresentation,
   getRelationshipGraph,
   getRelationshipPath,
@@ -366,8 +369,14 @@ const nodeTypes: NodeTypes = {
 // Custom tooltip components
 
 // Custom tooltip component
-const PolicyTooltip = ({ contract }: { contract: Contract }) => {
-  if (!contract.policyPermissions) return null;
+const PolicyTooltip = ({
+  contract,
+  moduleKeycodes,
+}: {
+  contract: Contract;
+  moduleKeycodes: string[];
+}) => {
+  if (!moduleKeycodes.length) return null;
 
   return (
     <div
@@ -389,13 +398,7 @@ const PolicyTooltip = ({ contract }: { contract: Contract }) => {
       <div className="text-sm">
         <div className="font-semibold mb-1">Modules Used:</div>
         <ul className="list-disc pl-4">
-          {Array.from(
-            new Set(
-              (contract.policyPermissions as Array<{ keycode: string }>).map(
-                (p) => p.keycode
-              )
-            )
-          ).map((keycode) => (
+          {moduleKeycodes.map((keycode) => (
             <li key={keycode} className="text-xs mb-1">
               <span className="text-blue-600">{keycode}</span>
             </li>
@@ -423,11 +426,7 @@ export function ContractVisualizer() {
   const [initialized, setInitialized] = useState(false);
   const [architectureView, setArchitectureView] = useState("overview");
   const [connectionFilters, setConnectionFilters] = useState<ConnectionFilters>(
-    {
-      permission: false,
-      control: true,
-      reference: true,
-    }
+    DEFAULT_CONNECTION_FILTERS
   );
   const [canonicalGraph, setCanonicalGraph] = useState<{
     chainId: number;
@@ -513,21 +512,11 @@ export function ContractVisualizer() {
             ? NODE_COLORS.module
             : NODE_COLORS.policy;
 
-      // Calculate modules used count for policies
-      let modulesUsedCount = 0;
-      if (
-        type === "policy" &&
-        contract.policyPermissions &&
-        Array.isArray(contract.policyPermissions)
-      ) {
-        // Get unique keycodes from policy permissions
-        const uniqueKeycodes = new Set(
-          (contract.policyPermissions as Array<{ keycode: string }>).map(
-            (p) => p.keycode
-          )
-        );
-        modulesUsedCount = uniqueKeycodes.size;
-      }
+      const moduleKeycodes =
+        type === "policy"
+          ? getPolicyModuleKeycodes(contract, data?.relationships ?? [])
+          : [];
+      const modulesUsedCount = moduleKeycodes.length;
 
       return {
         id,
@@ -590,7 +579,10 @@ export function ContractVisualizer() {
                 </div>
               )}
               {type === "policy" && hoveredPolicy === contract.address && (
-                <PolicyTooltip contract={contract} />
+                <PolicyTooltip
+                  contract={contract}
+                  moduleKeycodes={moduleKeycodes}
+                />
               )}
               <Handle
                 id={`${id}-source`}
@@ -1383,7 +1375,7 @@ export function ContractVisualizer() {
     const contract = contracts.find(
       (c) => c.address === selectedNode && c.type === "policy"
     ) as Contract | undefined;
-    if (!contract?.policyPermissions) return null;
+    if (!contract) return null;
 
     // Create a mapping of module keycodes to module contracts
     const moduleKeycodeToContract = new Map<string, Contract>();
@@ -1398,15 +1390,19 @@ export function ContractVisualizer() {
 
     // Group policy permissions by keycode
     const permissionsByKeycode = new Map<string, PolicyPermission[]>();
-    (contract.policyPermissions as PolicyPermission[]).forEach((permission) => {
-      if (!permissionsByKeycode.has(permission.keycode)) {
-        permissionsByKeycode.set(permission.keycode, []);
+    ((contract.policyPermissions ?? []) as PolicyPermission[]).forEach(
+      (permission) => {
+        if (!permissionsByKeycode.has(permission.keycode)) {
+          permissionsByKeycode.set(permission.keycode, []);
+        }
+        permissionsByKeycode.get(permission.keycode)?.push(permission);
       }
-      permissionsByKeycode.get(permission.keycode)?.push(permission);
-    });
+    );
 
-    // Get unique keycodes from policy permissions
-    const uniqueKeycodes = Array.from(permissionsByKeycode.keys());
+    const uniqueKeycodes = getPolicyModuleKeycodes(
+      contract,
+      data?.relationships ?? []
+    );
 
     return (
       <div
@@ -1508,6 +1504,11 @@ export function ContractVisualizer() {
                     <div className="text-xs text-blue-600 mb-1">
                       Keycode: {keycode}
                     </div>
+                    {moduleFunctions.length === 0 && (
+                      <div className="text-xs text-gray-500">
+                        No permissioned functions requested.
+                      </div>
+                    )}
                     {moduleFunctions.length > 0 && (
                       <div className="mt-1">
                         <div className="text-xs text-gray-600 mb-1">
@@ -1547,17 +1548,10 @@ export function ContractVisualizer() {
     ) as Contract | undefined;
     if (!moduleContract) return null;
 
-    // Find all policies that use this module
-    const policiesUsingModule = contracts.filter(
-      (c) =>
-        c.type === "policy" &&
-        c.policyPermissions &&
-        Array.isArray(c.policyPermissions) &&
-        moduleContract.name && // Check if name exists
-        extractKeycode(moduleContract.name) && // Extract keycode from name
-        (c.policyPermissions as Array<{ keycode: string }>).some(
-          (p) => p.keycode === extractKeycode(moduleContract.name)
-        )
+    const policiesUsingModule = getPoliciesUsingModule(
+      moduleContract,
+      contracts,
+      data?.relationships ?? []
     );
 
     return (
@@ -1644,7 +1638,9 @@ export function ContractVisualizer() {
                 ))}
               </ul>
             ) : (
-              <div className="text-gray-500">No policies use this module</div>
+              <div className="text-gray-500">
+                No indexed policy dependencies
+              </div>
             )}
           </div>
         </div>
@@ -1737,6 +1733,7 @@ export function ContractVisualizer() {
               ["permission", "Role / module permissions"],
               ["control", "Ownership / control"],
               ["reference", "References"],
+              ["dependency", "Module dependencies"],
             ] as [ConnectionKind, string][]
           ).map(([kind, label]) => (
             <label key={kind} className="flex items-center gap-1">

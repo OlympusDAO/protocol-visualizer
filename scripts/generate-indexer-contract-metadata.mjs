@@ -6,7 +6,10 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { processAbiMetadata } from "../apps/indexer/src/services/contracts/abi.ts";
+import {
+  processAbiMetadata,
+  processVerifiedContractMetadata,
+} from "../apps/indexer/src/services/contracts/abi.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
@@ -40,12 +43,8 @@ const etherscanMinRequestIntervalMs = readPositiveIntegerEnv(
 let lastEtherscanRequestAt = 0;
 
 const requireFromRepo = createRequire(path.join(repoRoot, "package.json"));
-const requireFromIndexer = createRequire(
-  path.join(indexerRoot, "package.json")
-);
 // TypeScript 7's native compiler does not expose this JavaScript AST API.
 const ts = requireFromRepo("@typescript/typescript6");
-const { keccak256 } = requireFromIndexer("viem");
 
 const cliOptions = parseArgs(process.argv.slice(2));
 
@@ -58,11 +57,16 @@ function parseArgs(args) {
     includeUnknownType: false,
     cacheOnly: false,
     verifiedSource: undefined,
+    refreshGetters: false,
   };
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === "--") {
+      continue;
+    }
+    if (arg === "--refresh-getters") {
+      options.refreshGetters = true;
       continue;
     }
     if (arg === "--verified-source") {
@@ -604,32 +608,91 @@ if (cliOptions.verifiedSource) {
   const verified = JSON.parse(
     await readFile(cliOptions.verifiedSource, "utf8")
   );
-  if (
-    String(verified.chainId) !== cliOptions.chainId ||
-    verified.address?.toLowerCase() !== cliOptions.address ||
-    !["match", "exact_match"].includes(verified.runtimeMatch) ||
-    !verified.runtimeBytecode?.onchainBytecode ||
-    !Array.isArray(verified.metadata?.output?.abi)
-  )
-    throw new Error(
-      "Verified source does not match the requested deployed contract"
-    );
-  const source = {
-    url: `https://sourcify.dev/server/v2/contract/${cliOptions.chainId}/${cliOptions.address}?fields=metadata`,
-    codeHash: keccak256(verified.runtimeBytecode.onchainBytecode),
-    match: verified.runtimeMatch === "exact_match" ? "exact" : "code",
-  };
-  const processed = processAbiMetadata(
-    verified.metadata.output.abi,
-    verified.metadata.output,
-    source
-  );
-  const previous = metadata[cliOptions.chainId]?.[cliOptions.address];
-  for (const [selector, details] of Object.entries(processed.functionSelectors))
-    details.roles = previous?.functionSelectors?.[selector]?.roles ?? [];
-  processed.roleToFunctions = previous?.roleToFunctions ?? {};
   metadata[cliOptions.chainId] ??= {};
-  metadata[cliOptions.chainId][cliOptions.address] = processed;
+  metadata[cliOptions.chainId][cliOptions.address] =
+    processVerifiedContractMetadata(
+      verified,
+      cliOptions.chainId,
+      cliOptions.address,
+      metadata[cliOptions.chainId][cliOptions.address]
+    );
+} else if (cliOptions.refreshGetters) {
+  const inventory = await readJsonIfExists(
+    path.join(repoRoot, "packages/protocol-config/other-contracts.json"),
+    []
+  );
+  const targets = new Map(
+    parseContractNames().map((contract) => [
+      `${contract.chainId}:${contract.normalizedAddress}`,
+      contract,
+    ])
+  );
+  for (const contract of inventory.filter((entry) => !entry.labelOnly)) {
+    const identity = `${contract.chainId}:${contract.address.toLowerCase()}`;
+    if (!targets.has(identity))
+      targets.set(identity, {
+        ...contract,
+        chainId: String(contract.chainId),
+        normalizedAddress: contract.address.toLowerCase(),
+        type: "external",
+      });
+  }
+  const selected = [...targets.values()].filter(
+    (contract) =>
+      (!cliOptions.chainId || contract.chainId === cliOptions.chainId) &&
+      (!cliOptions.address ||
+        contract.normalizedAddress === cliOptions.address) &&
+      (!cliOptions.name || contract.name === cliOptions.name)
+  );
+  if (cliOptions.address && !selected.length)
+    throw new Error(
+      "No registered contract matches the requested getter refresh"
+    );
+  let unavailable = 0;
+  let updated = 0;
+  for (const contract of selected) {
+    const previous = metadata[contract.chainId]?.[contract.normalizedAddress];
+    const functions = Object.values(previous?.functionSelectors ?? {});
+    if (
+      !cliOptions.force &&
+      Array.isArray(previous?.addressGetters) &&
+      functions.every((fn) => fn.canonicalSignature && fn.documentation?.source)
+    )
+      continue;
+    try {
+      await waitForEtherscanRequestSlot();
+      lastEtherscanRequestAt = Date.now();
+      const url = `https://sourcify.dev/server/v2/contract/${contract.chainId}/${contract.normalizedAddress}?fields=metadata,runtimeBytecode.onchainBytecode`;
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (!response.ok) throw new Error(`Sourcify HTTP ${response.status}`);
+      const processed = processVerifiedContractMetadata(
+        await response.json(),
+        contract.chainId,
+        contract.normalizedAddress,
+        previous
+      );
+      metadata[contract.chainId] ??= {};
+      metadata[contract.chainId][contract.normalizedAddress] = processed;
+      updated++;
+      console.log(
+        `Verified getters: ${contract.chainId}:${contract.normalizedAddress} ${contract.name} (${processed.addressGetters.length})`
+      );
+    } catch (error) {
+      unavailable++;
+      console.warn(
+        `Getter verification unavailable: ${contract.chainId}:${contract.normalizedAddress} ${contract.name}: ${error.message}; retained previous metadata.`
+      );
+    }
+  }
+  console.log(
+    `Getter metadata: ${updated} refreshed, ${unavailable} unavailable, ${selected.length - updated - unavailable} already verified.`
+  );
+  if (unavailable && (cliOptions.address || cliOptions.name))
+    throw new Error(
+      "Requested getter verification unavailable; previous metadata retained"
+    );
 } else if (!cliOptions.cacheOnly) {
   if (!process.env.ETHERSCAN_API_KEY?.trim()) {
     throw new Error(

@@ -287,6 +287,56 @@ export function refreshGraph<
   return { nodes: [...nodes.values()], selectedNode };
 }
 
+export function getPolicyModuleKeycodes(
+  policy: { address: string; policyPermissions?: unknown },
+  relationships: ContractRelationship[]
+): string[] {
+  return [
+    ...new Set([
+      ...(Array.isArray(policy.policyPermissions)
+        ? policy.policyPermissions.map(
+            (permission) => permission.keycode as string
+          )
+        : []),
+      ...relationships
+        .filter(
+          (relationship) =>
+            relationship.kind === "module-dependency" &&
+            relationship.status === "reference" &&
+            relationship.target &&
+            relationship.source.toLowerCase() === policy.address.toLowerCase()
+        )
+        .map((relationship) => relationship.getter?.split(":")[1])
+        .filter((keycode): keycode is string => Boolean(keycode)),
+    ]),
+  ];
+}
+
+export function getPoliciesUsingModule<
+  T extends {
+    type: string;
+    name: string;
+    address: string;
+    policyPermissions?: unknown;
+  },
+>(module: T, contracts: T[], relationships: ContractRelationship[]): T[] {
+  return contracts.filter(
+    (policy) =>
+      policy.type === "policy" &&
+      (relationships.some(
+        (relationship) =>
+          relationship.kind === "module-dependency" &&
+          relationship.status === "reference" &&
+          relationship.source.toLowerCase() === policy.address.toLowerCase() &&
+          relationship.target?.toLowerCase() === module.address.toLowerCase()
+      ) ||
+        (Array.isArray(policy.policyPermissions) &&
+          policy.policyPermissions.some(
+            (permission) => permission.keycode === module.name
+          )))
+  );
+}
+
 export function getRelationshipGraph(
   relationships: ContractRelationship[],
   chainId: number,
@@ -340,7 +390,28 @@ export function getRelationshipGraph(
           task.callSelector === relationship.callSelector
       )
   );
+  const verifiedModuleGetters = new Set(
+    configuredCalls
+      .filter(
+        (reference) =>
+          reference.kind === "contract-reference" &&
+          reference.status === "reference" &&
+          reference.verification?.outcome === "match" &&
+          reference.target
+      )
+      .map(
+        (reference) =>
+          `${reference.source.toLowerCase()}:${reference.target?.toLowerCase()}:${reference.getter}`
+      )
+  );
   for (const relationship of [...configuredCalls, ...taskRelationships]) {
+    if (
+      relationship.kind === "module-dependency" &&
+      verifiedModuleGetters.has(
+        `${relationship.source.toLowerCase()}:${relationship.target?.toLowerCase()}:${relationship.getter?.split(":")[1]}`
+      )
+    )
+      continue;
     if (
       relationship.chainId !== chainId ||
       relationship.status === "unset" ||
@@ -368,7 +439,9 @@ export function getRelationshipGraph(
         : undefined;
     let tokenName = "Token";
     let label: string;
-    if (relationship.kind === "token-admin") {
+    if (relationship.kind === "module-dependency") {
+      label = `Depends on ${relationship.getter?.split(":")[1] ?? "module"}`;
+    } else if (relationship.kind === "token-admin") {
       const token = relationship.scope?.token?.toLowerCase();
       if (token)
         tokenName =

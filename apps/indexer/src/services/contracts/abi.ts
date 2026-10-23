@@ -1,4 +1,10 @@
-import { toFunctionSelector, toFunctionSignature, type Abi } from "viem";
+import {
+  toFunctionSelector,
+  toFunctionSignature,
+  keccak256,
+  type Hex,
+  type Abi,
+} from "viem";
 import type { ProcessedContractData } from "./types";
 import type { FunctionContext } from "../../../../../packages/snapshot-artifacts/src/index";
 
@@ -60,4 +66,41 @@ export function processAbiMetadata(
       result.addressGetters?.push(item.name);
   }
   return result;
+}
+
+export function processVerifiedContractMetadata(
+  verified: {
+    chainId?: string | number;
+    address?: string;
+    runtimeMatch?: string;
+    runtimeBytecode?: { onchainBytecode?: Hex };
+    metadata?: { output?: CompilerDocs & { abi?: Abi } };
+  },
+  chainId: string | number,
+  address: string,
+  previous?: ProcessedContractData
+): ProcessedContractData {
+  if (
+    String(verified.chainId) !== String(chainId) ||
+    verified.address?.toLowerCase() !== address.toLowerCase() ||
+    !["match", "exact_match"].includes(verified.runtimeMatch ?? "") ||
+    !verified.runtimeBytecode?.onchainBytecode ||
+    !Array.isArray(verified.metadata?.output?.abi)
+  )
+    throw new Error(
+      "Verified source does not match the requested deployed contract"
+    );
+  const processed = processAbiMetadata(
+    verified.metadata.output.abi,
+    verified.metadata.output,
+    {
+      url: `https://sourcify.dev/server/v2/contract/${chainId}/${address.toLowerCase()}?fields=metadata`,
+      codeHash: keccak256(verified.runtimeBytecode.onchainBytecode),
+      match: verified.runtimeMatch === "exact_match" ? "exact" : "code",
+    }
+  );
+  for (const [selector, details] of Object.entries(processed.functionSelectors))
+    details.roles = previous?.functionSelectors?.[selector]?.roles ?? [];
+  processed.roleToFunctions = previous?.roleToFunctions ?? {};
+  return processed;
 }

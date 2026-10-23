@@ -23,6 +23,8 @@ const {
   refreshGraph,
   groupInactiveContracts,
   getPreservedGraphNodes,
+  getPoliciesUsingModule,
+  getPolicyModuleKeycodes,
 } = await import(
   "../apps/frontend/src/components/contract-visualizer/graph.ts"
 );
@@ -35,6 +37,74 @@ const chain = {
 };
 const address = "0x00000000000000000000000000000000000000aa";
 const block = { number: "123", hash: "0xcanonical", timestamp: "1700000000" };
+
+test("module users include Kernel dependencies with no requested permissions", () => {
+  const module = { type: "module", name: "PRICE", address };
+  const policy = {
+    type: "policy",
+    name: "YieldRepurchaseFacility",
+    address: "0x0000000000000000000000000000000000000001",
+    policyPermissions: [{ keycode: "TRSRY" }],
+  };
+  const relationship = {
+    id: "price-user",
+    chainId: 1,
+    kind: "module-dependency",
+    source: policy.address,
+    target: address,
+    getter: "moduleDependents:PRICE",
+    status: "reference",
+    provenance: block,
+  };
+  assert.deepEqual(
+    getPoliciesUsingModule(module, [module, policy], [relationship]),
+    [policy]
+  );
+  assert.deepEqual(getPolicyModuleKeycodes(policy, [relationship]), [
+    "TRSRY",
+    "PRICE",
+  ]);
+  assert.equal(
+    getRelationshipGraph([relationship], 1).edges[0].label,
+    "Depends on PRICE"
+  );
+  assert.deepEqual(
+    getPoliciesUsingModule(
+      module,
+      [module, policy],
+      [{ ...relationship, status: "unset", target: null }]
+    ),
+    []
+  );
+});
+
+test("verified module getters avoid duplicate dependency lines without hiding a fresh registry observation behind an unavailable getter", () => {
+  const dependency = {
+    id: "price-dependency",
+    chainId: 1,
+    kind: "module-dependency",
+    source: "0x0000000000000000000000000000000000000001",
+    target: address,
+    getter: "moduleDependents:PRICE",
+    status: "reference",
+    provenance: block,
+    verification: { outcome: "match" },
+  };
+  const getter = {
+    ...dependency,
+    id: "price-getter",
+    kind: "contract-reference",
+    getter: "PRICE",
+  };
+  assert.equal(getRelationshipGraph([dependency, getter], 1).edges.length, 1);
+  assert.equal(
+    getRelationshipGraph(
+      [dependency, { ...getter, verification: { outcome: "unavailable" } }],
+      1
+    ).edges.length,
+    2
+  );
+});
 
 test("Heart connections preserve task order and custom invocations and include downstream calls in focus", async () => {
   const { getArchitectureView } = await import(

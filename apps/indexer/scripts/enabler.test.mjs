@@ -49,7 +49,7 @@ test("verified capabilities include non-ERC165 periphery, distinguish unsupporte
   assert.equal(getEnablerCapability(1, address), "unknown");
   const chains = [1, 10, 4663, 8453, 42161, 80094, 84532, 421614, 11155111];
   const known = chains.flatMap(getEnablerContracts);
-  assert.equal(known.length, 69);
+  assert.equal(known.length, 70);
   assert(known.every((contract) => contract.startBlock > 0));
   assert.equal(
     getEnablerContracts(1).find(

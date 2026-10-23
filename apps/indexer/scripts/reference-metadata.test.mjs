@@ -1,9 +1,19 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { processAbiMetadata } from "../src/services/contracts/abi.ts";
+import {
+  processAbiMetadata,
+  processVerifiedContractMetadata,
+} from "../src/services/contracts/abi.ts";
 import { keccak256 } from "viem";
 import { readPinnedControlGetter } from "../src/events/control-reads.ts";
 import { getRelationshipFields } from "../src/events/ownership-contracts.ts";
+import {
+  readPinnedModuleDependencies,
+  completeModuleDependencies,
+  getModuleDependencyFields,
+} from "../src/events/module-dependencies.ts";
+import { ContractFunctionRevertedError } from "viem";
+import { KernelAbi } from "../abis/Kernel.ts";
 import {
   completeRelationshipBlock,
   handleContractReference,
@@ -32,6 +42,64 @@ test("ABI discovery includes public contract getters and excludes arguments, tup
     "undocumented",
     "pureTarget",
   ]);
+});
+
+test("verified metadata refresh upgrades legacy getters without discarding role mappings or accepting another deployment", () => {
+  const previous = processAbiMetadata([fn("CD_FACILITY")]);
+  const selector = Object.keys(previous.functionSelectors)[0];
+  previous.functionSelectors[selector].roles = ["admin"];
+  previous.roleToFunctions = { admin: ["CD_FACILITY"] };
+  const verified = {
+    chainId: "1",
+    address: subject,
+    runtimeMatch: "match",
+    runtimeBytecode: { onchainBytecode: "0x1234" },
+    metadata: {
+      output: {
+        abi: [fn("CD_FACILITY")],
+        userdoc: {
+          methods: { "CD_FACILITY()": { notice: "Not exact metadata" } },
+        },
+      },
+    },
+  };
+  const refreshed = processVerifiedContractMetadata(
+    verified,
+    1,
+    subject,
+    previous
+  );
+  assert.deepEqual(refreshed.addressGetters, ["CD_FACILITY"]);
+  assert.deepEqual(refreshed.functionSelectors[selector].roles, ["admin"]);
+  assert.deepEqual(refreshed.roleToFunctions, previous.roleToFunctions);
+  assert.equal(
+    refreshed.functionSelectors[selector].documentation.source.codeHash,
+    keccak256("0x1234")
+  );
+  assert.equal(
+    refreshed.functionSelectors[selector].documentation.notice,
+    undefined
+  );
+  assert.throws(() =>
+    processVerifiedContractMetadata(
+      { ...verified, address: target },
+      1,
+      subject,
+      previous
+    )
+  );
+});
+
+test("deployed Auctioneer metadata discovers CD_FACILITY without a hardcoded contract-family exception", () => {
+  const fields = getRelationshipFields(1);
+  assert.ok(
+    fields.some(
+      (field) =>
+        field.address === "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a" &&
+        field.getter === "CD_FACILITY" &&
+        field.kind === "contract-reference"
+    )
+  );
 });
 
 test("compiler-resolved inherited docs join canonical overload signatures and remain plain text", () => {
@@ -197,6 +265,131 @@ const context = () => ({
   ContractStateSeed: store(),
   ControlTransition: store(),
   ChainObservation: store(),
+});
+
+test("Kernel dependency reads include read-only policies and handle both deployed array-bounds encodings without swallowing transport failures", async () => {
+  const bounds = new ContractFunctionRevertedError({
+    abi: KernelAbi,
+    data: `0x4e487b71${"32".padStart(64, "0")}`,
+  });
+  const input = {
+    kernel: subject,
+    keycode: "PRICE",
+    blockNumber: 10n,
+    blockHash: "0xa",
+  };
+  const client = {
+    getBlock: async () => ({ hash: "0xa" }),
+    readContract: async ({
+      functionName,
+      args,
+      blockHash,
+      requireCanonical,
+    }) => {
+      assert.equal(blockHash, "0xa");
+      assert.equal(requireCanonical, true);
+      if (functionName === "getModuleForKeycode") return target;
+      if (args[1] === 0n) return subject;
+      if (args[1] === 1n) return other;
+      throw bounds;
+    },
+  };
+  assert.deepEqual(await readPinnedModuleDependencies(client, input), {
+    status: "success",
+    module: target,
+    policies: [subject, other],
+  });
+  assert.equal(
+    (
+      await readPinnedModuleDependencies(
+        {
+          ...client,
+          readContract: async (input) => {
+            if (
+              input.functionName === "moduleDependents" &&
+              input.args[1] === 2n
+            )
+              throw new ContractFunctionRevertedError({
+                abi: KernelAbi,
+                data: "0x",
+              });
+            return client.readContract(input);
+          },
+        },
+        input
+      )
+    ).status,
+    "success"
+  );
+  assert.equal(
+    (
+      await readPinnedModuleDependencies(
+        {
+          ...client,
+          readContract: async (input) => {
+            if (
+              input.functionName === "moduleDependents" &&
+              input.args[1] === 1n
+            )
+              throw new Error("RPC unavailable");
+            return client.readContract(input);
+          },
+        },
+        input
+      )
+    ).status,
+    "unavailable"
+  );
+  let reads = 0;
+  assert.equal(
+    (
+      await readPinnedModuleDependencies(
+        {
+          ...client,
+          getBlock: async () => ({ hash: ++reads === 1 ? "0xa" : "0xb" }),
+        },
+        input
+      )
+    ).status,
+    "unavailable"
+  );
+});
+
+test("module dependency links survive unavailable reads, follow upgrades and disappear on policy removal", async () => {
+  const ctx = context();
+  ctx.Contract = { getWhere: async () => [{ name: "PRICE" }] };
+  ctx.ContractRelationship.getWhere = async () => [
+    ...ctx.ContractRelationship.rows.values(),
+  ];
+  const observe = async (number, result) =>
+    completeModuleDependencies(
+      ctx,
+      1,
+      block(number),
+      await getModuleDependencyFields(ctx, 1),
+      async () => result,
+      async (number) => block(Number(number))
+    );
+  const row = () =>
+    ctx.ContractRelationship.rows.get(
+      relationshipId(1, subject, "moduleDependents:PRICE")
+    );
+  await observe(10, { status: "success", module: target, policies: [subject] });
+  assert.equal(row().source, subject);
+  assert.equal(row().target, target);
+  assert.equal(row().status, "reference");
+  await observe(11, { status: "success", module: other, policies: [subject] });
+  assert.equal(
+    row().target,
+    other,
+    "an upgrade changes the module address without changing its keycode"
+  );
+  await observe(12, { status: "unavailable", reason: "RPC timeout" });
+  assert.equal(row().target, other);
+  assert.equal(row().verification.outcome, "unavailable");
+  await observe(13, { status: "success", module: other, policies: [] });
+  assert.equal(row().target, null);
+  assert.equal(row().status, "unset");
 });
 const field = (getter) => ({
   address: subject,

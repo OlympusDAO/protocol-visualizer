@@ -22,7 +22,11 @@ export const SUBSYSTEMS = [
   { id: "other", name: "Other contracts" },
   ...KERNEL_HISTORY_SECTIONS,
 ];
-export type ConnectionKind = "permission" | "control" | "reference";
+export type ConnectionKind =
+  | "permission"
+  | "control"
+  | "reference"
+  | "dependency";
 export type ConnectionFilters = Record<ConnectionKind, boolean>;
 
 export function layoutContractGraph(nodes: Node[], edges: Edge[]) {
@@ -121,7 +125,20 @@ export function getSubsystem(node: Node): string | null {
   return node.data.assigneeAddress ? null : "other";
 }
 
-function getConnectionKind(edge: Edge): ConnectionKind {
+export const DEFAULT_CONNECTION_FILTERS: ConnectionFilters = {
+  permission: false,
+  control: true,
+  reference: true,
+  dependency: false,
+};
+
+function getConnectionKind(edge: Edge, moduleIds: Set<string>): ConnectionKind {
+  const relationship = edge.data?.relationship;
+  if (
+    relationship?.kind === "module-dependency" ||
+    (relationship?.kind === "contract-reference" && moduleIds.has(edge.target))
+  )
+    return "dependency";
   return edge.data?.kind ?? "permission";
 }
 
@@ -139,10 +156,15 @@ export function getArchitectureView(
         .map((node) => [node.id, node])
     ).values(),
   ];
+  const moduleIds = new Set(
+    nodes
+      .filter((node) => node.data.contractType === "module")
+      .map((node) => node.id)
+  );
   const edges = [
     ...new Map(
       inputEdges
-        .filter((edge) => filters[getConnectionKind(edge)])
+        .filter((edge) => filters[getConnectionKind(edge, moduleIds)])
         .map((edge) => [edge.id, edge])
     ).values(),
   ];

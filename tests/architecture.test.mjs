@@ -43,7 +43,58 @@ const edges = [
   edge("ref-one", "migrator", "bridge", "reference"),
   edge("ref-two", "cooler", "bridge", "reference"),
 ];
-const filters = { permission: true, control: true, reference: true };
+const filters = {
+  permission: true,
+  control: true,
+  reference: true,
+  dependency: true,
+};
+
+test("module dependencies have an independent opt-in filter, including public module getters", () => {
+  const cards = [
+    node("policy", "Operator", { contractType: "policy" }),
+    node("module", "PRICE", { contractType: "module" }),
+    node("facility", "ConvertibleDepositFacility", { contractType: "policy" }),
+  ];
+  const links = [
+    {
+      ...edge("registry", "policy", "module", "reference"),
+      data: { kind: "reference", relationship: { kind: "module-dependency" } },
+    },
+    {
+      ...edge("getter", "policy", "module", "reference"),
+      data: { kind: "reference", relationship: { kind: "contract-reference" } },
+    },
+    {
+      ...edge("facility", "policy", "facility", "reference"),
+      data: { kind: "reference", relationship: { kind: "contract-reference" } },
+    },
+  ];
+  assert.deepEqual(
+    getArchitectureView(
+      cards,
+      links,
+      "overview",
+      { ...filters, dependency: false },
+      null
+    ).edges.map((edge) => edge.id),
+    ["facility"]
+  );
+  assert.equal(
+    getArchitectureView(cards, links, "overview", filters, null).edges.length,
+    3
+  );
+  assert.deepEqual(
+    getArchitectureView(
+      cards,
+      links,
+      "overview",
+      { ...filters, reference: false },
+      null
+    ).edges.map((edge) => edge.id),
+    ["registry", "getter"]
+  );
+});
 
 test("never-installed and removed contracts have distinct side sections; legacy history stays unknown", () => {
   const cards = [

@@ -160,6 +160,26 @@ The relationship definitions are in `apps/indexer/src/events/ownership-contracts
 IEnabler capabilities are in `apps/indexer/src/events/enabler-contracts.ts`.
 Both use generated metadata, with explicit handling for known contract families.
 
+### Refresh getter links
+
+Refresh verified getter metadata for registered contracts:
+
+```bash
+pnpm run indexer:metadata -- --refresh-getters
+```
+
+This mode reads `ContractNames.ts` and non-label-only entries in `other-contracts.json`.
+For new policies, first run `pnpm run indexer:metadata` to extract function-role metadata through Etherscan.
+Getter refresh preserves existing role mappings but does not extract role modifiers from source.
+It upgrades older getter metadata through Sourcify without an Etherscan key.
+It preserves existing role mappings and skips records that already contain verified getter metadata.
+Unavailable verification retains the previous record and reports its chain and address.
+This command does not start the indexer or publish snapshots.
+
+To restrict the refresh, add `--chain-id CHAIN_ID` and optionally `--address ADDRESS`.
+To recheck already verified records, add `--force` to this mode.
+The manual verified-source import remains available for saved responses.
+
 ### Extract function metadata
 
 For named contracts in `ContractNames.ts`, fetch missing metadata:
@@ -171,11 +191,11 @@ pnpm run indexer:metadata
 The generator writes `apps/indexer/src/generated/contract-metadata.json`.
 It skips existing nonempty entries.
 The Etherscan scan does not enumerate `other-contracts.json`.
-For inventory-only contracts, use the verified-source import in the next section.
+For inventory-only contracts, use `--refresh-getters` or a manual verified-source import.
 
 **CAUTION:** `--force` replaces each selected metadata entry.
 It can remove imported source verification and documentation, which disables generic getter links for that entry.
-After an Etherscan refresh, reimport the verified source before restarting the indexer.
+After an Etherscan refresh, run `--refresh-getters` before restarting the indexer.
 Avoid a repository-wide `--force` refresh unless you can restore every affected verification record.
 
 To refresh an existing named contract, restrict the request to its chain and address.
@@ -450,3 +470,20 @@ This first view covers recorded CCIP configuration. It does not simulate deliver
 index Solana destination state, measure liquidity or CCIP health, or discover
 LayerZero lanes. Update the gateway/schema readers before publishing the new
 optional snapshot field. Older snapshots remain readable without lane evidence.
+
+## Module dependencies
+
+Module dependencies and permission requests describe different relationships.
+`configureDependencies()` declares the module keycodes that a policy uses, including read-only dependencies.
+The Kernel records these declarations in `moduleDependents`.
+The indexer reads this registry and resolves each keycode to its current installed module.
+This covers internal module references without calling the state-changing `configureDependencies()` function.
+
+Completed canonical checkpoints update these relationships through the existing reference pipeline.
+The graph labels them `Depends on KEYCODE`.
+The Module dependencies filter starts disabled, including getter links to modules.
+Dependency details remain available while those graph links are hidden.
+Module details, policy details, and module counts include these dependencies separately from permissioned functions.
+Legacy snapshots retain their permission-based fallback.
+Unavailable registry reads retain established links with unavailable verification.
+Checkpoint coverage does not establish every earlier dependency transition.

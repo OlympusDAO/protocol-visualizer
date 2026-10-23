@@ -329,6 +329,7 @@ test("every configured relationship capability retains event subscriptions and c
       const expected = fields.filter(
         (field) =>
           field.getter === getter &&
+          field.kind !== "contract-reference" &&
           (getter !== "owner" || field.kind === "owner")
       );
       if (!expected.length) continue;

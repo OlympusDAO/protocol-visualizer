@@ -322,6 +322,7 @@ chains:
           - "0x6593768febf9c95ac857fb7ef244d5738d1c57fd"
           - "0xe045bd0a0d85e980aa152064c06eae6b6ae358d2"
           - "0xfbf6383dc3f6010d403ecdf12ddc1311701d143d"
+          - "0x7d8f82a0d5b67d5fdd1b77a899ff517818fafc2e"
         start_block: 22423120
       - name: IEnablerV2
         address:

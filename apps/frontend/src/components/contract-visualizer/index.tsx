@@ -366,53 +366,9 @@ const nodeTypes: NodeTypes = {
   ),
 };
 
-// Custom tooltip components
-
-// Custom tooltip component
-const PolicyTooltip = ({
-  contract,
-  moduleKeycodes,
-}: {
-  contract: Contract;
-  moduleKeycodes: string[];
-}) => {
-  if (!moduleKeycodes.length) return null;
-
-  return (
-    <div
-      className="fixed ml-2 bg-white shadow-lg rounded-lg p-4 min-w-[300px] border border-gray-200"
-      style={{
-        zIndex: 9999,
-        left: "calc(100% + 8px)",
-        top: "50%",
-        transform: "translateY(-50%)",
-      }}
-    >
-      <h3 className="font-bold text-sm mb-2">{formatContractName(contract)}</h3>
-      <div className="text-xs text-gray-600 mb-3">
-        Last Updated:{" "}
-        {new Date(
-          Number(contract.lastUpdatedTimestamp) * 1000
-        ).toLocaleString()}
-      </div>
-      <div className="text-sm">
-        <div className="font-semibold mb-1">Modules Used:</div>
-        <ul className="list-disc pl-4">
-          {moduleKeycodes.map((keycode) => (
-            <li key={keycode} className="text-xs mb-1">
-              <span className="text-blue-600">{keycode}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-};
-
 export function ContractVisualizer() {
   const [nodes, setNodes, onNodesChange] = useNodesState<NodeData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [hoveredPolicy, setHoveredPolicy] = useState<string | null>(null);
   const [hoveredRole, setHoveredRole] = useState<string | null>(null);
   const {
     node: selectedNode,
@@ -531,15 +487,7 @@ export function ContractVisualizer() {
           contractType: type,
           kernelInactive: contract.isEnabled === false,
           label: (
-            // biome-ignore lint/a11y/noStaticElementInteractions: graph node hover state is handled by React Flow, not an interactive control.
-            <div
-              className="p-1 text-sm relative"
-              style={{ position: "relative" }}
-              onMouseEnter={() =>
-                type === "policy" && setHoveredPolicy(contract.address)
-              }
-              onMouseLeave={() => type === "policy" && setHoveredPolicy(null)}
-            >
+            <div className="p-1 text-sm relative">
               <Handle
                 id={`${id}-target`}
                 type="target"
@@ -584,12 +532,6 @@ export function ContractVisualizer() {
                   Used
                 </div>
               )}
-              {type === "policy" && hoveredPolicy === contract.address && (
-                <PolicyTooltip
-                  contract={contract}
-                  moduleKeycodes={moduleKeycodes}
-                />
-              )}
               <Handle
                 id={`${id}-source`}
                 type="source"
@@ -610,13 +552,13 @@ export function ContractVisualizer() {
           padding: "6px",
           opacity: contract.isEnabled ? 1 : 0.7,
           width: getContractNodeWidth(contract),
-          zIndex: hoveredPolicy === contract.address ? 1000 : 1,
+          zIndex: 1,
         },
         targetPosition: Position.Left,
         sourcePosition: Position.Right,
       };
     },
-    [hoveredPolicy, selectedChainId, data]
+    [selectedChainId, data]
   );
 
   // Memoize the edge creation function
@@ -1091,8 +1033,7 @@ export function ContractVisualizer() {
 
   const graphIsLoading = isLoading || layouting;
 
-  // Render tooltip for hovered assignee
-  const renderAssigneeTooltip = () => {
+  const renderAssigneeDetails = () => {
     if (!selectedNode?.startsWith("0x") || !roleAssignments) return null;
 
     // Extract assignee address from node ID
@@ -1109,86 +1050,35 @@ export function ContractVisualizer() {
       .filter((a) => a.assignee.toLowerCase() === assigneeAddress.toLowerCase())
       .map((a) => a.role);
 
-    // Get assignee name from the node data label
-    const assigneeName = selectedNodeData.name;
+    if (!assignedRoles.length && !selectedNodeData.assigneeAddress) return null;
 
     return (
-      <div
-        className="fixed bg-white shadow-lg rounded-lg p-4 min-w-[300px] border border-gray-200"
-        style={{
-          zIndex: 9999,
-          top: "20px",
-          right: "20px",
-        }}
-      >
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-bold text-sm">{assigneeName}</h3>
-          <div className="flex items-center">
-            <span className="text-xs px-2 py-1 bg-pink-100 text-pink-800 rounded-full mr-2">
-              Assignee
-            </span>
-            <button
-              type="button"
-              onClick={() => setSelectedNode(null)}
-              className="text-gray-500 hover:text-gray-700"
-              aria-label="Close tooltip"
-            >
-              <svg
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-        <div className="text-xs text-gray-500 mb-2">
-          <a
-            href={getEtherscanLink(assigneeAddress, selectedChainId)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:underline"
-          >
-            {assigneeAddress}
-          </a>
-        </div>
-        <div className="border-t border-gray-200 my-2 pt-2">
-          <h4 className="font-semibold text-sm mb-2">Assigned Roles:</h4>
-          <div className="text-sm">
-            {assignedRoles.length > 0 ? (
-              <ul className="list-disc pl-4">
-                {assignedRoles.map((role) => (
-                  <li key={role} className="text-xs mb-1">
-                    <button
-                      type="button"
-                      className="text-purple-600 hover:text-purple-800 hover:underline text-left"
-                      onClick={() => setSelectedNode(`role-${role}`)}
-                    >
-                      {role}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="text-gray-500">No roles assigned</div>
-            )}
-          </div>
+      <div className="border-t border-gray-200 my-2 pt-2">
+        <h4 className="font-semibold text-sm mb-2">Assigned Roles:</h4>
+        <div className="text-sm">
+          {assignedRoles.length > 0 ? (
+            <ul className="list-disc pl-4">
+              {assignedRoles.map((role) => (
+                <li key={role} className="text-xs mb-1">
+                  <button
+                    type="button"
+                    className="text-purple-600 hover:text-purple-800 hover:underline text-left"
+                    onClick={() => setSelectedNode(`role-${role}`)}
+                  >
+                    {role}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="text-gray-500">No roles assigned</div>
+          )}
         </div>
       </div>
     );
   };
 
-  // Render tooltip for hovered role
-  const renderRoleTooltip = () => {
+  const renderRoleDetails = () => {
     if (!selectedNode?.startsWith("role-") || !roleAssignments || !contracts)
       return null;
 
@@ -1232,51 +1122,12 @@ export function ContractVisualizer() {
       });
 
     return (
-      <div
-        className="fixed bg-white shadow-lg rounded-lg p-4 min-w-[350px] max-w-[450px] border border-gray-200"
-        style={{
-          zIndex: 9999,
-          top: "20px",
-          right: "20px",
-        }}
-      >
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-bold text-sm">{roleName}</h3>
-          <div className="flex items-center">
-            <span className="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded-full mr-2">
-              Role
-            </span>
-            <button
-              type="button"
-              onClick={() => setSelectedNode(null)}
-              className="text-gray-500 hover:text-gray-700"
-              aria-label="Close tooltip"
-            >
-              <svg
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Assignees Section */}
+      <>
         <div className="border-t border-gray-200 my-2 pt-2">
           <h4 className="font-semibold text-sm mb-2">
             Assignees ({assignees.length}):
           </h4>
-          <div className="text-sm max-h-[120px] overflow-y-auto">
+          <div className="text-sm">
             {assignees.length > 0 ? (
               <ul className="list-disc pl-4">
                 {assignees.map((assignee) => (
@@ -1309,12 +1160,11 @@ export function ContractVisualizer() {
           </div>
         </div>
 
-        {/* Policies Section */}
         <div className="border-t border-gray-200 my-2 pt-2">
           <h4 className="font-semibold text-sm mb-2">
             Policies ({policiesUsingRole.length}):
           </h4>
-          <div className="text-sm max-h-[150px] overflow-y-auto">
+          <div className="text-sm">
             {policiesUsingRole.length > 0 ? (
               <ul className="list-none">
                 {policiesUsingRole.map((policy) => (
@@ -1371,12 +1221,11 @@ export function ContractVisualizer() {
             )}
           </div>
         </div>
-      </div>
+      </>
     );
   };
 
-  // Render tooltip for policy
-  const renderPolicyTooltip = () => {
+  const renderPolicyDetails = () => {
     if (!selectedNode?.startsWith("0x") || !contracts) return null;
 
     const contract = contracts.find(
@@ -1412,142 +1261,86 @@ export function ContractVisualizer() {
     );
 
     return (
-      <div
-        className="fixed bg-white shadow-lg rounded-lg p-4 min-w-[350px] max-w-[450px] border border-gray-200"
-        style={{
-          zIndex: 9999,
-          top: "20px",
-          right: "20px",
-        }}
-      >
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-bold text-sm">{formatContractName(contract)}</h3>
-          <div className="flex items-center">
-            <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full mr-2">
-              Policy
-            </span>
-            <button
-              type="button"
-              onClick={() => setSelectedNode(null)}
-              className="text-gray-500 hover:text-gray-700"
-              aria-label="Close tooltip"
-            >
-              <svg
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-        <div className="text-xs text-gray-500 mb-3">
-          <a
-            href={getEtherscanLink(contract.address, selectedChainId)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:underline"
-          >
-            {contract.address}
-          </a>
-        </div>
-        <div className="text-xs text-gray-600 mb-3">
-          Last Updated:{" "}
-          {new Date(
-            Number(contract.lastUpdatedTimestamp) * 1000
-          ).toLocaleString()}
-        </div>
-        <div className="border-t border-gray-200 my-2 pt-2">
-          <h4 className="font-semibold text-sm mb-2">
-            Modules Used ({uniqueKeycodes.length}):
-          </h4>
-          <div className="text-sm max-h-[250px] overflow-y-auto">
-            <ul className="list-none divide-y divide-gray-100">
-              {uniqueKeycodes.map((keycode) => {
-                const moduleContract = moduleKeycodeToContract.get(keycode);
-                const moduleFunctions = permissionsByKeycode.get(keycode) || [];
+      <div className="border-t border-gray-200 my-2 pt-2">
+        <h4 className="font-semibold text-sm mb-2">
+          Modules Used ({uniqueKeycodes.length}):
+        </h4>
+        <div className="text-sm">
+          <ul className="list-none divide-y divide-gray-100">
+            {uniqueKeycodes.map((keycode) => {
+              const moduleContract = moduleKeycodeToContract.get(keycode);
+              const moduleFunctions = permissionsByKeycode.get(keycode) || [];
 
-                return (
-                  <li key={keycode} className="py-2 first:pt-0 last:pb-0">
-                    <div className="flex items-center mb-1">
-                      <div className="font-medium text-xs text-blue-700">
-                        {moduleContract ? (
-                          <button
-                            type="button"
-                            className="hover:underline text-left"
-                            onClick={() =>
-                              setSelectedNode(moduleContract.address)
-                            }
-                          >
-                            {formatContractName(moduleContract)}
-                          </button>
-                        ) : (
-                          <span>{keycode}</span>
-                        )}
-                      </div>
-                      {moduleContract && (
-                        <a
-                          href={getEtherscanLink(
-                            moduleContract.address,
-                            selectedChainId
-                          )}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-gray-500 hover:underline ml-2"
+              return (
+                <li key={keycode} className="py-2 first:pt-0 last:pb-0">
+                  <div className="flex items-center mb-1">
+                    <div className="font-medium text-xs text-blue-700">
+                      {moduleContract ? (
+                        <button
+                          type="button"
+                          className="hover:underline text-left"
+                          onClick={() =>
+                            setSelectedNode(moduleContract.address)
+                          }
                         >
-                          ({shortenAddress(moduleContract.address)})
-                        </a>
+                          {formatContractName(moduleContract)}
+                        </button>
+                      ) : (
+                        <span>{keycode}</span>
                       )}
                     </div>
-                    <div className="text-xs text-blue-600 mb-1">
-                      Keycode: {keycode}
+                    {moduleContract && (
+                      <a
+                        href={getEtherscanLink(
+                          moduleContract.address,
+                          selectedChainId
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-gray-500 hover:underline ml-2"
+                      >
+                        ({shortenAddress(moduleContract.address)})
+                      </a>
+                    )}
+                  </div>
+                  <div className="text-xs text-blue-600 mb-1">
+                    Keycode: {keycode}
+                  </div>
+                  {moduleFunctions.length === 0 && (
+                    <div className="text-xs text-gray-500">
+                      No permissioned functions requested.
                     </div>
-                    {moduleFunctions.length === 0 && (
-                      <div className="text-xs text-gray-500">
-                        No permissioned functions requested.
+                  )}
+                  {moduleFunctions.length > 0 && (
+                    <div className="mt-1">
+                      <div className="text-xs text-gray-600 mb-1">
+                        Functions:
                       </div>
-                    )}
-                    {moduleFunctions.length > 0 && (
-                      <div className="mt-1">
-                        <div className="text-xs text-gray-600 mb-1">
-                          Functions:
-                        </div>
-                        <ul className="list-disc pl-4">
-                          {moduleFunctions.map((func) => (
-                            <li
-                              key={`${keycode}-${func.function}`}
-                              className="text-xs text-blue-600"
-                            >
-                              {func.function}
-                              <FunctionDocumentation
-                                value={func.functionContext}
-                              />
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+                      <ul className="list-disc pl-4">
+                        {moduleFunctions.map((func) => (
+                          <li
+                            key={`${keycode}-${func.function}`}
+                            className="text-xs text-blue-600"
+                          >
+                            {func.function}
+                            <FunctionDocumentation
+                              value={func.functionContext}
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </div>
       </div>
     );
   };
 
-  // Add a tooltip for module nodes
-  const renderModuleTooltip = () => {
+  const renderModuleDetails = () => {
     if (!selectedNode?.startsWith("0x") || !contracts) return null;
 
     const moduleContract = contracts.find(
@@ -1562,56 +1355,7 @@ export function ContractVisualizer() {
     );
 
     return (
-      <div
-        className="fixed bg-white shadow-lg rounded-lg p-4 min-w-[350px] max-w-[450px] border border-gray-200"
-        style={{
-          zIndex: 9999,
-          top: "20px",
-          right: "20px",
-        }}
-      >
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-bold text-sm">
-            {formatContractName(moduleContract)}
-          </h3>
-          <div className="flex items-center">
-            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full mr-2">
-              Module
-            </span>
-            <button
-              type="button"
-              onClick={() => setSelectedNode(null)}
-              className="text-gray-500 hover:text-gray-700"
-              aria-label="Close tooltip"
-            >
-              <svg
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-        <div className="text-xs text-gray-500 mb-2">
-          <a
-            href={getEtherscanLink(moduleContract.address, selectedChainId)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:underline"
-          >
-            {moduleContract.address}
-          </a>
-        </div>
+      <>
         {extractKeycode(moduleContract.name) && (
           <div className="text-xs text-blue-600 mb-3">
             Keycode: {extractKeycode(moduleContract.name)}
@@ -1621,7 +1365,7 @@ export function ContractVisualizer() {
           <h4 className="font-semibold text-sm mb-2">
             Policies Using This Module ({policiesUsingModule.length}):
           </h4>
-          <div className="text-sm max-h-[150px] overflow-y-auto">
+          <div className="text-sm">
             {policiesUsingModule.length > 0 ? (
               <ul className="list-disc pl-4">
                 {policiesUsingModule.map((policy) => (
@@ -1651,7 +1395,7 @@ export function ContractVisualizer() {
             )}
           </div>
         </div>
-      </div>
+      </>
     );
   };
 
@@ -1673,18 +1417,26 @@ export function ContractVisualizer() {
           (contract) => contract.address === selectedNode
         )
       : undefined);
-  const selectedAddressNode = selectedNode?.startsWith("0x")
-    ? nodes.find((node) => node.id === selectedNode)
-    : undefined;
-  const renderSelectedTooltip = () => {
-    if (selectedAddressNode?.data.assigneeAddress)
-      return renderAssigneeTooltip();
-    if (selectedNode?.startsWith("role-")) return renderRoleTooltip();
-    if (!selectedNode?.startsWith("0x")) return null;
-    if (selectedCoreContract?.type === "policy") return renderPolicyTooltip();
-    if (selectedCoreContract?.type === "module") return renderModuleTooltip();
-    return null;
+  const selectedGraphNode = nodes.find((node) => node.id === selectedNode);
+  const selectedKind =
+    selectedCoreContract?.type ??
+    selectedContract?.contractType?.toLowerCase() ??
+    (selectedNode?.startsWith("role-")
+      ? "Role"
+      : selectedGraphNode?.data.assigneeAddress
+        ? "Address"
+        : null);
+  const renderSelectedDetails = () => {
+    if (selectedNode?.startsWith("role-")) return renderRoleDetails();
+    return (
+      <>
+        {renderAssigneeDetails()}
+        {selectedCoreContract?.type === "policy" && renderPolicyDetails()}
+        {selectedCoreContract?.type === "module" && renderModuleDetails()}
+      </>
+    );
   };
+
   const selectedRelationships =
     data?.relationships.filter(
       (relationship) =>
@@ -1795,7 +1547,7 @@ export function ContractVisualizer() {
           nominations. Missing links may reflect incomplete source coverage.
         </p>
       )}
-      <div className="h-[800px] border border-gray-200 rounded-lg">
+      <div className="relative h-[800px] border border-gray-200 rounded-lg">
         {isHistorical ? (
           <div className="h-full overflow-auto p-4">
             <p className="mb-4 text-sm text-gray-600">
@@ -1882,328 +1634,361 @@ export function ContractVisualizer() {
               <Controls />
               <MiniMap pannable zoomable />
             </ReactFlow>
-            {renderSelectedTooltip()}
-            {(selectedContract || selectedAddressNode) && selectedNode && (
+            {(selectedContract || selectedGraphNode) && selectedNode && (
               <aside
-                className="fixed bottom-4 right-4 z-50 max-w-[min(420px,calc(100vw-2rem))] max-h-[40vh] overflow-auto rounded-lg border border-gray-200 bg-white p-4 text-xs shadow-lg"
-                aria-label="Contract control state"
+                key={selectedNode}
+                className="absolute top-4 right-4 z-50 flex w-[460px] max-w-[calc(100%-2rem)] max-h-[min(720px,60vh)] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white text-xs shadow-lg"
+                aria-label="Selection details"
               >
-                <div className="flex justify-between gap-4">
-                  <strong>
-                    {selectedContract
-                      ? getGraphContractName(selectedContract)
-                      : selectedAddressNode?.data.name}
-                  </strong>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedNode(null)}
-                    aria-label="Close control details"
-                  >
-                    ×
-                  </button>
-                </div>
-                <a
-                  className="mt-1 block break-all text-blue-600"
-                  href={getEtherscanLink(selectedNode, selectedChainId)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {selectedNode}
-                </a>
-                {selectedContract && (
-                  <div className="mt-2 flex flex-wrap items-center gap-3">
-                    <span className="inline-flex items-center gap-1.5">
-                      <ContractStatusIcons
-                        contract={selectedContract}
-                        enablementLabel={null}
-                      />
-                      {getKernelLabel(selectedContract) ??
-                        getContractDeploymentLabel(selectedContract)}
-                    </span>
-                    {selectedControl.badge && (
-                      <span className="inline-flex items-center gap-1.5">
-                        <EnablementIndicator label={selectedControl.badge} />
-                        {selectedControl.badge === "Contract enabled"
-                          ? "Enabled"
-                          : "Disabled"}
+                <div className="shrink-0 border-b border-gray-200 p-4">
+                  <div className="flex justify-between gap-4">
+                    <h3 className="min-w-0 break-words font-semibold">
+                      {selectedContract
+                        ? getGraphContractName(selectedContract)
+                        : selectedGraphNode?.data.name}
+                    </h3>
+                    {selectedKind && (
+                      <span className="self-start rounded-full bg-slate-100 px-2 py-0.5 text-slate-600 capitalize">
+                        {selectedKind}
                       </span>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedNode(null)}
+                      aria-label="Close details"
+                    >
+                      ×
+                    </button>
                   </div>
-                )}
-                {selectedControl.warning && (
-                  <p className="mt-2 text-amber-800 break-all">
-                    {selectedControl.warning}
-                  </p>
-                )}
-                {selectedTaskList && (
-                  <section
-                    className="mt-3 border-t border-gray-200 pt-2"
-                    aria-label="Periodic tasks"
-                  >
-                    <h4 className="font-semibold">
-                      Periodic tasks
-                      {selectedTaskList.tasks !== null
-                        ? ` (${selectedTaskList.tasks.length})`
-                        : ""}
-                    </h4>
-                    <p className="mt-1 text-gray-500">
-                      Invocation order; disabled tasks remain configured.
-                    </p>
-                    {selectedTaskList.tasks === null ? (
-                      <p className="mt-2 text-amber-800">
-                        Task configuration is unknown.
-                      </p>
-                    ) : selectedTaskList.tasks.length === 0 ? (
-                      <p className="mt-2 text-gray-500">No tasks configured.</p>
-                    ) : (
-                      <ol className="mt-2 space-y-2">
-                        {selectedTaskList.tasks.map((task, index) => {
-                          const contract =
-                            contracts?.find(
-                              (contract) => contract.address === task.address
-                            ) ??
-                            data?.additionalContracts.find(
-                              (contract) => contract.address === task.address
-                            );
-                          const state = data?.contractStates.find(
-                            (state) => state.address === task.address
-                          );
-                          const enabled = getEnablementPresentation(
-                            state,
-                            data?.observation
-                          );
-                          return (
-                            <li
-                              key={task.address}
-                              className="flex items-start gap-2"
-                            >
-                              <span className="text-gray-500 tabular-nums">
-                                {index + 1}.
-                              </span>
-                              <div className="min-w-0 flex-1">
-                                <button
-                                  type="button"
-                                  className="text-left text-blue-600 hover:underline break-all"
-                                  onClick={() => setSelectedNode(task.address)}
-                                >
-                                  {contract
-                                    ? getGraphContractName(contract)
-                                    : shortenAddress(task.address)}
-                                </button>
-                                <code className="mt-0.5 block break-all text-gray-600">
-                                  {task.selector === "0x00000000"
-                                    ? "execute()"
-                                    : (task.signature ?? task.selector)}
-                                </code>
-                              </div>
-                              {enabled.badge ? (
-                                <EnablementIndicator label={enabled.badge} />
-                              ) : (
-                                <span
-                                  className="text-gray-500"
-                                  title="No task-local enablement observation"
-                                >
-                                  Unknown
-                                </span>
-                              )}
-                            </li>
-                          );
-                        })}
-                      </ol>
-                    )}
-                    {selectedTaskList.verification.outcome !== "match" && (
-                      <p className="mt-2 text-amber-800">
-                        Task configuration verification:{" "}
-                        {selectedTaskList.verification.outcome}. Indexed order
-                        is retained.
-                      </p>
-                    )}
-                    {selectedTaskList.indexedThrough && (
-                      <p className="mt-2 text-gray-500">
-                        Indexed through block{" "}
-                        {selectedTaskList.indexedThrough.number}.
-                      </p>
-                    )}
-                  </section>
-                )}
-                {selectedContract && (
-                  <>
-                    {selectedControl.notices.map((notice) => (
-                      <p key={notice} className="mt-2 text-amber-800">
-                        {notice}
-                      </p>
-                    ))}
-                    <details key={selectedNode} className="mt-2">
-                      <summary className="cursor-pointer text-gray-500">
-                        Indexing &amp; verification
-                      </summary>
-                      {selectedControl.details
-                        .filter((detail) => detail !== selectedControl.warning)
-                        .map((detail) => (
-                          <p
-                            key={detail}
-                            className="mt-2 break-all text-gray-600"
-                          >
-                            {detail}
-                          </p>
-                        ))}
-                    </details>
-                  </>
-                )}
-                {selectedRelationships.length > 0 && (
-                  <section
-                    className="mt-3 border-t border-gray-200 pt-2"
-                    aria-label="Control relationships"
-                  >
-                    <h4 className="font-semibold">
-                      Relationships ({selectedRelationships.length})
-                    </h4>
-                    {selectedRelationships.map((relationship) => (
-                      <div
-                        key={relationship.id}
-                        className="mt-2 border-t border-gray-100 pt-2"
-                      >
-                        <strong>
-                          {relationship.status === "pending" ? "Pending " : ""}
-                          {relationship.callSignature ??
-                            relationship.functionContext?.signature ??
-                            relationship.kind.replace(/-/g, " ")}
-                        </strong>
-                        <FunctionDocumentation
-                          value={relationship.functionContext}
+                  {selectedNode.startsWith("0x") && (
+                    <a
+                      className="mt-1 block break-all text-blue-600"
+                      href={getEtherscanLink(selectedNode, selectedChainId)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {selectedNode}
+                    </a>
+                  )}
+                </div>
+                <div className="min-h-0 overflow-y-auto px-4 pb-4">
+                  {selectedContract && (
+                    <div className="mt-2 flex flex-wrap items-center gap-3">
+                      <span className="inline-flex items-center gap-1.5">
+                        <ContractStatusIcons
+                          contract={selectedContract}
+                          enablementLabel={null}
                         />
-                        {relationship.targetCode && (
-                          <p className="mt-1 text-gray-500">
-                            {relationship.targetCode === "present"
-                              ? "Target has deployed code at the observation block."
-                              : "Target has no code at the observation block; address type is not inferred."}
-                          </p>
-                        )}
-                        {relationship.target ? (
-                          <p className="mt-1 break-all">
-                            {getRelationshipPath(relationship).map(
-                              (address, index) => (
-                                <span key={address}>
-                                  {index > 0 && " → "}
-                                  <a
-                                    className="text-blue-600"
-                                    href={getEtherscanLink(
-                                      address,
-                                      selectedChainId
-                                    )}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title={address}
-                                  >
-                                    {shortenAddress(address)}
-                                  </a>
+                        {getKernelLabel(selectedContract) ??
+                          getContractDeploymentLabel(selectedContract)}
+                      </span>
+                      {selectedControl.badge && (
+                        <span className="inline-flex items-center gap-1.5">
+                          <EnablementIndicator label={selectedControl.badge} />
+                          {selectedControl.badge === "Contract enabled"
+                            ? "Enabled"
+                            : "Disabled"}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {selectedControl.warning && (
+                    <p className="mt-2 text-amber-800 break-all">
+                      {selectedControl.warning}
+                    </p>
+                  )}
+                  {renderSelectedDetails()}
+                  {selectedTaskList && (
+                    <section
+                      className="mt-3 border-t border-gray-200 pt-2"
+                      aria-label="Periodic tasks"
+                    >
+                      <h4 className="font-semibold">
+                        Periodic tasks
+                        {selectedTaskList.tasks !== null
+                          ? ` (${selectedTaskList.tasks.length})`
+                          : ""}
+                      </h4>
+                      <p className="mt-1 text-gray-500">
+                        Invocation order; disabled tasks remain configured.
+                      </p>
+                      {selectedTaskList.tasks === null ? (
+                        <p className="mt-2 text-amber-800">
+                          Task configuration is unknown.
+                        </p>
+                      ) : selectedTaskList.tasks.length === 0 ? (
+                        <p className="mt-2 text-gray-500">
+                          No tasks configured.
+                        </p>
+                      ) : (
+                        <ol className="mt-2 space-y-2">
+                          {selectedTaskList.tasks.map((task, index) => {
+                            const contract =
+                              contracts?.find(
+                                (contract) => contract.address === task.address
+                              ) ??
+                              data?.additionalContracts.find(
+                                (contract) => contract.address === task.address
+                              );
+                            const state = data?.contractStates.find(
+                              (state) => state.address === task.address
+                            );
+                            const enabled = getEnablementPresentation(
+                              state,
+                              data?.observation
+                            );
+                            return (
+                              <li
+                                key={task.address}
+                                className="flex items-start gap-2"
+                              >
+                                <span className="text-gray-500 tabular-nums">
+                                  {index + 1}.
                                 </span>
-                              )
-                            )}
-                          </p>
-                        ) : (
-                          <p>
-                            {relationship.value == null
-                              ? "Unknown; no successful observation establishes this field."
-                              : relationship.getter?.startsWith("new")
-                                ? "No pending nomination."
-                                : relationship.kind === "registered-pool"
-                                  ? "OHM is unregistered; no pool is selected."
-                                  : "Unset."}
+                                <div className="min-w-0 flex-1">
+                                  <button
+                                    type="button"
+                                    className="text-left text-blue-600 hover:underline break-all"
+                                    onClick={() =>
+                                      setSelectedNode(task.address)
+                                    }
+                                  >
+                                    {contract
+                                      ? getGraphContractName(contract)
+                                      : shortenAddress(task.address)}
+                                  </button>
+                                  <code className="mt-0.5 block break-all text-gray-600">
+                                    {task.selector === "0x00000000"
+                                      ? "execute()"
+                                      : (task.signature ?? task.selector)}
+                                  </code>
+                                </div>
+                                {enabled.badge ? (
+                                  <EnablementIndicator label={enabled.badge} />
+                                ) : (
+                                  <span
+                                    className="text-gray-500"
+                                    title="No task-local enablement observation"
+                                  >
+                                    Unknown
+                                  </span>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ol>
+                      )}
+                      {selectedTaskList.verification.outcome !== "match" && (
+                        <p className="mt-2 text-amber-800">
+                          Task configuration verification:{" "}
+                          {selectedTaskList.verification.outcome}. Indexed order
+                          is retained.
+                        </p>
+                      )}
+                      {selectedTaskList.indexedThrough && (
+                        <p className="mt-2 text-gray-500">
+                          Indexed through block{" "}
+                          {selectedTaskList.indexedThrough.number}.
+                        </p>
+                      )}
+                    </section>
+                  )}
+                  {selectedContract && (
+                    <>
+                      {selectedControl.notices.map((notice) => (
+                        <p key={notice} className="mt-2 text-amber-800">
+                          {notice}
+                        </p>
+                      ))}
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-gray-500">
+                          Indexing &amp; verification
+                        </summary>
+                        {selectedCoreContract && (
+                          <p className="mt-2 text-gray-600">
+                            Last Kernel update:{" "}
+                            {new Date(
+                              Number(
+                                selectedCoreContract.lastUpdatedTimestamp
+                              ) * 1000
+                            ).toLocaleString()}
                           </p>
                         )}
-                        <details className="mt-1">
-                          <summary className="cursor-pointer text-gray-500">
-                            Evidence
-                          </summary>
-                          {relationship.scope && (
-                            <p className="mt-1 break-all text-gray-500">
-                              Registry: {relationship.scope.registry}; token:{" "}
-                              {relationship.scope.token}.
+                        {selectedControl.details
+                          .filter(
+                            (detail) => detail !== selectedControl.warning
+                          )
+                          .map((detail) => (
+                            <p
+                              key={detail}
+                              className="mt-2 break-all text-gray-600"
+                            >
+                              {detail}
+                            </p>
+                          ))}
+                      </details>
+                    </>
+                  )}
+                  {selectedRelationships.length > 0 && (
+                    <section
+                      className="mt-3 border-t border-gray-200 pt-2"
+                      aria-label="Control relationships"
+                    >
+                      <h4 className="font-semibold">
+                        Relationships ({selectedRelationships.length})
+                      </h4>
+                      {selectedRelationships.map((relationship) => (
+                        <div
+                          key={relationship.id}
+                          className="mt-2 border-t border-gray-100 pt-2"
+                        >
+                          <strong>
+                            {relationship.status === "pending"
+                              ? "Pending "
+                              : ""}
+                            {relationship.callSignature ??
+                              relationship.functionContext?.signature ??
+                              relationship.kind.replace(/-/g, " ")}
+                          </strong>
+                          <FunctionDocumentation
+                            value={relationship.functionContext}
+                          />
+                          {relationship.targetCode && (
+                            <p className="mt-1 text-gray-500">
+                              {relationship.targetCode === "present"
+                                ? "Target has deployed code at the observation block."
+                                : "Target has no code at the observation block; address type is not inferred."}
                             </p>
                           )}
-                          {relationship.status === "reference" &&
-                            relationship.getter && (
-                              <p className="mt-1 text-gray-500">
-                                Address reference from{" "}
-                                {relationship.getter.split(":")[0]}(
-                                {relationship.scope?.token}).
+                          {relationship.target ? (
+                            <p className="mt-1 break-all">
+                              {getRelationshipPath(relationship).map(
+                                (address, index) => (
+                                  <span key={address}>
+                                    {index > 0 && " → "}
+                                    <a
+                                      className="text-blue-600"
+                                      href={getEtherscanLink(
+                                        address,
+                                        selectedChainId
+                                      )}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title={address}
+                                    >
+                                      {shortenAddress(address)}
+                                    </a>
+                                  </span>
+                                )
+                              )}
+                            </p>
+                          ) : (
+                            <p>
+                              {relationship.value == null
+                                ? "Unknown; no successful observation establishes this field."
+                                : relationship.getter?.startsWith("new")
+                                  ? "No pending nomination."
+                                  : relationship.kind === "registered-pool"
+                                    ? "OHM is unregistered; no pool is selected."
+                                    : "Unset."}
+                            </p>
+                          )}
+                          <details className="mt-1">
+                            <summary className="cursor-pointer text-gray-500">
+                              Evidence
+                            </summary>
+                            {relationship.scope && (
+                              <p className="mt-1 break-all text-gray-500">
+                                Registry: {relationship.scope.registry}; token:{" "}
+                                {relationship.scope.token}.
                               </p>
                             )}
-                          <p className="mt-1 break-all text-gray-500">
-                            Observed at block {relationship.provenance.number} (
-                            {relationship.provenance.hash})
-                            {"transactionHash" in relationship.provenance
-                              ? `; transaction ${relationship.provenance.transactionHash}, log ${relationship.provenance.logIndex}`
-                              : "; getter observation"}
-                            .
-                          </p>
-                          {relationship.indexedThrough && (
-                            <p className="mt-1 text-gray-500">
-                              Indexed through block{" "}
-                              {relationship.indexedThrough.number}.
+                            {relationship.status === "reference" &&
+                              relationship.getter && (
+                                <p className="mt-1 text-gray-500">
+                                  Address reference from{" "}
+                                  {relationship.getter.split(":")[0]}(
+                                  {relationship.scope?.token}).
+                                </p>
+                              )}
+                            <p className="mt-1 break-all text-gray-500">
+                              Observed at block {relationship.provenance.number}{" "}
+                              ({relationship.provenance.hash})
+                              {"transactionHash" in relationship.provenance
+                                ? `; transaction ${relationship.provenance.transactionHash}, log ${relationship.provenance.logIndex}`
+                                : "; getter observation"}
+                              .
                             </p>
-                          )}
-                          {relationship.verification?.outcome === "match" && (
-                            <p className="mt-1 text-gray-500">
-                              Getter matches at block{" "}
-                              {relationship.verification.block?.number}.
-                            </p>
-                          )}
-                          {relationship.status === "reference" &&
-                            relationship.coverage && (
+                            {relationship.indexedThrough && (
                               <p className="mt-1 text-gray-500">
+                                Indexed through block{" "}
+                                {relationship.indexedThrough.number}.
+                              </p>
+                            )}
+                            {relationship.verification?.outcome === "match" && (
+                              <p className="mt-1 text-gray-500">
+                                Getter matches at block{" "}
+                                {relationship.verification.block?.number}.
+                              </p>
+                            )}
+                            {relationship.status === "reference" &&
+                              relationship.coverage && (
+                                <p className="mt-1 text-gray-500">
+                                  {relationship.coverage}
+                                </p>
+                              )}
+                          </details>
+                          {relationship.lastChange &&
+                            (!relationship.indexedThrough ||
+                              BigInt(relationship.lastChange.number) >
+                                BigInt(relationship.indexedThrough.number)) && (
+                              <p className="mt-1 text-amber-800">
+                                Latest relationship change awaits a completed
+                                verification checkpoint.
+                              </p>
+                            )}
+                          {data?.observation &&
+                            (!relationship.indexedThrough ||
+                              BigInt(relationship.indexedThrough.number) <
+                                BigInt(
+                                  data.observation.indexedThrough.number
+                                )) && (
+                              <p className="mt-1 text-amber-800">
+                                Relationship coverage is behind chain
+                                observation block{" "}
+                                {data.observation.indexedThrough.number}.
+                              </p>
+                            )}
+                          {relationship.status !== "reference" &&
+                            relationship.coverage && (
+                              <p className="mt-1 text-amber-800">
                                 {relationship.coverage}
                               </p>
                             )}
-                        </details>
-                        {relationship.lastChange &&
-                          (!relationship.indexedThrough ||
-                            BigInt(relationship.lastChange.number) >
-                              BigInt(relationship.indexedThrough.number)) && (
-                            <p className="mt-1 text-amber-800">
-                              Latest relationship change awaits a completed
-                              verification checkpoint.
+                          {relationship.verification?.outcome ===
+                            "mismatch" && (
+                            <p className="mt-1 break-all text-amber-800">
+                              Verification mismatch: indexed{" "}
+                              {relationship.value}, getter{" "}
+                              {relationship.verification.getterValue} at block{" "}
+                              {relationship.verification.block?.number} (
+                              {relationship.verification.block?.hash}). Indexed
+                              state is retained.
                             </p>
                           )}
-                        {data?.observation &&
-                          (!relationship.indexedThrough ||
-                            BigInt(relationship.indexedThrough.number) <
-                              BigInt(
-                                data.observation.indexedThrough.number
-                              )) && (
+                          {relationship.verification?.outcome ===
+                            "unavailable" && (
                             <p className="mt-1 text-amber-800">
-                              Relationship coverage is behind chain observation
-                              block {data.observation.indexedThrough.number}.
+                              Getter verification unavailable at block{" "}
+                              {relationship.verification.block?.number}.
+                              Established indexed state is retained.
                             </p>
                           )}
-                        {relationship.status !== "reference" &&
-                          relationship.coverage && (
-                            <p className="mt-1 text-amber-800">
-                              {relationship.coverage}
-                            </p>
-                          )}
-                        {relationship.verification?.outcome === "mismatch" && (
-                          <p className="mt-1 break-all text-amber-800">
-                            Verification mismatch: indexed {relationship.value},
-                            getter {relationship.verification.getterValue} at
-                            block {relationship.verification.block?.number} (
-                            {relationship.verification.block?.hash}). Indexed
-                            state is retained.
-                          </p>
-                        )}
-                        {relationship.verification?.outcome ===
-                          "unavailable" && (
-                          <p className="mt-1 text-amber-800">
-                            Getter verification unavailable at block{" "}
-                            {relationship.verification.block?.number}.
-                            Established indexed state is retained.
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </section>
-                )}
+                        </div>
+                      ))}
+                    </section>
+                  )}
+                </div>
               </aside>
             )}
           </>

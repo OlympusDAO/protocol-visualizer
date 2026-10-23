@@ -1,6 +1,6 @@
 {
   "name": "indexer",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,12 +13,12 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "envio": "3.6.1",
-    "viem": "^2.21.3"
+    "envio": "3.14.0",
+    "viem": "^2.57.7"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
-    "typescript": "^5.2.2"
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=24"

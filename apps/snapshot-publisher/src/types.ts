@@ -58,6 +58,7 @@ export type InventoryContract = {
 };
 
 export type ProtocolGraphqlData = {
+  BridgeConfiguration?: BridgeConfiguration[];
   HeartTasks?: HeartTasks[];
   KnownContract?: Pick<
     GraphqlContract,
@@ -148,6 +149,7 @@ export type SnapshotFile = {
   publishLast?: boolean;
 };
 import type {
+  BridgeConfiguration,
   HeartTasks,
   IndexingProgress,
   ContractState,

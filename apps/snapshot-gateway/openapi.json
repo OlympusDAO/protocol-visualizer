@@ -405,6 +405,12 @@
             "additionalProperties": false,
             "required": ["contracts", "roles", "roleAssignments"],
             "properties": {
+              "bridgeConfigurations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ProtocolSnapshot/$defs/bridgeConfiguration"
+                }
+              },
               "periodicTasks": {
                 "type": "array",
                 "items": {
@@ -461,6 +467,167 @@
           }
         },
         "$defs": {
+          "bridgeRateLimit": {
+            "type": "object",
+            "required": ["isEnabled", "capacity", "rate"],
+            "additionalProperties": false,
+            "properties": {
+              "isEnabled": {
+                "type": "boolean"
+              },
+              "capacity": {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              "rate": {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              }
+            }
+          },
+          "bridgeRoute": {
+            "type": "object",
+            "required": ["selector", "routerSupported"],
+            "additionalProperties": false,
+            "properties": {
+              "selector": {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              "routerSupported": {
+                "type": ["boolean", "null"]
+              },
+              "remoteToken": {
+                "type": "string"
+              },
+              "remotePools": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "outbound": {
+                "$ref": "#/components/schemas/ProtocolSnapshot/$defs/bridgeRateLimit"
+              },
+              "inbound": {
+                "$ref": "#/components/schemas/ProtocolSnapshot/$defs/bridgeRateLimit"
+              },
+              "trustedRemote": {
+                "type": ["string", "null"]
+              }
+            }
+          },
+          "bridgeConfiguration": {
+            "type": "object",
+            "required": [
+              "id",
+              "chainId",
+              "address",
+              "kind",
+              "configuration",
+              "selectors",
+              "observedAt",
+              "lastChange",
+              "verification"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "chainId": {
+                "type": "integer"
+              },
+              "address": {
+                "type": "string",
+                "pattern": "^0x[0-9a-f]{40}$"
+              },
+              "kind": {
+                "enum": ["pool", "bridge"]
+              },
+              "configuration": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "token",
+                      "router",
+                      "codeHash",
+                      "routes",
+                      "allowList"
+                    ],
+                    "properties": {
+                      "token": {
+                        "type": "string",
+                        "pattern": "^0x[0-9a-f]{40}$"
+                      },
+                      "router": {
+                        "type": "string",
+                        "pattern": "^0x[0-9a-f]{40}$"
+                      },
+                      "codeHash": {
+                        "type": "string",
+                        "pattern": "^0x[0-9a-f]{64}$"
+                      },
+                      "routes": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/ProtocolSnapshot/$defs/bridgeRoute"
+                        }
+                      },
+                      "allowList": {
+                        "anyOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              "selectors": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              },
+              "observedAt": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "lastChange": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "verification": {
+                "$ref": "#/components/schemas/ProtocolSnapshot/$defs/contractState/properties/verification"
+              }
+            }
+          },
           "heartTasks": {
             "type": "object",
             "required": ["id", "chainId", "address", "tasks", "verification"],

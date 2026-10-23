@@ -303,3 +303,28 @@ set `ENVIO_INDEXER_INTERNAL_PORT`.
 
 The runtime image removes package-manager binaries after install to reduce the
 container scan surface.
+
+## CCIP lane observations
+
+The Bridge lanes view uses optional `BridgeConfiguration` snapshot records.
+Pool records enumerate remote selectors, accepted pools/tokens, router support,
+allowlists, and inbound/outbound rate-limit configuration. Bridge records read
+the corresponding EVM or SVM trusted-remote getter. Chain selectors remain
+decimal strings; they are not EVM chain IDs.
+
+Configuration events invalidate the previous observation immediately. Completed
+checkpoints refresh it with hash-bound reads: at creation, every 10,000 blocks
+during catch-up, and every 100 blocks in realtime. Failed reads retain the prior
+configuration as unverified. Canonical-anchor checks prevent orphaned evidence
+from becoming current. Envio rollback restores both observations and events.
+
+Each direction is checked independently against both snapshots. Missing snapshots,
+missing configuration, and unindexed Solana destinations remain unknown. Known
+disabled endpoints, absent registrations, incompatible trusted remotes/pools,
+and zero-capacity/zero-refill active limits are reported as blockers. Disabled
+rate limiting means unlimited throughput for that limiter.
+
+This first view covers recorded CCIP configuration. It does not simulate delivery,
+index Solana destination state, measure liquidity or CCIP health, or discover
+LayerZero lanes. Update the gateway/schema readers before publishing the new
+optional snapshot field. Older snapshots remain readable without lane evidence.

@@ -7,6 +7,7 @@ export type ProtocolChain = {
   explorerBaseUrl: string;
   environment: string;
   availability: string;
+  ccipSelector?: string;
 };
 
 export const SUPPORTED_CHAINS = protocolChains satisfies ProtocolChain[];

@@ -431,6 +431,7 @@ export function createProtocolSnapshot({
       roleAssignments: roleAssignments.length,
     },
     data: {
+      bridgeConfigurations: graphqlData.BridgeConfiguration ?? [],
       periodicTasks: graphqlData.HeartTasks ?? [],
       contracts,
       roles,

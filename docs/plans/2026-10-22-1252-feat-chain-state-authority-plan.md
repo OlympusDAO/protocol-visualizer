@@ -14,7 +14,7 @@ execution: code
 - **Objective:** A viewer can find Olympus deployments on every recorded EVM network, see whether a contract is enabled, and trace who controls it.
 - **Means:** Extend Envio event indexing and the snapshot pipeline with a deployment inventory, current state, and transition records (KTD1–KTD5).
 - **Authority:** Deployment records identify addresses. Verified contract events establish state changes. Block-pinned getter reads establish initial state and verify replay results. Deployment intentions do not establish completed handovers.
-- **Execution:** Nine local implementation milestones below. U7 adds shareable navigation; U8 improves Mainnet readability; U9 generalizes address-getter references and adds function documentation context. This document authorizes no chain transactions or deployment. Publication remains a separate user decision.
+- **Execution:** Ten local implementation milestones below. U7 adds shareable navigation; U8 improves Mainnet readability; U9 generalizes address-getter references and adds function documentation context; U10 adds observed CCIP lanes between chains. This document authorizes no chain transactions or deployment. Publication remains a separate user decision.
 - **Milestone commits:** Validate each milestone. Run the privacy gate before its separate local commit. Commit before the next milestone, with the U-ID in the message. Keep unrelated work outside each commit.
 - **Stop conditions:** Preserve conflicting source records and resolve their provenance before importing them. Never replace missing observations with assumed owners or enabled values.
 
@@ -376,6 +376,28 @@ Use the same function metadata to explain permission edges: identify the policy 
 
 ---
 
+### U10. Visualize observed CCIP lanes between chains
+
+Provide a separate circular chain graph, grouped into production and testnets.
+Directional arrows come from observed pool routes or trusted remotes. Selecting
+a lane shows its endpoint contracts, blockers, directional rate limits, and
+observation blocks, and persists the selection in the URL. Contract links return
+to the architecture view. Referenced Solana networks are named unindexed endpoints.
+
+Add optional `BridgeConfiguration` observations to the existing indexer/snapshot
+pipeline. Configuration events invalidate prior observations; canonical completed
+checkpoints refresh them. Verify source router support, both registered pools,
+remote token/pool compatibility, both trusted bridge counterparts, allowlists,
+and known endpoint enablement/Kernel membership. An active limiter with zero
+capacity and refill blocks its direction; a disabled limiter is unlimited.
+
+Distinguish observed empty routes from unavailable snapshots and stale/missing
+configuration. Preserve opaque non-EVM identifiers. Do not infer reciprocal
+lanes or label configuration checks as proof of delivery. Liquidity, transfer
+history, LayerZero lanes, and Solana destination indexing remain later work.
+Use the existing React Flow, snapshot compatibility, and event rollback paths;
+add no dependency or browser RPC polling. Commit this milestone separately.
+
 ## Verification Contract
 
 The plan itself requires no application builds or RPC execution. During implementation, use existing configuration, publisher, gateway, monitor, and shared-artifact tests. Add focused indexer replay, seed, rollback, and pure graph-model tests. Do not add a separate test framework.
@@ -399,6 +421,7 @@ At each milestone boundary, run its verification and the applicable repository c
 - [ ] U7: URL navigation round-trips the selected chain and role/contract/actor, including direct loads, reload, and Back/Forward.
 - [ ] U8: Dense-network rendering has been assessed against Mainnet tasks, and the selected grouping/focus approach improves readability while preserving graph identities and relationships.
 - [ ] U9: Verified address getters expose additional contract references, and getter/function signatures with available NatSpec explain reference and permission connections without inventing on-chain state.
+- [x] U10: Observed CCIP lanes have a circular, directional chain view with URL selection, endpoint evidence, blockers, and explicit missing coverage. Event invalidation, canonical reads, snapshot compatibility, and the required builds are verified.
 - [ ] Existing role/module views still work; meaningful checks pass; abandoned implementation attempts are removed.
 - [ ] Each completed milestone has its own validated, privacy-gate-clean local commit with its U-ID.
 - [ ] No transaction, push, PR, or deployment is implied by local implementation completion.

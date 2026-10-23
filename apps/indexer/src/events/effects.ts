@@ -21,6 +21,8 @@ import type {
 import { normalizeAddress } from "./ids";
 import { getPublicClient, isHistoricalStateUnavailable } from "./rpc";
 import type { ControlBlock } from "./control-state";
+import { readPinnedBridgeConfiguration } from "./bridge-reads";
+import type { BridgeReadResult } from "./bridge-config";
 
 const contractProcessors = new Map<number, ContractProcessor>();
 const processedContracts = new Map<string, Promise<ProcessedContractData>>();
@@ -510,6 +512,52 @@ export async function getControlGetter(
     address: normalizeAddress(input.address) as Address,
     blockHash: input.blockHash.toLowerCase(),
   })) as ControlGetterResult;
+}
+
+const readBridgeConfigurationEffect = createEffect(
+  {
+    name: "readBridgeConfiguration",
+    input: {
+      chainId: S.number,
+      address: S.address,
+      kind: S.union([S.schema("pool"), S.schema("bridge")]),
+      blockNumber: S.bigint,
+      blockHash: S.string,
+      selectors: S.array(S.string),
+    },
+    output: {
+      status: S.string,
+      value: S.optional(S.string),
+      reason: S.optional(S.string),
+    },
+    rateLimit: { calls: 10, per: "second" },
+    cache: true,
+  },
+  async ({ input, context }) => {
+    const result = await readPinnedBridgeConfiguration(
+      getPublicClient(input.chainId),
+      input
+    );
+    if (result.status === "unavailable") context.cache = false;
+    return result;
+  }
+);
+
+export async function getBridgeConfiguration(
+  context: EnvioContext,
+  input: {
+    chainId: number;
+    address: string;
+    kind: "pool" | "bridge";
+    blockNumber: bigint;
+    blockHash: string;
+    selectors: string[];
+  }
+): Promise<BridgeReadResult> {
+  return (await context.effect(readBridgeConfigurationEffect, {
+    ...input,
+    address: input.address as Address,
+  })) as BridgeReadResult;
 }
 
 // A height's header may change on rollback. Never persist a height-only header cache.

@@ -1,5 +1,11 @@
 import { indexer } from "envio";
 import {
+  getBridgeContracts,
+  handleBridgeConfigurationEvent,
+  bridgeAnchorsCanonical,
+  completeBridgeConfigurations,
+} from "./events/bridge-config";
+import {
   getPeriodicTaskManagers,
   getLegacyTaskContracts,
   handlePeriodicTaskEvent,
@@ -36,7 +42,11 @@ import {
   controlAnchorsCanonical,
   type EnablerContract,
 } from "./events/enabler";
-import { getControlBlock, getControlGetter } from "./events/effects";
+import {
+  getControlBlock,
+  getControlGetter,
+  getBridgeConfiguration,
+} from "./events/effects";
 import { setControlCapability } from "./events/control-state";
 
 import { handleKernelActionExecuted } from "./events/kernel";
@@ -193,10 +203,48 @@ indexer.contractRegister(
     if (
       registry?.token === event.params.token.toLowerCase() &&
       !/^0x0{40}$/i.test(event.params.newPool)
-    )
+    ) {
       context.chain.ChainlinkOwned.add(event.params.newPool);
+      context.chain.CCIPTokenPool.add(event.params.newPool);
+    }
   }
 );
+for (const action of [
+  "ChainAdded",
+  "ChainConfigured",
+  "ChainRemoved",
+  "RemotePoolAdded",
+  "RemotePoolRemoved",
+  "AllowListAdd",
+  "AllowListRemove",
+  "RouterUpdated",
+] as const) {
+  indexer.onEvent(
+    {
+      contract: "CCIPTokenPool",
+      event: action,
+      fields: { block: ["hash", "timestamp"], transaction: ["hash"] },
+    },
+    ({ event, context }) =>
+      handleBridgeConfigurationEvent(context as EnvioContext, event, "pool")
+  );
+}
+for (const action of [
+  "TrustedRemoteEVMSet",
+  "TrustedRemoteEVMUnset",
+  "TrustedRemoteSVMSet",
+  "TrustedRemoteSVMUnset",
+] as const) {
+  indexer.onEvent(
+    {
+      contract: "CCIPBridge",
+      event: action,
+      fields: { block: ["hash", "timestamp"], transaction: ["hash"] },
+    },
+    ({ event, context }) =>
+      handleBridgeConfigurationEvent(context as EnvioContext, event, "bridge")
+  );
+}
 for (const action of [
   "AdministratorTransferRequested",
   "AdministratorTransferred",
@@ -469,6 +517,16 @@ for (const chainId of indexer.chainIds) {
       await getObservedAuthorityFields(context, chainId, relationshipFields)
     );
     if (
+      !(await bridgeAnchorsCanonical(
+        context,
+        chainId,
+        block,
+        getBridgeContracts(chainId, observedFields),
+        readBlock
+      ))
+    )
+      return;
+    if (
       !(await relationshipAnchorsCanonical(
         context,
         chainId,
@@ -529,6 +587,20 @@ for (const chainId of indexer.chainIds) {
         readGetter,
         readBlock
       );
+    await completeBridgeConfigurations(
+      context,
+      chainId,
+      block,
+      getBridgeContracts(chainId, expanded),
+      (contract, selectors) =>
+        getBridgeConfiguration(context, {
+          chainId,
+          ...contract,
+          selectors,
+          blockNumber: BigInt(block.number),
+          blockHash: block.hash,
+        })
+    );
   };
   // Creation boundaries run after constructor logs; a truncated replay seeds at its own start.
   for (const boundary of new Set(

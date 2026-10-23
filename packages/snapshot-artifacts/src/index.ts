@@ -105,7 +105,40 @@ export type HeartTasks = {
   indexedThrough: BlockObservation | null;
   verification: GetterVerification;
 };
+export type BridgeRateLimit = {
+  isEnabled: boolean;
+  capacity: string;
+  rate: string;
+};
+export type BridgeRoute = {
+  selector: string;
+  routerSupported: boolean | null;
+  remoteToken?: string;
+  remotePools?: string[];
+  outbound?: BridgeRateLimit;
+  inbound?: BridgeRateLimit;
+  trustedRemote?: string | null;
+};
+export type BridgeConfiguration = {
+  id: string;
+  chainId: number;
+  address: string;
+  kind: "pool" | "bridge";
+  configuration: {
+    token: string;
+    router: string;
+    codeHash: string;
+    routes: BridgeRoute[];
+    /** null means the pool's allowlist is disabled (or this is a bridge). */
+    allowList: string[] | null;
+  } | null;
+  selectors: string[];
+  observedAt: BlockObservation | null;
+  lastChange: EventProvenance | null;
+  verification: GetterVerification;
+};
 export type SnapshotExtension = {
+  bridgeConfigurations?: BridgeConfiguration[];
   periodicTasks?: HeartTasks[];
   additionalContracts?: AdditionalContract[];
   contractStates?: ContractState[];
@@ -127,6 +160,7 @@ export function readSnapshotData<
   assertSupportedSchemaVersion(snapshot.schemaVersion);
   return {
     ...snapshot.data,
+    bridgeConfigurations: snapshot.data.bridgeConfigurations ?? [],
     periodicTasks: snapshot.data.periodicTasks ?? [],
     additionalContracts: snapshot.data.additionalContracts ?? [],
     contractStates: snapshot.data.contractStates ?? [],
@@ -490,6 +524,10 @@ export const protocolSnapshotSchema = {
       additionalProperties: false,
       required: ["contracts", "roles", "roleAssignments"],
       properties: {
+        bridgeConfigurations: {
+          type: "array",
+          items: { $ref: "#/$defs/bridgeConfiguration" },
+        },
         periodicTasks: { type: "array", items: { $ref: "#/$defs/heartTasks" } },
         additionalContracts: {
           type: "array",
@@ -516,6 +554,83 @@ export const protocolSnapshotSchema = {
     },
   },
   $defs: {
+    bridgeRateLimit: {
+      type: "object",
+      required: ["isEnabled", "capacity", "rate"],
+      additionalProperties: false,
+      properties: {
+        isEnabled: { type: "boolean" },
+        capacity: { type: "string", pattern: "^[0-9]+$" },
+        rate: { type: "string", pattern: "^[0-9]+$" },
+      },
+    },
+    bridgeRoute: {
+      type: "object",
+      required: ["selector", "routerSupported"],
+      additionalProperties: false,
+      properties: {
+        selector: { type: "string", pattern: "^[0-9]+$" },
+        routerSupported: { type: ["boolean", "null"] },
+        remoteToken: { type: "string" },
+        remotePools: { type: "array", items: { type: "string" } },
+        outbound: { $ref: "#/$defs/bridgeRateLimit" },
+        inbound: { $ref: "#/$defs/bridgeRateLimit" },
+        trustedRemote: { type: ["string", "null"] },
+      },
+    },
+    bridgeConfiguration: {
+      type: "object",
+      required: [
+        "id",
+        "chainId",
+        "address",
+        "kind",
+        "configuration",
+        "selectors",
+        "observedAt",
+        "lastChange",
+        "verification",
+      ],
+      additionalProperties: false,
+      properties: {
+        id: { type: "string" },
+        chainId: { type: "integer" },
+        address: { type: "string", pattern: "^0x[0-9a-f]{40}$" },
+        kind: { enum: ["pool", "bridge"] },
+        configuration: {
+          anyOf: [
+            { type: "null" },
+            {
+              type: "object",
+              additionalProperties: false,
+              required: ["token", "router", "codeHash", "routes", "allowList"],
+              properties: {
+                token: { type: "string", pattern: "^0x[0-9a-f]{40}$" },
+                router: { type: "string", pattern: "^0x[0-9a-f]{40}$" },
+                codeHash: { type: "string", pattern: "^0x[0-9a-f]{64}$" },
+                routes: {
+                  type: "array",
+                  items: { $ref: "#/$defs/bridgeRoute" },
+                },
+                allowList: {
+                  anyOf: [
+                    { type: "null" },
+                    { type: "array", items: { type: "string" } },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+        selectors: {
+          type: "array",
+          items: { type: "string", pattern: "^[0-9]+$" },
+        },
+        observedAt: { anyOf: [{ $ref: "#/$defs/block" }, { type: "null" }] },
+        lastChange: { anyOf: [{ $ref: "#/$defs/block" }, { type: "null" }] },
+        verification: { $ref: "#/$defs/contractState/properties/verification" },
+      },
+    },
     heartTasks: {
       type: "object",
       required: ["id", "chainId", "address", "tasks", "verification"],

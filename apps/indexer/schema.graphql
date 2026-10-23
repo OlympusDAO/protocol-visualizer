@@ -203,3 +203,15 @@ type HeartTasks {
   indexedThrough: Json
   verification: Json!
 }
+
+type BridgeConfiguration {
+  id: ID!
+  chainId: Int! @index
+  address: String! @index
+  kind: String!
+  configuration: Json
+  selectors: [String!]!
+  observedAt: Json
+  lastChange: Json
+  verification: Json!
+}

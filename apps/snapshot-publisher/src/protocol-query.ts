@@ -9,6 +9,7 @@ export const PROTOCOL_VISUALIZER_QUERIES: ProtocolVisualizerQuery[] = [
     query: `
       query ProtocolVisualizerData($chainId: Int!) {
         KnownContract: contract(where: { chainId: { _eq: $chainId } }, orderBy: { name: asc }) { address name version contractType isEnabled }
+        BridgeConfiguration: bridgeConfiguration(where: { chainId: { _eq: $chainId } }) { id chainId address kind configuration selectors observedAt lastChange verification }
         HeartTasks: heartTasks(where: { chainId: { _eq: $chainId } }) { id chainId address tasks seed lastChange indexedThrough verification }
         ContractState: contractState(where: { chainId: { _eq: $chainId } }) { id chainId address enablerCapability enabled seed lastChange indexedThrough verification enablementGetter enablementCoverage }
         ContractRelationship: contractRelationship(where: { chainId: { _eq: $chainId } }) { id chainId kind source target status scope provenance subject getter value seed lastChange indexedThrough verification coverage functionContext targetCode callSignature callSelector }
@@ -55,6 +56,7 @@ export const PROTOCOL_VISUALIZER_QUERIES: ProtocolVisualizerQuery[] = [
     query: `
       query ProtocolVisualizerData($chainId: Int!) {
         KnownContract: Contract(where: { chainId: { _eq: $chainId } }, order_by: { name: asc }) { address name version contractType isEnabled }
+        BridgeConfiguration: BridgeConfiguration(where: { chainId: { _eq: $chainId } }) { id chainId address kind configuration selectors observedAt lastChange verification }
         HeartTasks: HeartTasks(where: { chainId: { _eq: $chainId } }) { id chainId address tasks seed lastChange indexedThrough verification }
         ContractState: ContractState(where: { chainId: { _eq: $chainId } }) { id chainId address enablerCapability enabled seed lastChange indexedThrough verification enablementGetter enablementCoverage }
         ContractRelationship: ContractRelationship(where: { chainId: { _eq: $chainId } }) { id chainId kind source target status scope provenance subject getter value seed lastChange indexedThrough verification coverage functionContext targetCode callSignature callSelector }

@@ -5,7 +5,8 @@
     "name": "Ethereum Mainnet",
     "explorerBaseUrl": "https://etherscan.io",
     "environment": "production",
-    "availability": "indexed"
+    "availability": "indexed",
+    "ccipSelector": "5009297550715157269"
   },
   {
     "key": "Optimism",
@@ -13,7 +14,8 @@
     "name": "Optimism",
     "explorerBaseUrl": "https://optimistic.etherscan.io",
     "environment": "production",
-    "availability": "indexed"
+    "availability": "indexed",
+    "ccipSelector": "3734403246176062136"
   },
   {
     "key": "Arbitrum",
@@ -21,7 +23,8 @@
     "name": "Arbitrum",
     "explorerBaseUrl": "https://arbiscan.io",
     "environment": "production",
-    "availability": "indexed"
+    "availability": "indexed",
+    "ccipSelector": "4949039107694359620"
   },
   {
     "key": "Base",
@@ -29,7 +32,8 @@
     "name": "Base",
     "explorerBaseUrl": "https://basescan.org",
     "environment": "production",
-    "availability": "indexed"
+    "availability": "indexed",
+    "ccipSelector": "15971525489660198786"
   },
   {
     "key": "Berachain",
@@ -37,7 +41,8 @@
     "name": "Berachain",
     "explorerBaseUrl": "https://berascan.com",
     "environment": "production",
-    "availability": "indexed"
+    "availability": "indexed",
+    "ccipSelector": "1294465214383781161"
   },
   {
     "key": "Robinhood",
@@ -45,7 +50,8 @@
     "name": "Robinhood Chain",
     "explorerBaseUrl": "https://robinhoodchain.blockscout.com",
     "environment": "production",
-    "availability": "indexed"
+    "availability": "indexed",
+    "ccipSelector": "6180753054346818345"
   },
   {
     "key": "Sepolia",
@@ -53,7 +59,8 @@
     "name": "Sepolia",
     "explorerBaseUrl": "https://sepolia.etherscan.io",
     "environment": "testnet",
-    "availability": "indexed"
+    "availability": "indexed",
+    "ccipSelector": "16015286601757825753"
   },
   {
     "key": "ArbitrumSepolia",
@@ -61,7 +68,8 @@
     "name": "Arbitrum Sepolia",
     "explorerBaseUrl": "https://sepolia.arbiscan.io",
     "environment": "testnet",
-    "availability": "indexed"
+    "availability": "indexed",
+    "ccipSelector": "3478487238524512106"
   },
   {
     "key": "BaseSepolia",
@@ -69,7 +77,8 @@
     "name": "Base Sepolia",
     "explorerBaseUrl": "https://sepolia.basescan.org",
     "environment": "testnet",
-    "availability": "indexed"
+    "availability": "indexed",
+    "ccipSelector": "10344971235874465080"
   },
   {
     "key": "Goerli",
@@ -85,6 +94,7 @@
     "name": "Berachain Bartio",
     "explorerBaseUrl": "https://bartio.beratrail.io",
     "environment": "testnet",
-    "availability": "historical"
+    "availability": "historical",
+    "ccipSelector": "8999465244383784164"
   }
 ]

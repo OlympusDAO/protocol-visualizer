@@ -109,6 +109,28 @@ contracts:
       - event: "AdministratorTransferred(address indexed token, address indexed newAdmin)"
       - event: "PoolSet(address indexed token, address indexed previousPool, address indexed newPool)"
 
+  - name: CCIPTokenPool
+    abi_file_path: ./abis/json/CCIPTokenPool.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "ChainAdded(uint64 remoteChainSelector, bytes remoteToken, (bool isEnabled, uint128 capacity, uint128 rate) outboundRateLimiterConfig, (bool isEnabled, uint128 capacity, uint128 rate) inboundRateLimiterConfig)"
+      - event: "ChainConfigured(uint64 remoteChainSelector, (bool isEnabled, uint128 capacity, uint128 rate) outboundRateLimiterConfig, (bool isEnabled, uint128 capacity, uint128 rate) inboundRateLimiterConfig)"
+      - event: "ChainRemoved(uint64 remoteChainSelector)"
+      - event: "RemotePoolAdded(uint64 indexed remoteChainSelector, bytes remotePoolAddress)"
+      - event: "RemotePoolRemoved(uint64 indexed remoteChainSelector, bytes remotePoolAddress)"
+      - event: "AllowListAdd(address sender)"
+      - event: "AllowListRemove(address sender)"
+      - event: "RouterUpdated(address oldRouter, address newRouter)"
+
+  - name: CCIPBridge
+    abi_file_path: ./abis/json/CCIPBridge.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "TrustedRemoteEVMSet(uint64 indexed dstChainSelector, address indexed to)"
+      - event: "TrustedRemoteEVMUnset(uint64 indexed dstChainSelector)"
+      - event: "TrustedRemoteSVMSet(uint64 indexed dstChainSelector, bytes32 indexed to)"
+      - event: "TrustedRemoteSVMUnset(uint64 indexed dstChainSelector)"
+
 chains:
   - id: 84532
     start_block: 21445237
@@ -149,6 +171,14 @@ chains:
         address:
           - "0x6577cfd3b625a6bd0b708da1f066855c19ac8360"
         start_block: 26633650
+      - name: CCIPTokenPool
+        address:
+          - "0x6577cfd3b625a6bd0b708da1f066855c19ac8360"
+        start_block: 26633650
+      - name: CCIPBridge
+        address:
+          - "0xd28d3910191900699558c9d8066080df644d9db3"
+        start_block: 26633652
 
   - id: 421614
     start_block: 273448345
@@ -236,6 +266,14 @@ chains:
         address:
           - "0x1912c3cfafe8a76a32a92861d815ac2837f237ca"
         start_block: 4758
+      - name: CCIPTokenPool
+        address:
+          - "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb"
+        start_block: 94169097
+      - name: CCIPBridge
+        address:
+          - "0x5261fba7b50aa22b19b9edf939b771d109de991f"
+        start_block: 94169198
 
   - id: 1
     start_block: 13674068
@@ -325,6 +363,14 @@ chains:
         address:
           - "0xb22764f98dd05c789929716d677382df22c05cb6"
         start_block: 20735575
+      - name: CCIPTokenPool
+        address:
+          - "0xa5588e518ce5ee0e4628c005e4edabd5e87de3ad"
+        start_block: 22696743
+      - name: CCIPBridge
+        address:
+          - "0xfbf6383dc3f6010d403ecdf12ddc1311701d143d"
+        start_block: 22696744
 
   - id: 42161
     start_block: 85886461
@@ -375,6 +421,14 @@ chains:
         address:
           - "0x39ae1032cf4b334a1ed41cdd0833bdd7c7e7751e"
         start_block: 256834238
+      - name: CCIPTokenPool
+        address:
+          - "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a"
+        start_block: 516537665
+      - name: CCIPBridge
+        address:
+          - "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50"
+        start_block: 516537697
 
   - id: 8453
     start_block: 13204824
@@ -425,6 +479,14 @@ chains:
         address:
           - "0x6f6c373d09c07425baae72317863d7f6bb731e37"
         start_block: 20193207
+      - name: CCIPTokenPool
+        address:
+          - "0x20a3d8510f2e1176e8db4cea9883a8287a9029db"
+        start_block: 52847117
+      - name: CCIPBridge
+        address:
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+        start_block: 52847123
 
   - id: 80094
     start_block: 780011
@@ -475,6 +537,14 @@ chains:
         address:
           - "0x0944c3fb1db7d165336569221995b31cbe6c8a55"
         start_block: 1023691
+      - name: CCIPTokenPool
+        address:
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+        start_block: 27734756
+      - name: CCIPBridge
+        address:
+          - "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a"
+        start_block: 27734760
 
   - id: 10
     start_block: 98531613
@@ -525,6 +595,14 @@ chains:
         address:
           - "0x657c42abe4cd8aa731aec322f871b5b90cf6274f"
         start_block: 125790041
+      - name: CCIPTokenPool
+        address:
+          - "0xd98b5b2e4d5d6cd554115de19efb7a9084beddd1"
+        start_block: 158442667
+      - name: CCIPBridge
+        address:
+          - "0xcb4e21eb404d80f3e1db781aad9ad6a1217fbbf2"
+        start_block: 158442672
 
   - id: 11155111
     start_block: 6577288
@@ -619,3 +697,12 @@ chains:
         address:
           - "0x95f29fee11c5c55d26cccf1db6772de953b37b82"
         start_block: 6577288
+      - name: CCIPTokenPool
+        address:
+          - "0xf166375e8ee42565f93e244c606b8c09b9f67dbc"
+          - "0x3024ceabec7e120647ad585bd5836eb13d247de7"
+        start_block: 8375032
+      - name: CCIPBridge
+        address:
+          - "0xcfe75cca2b7a9354f7c25e889b1216f977dec6a5"
+        start_block: 8474774

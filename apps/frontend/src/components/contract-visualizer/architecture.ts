@@ -15,7 +15,7 @@ export const SUBSYSTEMS = [
   { id: "bond-protocol", name: "Bond Protocol" },
   { id: "roles", name: "Roles" },
   { id: "other", name: "Other contracts" },
-  { id: "inactive", name: "Not installed in Kernel" },
+  { id: "inactive", name: "Removed from Kernel" },
 ];
 export type ConnectionKind = "permission" | "control" | "reference";
 export type ConnectionFilters = Record<ConnectionKind, boolean>;

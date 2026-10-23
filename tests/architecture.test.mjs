@@ -143,7 +143,7 @@ test("architecture sections preserve visible canonical contracts, shared actors 
     assert.equal(containers.length, 1);
   }
   assert.ok(
-    sectioned.some((node) => node.data.label === "Not installed in Kernel")
+    sectioned.some((node) => node.data.label === "Removed from Kernel")
   );
   assert.deepEqual(layoutArchitectureSections(view.nodes), sectioned);
   assert.deepEqual(layoutArchitectureSections([]), []);

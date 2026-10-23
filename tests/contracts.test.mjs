@@ -200,7 +200,7 @@ test("uninstalled core contracts sit together beside the active graph", () => {
     active
   );
   const group = nodes.find((node) => node.type === "group");
-  assert.equal(group.data.label, "Not installed in Kernel");
+  assert.equal(group.data.label, "Removed from Kernel");
   assert.ok(group.position.x > active.position.x + 180);
   for (const node of nodes.filter((node) => node.data.kernelInactive)) {
     assert.ok(node.position.x >= group.position.x + 24);

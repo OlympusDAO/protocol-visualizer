@@ -57,8 +57,8 @@ export function groupInactiveContracts(
       type: "group",
       position: { x, y },
       data: {
-        name: "Not installed in Kernel",
-        label: "Not installed in Kernel",
+        name: "Removed from Kernel",
+        label: "Removed from Kernel",
       },
       selectable: false,
       focusable: false,

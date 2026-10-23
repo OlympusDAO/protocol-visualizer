@@ -88,6 +88,8 @@ pnpm run docker:build:snapshot-monitor
 
 Indexer setup, local Envio testing, metrics, and Docker runtime notes are
 documented in `apps/indexer/README.md`.
+For new contracts and getter links, use the
+[contract metadata update procedure](apps/indexer/README.md#contract-metadata).
 
 Quick local indexer commands:
 

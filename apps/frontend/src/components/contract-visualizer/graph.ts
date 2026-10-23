@@ -293,7 +293,7 @@ export function getRelationshipGraph(
         getter: "getPeriodicTasks",
         provenance,
         functionContext: {
-          signature: `${index + 1}. ${task.selector === "0x00000000" ? "execute()" : (task.signature ?? task.selector)}`,
+          signature: `Periodic Task ${index + 1}: ${task.selector === "0x00000000" ? "execute()" : (task.signature ?? task.selector)}`,
         },
         verification: list.verification,
         indexedThrough: list.indexedThrough,

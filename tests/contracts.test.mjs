@@ -73,7 +73,13 @@ test("Heart connections preserve task order and custom invocations and include d
   assert.equal(graph.edges.length, 2);
   assert.equal(
     graph.edges.find((edge) => edge.source === heart).label,
-    "1. migrate()"
+    "Periodic Task 1: migrate()"
+  );
+  assert.equal(
+    getRelationshipGraph([], 1, [
+      { ...lists[0], tasks: [{ address: task, selector: "0x00000000" }] },
+    ]).edges[0].label,
+    "Periodic Task 1: execute()"
   );
   assert.match(
     graph.edges.find((edge) => edge.source === task).label,

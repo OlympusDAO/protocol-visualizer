@@ -915,6 +915,8 @@ export function ContractVisualizer() {
       nodeIds.add(address);
     }
     for (const edge of relationships.edges) {
+      const periodicTask = edge.relationship.kind === "periodic-task";
+      const color = periodicTask ? "#0f766e" : "#475569";
       newEdges.push({
         ...createEdge(edge.source, edge.target),
         id: edge.id,
@@ -945,16 +947,16 @@ export function ContractVisualizer() {
           laneOffset: edge.labelOffset * 2.5,
         },
         style: {
-          stroke: "#475569",
-          strokeWidth: 2,
-          opacity: 0.7,
+          stroke: color,
+          strokeWidth: periodicTask ? 2.5 : 2,
+          opacity: periodicTask ? 1 : 0.7,
           ...(edge.pending ? { strokeDasharray: "6 4" } : {}),
         },
         labelStyle: {
           fontSize: 11,
           fill: "#334155",
         },
-        markerEnd: { type: MarkerType.Arrow, color: "#475569" },
+        markerEnd: { type: MarkerType.Arrow, color },
       });
     }
 

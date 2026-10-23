@@ -247,6 +247,9 @@ test("contract sections separate infrastructure, proposal helpers and Olympus to
       "MockDaiUsds",
     ],
     ccip: [
+      "CCIP Router",
+      "CCIP RMN Proxy",
+      "Chainlink OHM / ETH price feed",
       "TokenAdminRegistry",
       "CCIP RBACTimelock",
       "CCIPLockReleaseTokenPool",
@@ -270,7 +273,13 @@ test("contract sections separate infrastructure, proposal helpers and Olympus to
       "Staking",
       "V1Migrator",
     ],
-    "bond-protocol": ["BondFixedTermSDA"],
+    "bond-protocol": [
+      "BondFixedTermSDA",
+      "BondFixedTermTeller",
+      "BondFixedExpirySDA",
+      "BondFixedExpiryTeller",
+      "BondAggregator",
+    ],
     bridging: ["CCIPCrossChainBridge", "LZCrossChainBridge"],
     cooler: ["CoolerV2Composites"],
   };

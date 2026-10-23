@@ -143,6 +143,204 @@
     "startBlock": 22696744
   },
   {
+    "chainId": 1,
+    "address": "0x9a315bdf513367c0377fb36545857d12e85813ef",
+    "name": "TreasuryV3 (legacy)",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x30ce56e80aa96ebba1e1a74bc5c0feb5b0db4216",
+    "name": "CoolerFactory",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x007f7735baf391e207e3aa380bb53c4bd9a5fed6",
+    "name": "BondFixedTermTeller",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0xe504ca8a954a757f79a3728e7985f144860af41e",
+    "name": "Cooler",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0xba42be149e5260eba4b82418a6306f55d532ea47",
+    "name": "OlympusProInverseBondCreator",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x44a7a09ccddb4338e062f1a3849f9a82bdbf2aaa",
+    "name": "ZeroDistributor",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x66a71dcef29a0ffbdbe3c6a460a3b5bc225cd675",
+    "name": "LayerZero Endpoint V1",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x0000000000000000000000000000000000000348",
+    "name": "USD unit of account",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x007a66a2a13415db3613c1a4dd1c942a285902d1",
+    "name": "BondAggregator",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x383518188c0c6d7730d91b2c03a03c837814a899",
+    "name": "OHM (legacy v1)",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x184f3fad8618a6f458c16bae63f70c426fe784b3",
+    "name": "TokenMigrator (legacy)",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x6d94b3745b0ecf908b3b467907b947b43fba5f15",
+    "name": "TempOHM",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x31f8cc382c9898b273eff4e0b7626a6987c846e8",
+    "name": "TreasuryV2 (legacy)",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x9a72298ae3886221820b1c878d12d872087d3a23",
+    "name": "Chainlink OHM / ETH price feed",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x773616e4d11a78f511299002da57a0a94577f1f4",
+    "name": "Chainlink DAI / ETH price feed",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x411de17f12d1a34ecc7f45f49844626267c75e81",
+    "name": "CCIP RMN Proxy",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x80226fc0ee2b096224eeac085bb9a8cba1146f7d",
+    "name": "CCIP Router",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0xc0c293ce456ff0ed870add98a0828dd4d2903dbf",
+    "name": "AURA",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x744be650cea753de1e69bf6bad3c98490a855f52",
+    "name": "AuraMining",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0xba100000625a3754423978a60c9317c58a424e3d",
+    "name": "BAL",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x7fdd4e808ee9608f1b2f05157a2a8098e3d432cd",
+    "name": "BLVaultLido",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+    "name": "wstETH",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x5af4a636cb097409bb524458ef24e7353a2f75df",
+    "name": "pOLY (legacy)",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x2d769de6905ff98a0aea7dd5ccb1c0cd449aa189",
+    "name": "GenesisClaim (legacy)",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0xc84157c2306238c9330fea14774a82a53a127a59",
+    "name": "DelegateEscrowFactory",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0xb4f84a6af50f02b66a5fb43f2e8852174340c6cf",
+    "name": "DelegateEscrow",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0xd98b5b2e4d5d6cd554115de19efb7a9084beddd1",
+    "name": "ReceiptTokenManager",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0xde3e735d37a8498ad2f141f603a6d0f976a6f772",
+    "name": "CoolerFactory",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0xfbb3742628e8d19e0e2d7d8dde208821c09de960",
+    "name": "BLVault LUSD",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x5f98805a4e8be255a32880fdec7f6728c6568ba0",
+    "name": "LUSD",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x007fea32545a39ff558a1367bbbc1a22bc7abefd",
+    "name": "BondFixedExpirySDA",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x007fe70dc9797c4198528ae43d8195fff82bdc95",
+    "name": "BondFixedExpiryTeller",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x0b7ffc1f4ad541a4ed16b40d8c37f0929158d101",
+    "name": "EasyAuction",
+    "labelOnly": true
+  },
+  {
     "chainId": 5,
     "address": "0x0595328847af962f951a4f8f8ee9a3bf261e4f6b",
     "name": "OHM"
@@ -324,6 +522,24 @@
     "startBlock": 158442672
   },
   {
+    "chainId": 10,
+    "address": "0x3c2269811836af69497e5f486a85d7316753cf62",
+    "name": "LayerZero Endpoint V1",
+    "labelOnly": true
+  },
+  {
+    "chainId": 10,
+    "address": "0x3206695cae29952f4b0c22a169725a865bc8ce0f",
+    "name": "CCIP Router",
+    "labelOnly": true
+  },
+  {
+    "chainId": 10,
+    "address": "0x55b3fca23eddd28b1f5b4a3c7975f63efd2d06ce",
+    "name": "CCIP RMN Proxy",
+    "labelOnly": true
+  },
+  {
     "chainId": 4663,
     "address": "0x1912c3cfafe8a76a32a92861d815ac2837f237ca",
     "name": "TokenAdminRegistry",
@@ -354,6 +570,18 @@
     "startBlock": 94168343
   },
   {
+    "chainId": 4663,
+    "address": "0xe8464c353210cc398a45db2454fbc5bcd25fff20",
+    "name": "CCIP RMN Proxy",
+    "labelOnly": true
+  },
+  {
+    "chainId": 4663,
+    "address": "0x06fc836cf9839b1cd891c440a0a45242da6ae1c9",
+    "name": "CCIP Router",
+    "labelOnly": true
+  },
+  {
     "chainId": 8453,
     "address": "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0",
     "name": "OHM",
@@ -382,6 +610,30 @@
     "address": "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678",
     "name": "CCIPCrossChainBridge",
     "startBlock": 52847123
+  },
+  {
+    "chainId": 8453,
+    "address": "0xc842c69d54f83170c42c4d556b4f6b2ca53dd3e8",
+    "name": "CCIP RMN Proxy",
+    "labelOnly": true
+  },
+  {
+    "chainId": 8453,
+    "address": "0x881e3a65b4d4a04dd529061dd0071cf975f58bcd",
+    "name": "CCIP Router",
+    "labelOnly": true
+  },
+  {
+    "chainId": 8453,
+    "address": "0x1a44076050125825900e736c501f859c50fe728c",
+    "name": "LayerZero Endpoint V2",
+    "labelOnly": true
+  },
+  {
+    "chainId": 8453,
+    "address": "0xb6319cc6c8c27a8f5daf0dd3df91ea35c4720dd7",
+    "name": "LayerZero Endpoint V1",
+    "labelOnly": true
   },
   {
     "chainId": 42161,
@@ -418,6 +670,60 @@
     "address": "0xf0cb2dc0db5e6c66b9a70ac27b06b878da017028",
     "name": "OHM",
     "startBlock": 85886493
+  },
+  {
+    "chainId": 42161,
+    "address": "0x3c2269811836af69497e5f486a85d7316753cf62",
+    "name": "LayerZero Endpoint V1",
+    "labelOnly": true
+  },
+  {
+    "chainId": 42161,
+    "address": "0x4999873bf8741bfffb0ec242aaaa7ef1fe74fce8",
+    "name": "SiloIncentivesController",
+    "labelOnly": true
+  },
+  {
+    "chainId": 42161,
+    "address": "0x862da0a25e3dfe46df2cd4c14d79e1e4684dea4a",
+    "name": "Silo",
+    "labelOnly": true
+  },
+  {
+    "chainId": 42161,
+    "address": "0x374d79ef2a75d5d25a4ce163d85ab0b579171d6c",
+    "name": "InterestRateModelV2",
+    "labelOnly": true
+  },
+  {
+    "chainId": 42161,
+    "address": "0xbdb843c7a7e48dc543424474d7aa63b61b5d9536",
+    "name": "SiloLens",
+    "labelOnly": true
+  },
+  {
+    "chainId": 42161,
+    "address": "0xd8102963c400fedbbc23fe92f1b09c0c561e77ae",
+    "name": "Silo OHM deposit token (sOHM)",
+    "labelOnly": true
+  },
+  {
+    "chainId": 42161,
+    "address": "0x0341c0c0ec423328621788d4854119b97f44e391",
+    "name": "SILO",
+    "labelOnly": true
+  },
+  {
+    "chainId": 42161,
+    "address": "0x141fa059441e0ca23ce184b6a78bafd2a517dde8",
+    "name": "CCIP Router",
+    "labelOnly": true
+  },
+  {
+    "chainId": 42161,
+    "address": "0xc311a21e6fef769344eb1515588b9d535662a145",
+    "name": "CCIP RMN Proxy",
+    "labelOnly": true
   },
   {
     "chainId": 80084,
@@ -480,6 +786,18 @@
     "name": "TRSRY"
   },
   {
+    "chainId": 80084,
+    "address": "0xf3e86536f95ec830983a51716c3577887cd2c47b",
+    "name": "CCIP RMN Proxy",
+    "labelOnly": true
+  },
+  {
+    "chainId": 80084,
+    "address": "0xb1653462481e1bf30b5cca3082e2454e41668c65",
+    "name": "CCIP Router",
+    "labelOnly": true
+  },
+  {
     "chainId": 80094,
     "address": "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0",
     "name": "OlympusAuthority",
@@ -510,6 +828,18 @@
     "startBlock": 27734760
   },
   {
+    "chainId": 80094,
+    "address": "0x25943b8c30c47f4ef09ccf2bae315ebaf591881d",
+    "name": "CCIP RMN Proxy",
+    "labelOnly": true
+  },
+  {
+    "chainId": 80094,
+    "address": "0x71a275704c283486fba26dad3dd0db78804426ef",
+    "name": "CCIP Router",
+    "labelOnly": true
+  },
+  {
     "chainId": 84532,
     "address": "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0",
     "name": "OlympusAuthority",
@@ -526,6 +856,18 @@
     "address": "0xd28d3910191900699558c9d8066080df644d9db3",
     "name": "CCIPCrossChainBridge",
     "startBlock": 26633652
+  },
+  {
+    "chainId": 84532,
+    "address": "0x99360767a4705f68cccb9533195b761648d6d807",
+    "name": "CCIP RMN Proxy",
+    "labelOnly": true
+  },
+  {
+    "chainId": 84532,
+    "address": "0xd3b06cebf099ce7da4accf578aaebfdbd6e88a93",
+    "name": "CCIP Router",
+    "labelOnly": true
   },
   {
     "chainId": 421614,
@@ -550,6 +892,18 @@
     "address": "0xc8431feb345b46c30a4576c1b5faf080fdc54e2f",
     "name": "LZCrossChainBridge",
     "startBlock": 273448390
+  },
+  {
+    "chainId": 421614,
+    "address": "0x9527e2d01a3064ef6b50c1da1c0cc523803bcff2",
+    "name": "CCIP RMN Proxy",
+    "labelOnly": true
+  },
+  {
+    "chainId": 421614,
+    "address": "0x2a9c5afb0d0e4bab2bcdae109ec4b0c4be15a165",
+    "name": "CCIP Router",
+    "labelOnly": true
   },
   {
     "chainId": 11155111,
@@ -706,6 +1060,66 @@
     "chainId": 11155111,
     "address": "0x0fee724a2ae8653190462877cdb91755e989a926",
     "name": "MockDaiUsds",
+    "labelOnly": true
+  },
+  {
+    "chainId": 11155111,
+    "address": "0xca59a85a9b87cba6c706d12e60c1cb4ea61e97c9",
+    "name": "DLGTE",
+    "labelOnly": true
+  },
+  {
+    "chainId": 11155111,
+    "address": "0xba05d48fb94dc76820eb7ea1b360fd6dfdeabdc5",
+    "name": "gOHM",
+    "labelOnly": true
+  },
+  {
+    "chainId": 11155111,
+    "address": "0x40a5f12ad1114608037ce80f028ddcf7c922ef07",
+    "name": "Staking",
+    "labelOnly": true
+  },
+  {
+    "chainId": 11155111,
+    "address": "0xcb22361599c259dfe92eb858232f94e41a0685cf",
+    "name": "MockFlashloanLender",
+    "labelOnly": true
+  },
+  {
+    "chainId": 11155111,
+    "address": "0x89631595649cc6deba249a8012a5b2d88c8dde48",
+    "name": "sOHM",
+    "labelOnly": true
+  },
+  {
+    "chainId": 11155111,
+    "address": "0x256a184f14ffd25d7aeecb768db473c16517e66b",
+    "name": "DelegateEscrowFactory",
+    "labelOnly": true
+  },
+  {
+    "chainId": 11155111,
+    "address": "0x6f448ea89cd897ad1aedb5cd8bf221d50b9a7c6c",
+    "name": "CoolerFactory",
+    "labelOnly": true
+  },
+  {
+    "chainId": 11155111,
+    "address": "0x2c2a10ac552fd896725397e9811a2a1104cef457",
+    "name": "PositionTokenRenderer",
+    "labelOnly": true
+  },
+  {
+    "chainId": 11155111,
+    "address": "0xba3f6251de62ded61ff98590cb2fdf6871fbb991",
+    "name": "CCIP RMN Proxy",
+    "labelOnly": true
+  },
+  {
+    "chainId": 11155111,
+    "address": "0x0bf3de8c5d3e8a2b34d2beeb17abfcebaf363a59",
+    "name": "CCIP Router",
     "labelOnly": true
   }
 ]

@@ -10,7 +10,7 @@ export const SUBSYSTEMS = [
   { id: "core", name: "Kernel & modules" },
   { id: "cooler", name: "Cooler & lending" },
   { id: "bridging", name: "Cross-chain bridges" },
-  { id: "ccip", name: "CCIP" },
+  { id: "ccip", name: "Chainlink & CCIP" },
   { id: "deposits", name: "Deposits & reserves" },
   { id: "reserve-tokens", name: "Reserve tokens" },
   { id: "monetary", name: "Monetary policy" },
@@ -97,7 +97,7 @@ export function getSubsystem(node: Node): string | null {
   const name = (node.data.name as string).replace(/ \([^)]*\)$/, "");
   if (/Proposal(?:Helper|Checker)$|^ConvertibleDepositActivator$/.test(name))
     return "proposals";
-  if (/^BondFixedTermSDA$/.test(name)) return "bond-protocol";
+  if (/^Bond(?:Fixed|Aggregator)/.test(name)) return "bond-protocol";
   if (
     /^(?:(?:Mock )?(?:USDS|sUSDS|DAI|sDAI)|DaiUsdsMigrator|MockDaiUsds)$/.test(
       name
@@ -113,7 +113,9 @@ export function getSubsystem(node: Node): string | null {
   if (/Cooler|Clearinghouse|BLVault/.test(name)) return "cooler";
   if (/CrossChainBridge|LayerZero|^LZ/.test(name)) return "bridging";
   if (
-    /CCIP|TokenAdminRegistry|LockReleaseTokenPool|BurnMintTokenPool/.test(name)
+    /Chainlink|CCIP|TokenAdminRegistry|LockReleaseTokenPool|BurnMintTokenPool/.test(
+      name
+    )
   )
     return "ccip";
   if (/Deposit|Reserve/.test(name)) return "deposits";

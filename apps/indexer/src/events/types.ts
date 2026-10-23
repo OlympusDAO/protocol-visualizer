@@ -92,6 +92,7 @@ export type ContractEntity = {
   version?: string;
   contractType: ContractType;
   isEnabled: boolean;
+  kernelHistory?: "installed" | "never-installed" | "unknown";
   policyPermissions?: unknown;
   policyFunctions?: unknown;
 };

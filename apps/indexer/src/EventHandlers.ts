@@ -1,4 +1,5 @@
 import { indexer } from "envio";
+import { getCoreContracts, seedCoreContracts } from "./events/kernel-history";
 import {
   getBridgeContracts,
   handleBridgeConfigurationEvent,
@@ -44,6 +45,7 @@ import {
 } from "./events/enabler";
 import {
   getControlBlock,
+  readCodeHashEffect,
   getControlGetter,
   getBridgeConfiguration,
 } from "./events/effects";
@@ -366,6 +368,7 @@ indexer.onEvent(
 );
 for (const chainId of indexer.chainIds) {
   const chain = indexer.chains[chainId];
+  const coreContracts = getCoreContracts(chainId);
   const taskManagers = getPeriodicTaskManagers(chainId);
   const legacyTasks = getLegacyTaskContracts(chainId);
   const known = getEnablerContracts(chainId);
@@ -587,6 +590,22 @@ for (const chainId of indexer.chainIds) {
         readGetter,
         readBlock
       );
+    await seedCoreContracts(
+      context,
+      chainId,
+      chain.startBlock,
+      block,
+      coreContracts,
+      async (address) =>
+        Boolean(
+          await context.effect(readCodeHashEffect, {
+            chainId,
+            address,
+            blockNumber: BigInt(block.number),
+            blockHash: block.hash,
+          })
+        )
+    );
     await completeBridgeConfigurations(
       context,
       chainId,
@@ -604,8 +623,14 @@ for (const chainId of indexer.chainIds) {
   };
   // Creation boundaries run after constructor logs; a truncated replay seeds at its own start.
   for (const boundary of new Set(
-    [...contracts, ...relationshipFields, ...taskManagers, ...legacyTasks].map(
-      ({ startBlock }) => Math.max(startBlock, chain.startBlock)
+    [
+      ...contracts,
+      ...relationshipFields,
+      ...taskManagers,
+      ...legacyTasks,
+      ...coreContracts,
+    ].map(({ startBlock }) =>
+      Math.max(startBlock ?? chain.startBlock, chain.startBlock)
     )
   )) {
     indexer.onBlock(

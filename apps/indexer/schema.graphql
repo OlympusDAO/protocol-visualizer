@@ -23,6 +23,7 @@ type Contract {
   version: String
   contractType: ContractType! @index
   isEnabled: Boolean! @index
+  kernelHistory: String
   policyPermissions: Json
   policyFunctions: Json
 }

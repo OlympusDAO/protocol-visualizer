@@ -8,58 +8,83 @@ import type {
 } from "../../../../../packages/snapshot-artifacts/src/index";
 import type { Node } from "reactflow";
 
+export const KERNEL_HISTORY_SECTIONS = [
+  {
+    id: "never-installed",
+    name: "Never installed in Kernel",
+    history: "never-installed",
+  },
+  { id: "inactive", name: "Removed from Kernel", history: "installed" },
+  {
+    id: "kernel-history-unknown",
+    name: "Kernel history unknown",
+    history: "unknown",
+  },
+];
+
+export function getKernelHistorySection(history?: string) {
+  return (
+    KERNEL_HISTORY_SECTIONS.find((section) => section.history === history) ??
+    KERNEL_HISTORY_SECTIONS[2]
+  );
+}
+
 export function getPreservedGraphNodes(
   next: Node[],
   previous: Node[],
   previousLayout: Node[] = previous
 ): Node[] {
-  const inactiveById = new Map(
-    next.map((node) => [node.id, node.data.kernelInactive])
-  );
-  const group = next.find((node) => node.type === "group");
-  const oldGroup = previousLayout.find((node) => node.type === "group");
-  const inactiveIds = (nodes: Node[]) =>
-    nodes
-      .filter((node) => node.data.kernelInactive)
-      .map((node) => node.id)
-      .sort()
-      .join(":");
-  const sameGroup =
-    group?.position.x === oldGroup?.position.x &&
-    group?.position.y === oldGroup?.position.y &&
-    group?.style?.width === oldGroup?.style?.width &&
-    group?.style?.height === oldGroup?.style?.height &&
-    inactiveIds(next) === inactiveIds(previousLayout);
-  return previous.filter(
-    (node) =>
+  const nextById = new Map(next.map((node) => [node.id, node]));
+  const groupLayout = (nodes: Node[]) =>
+    JSON.stringify(
+      nodes
+        .filter((node) => node.type === "group" || node.data.kernelInactive)
+        .map((node) => [
+          node.id,
+          node.data.kernelHistory,
+          node.position,
+          node.style?.width,
+          node.style?.height,
+        ])
+    );
+  const sameGroups = groupLayout(next) === groupLayout(previousLayout);
+  return previous.filter((node) => {
+    const updated = nextById.get(node.id);
+    return (
       node.type !== "group" &&
-      node.data.kernelInactive === inactiveById.get(node.id) &&
-      (!node.data.kernelInactive || sameGroup)
-  );
+      updated &&
+      node.data.kernelInactive === updated.data.kernelInactive &&
+      node.data.kernelHistory === updated.data.kernelHistory &&
+      (!node.data.kernelInactive || sameGroups)
+    );
+  });
 }
 
 export function groupInactiveContracts(
   active: Node[],
   inactive: Node[]
 ): Node[] {
-  if (!inactive.length) return active;
-  const columns = Math.min(3, inactive.length);
-  const cellWidth = Math.max(220, ...inactive.map(getGraphNodeWidth)) + 40;
   const x =
     Math.max(
       0,
       ...active.map((node) => node.position.x + getGraphNodeWidth(node))
     ) + 160;
-  const y = Math.min(100, ...active.map((node) => node.position.y));
-  return [
-    {
-      id: "kernel-inactive-group",
+  let y = Math.min(100, ...active.map((node) => node.position.y));
+  const result = [...active];
+  for (const section of KERNEL_HISTORY_SECTIONS) {
+    const members = inactive.filter(
+      (node) =>
+        getKernelHistorySection(node.data.kernelHistory).id === section.id
+    );
+    if (!members.length) continue;
+    const columns = Math.min(3, members.length);
+    const cellWidth = Math.max(220, ...members.map(getGraphNodeWidth)) + 40;
+    const height = Math.ceil(members.length / columns) * 160 + 72;
+    result.unshift({
+      id: `kernel-${section.id}-group`,
       type: "group",
       position: { x, y },
-      data: {
-        name: "Removed from Kernel",
-        label: "Removed from Kernel",
-      },
+      data: { name: section.name, label: section.name, sectionId: section.id },
       selectable: false,
       focusable: false,
       draggable: false,
@@ -67,7 +92,7 @@ export function groupInactiveContracts(
       zIndex: -1,
       style: {
         width: columns * cellWidth + 48,
-        height: Math.ceil(inactive.length / columns) * 160 + 72,
+        height,
         padding: "16px 24px",
         textAlign: "left",
         fontSize: 14,
@@ -76,16 +101,19 @@ export function groupInactiveContracts(
         border: "1px dashed #cbd5e1",
         pointerEvents: "none",
       },
-    },
-    ...active,
-    ...inactive.map((node, index) => ({
-      ...node,
-      position: {
-        x: x + 24 + (index % columns) * cellWidth,
-        y: y + 48 + Math.floor(index / columns) * 160,
-      },
-    })),
-  ];
+    });
+    result.push(
+      ...members.map((node, index) => ({
+        ...node,
+        position: {
+          x: x + 24 + (index % columns) * cellWidth,
+          y: y + 48 + Math.floor(index / columns) * 160,
+        },
+      }))
+    );
+    y += height + 100;
+  }
+  return result;
 }
 
 export function getGraphContractName(contract: {
@@ -116,12 +144,12 @@ export function getGraphNodeWidth(node: Node): number {
 export function getKernelLabel(contract: {
   isEnabled?: boolean;
   category?: string;
+  kernelHistory?: string;
 }): string | null {
-  return typeof contract.isEnabled === "boolean"
-    ? `Kernel ${contract.isEnabled ? "active" : "inactive"}`
-    : contract.category === "inactive-core"
-      ? "Kernel inactive"
-      : null;
+  if (contract.isEnabled === true) return "Kernel active";
+  if (contract.isEnabled === false || contract.category === "inactive-core")
+    return getKernelHistorySection(contract.kernelHistory).name;
+  return null;
 }
 
 export function getContractDeploymentLabel(contract: {

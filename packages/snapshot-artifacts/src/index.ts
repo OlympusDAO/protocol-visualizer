@@ -46,6 +46,7 @@ export type AdditionalContract = {
   address: string;
   name: string;
   category: "external" | "inactive-core";
+  kernelHistory?: "installed" | "never-installed" | "unknown";
   contractType?: "KERNEL" | "MODULE" | "POLICY";
   version?: string | null;
   provenance: { source: "inventory" | "indexer"; startBlock?: number };
@@ -686,6 +687,7 @@ export const protocolSnapshotSchema = {
         address: { type: "string" },
         name: { type: "string" },
         category: { enum: ["external", "inactive-core"] },
+        kernelHistory: { enum: ["installed", "never-installed", "unknown"] },
         contractType: { enum: ["KERNEL", "MODULE", "POLICY"] },
         version: { type: ["string", "null"] },
         provenance: {

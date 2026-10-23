@@ -8,7 +8,7 @@ export const PROTOCOL_VISUALIZER_QUERIES: ProtocolVisualizerQuery[] = [
     name: "graphql-default",
     query: `
       query ProtocolVisualizerData($chainId: Int!) {
-        KnownContract: contract(where: { chainId: { _eq: $chainId } }, orderBy: { name: asc }) { address name version contractType isEnabled }
+        KnownContract: contract(where: { chainId: { _eq: $chainId } }, orderBy: { name: asc }) { address name version contractType isEnabled kernelHistory }
         BridgeConfiguration: bridgeConfiguration(where: { chainId: { _eq: $chainId } }) { id chainId address kind configuration selectors observedAt lastChange verification }
         HeartTasks: heartTasks(where: { chainId: { _eq: $chainId } }) { id chainId address tasks seed lastChange indexedThrough verification }
         ContractState: contractState(where: { chainId: { _eq: $chainId } }) { id chainId address enablerCapability enabled seed lastChange indexedThrough verification enablementGetter enablementCoverage }
@@ -55,7 +55,7 @@ export const PROTOCOL_VISUALIZER_QUERIES: ProtocolVisualizerQuery[] = [
     name: "hasura-default",
     query: `
       query ProtocolVisualizerData($chainId: Int!) {
-        KnownContract: Contract(where: { chainId: { _eq: $chainId } }, order_by: { name: asc }) { address name version contractType isEnabled }
+        KnownContract: Contract(where: { chainId: { _eq: $chainId } }, order_by: { name: asc }) { address name version contractType isEnabled kernelHistory }
         BridgeConfiguration: BridgeConfiguration(where: { chainId: { _eq: $chainId } }) { id chainId address kind configuration selectors observedAt lastChange verification }
         HeartTasks: HeartTasks(where: { chainId: { _eq: $chainId } }) { id chainId address tasks seed lastChange indexedThrough verification }
         ContractState: ContractState(where: { chainId: { _eq: $chainId } }) { id chainId address enablerCapability enabled seed lastChange indexedThrough verification enablementGetter enablementCoverage }

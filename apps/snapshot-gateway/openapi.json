@@ -757,6 +757,9 @@
               "category": {
                 "enum": ["external", "inactive-core"]
               },
+              "kernelHistory": {
+                "enum": ["installed", "never-installed", "unknown"]
+              },
               "contractType": {
                 "enum": ["KERNEL", "MODULE", "POLICY"]
               },

@@ -23,7 +23,10 @@ const nodes = [
   node("bridge", "CCIPTokenPoolConfig", { contractType: "policy" }),
   node("actor", "DAO MS", { assigneeAddress: "actor" }),
   node("role-admin", "admin"),
-  node("retired", "Operator", { kernelInactive: true }),
+  node("retired", "Operator", {
+    kernelInactive: true,
+    kernelHistory: "installed",
+  }),
 ];
 const edge = (id, source, target, kind, pending = false) => ({
   id,
@@ -41,6 +44,40 @@ const edges = [
   edge("ref-two", "cooler", "bridge", "reference"),
 ];
 const filters = { permission: true, control: true, reference: true };
+
+test("never-installed and removed contracts have distinct side sections; legacy history stays unknown", () => {
+  const cards = [
+    node("active", "CoolerV2"),
+    node("never", "CCIPTokenPoolConfig", {
+      kernelInactive: true,
+      kernelHistory: "never-installed",
+    }),
+    node("removed", "Operator", {
+      kernelInactive: true,
+      kernelHistory: "installed",
+    }),
+    node("unknown", "Policy", { kernelInactive: true }),
+  ];
+  assert.deepEqual(cards.slice(1).map(getSubsystem), [
+    "never-installed",
+    "inactive",
+    "kernel-history-unknown",
+  ]);
+  const layout = layoutArchitectureSections(cards);
+  const sections = layout.filter((node) => node.type === "group");
+  for (const name of [
+    "Never installed in Kernel",
+    "Removed from Kernel",
+    "Kernel history unknown",
+  ])
+    assert.ok(sections.some((node) => node.data.name === name));
+  const side = sections.filter((node) => node.id !== "section-cooler");
+  assert.equal(new Set(side.map((node) => node.position.x)).size, 1);
+  assert.equal(
+    layout.filter((node) => node.type !== "group").length,
+    cards.length
+  );
+});
 
 test("focused CCIP layout routes long links around cards and separates parallel relationship labels", () => {
   const cards = ["dao", "config", "registry", "pool", "checker"].map((id) => ({
@@ -139,7 +176,14 @@ test("contract sections separate infrastructure, proposal helpers and Olympus to
       "CCIPTokenPoolConfig (1.0)",
       "CCIPTokenPoolConfigTimelock",
     ],
-    tokens: ["OHM (2.0)", "sOHM", "gOHM", "Staking", "V1Migrator"],
+    tokens: [
+      "OHM (2.0)",
+      "sOHM",
+      "gOHM",
+      "gOHM (Synapse)",
+      "Staking",
+      "V1Migrator",
+    ],
     "bond-protocol": ["BondFixedTermSDA"],
     bridging: ["CCIPCrossChainBridge", "LZCrossChainBridge"],
     cooler: ["CoolerV2Composites"],

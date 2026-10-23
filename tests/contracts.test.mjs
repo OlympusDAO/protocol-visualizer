@@ -197,7 +197,7 @@ test("uninstalled core contracts sit together beside the active graph", () => {
   const inactive = Array.from({ length: 4 }, (_, i) => ({
     id: `inactive-${i}`,
     position: { x: 0, y: 0 },
-    data: { kernelInactive: true },
+    data: { kernelInactive: true, kernelHistory: "installed" },
     style: { width: i === 0 ? 360 : 220 },
   }));
   const nodes = groupInactiveContracts([active], inactive);
@@ -262,6 +262,48 @@ test("uninstalled core contracts sit together beside the active graph", () => {
   );
 });
 
+test("history changes move cards between separate inactive groups without keeping stale positions", () => {
+  const active = { id: "active", data: {}, position: { x: 0, y: 0 } };
+  const card = (id, history) => ({
+    id,
+    data: { kernelInactive: true, kernelHistory: history },
+    position: { x: 0, y: 0 },
+  });
+  const previous = groupInactiveContracts(
+    [active],
+    [card("old", "installed"), card("new", "never-installed"), card("unknown")]
+  );
+  assert.equal(previous.filter((node) => node.type === "group").length, 3);
+  const next = groupInactiveContracts(
+    [active],
+    [card("old", "installed"), card("new", "installed"), card("unknown")]
+  );
+  const refreshed = refreshGraph(
+    next,
+    getPreservedGraphNodes(next, previous),
+    null
+  ).nodes;
+  assert.deepEqual(
+    refreshed.find((node) => node.id === "new").position,
+    next.find((node) => node.id === "new").position
+  );
+  assert.notDeepEqual(
+    refreshed.find((node) => node.id === "new").position,
+    previous.find((node) => node.id === "new").position
+  );
+  assert.equal(
+    getKernelLabel({
+      category: "inactive-core",
+      kernelHistory: "never-installed",
+    }),
+    "Never installed in Kernel"
+  );
+  assert.equal(
+    getKernelLabel({ category: "inactive-core", kernelHistory: "installed" }),
+    "Removed from Kernel"
+  );
+});
+
 test("sample snapshot demonstrates Kernel active and Contract disabled independently", async () => {
   const sample = getSampleProtocolData(4663);
   const batch = await createSnapshotBatch({
@@ -292,7 +334,7 @@ test("graph keeps Kernel membership independent from three-state enablement", ()
   assert.equal(getKernelLabel({ isEnabled: true }), "Kernel active");
   assert.equal(
     getKernelLabel({ category: "inactive-core" }),
-    "Kernel inactive"
+    "Kernel history unknown"
   );
   assert.equal(view.badge, "Contract disabled");
   assert.match(view.warning, /indexed false.*getter true.*123/);

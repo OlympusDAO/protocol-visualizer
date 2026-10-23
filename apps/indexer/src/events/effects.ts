@@ -332,7 +332,7 @@ function getContractProcessor(chainId: number): ContractProcessor {
   return newProcessor;
 }
 
-const readCodeHashEffect = createEffect(
+export const readCodeHashEffect = createEffect(
   {
     name: "readCanonicalCodeHash",
     input: {
@@ -357,6 +357,7 @@ const readCodeHashEffect = createEffect(
       const after = await client.getBlock({ blockNumber: input.blockNumber });
       if (
         code &&
+        code !== "0x" &&
         before.hash === input.blockHash &&
         after.hash === input.blockHash
       )

@@ -1,6 +1,10 @@
 import type { Edge, Node } from "reactflow";
 import dagre from "dagre";
-import { getGraphNodeWidth } from "./graph";
+import {
+  getGraphNodeWidth,
+  getKernelHistorySection,
+  KERNEL_HISTORY_SECTIONS,
+} from "./graph";
 
 export const SUBSYSTEMS = [
   { id: "core", name: "Kernel & modules" },
@@ -16,7 +20,7 @@ export const SUBSYSTEMS = [
   { id: "bond-protocol", name: "Bond Protocol" },
   { id: "roles", name: "Roles" },
   { id: "other", name: "Other contracts" },
-  { id: "inactive", name: "Removed from Kernel" },
+  ...KERNEL_HISTORY_SECTIONS,
 ];
 export type ConnectionKind = "permission" | "control" | "reference";
 export type ConnectionFilters = Record<ConnectionKind, boolean>;
@@ -81,7 +85,8 @@ export function layoutContractGraph(nodes: Node[], edges: Edge[]) {
 }
 
 export function getSubsystem(node: Node): string | null {
-  if (node.data.kernelInactive) return "inactive";
+  if (node.data.kernelInactive)
+    return getKernelHistorySection(node.data.kernelHistory).id;
   if (node.id.startsWith("role-")) return "roles";
   if (/\bMS\b|Multisig/.test(node.data.name)) return null;
   if (["kernel", "module"].includes(node.data.contractType)) return "core";
@@ -236,7 +241,12 @@ export function layoutArchitectureSections(nodes: Node[]): Node[] {
   const backgrounds: Node[] = [];
   const cards: Node[] = [];
   const main = sections.filter(
-    (section) => !["inactive", "roles", "shared"].includes(section.id)
+    (section) =>
+      ![
+        ...KERNEL_HISTORY_SECTIONS.map((section) => section.id),
+        "roles",
+        "shared",
+      ].includes(section.id)
   );
   const columns = Math.min(3, main.length);
   const widths = Array.from({ length: columns }, (_, column) =>
@@ -306,7 +316,9 @@ export function layoutArchitectureSections(nodes: Node[]): Node[] {
       shared?.width ?? 0
     ) + 100;
   for (const section of sections.filter((section) =>
-    ["roles", "inactive"].includes(section.id)
+    ["roles", ...KERNEL_HISTORY_SECTIONS.map((section) => section.id)].includes(
+      section.id
+    )
   )) {
     place(section, sideX, sideY);
     sideY += section.height + 100;

@@ -30,6 +30,36 @@ const supportedChains = [
   },
 ];
 
+test("preserves installation history without inferring membership from incomplete coverage", () => {
+  const rows = ["installed", "never-installed", "unknown", null].map(
+    (kernelHistory, index) => ({
+      address: `0x${String(index + 1).padStart(40, "0")}`,
+      name: "Policy",
+      contractType: "POLICY" as const,
+      isEnabled: false,
+      kernelHistory: kernelHistory as
+        | "installed"
+        | "never-installed"
+        | "unknown"
+        | null,
+    })
+  );
+  const snapshot = createProtocolSnapshot({
+    chainId: 1,
+    generatedAt: "2026-10-23T00:00:00.000Z",
+    graphqlData: { KnownContract: rows },
+  });
+  assert.deepEqual(
+    snapshot.data.additionalContracts?.map((row) => row.kernelHistory),
+    ["installed", "never-installed", "unknown", "installed"]
+  );
+  assert.deepEqual(
+    snapshot.data.contractStates?.map((row) => row.kernelMembership),
+    ["inactive", "inactive", "unknown", "inactive"]
+  );
+  assert.deepEqual(validateProtocolSnapshot(snapshot), []);
+});
+
 test("includes inactive and inventory-only contracts without changing active core", async () => {
   const input = getSampleProtocolData(1);
   const contracts = input.Contract;

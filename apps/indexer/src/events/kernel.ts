@@ -126,6 +126,7 @@ export async function handleKernelActionExecuted(
 
       envioContext.Contract.set({
         ...previousContract,
+        kernelHistory: "installed",
         isEnabled: false,
         lastUpdatedTimestamp: timestamp,
         lastUpdatedBlockNumber: blockNumber,
@@ -167,6 +168,7 @@ export async function handleKernelActionExecuted(
       }),
       lastUpdatedTimestamp: timestamp,
       lastUpdatedBlockNumber: blockNumber,
+      kernelHistory: "installed",
       isEnabled,
       policyPermissions,
       policyFunctions,

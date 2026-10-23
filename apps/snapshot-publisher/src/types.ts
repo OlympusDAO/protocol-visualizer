@@ -28,6 +28,7 @@ export type GraphqlContract = {
   version?: unknown;
   contractType: EnvioContractType;
   isEnabled: unknown;
+  kernelHistory?: "installed" | "never-installed" | "unknown" | null;
   policyPermissions?: JsonValue;
   policyFunctions?: JsonValue;
 };
@@ -62,7 +63,12 @@ export type ProtocolGraphqlData = {
   HeartTasks?: HeartTasks[];
   KnownContract?: Pick<
     GraphqlContract,
-    "address" | "name" | "version" | "contractType" | "isEnabled"
+    | "address"
+    | "name"
+    | "version"
+    | "contractType"
+    | "isEnabled"
+    | "kernelHistory"
   >[];
   ContractState?: ContractState[];
   ContractRelationship?: (Omit<

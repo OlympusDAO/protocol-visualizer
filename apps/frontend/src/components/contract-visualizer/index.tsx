@@ -48,6 +48,7 @@ import {
   getGraphContractName,
   getContractNodeWidth,
   getKernelLabel,
+  KERNEL_HISTORY_SECTIONS,
   refreshGraph,
   groupInactiveContracts,
 } from "./graph";
@@ -56,6 +57,7 @@ interface NodeData {
   name: string;
   contractType?: string;
   kernelInactive?: boolean;
+  kernelHistory?: string;
   label: React.ReactNode;
   assignees?: RoleAssignment[];
   policiesCount?: number;
@@ -124,7 +126,7 @@ function ContractStatusIcons({
   contract,
   enablementLabel,
 }: {
-  contract: { isEnabled?: boolean; category?: string };
+  contract: { isEnabled?: boolean; category?: string; kernelHistory?: string };
   enablementLabel: string | null;
 }) {
   const membership = getKernelLabel(contract);
@@ -133,9 +135,7 @@ function ContractStatusIcons({
       {membership && (
         <StatusTooltip
           label={
-            membership === "Kernel active"
-              ? "Active in Kernel"
-              : "Inactive in Kernel"
+            membership === "Kernel active" ? "Active in Kernel" : membership
           }
           className={
             membership === "Kernel active"
@@ -156,7 +156,7 @@ function ContractStatusIcons({
           >
             <rect x="6" y="6" width="15" height="15" rx="2" />
             <path d="M17 3H5a2 2 0 0 0-2 2v12" />
-            {membership === "Kernel inactive" && <path d="m3 3 18 18" />}
+            {membership !== "Kernel active" && <path d="m3 3 18 18" />}
           </svg>
         </StatusTooltip>
       )}
@@ -743,6 +743,7 @@ export function ContractVisualizer() {
           name: getGraphContractName(contract),
           contractType: contract.contractType?.toLowerCase(),
           kernelInactive: contract.category === "inactive-core",
+          kernelHistory: contract.kernelHistory,
           label: (
             <div className="p-2 text-sm">
               <Handle
@@ -1051,7 +1052,10 @@ export function ContractVisualizer() {
               (node) =>
                 !node.id.startsWith("role-") &&
                 !node.data.kernelInactive &&
-                !["roles", "inactive"].includes(node.data.sectionId)
+                ![
+                  "roles",
+                  ...KERNEL_HISTORY_SECTIONS.map((section) => section.id),
+                ].includes(node.data.sectionId)
             )
           : finalNodes,
       });

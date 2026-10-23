@@ -371,6 +371,8 @@ export function createProtocolSnapshot({
         address,
         name: String(contract.name),
         category: "inactive-core",
+        // Older Contract rows were created exclusively by Kernel events.
+        kernelHistory: contract.kernelHistory ?? "installed",
         contractType: contract.contractType,
         version: typeof contract.version === "string" ? contract.version : null,
         provenance: { source: "indexer" },
@@ -378,7 +380,10 @@ export function createProtocolSnapshot({
   }
   const inactive = new Set(
     known
-      .filter((contract) => !contract.isEnabled)
+      .filter(
+        (contract) =>
+          !contract.isEnabled && contract.kernelHistory !== "unknown"
+      )
       .map((contract) => identity(String(contract.address)))
   );
   const stateAddresses = new Set([

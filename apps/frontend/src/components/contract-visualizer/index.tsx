@@ -197,37 +197,44 @@ const extractKeycode = (moduleName: string): string | null => {
 
 // Node color scheme
 const NODE_COLORS = {
-  periphery: {
-    background: "#e0e7ff",
-    border: "#6366f1",
-    text: "#3730a3",
-  },
-  external: {
-    background: "#f9fafb",
-    border: "#9ca3af",
-    text: "#374151",
-  },
   kernel: {
+    label: "Kernel",
     background: "#fef3c7", // Amber 100
     border: "#d97706", // Amber 600
     text: "#92400e", // Amber 800
   },
   module: {
+    label: "Module",
     background: "#dbeafe", // Blue 100
     border: "#2563eb", // Blue 600
     text: "#1e40af", // Blue 800
   },
   policy: {
+    label: "Policy",
     background: "#dcfce7", // Green 100
     border: "#16a34a", // Green 600
     text: "#166534", // Green 800
   },
+  periphery: {
+    label: "Protocol periphery",
+    background: "#e0e7ff",
+    border: "#6366f1",
+    text: "#3730a3",
+  },
+  external: {
+    label: "Other contracts",
+    background: "#f9fafb",
+    border: "#9ca3af",
+    text: "#374151",
+  },
   role: {
+    label: "Role",
     background: "#f3e8ff", // Purple 100
     border: "#9333ea", // Purple 600
     text: "#6b21a8", // Purple 800
   },
   assignee: {
+    label: "Multisigs & addresses",
     background: "#fae8ff", // Pink 100
     border: "#db2777", // Pink 600
     text: "#9d174d", // Pink 800
@@ -1530,6 +1537,35 @@ export function ContractVisualizer() {
             {edges.length} connections
           </span>
         </div>
+      )}
+      {!isHistorical && (
+        <section
+          aria-label="Node colour legend"
+          className="mb-3 text-xs text-slate-600"
+        >
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span className="font-medium">Node colours:</span>
+            <ul className="flex flex-wrap gap-x-4 gap-y-2">
+              {Object.entries(NODE_COLORS).map(([type, colors]) => (
+                <li key={type} className="inline-flex items-center gap-1.5">
+                  <span
+                    aria-hidden="true"
+                    className="h-3 w-3 shrink-0 rounded-sm border"
+                    style={{
+                      background: colors.background,
+                      borderColor: colors.border,
+                    }}
+                  />
+                  {colors.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <p className="mt-1 text-slate-500">
+            Colours show node type. Status icons show Kernel membership and
+            enablement.
+          </p>
+        </section>
       )}
       {navigationNotice && (
         <p role="status" className="mb-2 text-sm text-amber-800">

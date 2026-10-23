@@ -13,6 +13,7 @@ export const SUBSYSTEMS = [
   { id: "ccip", name: "Chainlink & CCIP" },
   { id: "deposits", name: "Deposits & reserves" },
   { id: "reserve-tokens", name: "Reserve tokens" },
+  { id: "price-feeds", name: "Price Feeds" },
   { id: "monetary", name: "Monetary policy" },
   { id: "governance", name: "Governance & configuration" },
   { id: "tokens", name: "Olympus Tokens" },
@@ -98,6 +99,7 @@ export function getSubsystem(node: Node): string | null {
   if (/Proposal(?:Helper|Checker)$|^ConvertibleDepositActivator$/.test(name))
     return "proposals";
   if (/^Bond(?:Fixed|Aggregator)/.test(name)) return "bond-protocol";
+  if (/price feed/i.test(name)) return "price-feeds";
   if (
     /^(?:(?:Mock )?(?:USDS|sUSDS|DAI|sDAI)|DaiUsdsMigrator|MockDaiUsds)$/.test(
       name

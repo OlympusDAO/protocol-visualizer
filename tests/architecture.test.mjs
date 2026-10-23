@@ -249,11 +249,14 @@ test("contract sections separate infrastructure, proposal helpers and Olympus to
     ccip: [
       "CCIP Router",
       "CCIP RMN Proxy",
-      "Chainlink OHM / ETH price feed",
       "TokenAdminRegistry",
       "CCIP RBACTimelock",
       "CCIPLockReleaseTokenPool",
       "LockReleaseTokenPool (1.5.1)",
+    ],
+    "price-feeds": [
+      "Chainlink OHM / ETH price feed",
+      "Chainlink DAI / ETH price feed",
     ],
     proposals: [
       "ConvertibleDepositActivator",

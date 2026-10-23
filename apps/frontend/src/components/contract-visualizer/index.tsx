@@ -33,6 +33,7 @@ import {
   layoutContractGraph,
   getSubsystem,
   SUBSYSTEMS,
+  SIDE_SECTION_IDS,
   type ConnectionFilters,
   DEFAULT_CONNECTION_FILTERS,
   FOCUSED_CONNECTION_FILTERS,
@@ -52,7 +53,6 @@ import {
   getGraphContractName,
   getContractNodeWidth,
   getKernelLabel,
-  KERNEL_HISTORY_SECTIONS,
   refreshGraph,
   groupInactiveContracts,
 } from "./graph";
@@ -998,12 +998,9 @@ export function ContractVisualizer() {
         nodes: sectioned
           ? finalNodes.filter(
               (node) =>
-                !node.id.startsWith("role-") &&
-                !node.data.kernelInactive &&
-                ![
-                  "roles",
-                  ...KERNEL_HISTORY_SECTIONS.map((section) => section.id),
-                ].includes(node.data.sectionId)
+                !SIDE_SECTION_IDS.includes(
+                  node.data.sectionId ?? getSubsystem(node) ?? ""
+                )
             )
           : finalNodes,
       });

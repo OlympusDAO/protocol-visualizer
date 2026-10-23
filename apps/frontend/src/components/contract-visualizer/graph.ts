@@ -160,12 +160,16 @@ export function getContractDeploymentLabel(contract: {
   if (/Proposal(?:Helper|Checker)$|^ConvertibleDepositActivator$/.test(name))
     return "Proposal helper";
   if (
-    /^(?:CCIPCrossChainBridge|LZCrossChainBridge|CrossChainBridge|CoolerV2Composites|CoolerV2Migrator|ConvertibleDepositAuctioneerLimitOrders|CCIPLockReleaseTokenPool|CCIPBurnMintTokenPool|V1Migrator)$/.test(
+    /^(?:CCIPCrossChainBridge|LZCrossChainBridge|CrossChainBridge|CoolerV2Composites|CoolerV2Migrator|ConvertibleDepositAuctioneerLimitOrders|CCIPLockReleaseTokenPool|CCIPBurnMintTokenPool|V1Migrator|ReceiptTokenManager|DelegateEscrowFactory|DelegateEscrow)$/.test(
       name
     )
   )
     return "Periphery";
-  if (/^(?:OHM|sOHM|gOHM|Staking|Minter|OlympusAuthority)$/.test(name))
+  if (
+    /^(?:OHM|sOHM|gOHM|Staking|Minter|OlympusAuthority|TreasuryV3|TreasuryV2|TokenMigrator)(?: \(legacy\))?$/.test(
+      name
+    )
+  )
     return "Olympus contract";
   return "External deployment";
 }

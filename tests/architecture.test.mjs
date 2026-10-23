@@ -25,6 +25,7 @@ const nodes = [
   node("bridge", "CCIPTokenPoolConfig", { contractType: "policy" }),
   node("actor", "DAO MS", { assigneeAddress: "actor" }),
   node("role-admin", "admin"),
+  node("legacy", "TreasuryV3 (legacy)"),
   node("retired", "Operator", {
     kernelInactive: true,
     kernelHistory: "installed",
@@ -258,6 +259,13 @@ test("contract sections separate infrastructure, proposal helpers and Olympus to
       "Chainlink OHM / ETH price feed",
       "Chainlink DAI / ETH price feed",
     ],
+    deposits: ["ReceiptTokenManager"],
+    delegation: ["DLGTE", "DelegateEscrowFactory", "DelegateEscrow"],
+    "olympus-v2": [
+      "TreasuryV3 (legacy)",
+      "TreasuryV2 (legacy)",
+      "TokenMigrator (legacy)",
+    ],
     proposals: [
       "ConvertibleDepositActivator",
       "MigrationProposalHelper",
@@ -307,6 +315,12 @@ test("contract sections separate infrastructure, proposal helpers and Olympus to
     "Olympus Tokens"
   );
   assert.equal(getSubsystem(node("policy-ms", "Policy MS")), null);
+  assert.equal(
+    getSubsystem(
+      node("delegation-module", "DLGTE", { contractType: "module" })
+    ),
+    "delegation"
+  );
   assert.equal(
     getSubsystem(
       node("unknown", "Unknown address", { assigneeAddress: "unknown" })
@@ -362,6 +376,13 @@ test("architecture sections preserve visible canonical contracts, shared actors 
   assert.ok(
     sectioned.some((node) => node.data.label === "Removed from Kernel")
   );
+  const legacy = sectioned.find((node) => node.id === "section-olympus-v2");
+  const removed = sectioned.find(
+    (node) => node.data.label === "Removed from Kernel"
+  );
+  const cooler = sectioned.find((node) => node.id === "section-cooler");
+  assert.equal(legacy.position.x, removed.position.x);
+  assert.ok(legacy.position.x > cooler.position.x + cooler.style.width);
   assert.deepEqual(layoutArchitectureSections(view.nodes), sectioned);
   assert.deepEqual(layoutArchitectureSections([]), []);
 });

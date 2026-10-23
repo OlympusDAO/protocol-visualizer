@@ -447,6 +447,9 @@ test("periphery labels and multisig colours are independent of snapshot external
     "CoolerV2Composites",
     "CoolerV2Migrator",
     "V1Migrator",
+    "ReceiptTokenManager",
+    "DelegateEscrowFactory",
+    "DelegateEscrow",
   ]) {
     const contract = { name, category: "external" };
     assert.equal(getContractDeploymentLabel(contract), "Periphery");

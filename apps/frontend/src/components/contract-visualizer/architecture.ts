@@ -12,6 +12,7 @@ export const SUBSYSTEMS = [
   { id: "bridging", name: "Cross-chain bridges" },
   { id: "ccip", name: "Chainlink & CCIP" },
   { id: "deposits", name: "Deposits & reserves" },
+  { id: "delegation", name: "Delegation" },
   { id: "reserve-tokens", name: "Reserve tokens" },
   { id: "price-feeds", name: "Price Feeds" },
   { id: "monetary", name: "Monetary policy" },
@@ -21,7 +22,13 @@ export const SUBSYSTEMS = [
   { id: "bond-protocol", name: "Bond Protocol" },
   { id: "roles", name: "Roles" },
   { id: "other", name: "Other contracts" },
+  { id: "olympus-v2", name: "Olympus v2" },
   ...KERNEL_HISTORY_SECTIONS,
+];
+export const SIDE_SECTION_IDS = [
+  "roles",
+  "olympus-v2",
+  ...KERNEL_HISTORY_SECTIONS.map((section) => section.id),
 ];
 export type ConnectionKind =
   | "permission"
@@ -94,8 +101,11 @@ export function getSubsystem(node: Node): string | null {
     return getKernelHistorySection(node.data.kernelHistory).id;
   if (node.id.startsWith("role-")) return "roles";
   if (/\bMS\b|Multisig/.test(node.data.name)) return null;
-  if (["kernel", "module"].includes(node.data.contractType)) return "core";
   const name = (node.data.name as string).replace(/ \([^)]*\)$/, "");
+  if (/^(DLGTE|DelegateEscrowFactory|DelegateEscrow)$/.test(name))
+    return "delegation";
+  if (["kernel", "module"].includes(node.data.contractType)) return "core";
+  if (/^(TreasuryV3|TreasuryV2|TokenMigrator)$/.test(name)) return "olympus-v2";
   if (/Proposal(?:Helper|Checker)$|^ConvertibleDepositActivator$/.test(name))
     return "proposals";
   if (/^Bond(?:Fixed|Aggregator)/.test(name)) return "bond-protocol";
@@ -120,7 +130,7 @@ export function getSubsystem(node: Node): string | null {
     )
   )
     return "ccip";
-  if (/Deposit|Reserve/.test(name)) return "deposits";
+  if (/Deposit|Reserve|^ReceiptTokenManager$/.test(name)) return "deposits";
   if (
     /Bond|Emission|Heart|Operator|Distributor|YieldRepurchase|pOLY/.test(name)
   )
@@ -275,11 +285,7 @@ export function layoutArchitectureSections(nodes: Node[]): Node[] {
   const cards: Node[] = [];
   const main = sections.filter(
     (section) =>
-      ![
-        ...KERNEL_HISTORY_SECTIONS.map((section) => section.id),
-        "roles",
-        "shared",
-      ].includes(section.id)
+      section.id !== "shared" && !SIDE_SECTION_IDS.includes(section.id)
   );
   const columns = Math.min(3, main.length);
   const widths = Array.from({ length: columns }, (_, column) =>
@@ -349,9 +355,7 @@ export function layoutArchitectureSections(nodes: Node[]): Node[] {
       shared?.width ?? 0
     ) + 100;
   for (const section of sections.filter((section) =>
-    ["roles", ...KERNEL_HISTORY_SECTIONS.map((section) => section.id)].includes(
-      section.id
-    )
+    SIDE_SECTION_IDS.includes(section.id)
   )) {
     place(section, sideX, sideY);
     sideY += section.height + 100;

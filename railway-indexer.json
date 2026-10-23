@@ -5,6 +5,7 @@
     "dockerfilePath": "Dockerfile-indexer",
     "watchPatterns": [
       "/apps/indexer/**",
+      "/packages/contract-abis/abis/**",
       "/package.json",
       "/pnpm-lock.yaml",
       "/pnpm-workspace.yaml",

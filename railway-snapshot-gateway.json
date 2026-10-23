@@ -7,6 +7,7 @@
       "/apps/snapshot-gateway/**",
       "/packages/snapshot-artifacts/**",
       "/packages/protocol-config/**",
+      "/packages/contract-abis/abis/**",
       "/package.json",
       "/pnpm-lock.yaml",
       "/pnpm-workspace.yaml",

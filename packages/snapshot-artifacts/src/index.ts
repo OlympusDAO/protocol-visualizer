@@ -66,6 +66,35 @@ export type BoundsResponse = {
   indexingProgress?: IndexingProgress;
 };
 
+export type AbiDeployment = {
+  abiHash: string;
+  abiSource: "etherscan" | "override";
+  address: string;
+  chain: string;
+  chainId: number;
+  contractName?: string;
+  label: string;
+  origin: { env?: string[]; kernel?: string };
+  proxy?: {
+    contractName: string;
+    implementation: string;
+    implementationSource: "eip1967" | "etherscan";
+  };
+  version?: string;
+};
+
+export type AbiIndexResponse = {
+  data: Array<{
+    chainId: number;
+    chain: string;
+    contracts: Array<{ label: string; address: string }>;
+  }>;
+};
+
+export type AbiDeploymentResponse = {
+  data: { deployment: AbiDeployment; abi: unknown[] };
+};
+
 export type OpenApiDocument = {
   openapi: "3.1.0";
   info: { title: string; version: string };
@@ -406,6 +435,48 @@ export const manifestSchema = {
   },
 } as const;
 
+export const abiDeploymentSchema = {
+  type: "object",
+  required: [
+    "abiHash",
+    "abiSource",
+    "address",
+    "chain",
+    "chainId",
+    "label",
+    "origin",
+  ],
+  properties: {
+    abiHash: { type: "string" },
+    abiSource: { type: "string", enum: ["etherscan", "override"] },
+    address: { type: "string" },
+    chain: { type: "string" },
+    chainId: { type: "integer" },
+    contractName: { type: "string" },
+    label: { type: "string" },
+    origin: {
+      type: "object",
+      properties: {
+        env: { type: "array", items: { type: "string" } },
+        kernel: { type: "string" },
+      },
+    },
+    proxy: {
+      type: "object",
+      required: ["contractName", "implementation", "implementationSource"],
+      properties: {
+        contractName: { type: "string" },
+        implementation: { type: "string" },
+        implementationSource: {
+          type: "string",
+          enum: ["eip1967", "etherscan"],
+        },
+      },
+    },
+    version: { type: "string" },
+  },
+} as const;
+
 export function createOpenApiDocument(): OpenApiDocument {
   const jsonResponse = (schemaRef: string) => ({
     description: "JSON response",
@@ -487,6 +558,61 @@ export function createOpenApiDocument(): OpenApiDocument {
           },
         },
       },
+      "/v1/abis": {
+        get: {
+          summary: "Contracts with a known ABI, by chain: label and address",
+          responses: {
+            "200": jsonResponse("#/components/schemas/AbiIndex"),
+          },
+        },
+      },
+      "/v1/abis/{chainId}/{address}": {
+        get: {
+          summary: "ABI of a deployed contract, found by address",
+          parameters: [
+            {
+              name: "chainId",
+              in: "path",
+              required: true,
+              schema: { type: "integer" },
+            },
+            {
+              name: "address",
+              in: "path",
+              required: true,
+              schema: { type: "string", pattern: "^0x[0-9a-fA-F]{40}$" },
+            },
+          ],
+          responses: {
+            "200": jsonResponse("#/components/schemas/AbiDeploymentResponse"),
+            "400": jsonResponse("#/components/schemas/Error"),
+            "404": jsonResponse("#/components/schemas/Error"),
+          },
+        },
+      },
+      "/v1/abis/{chainId}/labels/{label}": {
+        get: {
+          summary: "ABI of a deployed contract, found by label",
+          parameters: [
+            {
+              name: "chainId",
+              in: "path",
+              required: true,
+              schema: { type: "integer" },
+            },
+            {
+              name: "label",
+              in: "path",
+              required: true,
+              schema: { type: "string", pattern: "^[A-Za-z0-9_]+$" },
+            },
+          ],
+          responses: {
+            "200": jsonResponse("#/components/schemas/AbiDeploymentResponse"),
+            "404": jsonResponse("#/components/schemas/Error"),
+          },
+        },
+      },
       "/v1/openapi.json": {
         get: {
           summary: "OpenAPI document",
@@ -544,6 +670,49 @@ export function createOpenApiDocument(): OpenApiDocument {
           },
         },
         ProtocolSnapshot: protocolSnapshotSchema,
+        AbiDeployment: abiDeploymentSchema,
+        AbiIndex: {
+          type: "object",
+          required: ["data"],
+          properties: {
+            data: {
+              type: "array",
+              items: {
+                type: "object",
+                required: ["chainId", "chain", "contracts"],
+                properties: {
+                  chainId: { type: "integer" },
+                  chain: { type: "string" },
+                  contracts: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      required: ["label", "address"],
+                      properties: {
+                        label: { type: "string" },
+                        address: { type: "string" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        AbiDeploymentResponse: {
+          type: "object",
+          required: ["data"],
+          properties: {
+            data: {
+              type: "object",
+              required: ["deployment", "abi"],
+              properties: {
+                deployment: { $ref: "#/components/schemas/AbiDeployment" },
+                abi: { type: "array", items: { type: "object" } },
+              },
+            },
+          },
+        },
         OpenApi: { type: "object" },
       },
     },

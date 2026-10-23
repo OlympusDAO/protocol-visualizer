@@ -17,6 +17,7 @@ RUN pnpm install --frozen-lockfile --filter snapshot-gateway...
 
 COPY apps/snapshot-gateway/ ./apps/snapshot-gateway/
 COPY packages/snapshot-artifacts/ ./packages/snapshot-artifacts/
+COPY packages/contract-abis/abis/ ./packages/contract-abis/abis/
 
 RUN pnpm --filter @protocol-visualizer/snapshot-artifacts run build \
     && pnpm --filter snapshot-gateway run build \
@@ -35,6 +36,7 @@ WORKDIR /app
 
 COPY --from=deps /deploy/snapshot-gateway ./apps/snapshot-gateway
 COPY --from=deps /app/config/protocol-chains.json ./config/protocol-chains.json
+COPY --from=deps /app/packages/contract-abis/abis ./config/contract-abis
 
 RUN rm -rf \
     /root/.cache/node/corepack \
@@ -48,6 +50,7 @@ RUN rm -rf \
 
 ENV NODE_ENV=production
 ENV PROTOCOL_CHAINS_CONFIG_PATH=/app/config/protocol-chains.json
+ENV CONTRACT_ABIS_PATH=/app/config/contract-abis
 ENV PORT=8080
 
 RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app

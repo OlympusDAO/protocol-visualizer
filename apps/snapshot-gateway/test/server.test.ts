@@ -7,6 +7,7 @@ import {
   SCHEMA_VERSION,
   type SnapshotManifest,
 } from "@protocol-visualizer/snapshot-artifacts";
+import { createAbiRegistry } from "../src/abis.js";
 import {
   createReadinessReporter,
   createSnapshotGateway,
@@ -116,6 +117,7 @@ const createTestConfig = (
   logger: options.logger ?? silentLogger,
   readinessOperationTimeoutMs: options.readinessOperationTimeoutMs,
   openapiPath: "missing-openapi.json",
+  abis: createAbiRegistry({ deployments: [] }, new Map()),
   chains: [
     {
       key: "Mainnet",

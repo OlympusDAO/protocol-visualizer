@@ -17,6 +17,7 @@ RUN pnpm install --frozen-lockfile --prod
 
 # Copy source code
 COPY apps/indexer/ ./apps/indexer/
+COPY packages/contract-abis/abis/ ./packages/contract-abis/abis/
 
 # Runtime stage
 # Pinned image index: gcr.io/distroless/nodejs24-debian13
@@ -28,6 +29,7 @@ WORKDIR /app
 # Copy runtime dependencies and source from dependency stage
 COPY --from=deps --chown=nonroot:nonroot /app/node_modules ./node_modules
 COPY --from=deps --chown=nonroot:nonroot /app/apps/indexer ./apps/indexer
+COPY --from=deps --chown=nonroot:nonroot /app/packages/contract-abis/abis ./packages/contract-abis/abis
 COPY --from=deps --chown=nonroot:nonroot /app/package.json ./package.json
 COPY --from=deps --chown=nonroot:nonroot /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 

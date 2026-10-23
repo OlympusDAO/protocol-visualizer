@@ -17,6 +17,8 @@ unresolved identities are preserved.
 
 | Chain | Address | Label | Evidence |
 | --- | --- | --- | --- |
+| Mainnet | `0x0941233c964e7d7efeb05d253176e5e634ceffcd` | Governor | [Verified compiler metadata](https://sourcify.dev/server/v2/contract/1/0x0941233c964e7d7efeb05d253176e5e634ceffcd?fields=metadata): `GovernorBravoDelegator`; Olympus V3 environment `olympus.governance.GovernorBravoDelegator`. Added on 23 October 2026. |
+| Mainnet | `0xde3f82d378c3b4e3f3f848b8df501914b3317e96` | GovernorDelegate | [Verified compiler metadata](https://sourcify.dev/server/v2/contract/1/0xde3f82d378c3b4e3f3f848b8df501914b3317e96?fields=metadata): `GovernorBravoDelegate`; Governor's observed `implementation()`. Added on 23 October 2026. |
 | Mainnet | `0x44835bbba9d40deda9b64858095ecfb2693c9449` | CCIP RBACTimelock | [Sourcify compiler record](https://sourcify.dev/server/v2/contract/1/0x44835bbba9d40deda9b64858095ecfb2693c9449?fields=compilation); registry-owner relationship. |
 | Optimism | `0x1e2faed390be7945acbf22fc25173c4bdda3ea45` | CCIP RBACTimelock | [Verified source](https://optimistic.etherscan.io/address/0x1e2faed390be7945acbf22fc25173c4bdda3ea45#code) and Sourcify. |
 | Arbitrum | `0x8a89770722c84b60ce02989aedb22ac4791f8c7f` | CCIP RBACTimelock | [Sourcify compiler record](https://sourcify.dev/server/v2/contract/42161/0x8a89770722c84b60ce02989aedb22ac4791f8c7f?fields=compilation). |
@@ -47,6 +49,7 @@ from the DAO MS administering OHM within that registry.
 
 | Chain(s) | Address | Established context | Still unknown |
 | --- | --- | --- | --- |
+| Mainnet | `0x0000000000000000000000000000000000000020` | Older Operator `0x5f15b91b59ad65d490921016d4134c2301197485` returns this from `wrappedReserve()`. The constructor argument is also `0x20`. No code at block 26252800; Operator `isActive()` is false. | Why this value was supplied. No token identity established. |
 | Optimism, Arbitrum, Base, Berachain | `0x3dc70606c76125282084dc37f6f7b1e3a1ce6a5e` | Indexed CCIP pool owner; refreshed code reads return `0x` on all four chains. | Operator or organisation. No DAO label inferred from ownership. |
 | Robinhood | `0xf09afe78d3c7d359b334d7cb88995751f7ec5e13` | Registry owner; deployed code; `getMinDelay()` returns 10800 seconds. | Verified contract name and operator. Its same-address contracts on other chains do not establish its identity here. |
 | Sepolia | `0x1505f3ad833e9c82facd8b4d3ff4319b1ef6eb99` | `minter_admin` assignee in replay; refreshed code is `0x`. | Operator or organisation. |
@@ -57,7 +60,24 @@ The Heart task extension also exposes Sepolia auctioneer reference
 11974025 and no verified identity. Its Mainnet deployment is verified as
 BondFixedTermSDA; that identity is not applied to Sepolia.
 
-No unresolved names remain among the audited Mainnet, Arbitrum Sepolia,
-Base Sepolia, Goerli or Bartio records. Including the Heart reference, the five
-unresolved identities span eight chain/address pairs. Unknowns remain visible
-in the application.
+Unknowns remain visible in the application. Getter discovery can expose
+additional addresses beyond the original audit.
+
+## Mainnet follow-up: 23 October 2026
+
+Reads were pinned to block 26252800
+(`0xd345d195433dfbafbb1e17b42133a85327237d1c84bbbbc5086887000990eb80`).
+The Governor and its implementation matched their verified runtime bytecode.
+The Governor's `admin()` returns the OCG Timelock
+(`0x953ea3223d2dd3c1a91e9d6cca1bf7af162c9c39`). The Timelock's `admin()`
+also returns the Governor, so the graph correctly contains both references.
+Both Governor labels use `labelOnly` entries.
+
+The old Operator's `wrappedReserve()` returns one 32-byte address word ending
+in `0020`. This is not an ABI offset mistakenly decoded as an address.
+Its [creation transaction](https://etherscan.io/tx/0xba513c50dba98dcba845d7086917c41e653ea6aee75b07485223c76fbd66cd77)
+at block 18279003 matches Sourcify's creation bytecode and constructor arguments.
+The verified constructor assigns `tokens_[2]`, whose value is `0x20`, directly
+to immutable `wrappedReserve`. The deployment receipt and block hash were
+checked. This appears to be an invalid reserve configuration; the deployment
+does not establish a name or purpose for that address.

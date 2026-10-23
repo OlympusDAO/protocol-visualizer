@@ -25,6 +25,12 @@
   },
   {
     "chainId": 1,
+    "address": "0x0941233c964e7d7efeb05d253176e5e634ceffcd",
+    "name": "Governor",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
     "address": "0x0cf30dc0d48604a301df8010cdc028c055336b2e",
     "name": "Policy MS"
   },
@@ -50,6 +56,12 @@
     "chainId": 1,
     "address": "0x44835bbba9d40deda9b64858095ecfb2693c9449",
     "name": "CCIP RBACTimelock",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0xde3f82d378c3b4e3f3f848b8df501914b3317e96",
+    "name": "GovernorDelegate",
     "labelOnly": true
   },
   {

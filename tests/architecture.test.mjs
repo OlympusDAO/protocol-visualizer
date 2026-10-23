@@ -6,6 +6,7 @@ const {
   layoutArchitectureSections,
   getSubsystem,
   SUBSYSTEMS,
+  layoutContractGraph,
 } = await import(
   "../apps/frontend/src/components/contract-visualizer/architecture.ts"
 );
@@ -40,6 +41,76 @@ const edges = [
   edge("ref-two", "cooler", "bridge", "reference"),
 ];
 const filters = { permission: true, control: true, reference: true };
+
+test("focused CCIP layout routes long links around cards and separates parallel relationship labels", () => {
+  const cards = ["dao", "config", "registry", "pool", "checker"].map((id) => ({
+    ...node(id, id),
+    style: { width: id === "checker" ? 320 : 240 },
+  }));
+  const links = [
+    ["dao", "registry", "OHM admin"],
+    ["dao", "pool", "Pool owner"],
+    ["config", "pool", "Pending pool owner"],
+    ["config", "pool", "pool()"],
+    ["registry", "pool", "getPool(address)"],
+    ["checker", "config", "CONFIG()"],
+    ["checker", "registry", "REGISTRY()"],
+    ["checker", "pool", "POOL()"],
+    ["checker", "dao", "DAO_MS()"],
+  ].map(([source, target, labelText], index) => ({
+    id: String(index),
+    source,
+    target,
+    data: { labelText },
+  }));
+  const layout = layoutContractGraph(cards, links);
+  assert.deepEqual(
+    layout.nodes.map((node) => node.id),
+    cards.map((node) => node.id)
+  );
+  assert.deepEqual(
+    layout.edges.map((edge) => edge.id),
+    links.map((edge) => edge.id)
+  );
+  assert.deepEqual(layoutContractGraph(cards, links), layout);
+  for (const edge of layout.edges) {
+    const points = edge.data.route.points;
+    for (const card of layout.nodes.filter(
+      (node) => ![edge.source, edge.target].includes(node.id)
+    )) {
+      for (let segment = 1; segment < points.length; segment++)
+        for (let sample = 0; sample <= 20; sample++) {
+          const fraction = sample / 20;
+          const x =
+            points[segment - 1].x +
+            (points[segment].x - points[segment - 1].x) * fraction;
+          const y =
+            points[segment - 1].y +
+            (points[segment].y - points[segment - 1].y) * fraction;
+          assert.ok(
+            !(
+              x > card.position.x &&
+              x < card.position.x + card.style.width &&
+              y > card.position.y &&
+              y < card.position.y + 120
+            ),
+            `${edge.data.labelText} crosses ${card.id}`
+          );
+        }
+    }
+  }
+  const parallel = layout.edges.filter(
+    (edge) => edge.source === "config" && edge.target === "pool"
+  );
+  assert.notDeepEqual(
+    parallel[0].data.route.points,
+    parallel[1].data.route.points
+  );
+  assert.ok(
+    Math.abs(parallel[0].data.route.labelY - parallel[1].data.route.labelY) >=
+      24
+  );
+});
 
 test("contract sections separate infrastructure, proposal helpers and Olympus tokens", () => {
   const sections = {

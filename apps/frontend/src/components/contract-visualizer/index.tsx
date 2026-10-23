@@ -23,7 +23,6 @@ import {
   type PolicyFunction,
   type PolicyPermission,
 } from "@/services/contracts";
-import dagre from "dagre";
 import { ConnectionLabel, FunctionDocumentation } from "./function-context";
 import { ChainSelector } from "../chain-selector";
 import { SUPPORTED_CHAINS } from "@/lib/constants";
@@ -31,6 +30,7 @@ import { useGraphNavigation } from "./navigation";
 import {
   getArchitectureView,
   layoutArchitectureSections,
+  layoutContractGraph,
   getSubsystem,
   SUBSYSTEMS,
   type ConnectionFilters,
@@ -47,7 +47,6 @@ import {
   getContractDeploymentLabel,
   getGraphContractName,
   getContractNodeWidth,
-  getGraphNodeWidth,
   getKernelLabel,
   refreshGraph,
   groupInactiveContracts,
@@ -405,57 +404,6 @@ const PolicyTooltip = ({ contract }: { contract: Contract }) => {
       </div>
     </div>
   );
-};
-
-// Add dagre layout function
-const getLayoutedElements = (
-  nodes: Node[],
-  edges: Edge[],
-  direction = "TB"
-) => {
-  const dagreGraph = new dagre.graphlib.Graph();
-  dagreGraph.setDefaultEdgeLabel(() => ({}));
-
-  const nodeHeight = 120;
-
-  // Set graph direction and spacing
-  dagreGraph.setGraph({
-    rankdir: direction,
-    nodesep: 80,
-    ranksep: 150,
-    marginx: 100,
-    marginy: 100,
-  });
-
-  // Add nodes to dagre graph
-  nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, {
-      width: getGraphNodeWidth(node),
-      height: node.type === "role" ? 80 : nodeHeight,
-    });
-  });
-
-  // Add edges to dagre graph
-  edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
-  });
-
-  // Calculate layout
-  dagre.layout(dagreGraph);
-
-  // Get positioned nodes
-  const layoutedNodes = nodes.map((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id);
-    return {
-      ...node,
-      position: {
-        x: nodeWithPosition.x - getGraphNodeWidth(node) / 2,
-        y: nodeWithPosition.y - (node.type === "role" ? 40 : nodeHeight / 2),
-      },
-    };
-  });
-
-  return { nodes: layoutedNodes, edges };
 };
 
 export function ContractVisualizer() {
@@ -1045,6 +993,7 @@ export function ContractVisualizer() {
     const viewNodes = projected.nodes;
     const sectioned = architectureView === "overview" && !selectedNode;
     let finalNodes: Node[];
+    let layoutEdges = projected.edges;
     if (sectioned) finalNodes = layoutArchitectureSections(viewNodes);
     else {
       const inactive =
@@ -1054,14 +1003,15 @@ export function ContractVisualizer() {
       const inactiveIds = new Set(inactive.map((node) => node.id));
       const active = viewNodes.filter((node) => !inactiveIds.has(node.id));
       const activeIds = new Set(active.map((node) => node.id));
-      const layout = getLayoutedElements(
+      const layout = layoutContractGraph(
         active,
         projected.edges.filter(
           (edge) => activeIds.has(edge.source) && activeIds.has(edge.target)
-        ),
-        "TB"
+        )
       );
       finalNodes = groupInactiveContracts(layout.nodes, inactive);
+      const routed = new Map(layout.edges.map((edge) => [edge.id, edge]));
+      layoutEdges = projected.edges.map((edge) => routed.get(edge.id) ?? edge);
     }
     const key = JSON.stringify([
       selectedChainId,
@@ -1088,7 +1038,7 @@ export function ContractVisualizer() {
         ? refreshGraph(finalNodes, nodesRef.current, selectedNode).nodes
         : finalNodes
     );
-    setEdges(projected.edges);
+    setEdges(layoutEdges);
     if (!reactFlowInstance || current.fitted) return;
     const timer = setTimeout(() => {
       reactFlowInstance.fitView({

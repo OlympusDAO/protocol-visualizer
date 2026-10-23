@@ -1,4 +1,5 @@
 import type { Edge, Node } from "reactflow";
+import dagre from "dagre";
 import { getGraphNodeWidth } from "./graph";
 
 export const SUBSYSTEMS = [
@@ -19,6 +20,65 @@ export const SUBSYSTEMS = [
 ];
 export type ConnectionKind = "permission" | "control" | "reference";
 export type ConnectionFilters = Record<ConnectionKind, boolean>;
+
+export function layoutContractGraph(nodes: Node[], edges: Edge[]) {
+  const graph = new dagre.graphlib.Graph({ multigraph: true });
+  graph.setGraph({
+    rankdir: "LR",
+    nodesep: 80,
+    ranksep: 150,
+    edgesep: 32,
+    marginx: 100,
+    marginy: 100,
+  });
+  for (const node of nodes)
+    graph.setNode(node.id, {
+      width: getGraphNodeWidth(node),
+      height: node.height ?? (node.type === "role" ? 80 : 120),
+    });
+  for (const edge of edges)
+    graph.setEdge(
+      edge.source,
+      edge.target,
+      {
+        width: Math.min(280, (edge.data?.labelText?.length ?? 0) * 7),
+        height: edge.data?.labelText ? 24 : 0,
+        labelpos: "c",
+      },
+      edge.id
+    );
+  dagre.layout(graph);
+  const positioned = nodes.map((node) => {
+    const position = graph.node(node.id);
+    return {
+      ...node,
+      position: {
+        x: position.x - position.width / 2,
+        y: position.y - position.height / 2,
+      },
+    };
+  });
+  const positions = new Map(positioned.map((node) => [node.id, node.position]));
+  return {
+    nodes: positioned,
+    edges: edges.map((edge) => {
+      const route = graph.edge(edge.source, edge.target, edge.id);
+      return {
+        ...edge,
+        data: {
+          ...edge.data,
+          route: {
+            points: route.points,
+            labelX: route.x,
+            labelY: route.y,
+            sourcePosition: positions.get(edge.source),
+            targetPosition: positions.get(edge.target),
+          },
+        },
+      };
+    }),
+  };
+}
 
 export function getSubsystem(node: Node): string | null {
   if (node.data.kernelInactive) return "inactive";

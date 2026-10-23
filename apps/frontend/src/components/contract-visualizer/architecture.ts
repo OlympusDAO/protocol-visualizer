@@ -26,7 +26,7 @@ export function getSubsystem(node: Node): string | null {
   if (/\bMS\b|Multisig/.test(node.data.name)) return null;
   if (["kernel", "module"].includes(node.data.contractType)) return "core";
   const name = (node.data.name as string).replace(/ \([^)]*\)$/, "");
-  if (/ProposalHelper$|^ConvertibleDepositActivator$/.test(name))
+  if (/Proposal(?:Helper|Checker)$|^ConvertibleDepositActivator$/.test(name))
     return "proposals";
   if (/^BondFixedTermSDA$/.test(name)) return "bond-protocol";
   if (

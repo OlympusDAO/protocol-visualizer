@@ -722,6 +722,172 @@
       },
       "roleToFunctions": {}
     },
+    "0x1b1fb8c6e0420c6595a016dd8ad962176aa564c9": {
+      "addressGetters": [
+        "CONFIG",
+        "CONFIG_TIMELOCK",
+        "DAO_MS",
+        "KERNEL",
+        "OCG_TIMELOCK",
+        "OHM",
+        "POOL",
+        "REGISTRY",
+        "ROLES"
+      ],
+      "functionSelectors": {
+        "0x037c6514": {
+          "canonicalSignature": "KERNEL()",
+          "documentation": {
+            "signature": "KERNEL()",
+            "source": {
+              "codeHash": "0x95bcae251e8e29da1e67facf95c4c4d29c8a6d109aa6fd4fd8b4ec463088bfdb",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0x1b1fb8c6e0420c6595a016dd8ad962176aa564c9?fields=metadata"
+            }
+          },
+          "name": "KERNEL",
+          "roles": [],
+          "selector": "0x037c6514",
+          "signature": "KERNEL()(address)"
+        },
+        "0x06433b1b": {
+          "canonicalSignature": "REGISTRY()",
+          "documentation": {
+            "signature": "REGISTRY()",
+            "source": {
+              "codeHash": "0x95bcae251e8e29da1e67facf95c4c4d29c8a6d109aa6fd4fd8b4ec463088bfdb",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0x1b1fb8c6e0420c6595a016dd8ad962176aa564c9?fields=metadata"
+            }
+          },
+          "name": "REGISTRY",
+          "roles": [],
+          "selector": "0x06433b1b",
+          "signature": "REGISTRY()(address)"
+        },
+        "0x62ac7505": {
+          "canonicalSignature": "CONFIG_TIMELOCK()",
+          "documentation": {
+            "signature": "CONFIG_TIMELOCK()",
+            "source": {
+              "codeHash": "0x95bcae251e8e29da1e67facf95c4c4d29c8a6d109aa6fd4fd8b4ec463088bfdb",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0x1b1fb8c6e0420c6595a016dd8ad962176aa564c9?fields=metadata"
+            }
+          },
+          "name": "CONFIG_TIMELOCK",
+          "roles": [],
+          "selector": "0x62ac7505",
+          "signature": "CONFIG_TIMELOCK()(address)"
+        },
+        "0x7535d246": {
+          "canonicalSignature": "POOL()",
+          "documentation": {
+            "signature": "POOL()",
+            "source": {
+              "codeHash": "0x95bcae251e8e29da1e67facf95c4c4d29c8a6d109aa6fd4fd8b4ec463088bfdb",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0x1b1fb8c6e0420c6595a016dd8ad962176aa564c9?fields=metadata"
+            }
+          },
+          "name": "POOL",
+          "roles": [],
+          "selector": "0x7535d246",
+          "signature": "POOL()(address)"
+        },
+        "0x923cb952": {
+          "canonicalSignature": "ROLES()",
+          "documentation": {
+            "signature": "ROLES()",
+            "source": {
+              "codeHash": "0x95bcae251e8e29da1e67facf95c4c4d29c8a6d109aa6fd4fd8b4ec463088bfdb",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0x1b1fb8c6e0420c6595a016dd8ad962176aa564c9?fields=metadata"
+            }
+          },
+          "name": "ROLES",
+          "roles": [],
+          "selector": "0x923cb952",
+          "signature": "ROLES()(address)"
+        },
+        "0x9302d567": {
+          "canonicalSignature": "check((bool,bool,bool,bool,bool,bool,bool,bool,address,address,uint64[],uint256))",
+          "documentation": {
+            "signature": "check((bool,bool,bool,bool,bool,bool,bool,bool,address,address,uint64[],uint256))",
+            "source": {
+              "codeHash": "0x95bcae251e8e29da1e67facf95c4c4d29c8a6d109aa6fd4fd8b4ec463088bfdb",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0x1b1fb8c6e0420c6595a016dd8ad962176aa564c9?fields=metadata"
+            }
+          },
+          "name": "check",
+          "roles": [],
+          "selector": "0x9302d567",
+          "signature": "check(tuple)()"
+        },
+        "0xa6c41fec": {
+          "canonicalSignature": "OHM()",
+          "documentation": {
+            "signature": "OHM()",
+            "source": {
+              "codeHash": "0x95bcae251e8e29da1e67facf95c4c4d29c8a6d109aa6fd4fd8b4ec463088bfdb",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0x1b1fb8c6e0420c6595a016dd8ad962176aa564c9?fields=metadata"
+            }
+          },
+          "name": "OHM",
+          "roles": [],
+          "selector": "0xa6c41fec",
+          "signature": "OHM()(address)"
+        },
+        "0xd657a55c": {
+          "canonicalSignature": "OCG_TIMELOCK()",
+          "documentation": {
+            "signature": "OCG_TIMELOCK()",
+            "source": {
+              "codeHash": "0x95bcae251e8e29da1e67facf95c4c4d29c8a6d109aa6fd4fd8b4ec463088bfdb",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0x1b1fb8c6e0420c6595a016dd8ad962176aa564c9?fields=metadata"
+            }
+          },
+          "name": "OCG_TIMELOCK",
+          "roles": [],
+          "selector": "0xd657a55c",
+          "signature": "OCG_TIMELOCK()(address)"
+        },
+        "0xd92e82e4": {
+          "canonicalSignature": "CONFIG()",
+          "documentation": {
+            "signature": "CONFIG()",
+            "source": {
+              "codeHash": "0x95bcae251e8e29da1e67facf95c4c4d29c8a6d109aa6fd4fd8b4ec463088bfdb",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0x1b1fb8c6e0420c6595a016dd8ad962176aa564c9?fields=metadata"
+            }
+          },
+          "name": "CONFIG",
+          "roles": [],
+          "selector": "0xd92e82e4",
+          "signature": "CONFIG()(address)"
+        },
+        "0xf0538652": {
+          "canonicalSignature": "DAO_MS()",
+          "documentation": {
+            "signature": "DAO_MS()",
+            "source": {
+              "codeHash": "0x95bcae251e8e29da1e67facf95c4c4d29c8a6d109aa6fd4fd8b4ec463088bfdb",
+              "match": "code",
+              "url": "https://sourcify.dev/server/v2/contract/1/0x1b1fb8c6e0420c6595a016dd8ad962176aa564c9?fields=metadata"
+            }
+          },
+          "name": "DAO_MS",
+          "roles": [],
+          "selector": "0xf0538652",
+          "signature": "DAO_MS()(address)"
+        }
+      },
+      "roleToFunctions": {}
+    },
     "0x1ce568dbb34b2631acdb5b453c3195ea0070ec65": {
       "functionSelectors": {
         "0x01de9ba8": {

@@ -129,7 +129,7 @@ export function getContractDeploymentLabel(contract: {
 }): string {
   const name = contract.name ?? "";
   if (/\bMS\b|Multisig/.test(name)) return "Multisig";
-  if (/ProposalHelper$|^ConvertibleDepositActivator$/.test(name))
+  if (/Proposal(?:Helper|Checker)$|^ConvertibleDepositActivator$/.test(name))
     return "Proposal helper";
   if (
     /^(?:CCIPCrossChainBridge|LZCrossChainBridge|CrossChainBridge|CoolerV2Composites|CoolerV2Migrator|ConvertibleDepositAuctioneerLimitOrders|CCIPLockReleaseTokenPool|CCIPBurnMintTokenPool|V1Migrator)$/.test(

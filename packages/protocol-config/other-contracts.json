@@ -36,6 +36,12 @@
   },
   {
     "chainId": 1,
+    "address": "0x1b1fb8c6e0420c6595a016dd8ad962176aa564c9",
+    "name": "CCIPTokenPoolConfigProposalChecker",
+    "startBlock": 26232437
+  },
+  {
+    "chainId": 1,
     "address": "0x3225737a9bbb6473cb4a45b7244aca2befdb276a",
     "name": "DaiUsdsMigrator",
     "labelOnly": true

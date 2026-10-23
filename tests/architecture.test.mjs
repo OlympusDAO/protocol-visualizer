@@ -58,7 +58,11 @@ test("contract sections separate infrastructure, proposal helpers and Olympus to
       "CCIPLockReleaseTokenPool",
       "LockReleaseTokenPool (1.5.1)",
     ],
-    proposals: ["ConvertibleDepositActivator", "MigrationProposalHelper"],
+    proposals: [
+      "ConvertibleDepositActivator",
+      "MigrationProposalHelper",
+      "CCIPTokenPoolConfigProposalChecker",
+    ],
     governance: [
       "TreasuryCustodian",
       "CCIPTokenPoolConfig (1.0)",

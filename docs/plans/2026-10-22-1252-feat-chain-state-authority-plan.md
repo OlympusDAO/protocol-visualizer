@@ -450,7 +450,7 @@ Source: Olympus V3 `src/scripts/env.json`, corroborated by the successful creati
 | CCIPTokenPoolConfig | `0x6d94b3745b0ecf908b3b467907b947b43fba5f15` | 94169625 |
 | CCIPTokenPoolConfigTimelock | `0x9f08c2603e919a46d6d98289c9ada5250b310558` | 94169693 |
 
-Named actors and infrastructure: DAO MS `0x317e0f5ef883db95f8ffb5b995b8457903873608`; Emergency MS `0xa8a6ff2606b24f61afa986381d8991dfcccd2dd55`; TokenAdminRegistry `0x1912c3cfafe8a76a32a92861d815ac2837f237ca`; Router `0x06fc836cf9839b1cd891c440a0a45242da6ae1c9`; RMN `0xe8464c353210cc398a45db2454fbc5bcd25fff20`.
+Named actors and infrastructure: DAO MS `0x317e0f5ef883db95f8ffb5b995b8457903873608`; Emergency MS `0xa8a6ff2606b24f61afa986381d8991dfcccd2d55`; TokenAdminRegistry `0x1912c3cfafe8a76a32a92861d815ac2837f237ca`; Router `0x06fc836cf9839b1cd891c440a0a45242da6ae1c9`; RMN `0xe8464c353210cc398a45db2454fbc5bcd25fff20`.
 
 ### Additional Source Evidence
 

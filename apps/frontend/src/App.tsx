@@ -19,7 +19,7 @@ function App() {
     return () => window.removeEventListener("popstate", restore);
   }, []);
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gray-50 p-8 text-gray-900">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Protocol Visualizer</h1>
         <nav aria-label="Visualizer views" className="mb-6 flex gap-2">

@@ -4,11 +4,13 @@ Source comparison: Olympus V3 Robinhood `a48ec8281b51db9136fbd6a8fd24d1b65cf2a92
 
 ## IEnabler capabilities and replay boundaries
 
-The IEnabler subscriptions cover 69 verified implementations. Creation anchors remain in the existing core address book and additional-contract list. Capability and dialect come from verified ABI function metadata: `isEnabled()` establishes support, and `lastTransitionAt()` identifies V2. A complete verified ABI without `isEnabled()` is unsupported. An unavailable call does not prove absence.
+The IEnabler subscriptions now cover 70 verified implementations, including 16 legacy Ethereum implementations. Creation anchors remain in the existing core address book and additional-contract list. Capability and dialect come from verified ABI function metadata: `isEnabled()` establishes support, and `lastTransitionAt()` identifies V2. A complete verified ABI without `isEnabled()` is unsupported. An unavailable call does not prove absence.
 
 Seven additional periphery deployments use the verified `CoolerComposites`, `CoolerV2Migrator`, and `CCIPCrossChainBridge` source ABIs. The two Cooler implementations expose IEnabler without ERC165; no interface probe is required. Their legacy `Enabled()` and `Disabled()` logs assign state. Source `EnablerV2.sol` emits a legacy log followed by `Transition(address,bool,bytes,uint48)`, so V2 subscriptions process only `Transition`. Multiple transitions in one transaction remain separate by log index. Caller, payload, and `lastTransitionAt` remain attached to the transition.
 
-Archive checks found code at all 69 creation blocks, no code at the preceding block, and a successful hash-bound `isEnabled()` read at each chain's comparison block below. For 38 addresses, creation receipts independently matched successful status, address, and block hash. Other entries retain their earlier deployment evidence with the fresh code-boundary check. These are capability and anchor checks; they do not replace an event replay.
+The original 69-address archive check found code at all creation blocks, no code at the preceding block, and a successful hash-bound `isEnabled()` read at each chain's comparison block below. For 38 addresses, creation receipts independently matched successful status, address, and block hash. Other entries retain their earlier deployment evidence with the fresh code-boundary check. These are capability and anchor checks; they do not replace an event replay.
+
+The table records that original replay scope; it predates the added LimitOrders subscription.
 
 | Chain | Legacy | V2 | Pinned getter comparison block |
 | --- | ---: | ---: | ---: |
@@ -22,6 +24,8 @@ Archive checks found code at all 69 creation blocks, no code at the preceding bl
 | Arbitrum Sepolia (421614) | 0 | 3 | 321660483 |
 | Sepolia (11155111) | 27 | 0 | 11968102 |
 
+Mainnet LimitOrders (`0x7d8f82a0d5b67d5fdd1b77a899ff517818fafc2e`) was added during the later verified-ABI refresh. Its source and hash-bound getter were checked at block 26252800. It is included in current subscriptions but not in the original creation-boundary and event-replay totals below.
+
 The additional receipt sources are `broadcast/DeployV2.sol/1/run-1746515932.json`; `broadcast/DeployV2.sol/11155111/run-1746018785.json` and `run-1757579486838.json`; and these `broadcast/DeployV3.s.sol` runs:
 
 - Ethereum: `run-1762519979550.json`, `run-1762527193097.json`, `run-1763455275960.json`, `run-1770897446914.json`.
@@ -34,7 +38,7 @@ Seeds run at the end of each creation block, after constructor logs. A replay st
 
 Synthetic sample snapshots demonstrate a Kernel-active policy with IEnabler disabled. They do not assert that a production bridge or its linked contracts are operational.
 
-Production event checks fetched all enablement logs for these 69 addresses from their creation anchors through the pinned comparison blocks above. Replaying 52 raw logs produced 50 logical transitions; duplicate delivery added no rows. Every final state matched its hash-bound getter. This helper replay complements full Envio/PostgreSQL runs for Mainnet and Robinhood: Mainnet had 17 observed implementations and 17 transitions; Robinhood had four implementations and no enablement transitions. Both runs matched every final getter at their comparison block.
+Production event checks fetched all enablement logs for the original 69 addresses from their creation anchors through the pinned comparison blocks above. Replaying 52 raw logs produced 50 logical transitions; duplicate delivery added no rows. Every final state matched its hash-bound getter. This helper replay complements full Envio/PostgreSQL runs for Mainnet and Robinhood: Mainnet had 17 observed implementations in that replay and 17 transitions; Robinhood had four implementations and no enablement transitions. Both runs matched every final getter at their comparison block.
 
 A separate local Anvil run used the production event registrations. Constructor logs and contracts without logs established the correct state. Legacy and V2 calls with two transitions each produced two logical transitions per transaction. A reorg removed six orphaned transitions and restored the previous states; all three contracts matched getters at replacement block 101. This uses local transactions only.
 

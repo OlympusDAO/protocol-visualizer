@@ -481,7 +481,8 @@ This covers internal module references without calling the state-changing `confi
 
 Completed canonical checkpoints update these relationships through the existing reference pipeline.
 The graph labels them `Depends on KEYCODE`.
-The Module dependencies filter starts disabled, including getter links to modules.
+The Module dependencies filter starts disabled on the overview and enabled for contract focus, including getter links to modules.
+The two views retain separate toggle choices.
 Dependency details remain available while those graph links are hidden.
 Module details, policy details, and module counts include these dependencies separately from permissioned functions.
 Legacy snapshots retain their permission-based fallback.

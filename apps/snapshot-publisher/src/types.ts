@@ -58,6 +58,7 @@ export type InventoryContract = {
 };
 
 export type ProtocolGraphqlData = {
+  HeartTasks?: HeartTasks[];
   KnownContract?: Pick<
     GraphqlContract,
     "address" | "name" | "version" | "contractType" | "isEnabled"
@@ -147,6 +148,7 @@ export type SnapshotFile = {
   publishLast?: boolean;
 };
 import type {
+  HeartTasks,
   IndexingProgress,
   ContractState,
   ContractRelationship,

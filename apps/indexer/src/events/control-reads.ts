@@ -19,6 +19,21 @@ export type ControlGetterResult =
     }
   | { status: "unavailable"; reason: string };
 const addressGetters = new Set([
+  "DEPOSIT_MANAGER",
+  "migrator",
+  "sFrom",
+  "sTo",
+  "from",
+  "to",
+  "getSReserve",
+  "getReserve",
+  "auctioneer",
+  "callback",
+  "ohm",
+  "sReserve",
+  "reserve",
+  "cdAuctioneer",
+  "bondAuctioneer",
   "owner",
   "config",
   "pool",
@@ -84,6 +99,13 @@ export async function readPinnedControlGetter(
       token &&
       /^0x[0-9a-fA-F]{40}$/.test(token) &&
       ["administrator", "newAdministrator", "getPool"].includes(getter);
+    const periodicTasks = getter === "getPeriodicTasks";
+    const booleanGetter = [
+      "isEnabled",
+      "locallyActive",
+      "active",
+      "isShutdown",
+    ].includes(getter);
     if (getter === "newOwner" && !generic)
       return {
         status: "unavailable",
@@ -91,7 +113,8 @@ export async function readPinnedControlGetter(
           "Pending owner has no public getter; only replayed transfer requests establish the nominee.",
       };
     if (
-      input.getter !== "isEnabled" &&
+      !booleanGetter &&
+      !periodicTasks &&
       !addressGetters.has(input.getter) &&
       !generic &&
       !registryGetter
@@ -124,18 +147,20 @@ export async function readPinnedControlGetter(
           name:
             registryGetter && getter !== "getPool" ? "getTokenConfig" : getter,
           inputs: registryGetter ? [{ name: "token", type: "address" }] : [],
-          outputs: [
-            registryGetter && getter !== "getPool"
-              ? {
-                  type: "tuple",
-                  components: [
-                    { name: "administrator", type: "address" },
-                    { name: "pendingAdministrator", type: "address" },
-                    { name: "tokenPool", type: "address" },
-                  ],
-                }
-              : { type: input.getter === "isEnabled" ? "bool" : "address" },
-          ],
+          outputs: periodicTasks
+            ? [{ type: "address[]" }, { type: "bytes4[]" }]
+            : [
+                registryGetter && getter !== "getPool"
+                  ? {
+                      type: "tuple",
+                      components: [
+                        { name: "administrator", type: "address" },
+                        { name: "pendingAdministrator", type: "address" },
+                        { name: "tokenPool", type: "address" },
+                      ],
+                    }
+                  : { type: booleanGetter ? "bool" : "address" },
+              ],
           stateMutability: "view",
         },
       ],
@@ -159,8 +184,41 @@ export async function readPinnedControlGetter(
         status: "unavailable",
         reason: "canonical block hash changed during getter read",
       };
+    if (periodicTasks) {
+      if (
+        !Array.isArray(value) ||
+        value.length !== 2 ||
+        !Array.isArray(value[0]) ||
+        !Array.isArray(value[1]) ||
+        value[0].length !== value[1].length ||
+        value[0].some(
+          (address) =>
+            typeof address !== "string" ||
+            !/^0x[0-9a-fA-F]{40}$/.test(address) ||
+            /^0x0{40}$/i.test(address)
+        ) ||
+        value[1].some(
+          (selector) =>
+            typeof selector !== "string" || !/^0x[0-9a-fA-F]{8}$/.test(selector)
+        )
+      )
+        return {
+          status: "unavailable",
+          reason: "periodic task getter returned an unexpected value",
+        };
+      const selectors = value[1];
+      return {
+        status: "success",
+        value: JSON.stringify(
+          value[0].map((address: string, index: number) => ({
+            address: address.toLowerCase(),
+            selector: selectors[index].toLowerCase(),
+          }))
+        ),
+      };
+    }
     if (
-      input.getter === "isEnabled"
+      booleanGetter
         ? typeof value !== "boolean"
         : typeof value !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(value)
     )

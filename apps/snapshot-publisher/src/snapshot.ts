@@ -407,6 +407,12 @@ export function createProtocolSnapshot({
       lastChange: state?.lastChange ?? null,
       indexedThrough: state?.indexedThrough ?? null,
       verification: state?.verification ?? { outcome: "unperformed" },
+      ...(state?.enablementGetter
+        ? { enablementGetter: state.enablementGetter }
+        : {}),
+      ...(state?.enablementCoverage
+        ? { enablementCoverage: state.enablementCoverage }
+        : {}),
       kernelMembership: active.has(id)
         ? "active"
         : inactive.has(id)
@@ -425,6 +431,7 @@ export function createProtocolSnapshot({
       roleAssignments: roleAssignments.length,
     },
     data: {
+      periodicTasks: graphqlData.HeartTasks ?? [],
       contracts,
       roles,
       roleAssignments,
@@ -440,6 +447,8 @@ export function createProtocolSnapshot({
           coverage: relationship.coverage ?? undefined,
           functionContext: relationship.functionContext ?? undefined,
           targetCode: relationship.targetCode ?? undefined,
+          callSignature: relationship.callSignature ?? undefined,
+          callSelector: relationship.callSelector ?? undefined,
           verification: relationship.verification ?? undefined,
         })
       ),

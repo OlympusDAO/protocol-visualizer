@@ -4,6 +4,7 @@ import type {
   ContractRelationship,
   ChainObservation,
   FunctionContext,
+  HeartTasks,
 } from "../../../../../packages/snapshot-artifacts/src/index";
 import type { Node } from "reactflow";
 
@@ -150,7 +151,11 @@ export function getEnablementPresentation(
         : "Contract disabled";
   const details: string[] = [];
   const notices: string[] = [];
-  if (state?.enablerCapability === "unsupported")
+  if (state?.enablementGetter)
+    details.push(
+      `Task-local state from ${state.enablementGetter}(). ${state.enablementCoverage ?? ""}`
+    );
+  else if (state?.enablerCapability === "unsupported")
     details.push("Verified ABI does not implement IEnabler.");
   else if (state?.enabled == null)
     details.push(
@@ -233,7 +238,8 @@ export function refreshGraph<
 
 export function getRelationshipGraph(
   relationships: ContractRelationship[],
-  chainId: number
+  chainId: number,
+  periodicTasks: HeartTasks[] = []
 ) {
   const addresses = new Set<string>();
   const edges = new Map<
@@ -247,7 +253,43 @@ export function getRelationshipGraph(
       relationship: ContractRelationship;
     }
   >();
-  for (const relationship of relationships) {
+  const taskRelationships: ContractRelationship[] = periodicTasks.flatMap(
+    (list) => {
+      const provenance = list.lastChange ?? list.seed ?? list.indexedThrough;
+      if (!provenance) return [];
+      return (list.tasks ?? []).map((task, index) => ({
+        id: `${list.id}:periodic-task:${index}`,
+        chainId: list.chainId,
+        kind: "periodic-task",
+        callSelector:
+          task.selector === "0x00000000" ? "0x61461954" : task.selector,
+        source: list.address,
+        subject: list.address,
+        target: task.address,
+        status: "reference",
+        getter: "getPeriodicTasks",
+        provenance,
+        functionContext: {
+          signature: `${index + 1}. ${task.selector === "0x00000000" ? "execute()" : (task.signature ?? task.selector)}`,
+        },
+        verification: list.verification,
+        indexedThrough: list.indexedThrough,
+        coverage:
+          "Configured invocation order, including disabled tasks. Tasks decide whether to perform work; this is not an execution trace.",
+      }));
+    }
+  );
+  const configuredCalls = relationships.filter(
+    (relationship) =>
+      relationship.kind !== "task-call" ||
+      taskRelationships.some(
+        (task) =>
+          task.chainId === relationship.chainId &&
+          task.target === relationship.source.toLowerCase() &&
+          task.callSelector === relationship.callSelector
+      )
+  );
+  for (const relationship of [...configuredCalls, ...taskRelationships]) {
     if (
       relationship.chainId !== chainId ||
       relationship.status === "unset" ||
@@ -286,6 +328,8 @@ export function getRelationshipGraph(
           )?.name ?? `${token.slice(0, 6)}…${token.slice(-4)}`;
       label = `${pending ? "Pending " : ""}${tokenName} admin`;
     } else if (pending) label = `Pending ${name}`;
+    else if (relationship.callSignature)
+      label = relationship.callSignature.replace(/\([^)]*\)/g, "()");
     else if (getter)
       label =
         relationship.functionContext?.signature ??

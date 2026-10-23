@@ -57,34 +57,16 @@ export async function completeEnablementBlock(
   const deployed = contracts.filter(
     (contract) => contract.startBlock <= Number(block.number)
   );
-  const canonicalBlocks = new Map<string, ControlBlock | undefined>([
-    [block.number, block],
-  ]);
-  for (const { address } of deployed) {
-    const state = await context.ContractState.get<ControlStateEntity>(
-      contractId(chainId, address)
-    );
-    if (!state) continue;
-    const anchor = state.lastChange ?? state.seed;
-    if (!anchor) continue;
-    if (!canonicalBlocks.has(anchor.number))
-      canonicalBlocks.set(
-        anchor.number,
-        await readCanonicalBlock(anchor.number)
-      );
-    if (canonicalBlocks.get(anchor.number)?.hash !== anchor.hash) {
-      context.ContractState.set({
-        ...state,
-        verification: {
-          outcome: "unavailable",
-          block,
-          reason:
-            "Indexed state anchor is not confirmed on the observed canonical chain.",
-        },
-      });
-      return false;
-    }
-  }
+  if (
+    !(await controlAnchorsCanonical(
+      context,
+      chainId,
+      block,
+      deployed.map((contract) => contract.address),
+      readCanonicalBlock
+    ))
+  )
+    return false;
   const results = new Map<string, ControlGetterResult>();
   for (const { address } of deployed) {
     const result = await read(address);
@@ -93,9 +75,8 @@ export async function completeEnablementBlock(
     const state = await context.ContractState.get<ControlStateEntity>(
       contractId(chainId, address)
     );
-    if (state && state.enablerCapability !== "supported") {
+    if (state && state.enablerCapability !== "supported")
       context.ContractState.set({ ...state, enablerCapability: "supported" });
-    }
   }
   await completeControlBlock(
     context,
@@ -103,8 +84,53 @@ export async function completeEnablementBlock(
     block,
     deployed.map(({ address }) => address)
   );
-  for (const [address, result] of results) {
+  for (const [address, result] of results)
     await verifyControlState(context, chainId, address, block, result);
+  return true;
+}
+
+export async function controlAnchorsCanonical(
+  context: EnvioContext,
+  chainId: number,
+  block: ControlBlock,
+  addresses: string[],
+  readCanonicalBlock: (number: string) => Promise<ControlBlock | undefined>
+): Promise<boolean> {
+  const canonicalBlocks = new Map<string, ControlBlock | undefined>([
+    [block.number, block],
+  ]);
+  for (const address of addresses) {
+    const state = await context.ContractState.get<ControlStateEntity>(
+      contractId(chainId, address)
+    );
+    if (!state) continue;
+    const anchors = [
+      state.seed,
+      state.lastChange,
+      ...(state.enablementGetter && state.enablementGetter !== "locallyActive"
+        ? [state.indexedThrough]
+        : []),
+    ];
+    for (const anchor of anchors) {
+      if (!anchor) continue;
+      if (!canonicalBlocks.has(anchor.number))
+        canonicalBlocks.set(
+          anchor.number,
+          await readCanonicalBlock(anchor.number)
+        );
+      if (canonicalBlocks.get(anchor.number)?.hash !== anchor.hash) {
+        context.ContractState.set({
+          ...state,
+          verification: {
+            outcome: "unavailable",
+            block,
+            reason:
+              "Indexed state anchor is not confirmed on the observed canonical chain.",
+          },
+        });
+        return false;
+      }
+    }
   }
   return true;
 }

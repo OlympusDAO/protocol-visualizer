@@ -61,8 +61,12 @@ export type ContractState = {
   lastChange?: EventProvenance | null;
   indexedThrough?: BlockObservation | null;
   verification: GetterVerification;
+  enablementGetter?: string;
+  enablementCoverage?: string;
 };
 export type ContractRelationship = {
+  callSelector?: string;
+  callSignature?: string;
   id: string;
   chainId: number;
   kind: string;
@@ -86,7 +90,23 @@ export type ChainObservation = {
   chainId: number;
   indexedThrough: BlockObservation;
 };
+export type PeriodicTask = {
+  address: string;
+  selector: string;
+  signature?: string;
+};
+export type HeartTasks = {
+  id: string;
+  chainId: number;
+  address: string;
+  tasks: PeriodicTask[] | null;
+  seed: BlockObservation | null;
+  lastChange: EventProvenance | null;
+  indexedThrough: BlockObservation | null;
+  verification: GetterVerification;
+};
 export type SnapshotExtension = {
+  periodicTasks?: HeartTasks[];
   additionalContracts?: AdditionalContract[];
   contractStates?: ContractState[];
   relationships?: ContractRelationship[];
@@ -107,6 +127,7 @@ export function readSnapshotData<
   assertSupportedSchemaVersion(snapshot.schemaVersion);
   return {
     ...snapshot.data,
+    periodicTasks: snapshot.data.periodicTasks ?? [],
     additionalContracts: snapshot.data.additionalContracts ?? [],
     contractStates: snapshot.data.contractStates ?? [],
     relationships: snapshot.data.relationships ?? [],
@@ -469,6 +490,7 @@ export const protocolSnapshotSchema = {
       additionalProperties: false,
       required: ["contracts", "roles", "roleAssignments"],
       properties: {
+        periodicTasks: { type: "array", items: { $ref: "#/$defs/heartTasks" } },
         additionalContracts: {
           type: "array",
           items: { $ref: "#/$defs/additionalContract" },
@@ -494,6 +516,38 @@ export const protocolSnapshotSchema = {
     },
   },
   $defs: {
+    heartTasks: {
+      type: "object",
+      required: ["id", "chainId", "address", "tasks", "verification"],
+      properties: {
+        id: { type: "string" },
+        chainId: { type: "integer" },
+        address: { type: "string" },
+        tasks: {
+          anyOf: [
+            { type: "null" },
+            {
+              type: "array",
+              items: {
+                type: "object",
+                required: ["address", "selector"],
+                properties: {
+                  address: { type: "string" },
+                  selector: { type: "string" },
+                  signature: { type: "string" },
+                },
+              },
+            },
+          ],
+        },
+        seed: { anyOf: [{ $ref: "#/$defs/block" }, { type: "null" }] },
+        lastChange: { anyOf: [{ $ref: "#/$defs/block" }, { type: "null" }] },
+        indexedThrough: {
+          anyOf: [{ $ref: "#/$defs/block" }, { type: "null" }],
+        },
+        verification: { $ref: "#/$defs/contractState/properties/verification" },
+      },
+    },
     block: {
       type: "object",
       required: ["number", "hash", "timestamp"],
@@ -546,6 +600,8 @@ export const protocolSnapshotSchema = {
         address: { type: "string" },
         kernelMembership: { enum: ["active", "inactive", "unknown"] },
         enablerCapability: { enum: ["unknown", "supported", "unsupported"] },
+        enablementGetter: { type: "string" },
+        enablementCoverage: { type: "string" },
         enabled: { type: ["boolean", "null"] },
         seed: { anyOf: [{ $ref: "#/$defs/block" }, { type: "null" }] },
         lastChange: { anyOf: [{ $ref: "#/$defs/block" }, { type: "null" }] },
@@ -578,6 +634,8 @@ export const protocolSnapshotSchema = {
         "provenance",
       ],
       properties: {
+        callSignature: { type: "string" },
+        callSelector: { type: "string" },
         id: { type: "string" },
         chainId: { type: "integer" },
         kind: { type: "string" },

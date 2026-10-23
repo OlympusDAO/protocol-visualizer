@@ -11,6 +11,8 @@ type ControlProvenance = ControlBlock & {
   lastTransitionAt?: string;
 };
 export type ControlStateEntity = {
+  enablementGetter?: string;
+  enablementCoverage?: string;
   id: string;
   chainId: number;
   address: string;

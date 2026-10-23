@@ -9,6 +9,7 @@ export type EntityStore = {
 };
 
 export type EnvioContext = EvmOnEventContext & {
+  HeartTasks: EntityStore;
   ContractState: EntityStore;
   ContractStateSeed: EntityStore;
   ControlTransition: EntityStore;

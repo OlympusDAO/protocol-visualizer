@@ -7,6 +7,19 @@ field_selection:
     - hash
 
 contracts:
+  - name: LegacyPeriodicTask
+    abi_file_path: ./abis/json/LegacyPeriodicTask.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "Activated()"
+      - event: "Deactivated()"
+      - event: "Shutdown()"
+  - name: PeriodicTaskManager
+    abi_file_path: ./abis/json/PeriodicTaskManager.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "PeriodicTaskAdded(address indexed task_, bytes4 customSelector_, uint256 indexed index_)"
+      - event: "PeriodicTaskRemoved(address indexed task_, uint256 indexed index_)"
   - name: MonoCoolerReferences
     abi_file_path: ./abis/json/MonoCoolerReferences.json
     handler: ./src/EventHandlers.ts
@@ -230,6 +243,15 @@ chains:
       - url: ${ENVIO_RPC_URL_1:-https://eth.llamarpc.com}
         for: ${ENVIO_RPC_MODE:-sync}
     contracts:
+      - name: LegacyPeriodicTask
+        address:
+          - "0x271e35a8555a62f6ba76508e85dfd76d580b0692"
+          - "0x986b99579bec7b990331474b66ccdb94fa2419f5"
+        start_block: 21216652
+      - name: PeriodicTaskManager
+        address:
+          - "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb"
+        start_block: 23748093
       - name: MonoCoolerReferences
         address:
           - "0xdb591ea2e5db886da872654d58f6cc584b68e7cc"
@@ -510,6 +532,16 @@ chains:
       - url: ${ENVIO_RPC_URL_11155111:-https://ethereum-sepolia-rpc.publicnode.com}
         for: ${ENVIO_RPC_MODE:-sync}
     contracts:
+      - name: LegacyPeriodicTask
+        address:
+          - "0x8b92a1dea210b7b7516443b52fdf5dae677e93b0"
+        start_block: 9180008
+      - name: PeriodicTaskManager
+        address:
+          - "0x1dc2c4e15189a7aa61eff2b3dd3d5eae8fa03377"
+          - "0xa61b846d5d8b757e3d541e0e4f80390e28f0b6ff"
+          - "0xad381c116f27f56f8c0853431f4fcd9e9b142aff"
+        start_block: 9060200
       - name: Kernel
         address:
           - "0x4b0BBa51cE44175a9766f7e55e3d122a9F4BE78E"

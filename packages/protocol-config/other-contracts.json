@@ -1,6 +1,18 @@
 [
   {
     "chainId": 1,
+    "address": "0xa3931d71877c0e7a3148cb7eb4463524fec27fbd",
+    "name": "sUSDS",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
+    "address": "0x83f20f44975d03b1b09e64809b757c47f942beea",
+    "name": "sDAI",
+    "labelOnly": true
+  },
+  {
+    "chainId": 1,
     "address": "0x04906695d6d12cf5459975d7c3c03356e4ccd460",
     "name": "sOHM",
     "startBlock": 13803969
@@ -641,5 +653,41 @@
     "address": "0xf166375e8ee42565f93e244c606b8c09b9f67dbc",
     "name": "CCIPLockReleaseTokenPool",
     "startBlock": 8474773
+  },
+  {
+    "chainId": 1,
+    "address": "0x007f7a1cb838a872515c8ebd16be4b14ef43a222",
+    "name": "BondFixedTermSDA",
+    "labelOnly": true
+  },
+  {
+    "chainId": 11155111,
+    "address": "0x0bfe78f082d6f54fb6e5c8d3797ed9b6313395ac",
+    "name": "Mock DAI",
+    "labelOnly": true
+  },
+  {
+    "chainId": 11155111,
+    "address": "0xdd668bddb4241f4fafbb0bc0d75b49ebee88b4fc",
+    "name": "Mock USDS",
+    "labelOnly": true
+  },
+  {
+    "chainId": 11155111,
+    "address": "0x74ca575601aa47a1aa44bd6786f3c0be36afa079",
+    "name": "Mock sUSDS",
+    "labelOnly": true
+  },
+  {
+    "chainId": 11155111,
+    "address": "0xefffab0aa61828c4af926e039ee754e3ede10dac",
+    "name": "Mock sDAI",
+    "labelOnly": true
+  },
+  {
+    "chainId": 11155111,
+    "address": "0x0fee724a2ae8653190462877cdb91755e989a926",
+    "name": "MockDaiUsds",
+    "labelOnly": true
   }
 ]

@@ -85,6 +85,7 @@ const contractNames: MultiChainContracts = {
       name: "YieldRepurchaseFacility",
       version: "1.2",
       type: "policy",
+      startBlock: 21814037,
     },
     "0x27e606fdb5C922F8213dC588A434BF7583697866": {
       name: "Distributor",
@@ -138,6 +139,7 @@ const contractNames: MultiChainContracts = {
       name: "Operator",
       version: "1.5",
       type: "policy",
+      startBlock: 21216655,
     },
     "0x64aa3364F17a4D01c6f1751Fd97C2BD3D7e7f1D5": {
       name: "LegacyOHM",
@@ -187,6 +189,7 @@ const contractNames: MultiChainContracts = {
       name: "ReserveMigrator",
       version: "1.0",
       type: "policy",
+      startBlock: 21216652,
     },
     "0x9C6220fE829d6FC889cde9b4966D2033C4EfFD48": {
       name: "Heart",
@@ -833,10 +836,12 @@ const contractNames: MultiChainContracts = {
     "0xd5405C517631b15C5814fdb7E612ba4c86fC2f75": {
       name: "Operator",
       type: "policy",
+      startBlock: 9180055,
     },
     "0x8B92A1dea210B7b7516443b52fdf5Dae677e93b0": {
       name: "ReserveMigrator",
       type: "policy",
+      startBlock: 9180008,
     },
     "0x46a01AE30571855FBB5988eEd9D116aa2A3f2377": {
       name: "ReserveWrapper",

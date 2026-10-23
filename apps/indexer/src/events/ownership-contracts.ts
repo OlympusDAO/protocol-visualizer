@@ -1,4 +1,5 @@
 import metadata from "../generated/contract-metadata.json";
+import { getTaskCallFields } from "./heart-tasks";
 import otherContracts from "../../../../packages/protocol-config/other-contracts.json";
 import { getContractName, getContractStartBlock } from "../ContractNames";
 import {
@@ -46,7 +47,7 @@ export function getRelationshipFields(
   chainId: number,
   firstIndexedBlock = 0
 ): RelationshipField[] {
-  const fields: RelationshipField[] = [];
+  const fields: RelationshipField[] = getTaskCallFields(chainId);
   const known = new Map(
     otherContracts
       .filter((entry) => entry.chainId === chainId && !entry.labelOnly)

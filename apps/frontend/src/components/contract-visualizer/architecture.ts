@@ -78,6 +78,18 @@ export function getArchitectureView(
             .map((node) => node.id)
     );
     const ids = new Set(members);
+    const periodicTasks = edges.filter(
+      (edge) =>
+        members.has(edge.source) &&
+        edge.data?.relationship?.kind === "periodic-task"
+    );
+    const matchesTaskInvocation = (edge: Edge) =>
+      periodicTasks.some(
+        (task) =>
+          task.target === edge.source &&
+          task.data?.relationship?.callSelector ===
+            edge.data?.relationship?.callSelector
+      );
     for (const edge of edges) {
       const relationship = edge.data?.relationship;
       const scopedMember =
@@ -88,6 +100,8 @@ export function getArchitectureView(
       if (
         members.has(edge.source) ||
         members.has(edge.target) ||
+        (edge.data?.relationship?.kind === "task-call" &&
+          matchesTaskInvocation(edge)) ||
         scopedMember
       ) {
         ids.add(edge.source);
@@ -106,7 +120,14 @@ export function getArchitectureView(
     return {
       nodes: nodes.filter((node) => ids.has(node.id)),
       edges: edges
-        .filter((edge) => ids.has(edge.source) && ids.has(edge.target))
+        .filter(
+          (edge) =>
+            ids.has(edge.source) &&
+            ids.has(edge.target) &&
+            (edge.data?.relationship?.kind !== "task-call" ||
+              !periodicTasks.some((task) => task.target === edge.source) ||
+              matchesTaskInvocation(edge))
+        )
         .map((edge) =>
           selected ? { ...edge, style: { ...edge.style, opacity: 1 } } : edge
         ),

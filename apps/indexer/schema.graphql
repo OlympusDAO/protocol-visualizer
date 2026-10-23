@@ -137,6 +137,8 @@ type ContractState {
   lastChange: Json
   indexedThrough: Json
   verification: Json!
+  enablementGetter: String
+  enablementCoverage: String
 }
 
 type ContractStateSeed {
@@ -163,6 +165,8 @@ type ControlTransition {
 }
 
 type ContractRelationship {
+  callSelector: String
+  callSignature: String
   id: ID!
   chainId: Int! @index
   kind: String! @index
@@ -187,4 +191,15 @@ type ChainObservation {
   id: ID!
   chainId: Int! @index
   indexedThrough: Json!
+}
+
+type HeartTasks {
+  id: ID!
+  chainId: Int! @index
+  address: String! @index
+  tasks: Json
+  seed: Json
+  lastChange: Json
+  indexedThrough: Json
+  verification: Json!
 }

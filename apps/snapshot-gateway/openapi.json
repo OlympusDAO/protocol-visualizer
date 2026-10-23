@@ -405,6 +405,12 @@
             "additionalProperties": false,
             "required": ["contracts", "roles", "roleAssignments"],
             "properties": {
+              "periodicTasks": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ProtocolSnapshot/$defs/heartTasks"
+                }
+              },
               "additionalContracts": {
                 "type": "array",
                 "items": {
@@ -455,6 +461,79 @@
           }
         },
         "$defs": {
+          "heartTasks": {
+            "type": "object",
+            "required": ["id", "chainId", "address", "tasks", "verification"],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "chainId": {
+                "type": "integer"
+              },
+              "address": {
+                "type": "string"
+              },
+              "tasks": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["address", "selector"],
+                      "properties": {
+                        "address": {
+                          "type": "string"
+                        },
+                        "selector": {
+                          "type": "string"
+                        },
+                        "signature": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              "seed": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "lastChange": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "indexedThrough": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "verification": {
+                "$ref": "#/components/schemas/ProtocolSnapshot/$defs/contractState/properties/verification"
+              }
+            }
+          },
           "block": {
             "type": "object",
             "required": ["number", "hash", "timestamp"],
@@ -558,6 +637,12 @@
               "enablerCapability": {
                 "enum": ["unknown", "supported", "unsupported"]
               },
+              "enablementGetter": {
+                "type": "string"
+              },
+              "enablementCoverage": {
+                "type": "string"
+              },
               "enabled": {
                 "type": ["boolean", "null"]
               },
@@ -623,6 +708,12 @@
               "provenance"
             ],
             "properties": {
+              "callSignature": {
+                "type": "string"
+              },
+              "callSelector": {
+                "type": "string"
+              },
               "id": {
                 "type": "string"
               },

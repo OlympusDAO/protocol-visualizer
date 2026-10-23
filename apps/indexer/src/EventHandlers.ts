@@ -1,5 +1,14 @@
 import { indexer } from "envio";
 import {
+  getPeriodicTaskManagers,
+  getLegacyTaskContracts,
+  handlePeriodicTaskEvent,
+  handleLegacyTaskEvent,
+  observeLegacyTaskState,
+  completeHeartTasks,
+  heartTaskAnchorsCanonical,
+} from "./events/heart-tasks";
+import {
   getRelationshipFields,
   getObservedAuthorityFields,
   getObservedPoolFields,
@@ -24,6 +33,7 @@ import {
 import {
   handleEnablementEvent,
   completeEnablementBlock,
+  controlAnchorsCanonical,
   type EnablerContract,
 } from "./events/enabler";
 import { getControlBlock, getControlGetter } from "./events/effects";
@@ -42,6 +52,29 @@ import type {
   RoleGrantedEvent,
   RoleRevokedEvent,
 } from "./events/types";
+
+for (const event of ["PeriodicTaskAdded", "PeriodicTaskRemoved"] as const) {
+  indexer.onEvent(
+    {
+      contract: "PeriodicTaskManager",
+      event,
+      fields: { block: ["hash", "timestamp"], transaction: ["hash"] },
+    },
+    ({ event: log, context }) =>
+      handlePeriodicTaskEvent(context as EnvioContext, log, event)
+  );
+}
+for (const event of ["Activated", "Deactivated", "Shutdown"] as const) {
+  indexer.onEvent(
+    {
+      contract: "LegacyPeriodicTask",
+      event,
+      fields: { block: ["hash", "timestamp"], transaction: ["hash"] },
+    },
+    ({ event: log, context }) =>
+      handleLegacyTaskEvent(context as EnvioContext, log, event === "Activated")
+  );
+}
 
 indexer.onEvent(
   {
@@ -285,6 +318,8 @@ indexer.onEvent(
 );
 for (const chainId of indexer.chainIds) {
   const chain = indexer.chains[chainId];
+  const taskManagers = getPeriodicTaskManagers(chainId);
+  const legacyTasks = getLegacyTaskContracts(chainId);
   const known = getEnablerContracts(chainId);
   const contracts: EnablerContract[] = [
     ...chain.IEnabler.addresses.map((address) => ({
@@ -404,6 +439,30 @@ for (const chainId of indexer.chainIds) {
         blockHash: block.hash,
         getter,
       });
+    if (
+      !(await heartTaskAnchorsCanonical(
+        context,
+        chainId,
+        block,
+        taskManagers
+          .filter((manager) => manager.startBlock <= number)
+          .map((manager) => manager.address),
+        readBlock
+      ))
+    )
+      return;
+    if (
+      !(await controlAnchorsCanonical(
+        context,
+        chainId,
+        block,
+        legacyTasks
+          .filter((task) => task.startBlock <= number)
+          .map((task) => task.address),
+        readBlock
+      ))
+    )
+      return;
     const observedFields = await getObservedPoolFields(
       context,
       chainId,
@@ -428,6 +487,25 @@ for (const chainId of indexer.chainIds) {
       readBlock
     );
     if (!enabledComplete) return;
+    for (const manager of taskManagers.filter(
+      (manager) => manager.startBlock <= number
+    ))
+      await completeHeartTasks(
+        context,
+        chainId,
+        manager.address,
+        block,
+        await readGetter(manager.address, "getPeriodicTasks")
+      );
+    for (const task of legacyTasks.filter((task) => task.startBlock <= number))
+      await observeLegacyTaskState(
+        context,
+        chainId,
+        task.address,
+        block,
+        task.getter,
+        await readGetter(task.address, task.getter)
+      );
     const completed = await completeRelationshipBlock(
       context,
       chainId,
@@ -454,8 +532,8 @@ for (const chainId of indexer.chainIds) {
   };
   // Creation boundaries run after constructor logs; a truncated replay seeds at its own start.
   for (const boundary of new Set(
-    [...contracts, ...relationshipFields].map(({ startBlock }) =>
-      Math.max(startBlock, chain.startBlock)
+    [...contracts, ...relationshipFields, ...taskManagers, ...legacyTasks].map(
+      ({ startBlock }) => Math.max(startBlock, chain.startBlock)
     )
   )) {
     indexer.onBlock(

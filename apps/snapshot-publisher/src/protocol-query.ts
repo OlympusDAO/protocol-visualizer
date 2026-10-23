@@ -9,8 +9,9 @@ export const PROTOCOL_VISUALIZER_QUERIES: ProtocolVisualizerQuery[] = [
     query: `
       query ProtocolVisualizerData($chainId: Int!) {
         KnownContract: contract(where: { chainId: { _eq: $chainId } }, orderBy: { name: asc }) { address name version contractType isEnabled }
-        ContractState: contractState(where: { chainId: { _eq: $chainId } }) { id chainId address enablerCapability enabled seed lastChange indexedThrough verification }
-        ContractRelationship: contractRelationship(where: { chainId: { _eq: $chainId } }) { id chainId kind source target status scope provenance subject getter value seed lastChange indexedThrough verification coverage functionContext targetCode }
+        HeartTasks: heartTasks(where: { chainId: { _eq: $chainId } }) { id chainId address tasks seed lastChange indexedThrough verification }
+        ContractState: contractState(where: { chainId: { _eq: $chainId } }) { id chainId address enablerCapability enabled seed lastChange indexedThrough verification enablementGetter enablementCoverage }
+        ContractRelationship: contractRelationship(where: { chainId: { _eq: $chainId } }) { id chainId kind source target status scope provenance subject getter value seed lastChange indexedThrough verification coverage functionContext targetCode callSignature callSelector }
         ChainObservation: chainObservation(where: { chainId: { _eq: $chainId } }) { chainId indexedThrough }
         Contract: contract(
           where: { chainId: { _eq: $chainId }, isEnabled: { _eq: true } }
@@ -54,8 +55,9 @@ export const PROTOCOL_VISUALIZER_QUERIES: ProtocolVisualizerQuery[] = [
     query: `
       query ProtocolVisualizerData($chainId: Int!) {
         KnownContract: Contract(where: { chainId: { _eq: $chainId } }, order_by: { name: asc }) { address name version contractType isEnabled }
-        ContractState: ContractState(where: { chainId: { _eq: $chainId } }) { id chainId address enablerCapability enabled seed lastChange indexedThrough verification }
-        ContractRelationship: ContractRelationship(where: { chainId: { _eq: $chainId } }) { id chainId kind source target status scope provenance subject getter value seed lastChange indexedThrough verification coverage functionContext targetCode }
+        HeartTasks: HeartTasks(where: { chainId: { _eq: $chainId } }) { id chainId address tasks seed lastChange indexedThrough verification }
+        ContractState: ContractState(where: { chainId: { _eq: $chainId } }) { id chainId address enablerCapability enabled seed lastChange indexedThrough verification enablementGetter enablementCoverage }
+        ContractRelationship: ContractRelationship(where: { chainId: { _eq: $chainId } }) { id chainId kind source target status scope provenance subject getter value seed lastChange indexedThrough verification coverage functionContext targetCode callSignature callSelector }
         ChainObservation: ChainObservation(where: { chainId: { _eq: $chainId } }) { chainId indexedThrough }
         Contract(
           where: { chainId: { _eq: $chainId }, isEnabled: { _eq: true } }

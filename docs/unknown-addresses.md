@@ -52,6 +52,12 @@ from the DAO MS administering OHM within that registry.
 | Sepolia | `0x1505f3ad833e9c82facd8b4d3ff4319b1ef6eb99` | `minter_admin` assignee in replay; refreshed code is `0x`. | Operator or organisation. |
 | Sepolia | `0xe02ccb6938fdb2fef07348ac0ae098fea883055b` | Rewards Merkle updater assignee; Safe proxy with a SafeL2 implementation, threshold 1 of 3. [Explorer record](https://eth-sepolia.blockscout.com/api/v2/smart-contracts/0xe02ccb6938fdb2fef07348ac0ae098fea883055b). | Safe purpose/operator. No DAO or automation-service identity inferred. |
 
+The Heart task extension also exposes Sepolia auctioneer reference
+`0x007f7a1cb838a872515c8ebd16be4b14ef43a222`. It has no code at canonical block
+11974025 and no verified identity. Its Mainnet deployment is verified as
+BondFixedTermSDA; that identity is not applied to Sepolia.
+
 No unresolved names remain among the audited Mainnet, Arbitrum Sepolia,
-Base Sepolia, Goerli or Bartio records. The four unresolved identities above
-span seven chain/address pairs. Unknowns remain visible in the application.
+Base Sepolia, Goerli or Bartio records. Including the Heart reference, the five
+unresolved identities span eight chain/address pairs. Unknowns remain visible
+in the application.

@@ -5,6 +5,8 @@ import { contractId, controlTransitionId } from "./ids";
 import type { ControlEvent, EnvioContext } from "./types";
 
 export type RelationshipField = {
+  callSelector?: string;
+  callSignature?: string;
   address: string;
   startBlock: number;
   getter: string;
@@ -22,6 +24,8 @@ type ChangeProvenance = ControlBlock & {
   logIndex: number;
 };
 export type RelationshipState = {
+  callSelector?: string;
+  callSignature?: string;
   id: string;
   chainId: number;
   subject: string;
@@ -66,6 +70,7 @@ const isPending = (getter: string) => getter.startsWith("new");
 const reference = (kind: string) =>
   [
     "contract-reference",
+    "task-call",
     "authority-reference",
     "registered-pool",
     "configured-policy",
@@ -164,6 +169,8 @@ async function writeField(
     subject: field.address.toLowerCase(),
     getter: field.getter,
     kind: field.kind,
+    ...(field.callSignature ? { callSignature: field.callSignature } : {}),
+    ...(field.callSelector ? { callSelector: field.callSelector } : {}),
     value: value.toLowerCase(),
     source: field.address.toLowerCase(),
     target: null,
@@ -471,6 +478,8 @@ export async function completeRelationshipBlock(
     }
     context.ContractRelationship.set({
       ...(await present(context, state)),
+      ...(field.callSignature ? { callSignature: field.callSignature } : {}),
+      ...(field.callSelector ? { callSelector: field.callSelector } : {}),
       indexedThrough: block,
       ...(result.status === "success"
         ? {

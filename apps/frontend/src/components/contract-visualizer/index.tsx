@@ -910,7 +910,8 @@ export function ContractVisualizer() {
 
     const relationships = getRelationshipGraph(
       data?.relationships ?? [],
-      selectedChainId
+      selectedChainId,
+      data?.periodicTasks ?? []
     );
     const nodeIds = new Set(newNodes.map((node) => node.id));
     for (const address of relationships.addresses) {
@@ -958,15 +959,19 @@ export function ContractVisualizer() {
           <ConnectionLabel
             label={edge.label}
             functions={
-              edge.relationship.functionContext
-                ? [edge.relationship.functionContext]
-                : [{ signature: edge.label }]
+              edge.relationship.callSignature
+                ? [{ signature: edge.relationship.callSignature }]
+                : edge.relationship.functionContext
+                  ? [edge.relationship.functionContext]
+                  : [{ signature: edge.label }]
             }
           />
         ),
-        ariaLabel: edge.relationship.functionContext
-          ? getFunctionTooltip([edge.relationship.functionContext])
-          : edge.label,
+        ariaLabel:
+          edge.relationship.callSignature ??
+          (edge.relationship.functionContext
+            ? getFunctionTooltip([edge.relationship.functionContext])
+            : edge.label),
         data: {
           kind:
             edge.relationship.status === "reference" ? "reference" : "control",
@@ -1719,6 +1724,9 @@ export function ContractVisualizer() {
     selectedState,
     data?.observation
   );
+  const selectedTaskList = data?.periodicTasks.find(
+    (list) => list.address.toLowerCase() === selectedNode
+  );
 
   return (
     <div className="w-full">
@@ -1943,6 +1951,97 @@ export function ContractVisualizer() {
                     {selectedControl.warning}
                   </p>
                 )}
+                {selectedTaskList && (
+                  <section
+                    className="mt-3 border-t border-gray-200 pt-2"
+                    aria-label="Periodic tasks"
+                  >
+                    <h4 className="font-semibold">
+                      Periodic tasks
+                      {selectedTaskList.tasks !== null
+                        ? ` (${selectedTaskList.tasks.length})`
+                        : ""}
+                    </h4>
+                    <p className="mt-1 text-gray-500">
+                      Invocation order; disabled tasks remain configured.
+                    </p>
+                    {selectedTaskList.tasks === null ? (
+                      <p className="mt-2 text-amber-800">
+                        Task configuration is unknown.
+                      </p>
+                    ) : selectedTaskList.tasks.length === 0 ? (
+                      <p className="mt-2 text-gray-500">No tasks configured.</p>
+                    ) : (
+                      <ol className="mt-2 space-y-2">
+                        {selectedTaskList.tasks.map((task, index) => {
+                          const contract =
+                            contracts?.find(
+                              (contract) => contract.address === task.address
+                            ) ??
+                            data?.additionalContracts.find(
+                              (contract) => contract.address === task.address
+                            );
+                          const state = data?.contractStates.find(
+                            (state) => state.address === task.address
+                          );
+                          const enabled = getEnablementPresentation(
+                            state,
+                            data?.observation
+                          );
+                          return (
+                            <li
+                              key={task.address}
+                              className="flex items-start gap-2"
+                            >
+                              <span className="text-gray-500 tabular-nums">
+                                {index + 1}.
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <button
+                                  type="button"
+                                  className="text-left text-blue-600 hover:underline break-all"
+                                  onClick={() => setSelectedNode(task.address)}
+                                >
+                                  {contract
+                                    ? getGraphContractName(contract)
+                                    : shortenAddress(task.address)}
+                                </button>
+                                <code className="mt-0.5 block break-all text-gray-600">
+                                  {task.selector === "0x00000000"
+                                    ? "execute()"
+                                    : (task.signature ?? task.selector)}
+                                </code>
+                              </div>
+                              {enabled.badge ? (
+                                <EnablementIndicator label={enabled.badge} />
+                              ) : (
+                                <span
+                                  className="text-gray-500"
+                                  title="No task-local enablement observation"
+                                >
+                                  Unknown
+                                </span>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ol>
+                    )}
+                    {selectedTaskList.verification.outcome !== "match" && (
+                      <p className="mt-2 text-amber-800">
+                        Task configuration verification:{" "}
+                        {selectedTaskList.verification.outcome}. Indexed order
+                        is retained.
+                      </p>
+                    )}
+                    {selectedTaskList.indexedThrough && (
+                      <p className="mt-2 text-gray-500">
+                        Indexed through block{" "}
+                        {selectedTaskList.indexedThrough.number}.
+                      </p>
+                    )}
+                  </section>
+                )}
                 {selectedContract && (
                   <>
                     {selectedControl.notices.map((notice) => (
@@ -1982,7 +2081,8 @@ export function ContractVisualizer() {
                       >
                         <strong>
                           {relationship.status === "pending" ? "Pending " : ""}
-                          {relationship.functionContext?.signature ??
+                          {relationship.callSignature ??
+                            relationship.functionContext?.signature ??
                             relationship.kind.replace(/-/g, " ")}
                         </strong>
                         <FunctionDocumentation

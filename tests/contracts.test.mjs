@@ -35,6 +35,86 @@ const chain = {
 const address = "0x00000000000000000000000000000000000000aa";
 const block = { number: "123", hash: "0xcanonical", timestamp: "1700000000" };
 
+test("Heart connections preserve task order and custom invocations and include downstream calls in focus", async () => {
+  const { getArchitectureView } = await import(
+    "../apps/frontend/src/components/contract-visualizer/architecture.ts"
+  );
+  const heart = "0x0000000000000000000000000000000000000011";
+  const task = "0x0000000000000000000000000000000000000012";
+  const target = "0x0000000000000000000000000000000000000013";
+  const lists = [
+    {
+      id: heart,
+      chainId: 1,
+      address: heart,
+      tasks: [
+        { address: task, selector: "0x12345678", signature: "migrate()" },
+      ],
+      seed: block,
+      lastChange: null,
+      indexedThrough: block,
+      verification: { outcome: "match" },
+    },
+  ];
+  const call = {
+    id: "call",
+    chainId: 1,
+    source: task,
+    target,
+    status: "reference",
+    kind: "task-call",
+    getter: "migrator",
+    callSignature: "daiToUsds(address,uint256)",
+    callSelector: "0x12345678",
+    provenance: block,
+  };
+  const graph = getRelationshipGraph([call], 1, lists);
+  assert.equal(graph.edges.length, 2);
+  assert.equal(
+    graph.edges.find((edge) => edge.source === heart).label,
+    "1. migrate()"
+  );
+  assert.match(
+    graph.edges.find((edge) => edge.source === task).label,
+    /daiToUsds/
+  );
+  const nodes = [heart, task, target].map((id) => ({
+    id,
+    position: { x: 0, y: 0 },
+    data: { name: id },
+  }));
+  const edges = graph.edges.map((edge) => ({
+    ...edge,
+    data: { kind: "reference", relationship: edge.relationship },
+  }));
+  const focus = getArchitectureView(
+    nodes,
+    edges,
+    "overview",
+    { reference: true, control: true, permission: false },
+    heart
+  );
+  assert.deepEqual(
+    new Set(focus.nodes.map((node) => node.id)),
+    new Set([heart, task, target])
+  );
+  assert.equal(getRelationshipGraph([], 10, lists).edges.length, 0);
+  assert.equal(
+    getRelationshipGraph([], 1, [{ ...lists[0], tasks: null }]).edges.length,
+    0
+  );
+  assert.equal(
+    getRelationshipGraph([call], 1, [
+      {
+        ...lists[0],
+        tasks: [{ ...lists[0].tasks[0], selector: "0x87654321" }],
+      },
+    ]).edges.length,
+    1,
+    "A changed custom selector cannot inherit another entry point's call graph"
+  );
+});
+
 test("verified address labels repair old unknown names without adding deployments or hiding unresolved addresses", async () => {
   const policy = "0x018b747ca7a2b9346f80aed5a9b7a417fb57f313";
   const bridge = "0x3edd66de21fa6a4b141ad6971cb24f656e66ad4a";
@@ -342,6 +422,24 @@ test("disabled additional contracts retain observed references through publisher
     deploymentId: "reader-roundtrip",
     additionalContracts: [{ chainId: 4663, address, name: "CoolerV2Migrator" }],
     loadProtocolData: () => ({
+      HeartTasks: [
+        {
+          id: `4663:${address}`,
+          chainId: 4663,
+          address,
+          tasks: [
+            {
+              address: relationship.source,
+              selector: "0x12345678",
+              signature: "operate()",
+            },
+          ],
+          seed: block,
+          lastChange: null,
+          indexedThrough: block,
+          verification: { outcome: "match", block },
+        },
+      ],
       ContractState: [state],
       ContractRelationship: [relationship, reference],
       ChainObservation: [{ chainId: 4663, indexedThrough: block }],
@@ -376,6 +474,8 @@ test("disabled additional contracts retain observed references through publisher
     assert.deepEqual(data.contractStates[0].verification, state.verification);
     assert.deepEqual(data.contractStates[0].lastChange, lastChange);
     assert.deepEqual(data.relationships, [relationship, reference]);
+    assert.equal(data.periodicTasks[0].tasks[0].signature, "operate()");
+    assert.deepEqual(data.periodicTasks[0].indexedThrough, block);
     const graph = getRelationshipGraph(data.relationships, 4663);
     assert.equal(graph.edges.length, 2);
     assert.ok(

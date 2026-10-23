@@ -16,6 +16,7 @@ test("reads 1.0 and 1.1 additions and rejects unsupported versions clearly", () 
   const data = { contracts: [], roles: [], roleAssignments: [] };
   assert.deepEqual(readSnapshotData({ schemaVersion: "1.0.0", data }), {
     ...data,
+    periodicTasks: [],
     additionalContracts: [],
     contractStates: [],
     relationships: [],

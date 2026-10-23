@@ -52,11 +52,10 @@
     "includes": [
       "**/*.{js,mjs,cjs,jsx,ts,tsx}",
       "!**/*.config.ts",
-      "!**/eslint.config.mjs",
-      "!**/postcss.config.mjs"
+      "!**/eslint.config.mjs"
     ],
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "correctness": {
         "noUnusedImports": "warn",
         "noUnusedVariables": "warn",

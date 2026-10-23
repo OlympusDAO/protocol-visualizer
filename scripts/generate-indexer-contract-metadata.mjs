@@ -70,7 +70,8 @@ function parseArgs(args) {
       continue;
     }
     if (arg === "--verified-source") {
-      options.verifiedSource = readRequiredArg(args, (index += 1), arg);
+      index += 1;
+      options.verifiedSource = readRequiredArg(args, index, arg);
       continue;
     }
     if (arg === "--force") {
@@ -86,15 +87,18 @@ function parseArgs(args) {
       continue;
     }
     if (arg === "--chain-id") {
-      options.chainId = readRequiredArg(args, (index += 1), arg);
+      index += 1;
+      options.chainId = readRequiredArg(args, index, arg);
       continue;
     }
     if (arg === "--address") {
-      options.address = readRequiredArg(args, (index += 1), arg).toLowerCase();
+      index += 1;
+      options.address = readRequiredArg(args, index, arg).toLowerCase();
       continue;
     }
     if (arg === "--name") {
-      options.name = readRequiredArg(args, (index += 1), arg);
+      index += 1;
+      options.name = readRequiredArg(args, index, arg);
       continue;
     }
     throw new Error(`Unknown argument: ${arg}`);

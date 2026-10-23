@@ -128,8 +128,15 @@ export function getSubsystem(node: Node): string | null {
 export const DEFAULT_CONNECTION_FILTERS: ConnectionFilters = {
   permission: false,
   control: true,
-  reference: true,
+  reference: false,
   dependency: false,
+};
+
+export const FOCUSED_CONNECTION_FILTERS: ConnectionFilters = {
+  ...DEFAULT_CONNECTION_FILTERS,
+  permission: true,
+  reference: true,
+  dependency: true,
 };
 
 function getConnectionKind(edge: Edge, moduleIds: Set<string>): ConnectionKind {

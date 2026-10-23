@@ -35,6 +35,7 @@ import {
   SUBSYSTEMS,
   type ConnectionFilters,
   DEFAULT_CONNECTION_FILTERS,
+  FOCUSED_CONNECTION_FILTERS,
   type ConnectionKind,
 } from "./architecture";
 import { RelationshipEdge } from "./relationship-edge";
@@ -391,12 +392,12 @@ export function ContractVisualizer() {
   const [connectionFilters, setConnectionFilters] = useState<ConnectionFilters>(
     DEFAULT_CONNECTION_FILTERS
   );
-  const [focusedModuleDependencies, setFocusedModuleDependencies] =
-    useState(true);
-  const isContractFocused = selectedNode?.startsWith("0x") ?? false;
-  const moduleDependencies = isContractFocused
-    ? focusedModuleDependencies
-    : connectionFilters.dependency;
+  const [focusedConnectionFilters, setFocusedConnectionFilters] =
+    useState<ConnectionFilters>(FOCUSED_CONNECTION_FILTERS);
+  const isFocused = selectedNode !== null;
+  const visibleConnectionFilters = isFocused
+    ? focusedConnectionFilters
+    : connectionFilters;
   const [canonicalGraph, setCanonicalGraph] = useState<{
     chainId: number;
     nodes: CustomNode[];
@@ -937,7 +938,7 @@ export function ContractVisualizer() {
       canonicalGraph.nodes,
       canonicalGraph.edges,
       architectureView,
-      { ...connectionFilters, dependency: moduleDependencies },
+      visibleConnectionFilters,
       selectedNode
     );
     const viewNodes = projected.nodes;
@@ -1014,8 +1015,7 @@ export function ContractVisualizer() {
     selectedChainId,
     selectedNode,
     architectureView,
-    connectionFilters,
-    moduleDependencies,
+    visibleConnectionFilters,
     reactFlowInstance,
     setNodes,
     setEdges,
@@ -1505,19 +1505,15 @@ export function ContractVisualizer() {
             <label key={kind} className="flex items-center gap-1">
               <input
                 type="checkbox"
-                checked={
-                  kind === "dependency"
-                    ? moduleDependencies
-                    : connectionFilters[kind]
-                }
+                checked={visibleConnectionFilters[kind]}
                 onChange={(event) => {
-                  if (kind === "dependency" && isContractFocused)
-                    setFocusedModuleDependencies(event.target.checked);
-                  else
-                    setConnectionFilters((previous) => ({
-                      ...previous,
-                      [kind]: event.target.checked,
-                    }));
+                  const setFilters = isFocused
+                    ? setFocusedConnectionFilters
+                    : setConnectionFilters;
+                  setFilters((previous) => ({
+                    ...previous,
+                    [kind]: event.target.checked,
+                  }));
                 }}
               />
               {label}

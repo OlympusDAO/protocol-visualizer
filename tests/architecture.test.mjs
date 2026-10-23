@@ -7,6 +7,8 @@ const {
   getSubsystem,
   SUBSYSTEMS,
   layoutContractGraph,
+  DEFAULT_CONNECTION_FILTERS,
+  FOCUSED_CONNECTION_FILTERS,
 } = await import(
   "../apps/frontend/src/components/contract-visualizer/architecture.ts"
 );
@@ -49,6 +51,39 @@ const filters = {
   reference: true,
   dependency: true,
 };
+
+test("overview defaults hide references and permissions while contract and role focus reveal them", () => {
+  assert.deepEqual(
+    getArchitectureView(
+      nodes,
+      edges,
+      "overview",
+      DEFAULT_CONNECTION_FILTERS,
+      null
+    ).edges.map((edge) => edge.id),
+    ["owner-cooler", "owner-bridge", "nominee"]
+  );
+  const focused = getArchitectureView(
+    nodes,
+    edges,
+    "overview",
+    FOCUSED_CONNECTION_FILTERS,
+    "cooler"
+  ).edges;
+  assert.ok(focused.some((edge) => edge.id === "ref-two"));
+  assert.ok(focused.some((edge) => edge.id === "permission"));
+  assert.ok(focused.some((edge) => edge.id === "role-use"));
+  assert.deepEqual(
+    getArchitectureView(
+      nodes,
+      edges,
+      "overview",
+      FOCUSED_CONNECTION_FILTERS,
+      "role-admin"
+    ).edges.map((edge) => edge.id),
+    ["role-use"]
+  );
+});
 
 test("module dependencies have an independent opt-in filter, including public module getters", () => {
   const cards = [

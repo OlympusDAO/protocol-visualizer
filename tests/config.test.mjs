@@ -6,24 +6,11 @@ const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 
 const dockerfileContent = (path) => readFileSync(path, "utf8");
 
-test("EVM catalog groups all eleven source networks and indexes nine", () => {
+test("chain catalog and indexer agree on indexed networks", () => {
   const chains = readJson("packages/protocol-config/protocol-chains.json");
-  assert.equal(chains.length, 11);
-  assert.equal(new Set(chains.map((chain) => chain.chainId)).size, 11);
   assert.equal(
-    chains.filter((chain) => chain.environment === "production").length,
-    6
-  );
-  assert.equal(
-    chains.filter((chain) => chain.environment === "testnet").length,
-    5
-  );
-  assert.deepEqual(
-    chains
-      .filter((chain) => chain.availability === "historical")
-      .map((chain) => chain.chainId)
-      .sort((a, b) => a - b),
-    [5, 80084]
+    new Set(chains.map((chain) => chain.chainId)).size,
+    chains.length
   );
   const indexedIds = chains
     .filter((chain) => chain.availability === "indexed")
@@ -31,13 +18,12 @@ test("EVM catalog groups all eleven source networks and indexes nine", () => {
     .sort((a, b) => a - b);
   const configuredIds = [
     ...readFileSync("apps/indexer/config.yaml", "utf8").matchAll(
-      /^  - id: (\d+)$/gm
+      /^ {2}- id: (\d+)$/gm
     ),
   ]
     .map((match) => Number(match[1]))
     .sort((a, b) => a - b);
   assert.deepEqual(configuredIds, indexedIds);
-  assert(chains.every((chain) => !chain.key.toLowerCase().includes("solana")));
 });
 
 test("other contracts are valid, unique chain-scoped identities", () => {

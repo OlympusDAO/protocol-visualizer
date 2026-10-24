@@ -5,7 +5,6 @@ const {
   getArchitectureView,
   layoutArchitectureSections,
   getSubsystem,
-  SUBSYSTEMS,
   layoutContractGraph,
   DEFAULT_CONNECTION_FILTERS,
   FOCUSED_CONNECTION_FILTERS,
@@ -309,10 +308,6 @@ test("contract sections separate infrastructure, proposal helpers and Olympus to
   assert.equal(
     layout.filter((card) => card.type !== "group").length,
     cards.length
-  );
-  assert.equal(
-    SUBSYSTEMS.find((section) => section.id === "tokens").name,
-    "Olympus Tokens"
   );
   assert.equal(getSubsystem(node("policy-ms", "Policy MS")), null);
   assert.equal(

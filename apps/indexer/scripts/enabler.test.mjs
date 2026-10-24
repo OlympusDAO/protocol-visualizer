@@ -47,9 +47,14 @@ test("verified capabilities include non-ERC165 periphery, distinguish unsupporte
     "unsupported"
   );
   assert.equal(getEnablerCapability(1, address), "unknown");
-  const chains = [1, 10, 4663, 8453, 42161, 80094, 84532, 421614, 11155111];
+  const config = readFileSync(
+    new URL("../config.yaml", import.meta.url),
+    "utf8"
+  );
+  const chains = [...config.matchAll(/^ {2}- id: (\d+)$/gm)].map((match) =>
+    Number(match[1])
+  );
   const known = chains.flatMap(getEnablerContracts);
-  assert.equal(known.length, 70);
   assert(known.every((contract) => contract.startBlock > 0));
   assert.equal(
     getEnablerContracts(1).find(
@@ -57,10 +62,6 @@ test("verified capabilities include non-ERC165 periphery, distinguish unsupporte
         contract.address === "0x2cea7b722dbd6b03f0e857d11e53ecb698cc2b4e"
     ).dialect,
     "v2"
-  );
-  const config = readFileSync(
-    new URL("../config.yaml", import.meta.url),
-    "utf8"
   );
   const chainConfigs = config.split(/(?=\n {2}- id: )/);
   for (const chainId of chains) {

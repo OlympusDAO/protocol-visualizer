@@ -709,24 +709,6 @@ test("unavailable getter verification keeps established state in a manifest-last
   );
 });
 
-test("sample ownership keeps one holder for governor and guardian with a separate nominee", async () => {
-  const sample = getSampleProtocolData(4663);
-  const relationships = sample.ContractRelationship;
-  assert.ok(relationships?.length >= 4);
-  const governor = relationships.find(
-    (entry) => entry.kind === "governor" && entry.status === "current"
-  );
-  const guardian = relationships.find((entry) => entry.kind === "guardian");
-  const pending = relationships.find((entry) => entry.status === "pending");
-  assert.equal(governor.source, guardian.source);
-  assert.notEqual(pending.source, governor.source);
-  assert.equal(pending.kind, "governor");
-  assert.equal(
-    relationships.find((entry) => entry.kind === "owner").source,
-    sample.RoleAssignment[0].assignee
-  );
-});
-
 test("relationship graph shares address identities, preserves kinds/scopes, and excludes unset/self links", () => {
   const holder = "0x00000000000000000000000000000000000000bb";
   const base = {

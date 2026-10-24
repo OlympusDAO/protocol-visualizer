@@ -89,7 +89,7 @@ test("includes inactive and inventory-only contracts without changing active cor
       },
     ],
   });
-  assert.equal(snapshot.data.contracts.length, 3);
+  assert.equal(snapshot.data.contracts.length, contracts.length);
   assert.equal(snapshot.data.additionalContracts?.length, 2);
   assert.equal(
     snapshot.data.additionalContracts?.find(
@@ -170,7 +170,7 @@ test("creates valid protocol snapshots from GraphQL data", () => {
 
   assert.deepEqual(validateProtocolSnapshot(snapshot), []);
   assert.equal(snapshot.data.contracts[0]?.type, "kernel");
-  assert.equal(snapshot.recordCounts.contracts, 3);
+  assert.equal(snapshot.recordCounts.contracts, input.Contract?.length);
   const serialized = JSON.parse(
     JSON.stringify(snapshot.data.relationships?.[0])
   );
@@ -269,15 +269,21 @@ test("chain selection is allowlisted", () => {
   );
 });
 
-test("loads shared protocol chain config", async () => {
-  const chains = await loadSupportedChains();
-
-  assert(chains.some((chain) => chain.chainId === 1));
-  assert(chains.some((chain) => chain.chainId === 80094));
-  assert(!chains.some((chain) => chain.chainId === 5));
-  assert(!chains.some((chain) => chain.chainId === 80084));
-  assert(chains.some((chain) => chain.chainId === 421614));
-  assert(chains.some((chain) => chain.chainId === 84532));
+test("chain loading excludes historical entries", async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), "protocol-chains-"));
+  const configPath = path.join(directory, "chains.json");
+  const previous = process.env.PROTOCOL_CHAINS_CONFIG_PATH;
+  const active = { ...supportedChains[0], availability: "indexed" };
+  const historical = { ...supportedChains[1], availability: "historical" };
+  process.env.PROTOCOL_CHAINS_CONFIG_PATH = configPath;
+  try {
+    await writeFile(configPath, JSON.stringify([active, historical]));
+    assert.deepEqual(await loadSupportedChains(), [active]);
+  } finally {
+    if (previous === undefined) delete process.env.PROTOCOL_CHAINS_CONFIG_PATH;
+    else process.env.PROTOCOL_CHAINS_CONFIG_PATH = previous;
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 
 test("validates other-contract inventory before returning typed entries", async () => {

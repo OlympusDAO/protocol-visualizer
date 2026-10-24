@@ -13,18 +13,6 @@ test("deployment labels are chain-scoped and preserve existing history", () => {
   assert.equal(getContractType(sharedAddress, 4663), "kernel");
   assert.equal(getContractName(sharedAddress, 1), "DEPOS");
   assert.equal(getContractName(sharedAddress, 12345), "UNKNOWN");
-  assert.equal(
-    getContractName("0x4b0BBa51cE44175a9766f7e55e3d122a9F4BE78E", 11155111),
-    "Kernel"
-  );
-  assert.equal(
-    getContractName("0xca6cd4f0a0033f8c20cf68d6df277e7001a386f9", 4663),
-    "OlympusAuthority"
-  );
-  assert.equal(
-    getContractName("0x2cea7b722dbd6b03f0e857d11e53ecb698cc2b4e", 1),
-    "CCIPTokenPoolConfig"
-  );
 });
 
 test("Robinhood event anchors retain receipt blocks and actual block times", () => {

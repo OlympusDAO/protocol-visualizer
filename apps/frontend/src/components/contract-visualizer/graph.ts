@@ -96,9 +96,9 @@ export function groupInactiveContracts(
         padding: "16px 24px",
         textAlign: "left",
         fontSize: 14,
-        color: "#64748b",
-        background: "rgba(241,245,249,0.6)",
-        border: "1px dashed #cbd5e1",
+        color: "var(--muted)",
+        background: "var(--group-background)",
+        border: "1px dashed var(--ui-border)",
         pointerEvents: "none",
       },
     });

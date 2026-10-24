@@ -1,6 +1,7 @@
 import { ContractVisualizer } from "./components/contract-visualizer";
 import { BridgeLanes } from "./components/bridge-lanes";
 import { useEffect, useState } from "react";
+import { ThemeSelector } from "./components/theme-selector";
 
 function App() {
   const [view, setView] = useState(() =>
@@ -19,9 +20,12 @@ function App() {
     return () => window.removeEventListener("popstate", restore);
   }, []);
   return (
-    <div className="min-h-screen bg-gray-50 p-8 text-gray-900">
+    <div className="min-h-screen bg-background p-4 text-foreground sm:p-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Protocol Visualizer</h1>
+        <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
+          <h1 className="text-3xl font-bold">Protocol Visualizer</h1>
+          <ThemeSelector />
+        </header>
         <nav aria-label="Visualizer views" className="mb-6 flex gap-2">
           {[
             ["architecture", "Architecture"],
@@ -39,7 +43,7 @@ function App() {
                 window.history.pushState(null, "", url);
                 setView(value);
               }}
-              className={`rounded-md px-4 py-2 text-sm font-medium ${view === value ? "bg-slate-800 text-white" : "bg-white text-slate-600 hover:bg-slate-100"}`}
+              className={`rounded-md px-4 py-2 text-sm font-medium ${view === value ? "bg-foreground text-surface" : "bg-surface text-muted hover:bg-surface-muted"}`}
             >
               {label}
             </button>

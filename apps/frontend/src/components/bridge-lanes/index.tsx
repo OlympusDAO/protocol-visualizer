@@ -22,9 +22,9 @@ import {
 } from "./model";
 
 const colors = {
-  configured: "#047857",
-  blocked: "#b45309",
-  unknown: "#64748b",
+  configured: "var(--success)",
+  blocked: "var(--warning)",
+  unknown: "var(--muted)",
 };
 const edgeTypes = { lane: BridgeLaneEdge };
 const short = (value: string) => `${value.slice(0, 6)}…${value.slice(-4)}`;
@@ -54,10 +54,10 @@ function Endpoint({
         ] as const
       ).map(([name, row]) => (
         <div key={name} className="text-sm">
-          <span className="text-slate-500">{name}: </span>
+          <span className="text-muted">{name}: </span>
           {row && chain ? (
             <a
-              className="text-blue-700 underline underline-offset-2"
+              className="text-link underline underline-offset-2"
               href={contractLink(chain, row.address)}
               title={row.address}
             >
@@ -67,7 +67,7 @@ function Endpoint({
             "Unavailable"
           )}
           {row?.observedAt && (
-            <span className="ml-2 text-xs text-slate-500">
+            <span className="ml-2 text-xs text-muted">
               block {row.observedAt.number}
               {!isCurrentConfiguration(row) && " · unverified"}
             </span>
@@ -90,7 +90,7 @@ function RateLimit({ name, value }: { name: string; value?: BridgeRateLimit }) {
   };
   return (
     <p className="text-sm">
-      <span className="text-slate-500">{name}: </span>
+      <span className="text-muted">{name}: </span>
       {!value
         ? "Unknown"
         : !value.isEnabled
@@ -184,15 +184,15 @@ export function BridgeLanes() {
             width: 230,
             borderRadius: 8,
             padding: 18,
-            borderColor: observed ? "#94a3b8" : "#cbd5e1",
-            background: observed ? "#fff" : "#f1f5f9",
+            borderColor: "var(--ui-border)",
+            background: observed ? "var(--surface)" : "var(--surface-muted)",
           },
           data: {
             name: chain.name,
             label: (
               <div>
                 <strong className="text-base">{chain.name}</strong>
-                <div className="mt-2 text-xs text-slate-500">
+                <div className="mt-2 text-xs text-muted">
                   {!data
                     ? queries[chains.indexOf(chain)].isPending
                       ? "Loading snapshot…"
@@ -218,8 +218,8 @@ export function BridgeLanes() {
           targetPosition: Position.Left,
           style: {
             width: 230,
-            background: "#f1f5f9",
-            borderColor: "#cbd5e1",
+            background: "var(--surface-muted)",
+            borderColor: "var(--ui-border)",
             borderRadius: 8,
             padding: 18,
           },
@@ -228,7 +228,7 @@ export function BridgeLanes() {
             label: (
               <>
                 <strong>{lane.destinationName}</strong>
-                <div className="mt-2 text-xs text-slate-500">
+                <div className="mt-2 text-xs text-muted">
                   {lane.destination?.environment ?? "Not indexed"}
                 </div>
               </>
@@ -284,7 +284,7 @@ export function BridgeLanes() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold">OHM bridge lanes</h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-muted">
             Observed CCIP configuration. Each arrow is checked independently;
             select a lane for its contracts and blockers.
           </p>
@@ -295,14 +295,14 @@ export function BridgeLanes() {
             aria-label="Bridge network group"
             value={environment}
             onChange={(event) => navigate(event.target.value, null)}
-            className="ml-2 rounded border border-slate-300 bg-white px-3 py-2"
+            className="ml-2 rounded border border-ui-border bg-surface px-3 py-2"
           >
             <option value="production">Production</option>
             <option value="testnet">Testnets</option>
           </select>
         </label>
       </div>
-      <div className="flex flex-wrap gap-5 text-xs text-slate-600">
+      <div className="flex flex-wrap gap-5 text-xs text-muted">
         {(["configured", "blocked", "unknown"] as const).map((status) => (
           <span key={status} className="flex items-center gap-2">
             <span
@@ -317,7 +317,7 @@ export function BridgeLanes() {
           </span>
         ))}
       </div>
-      <div className="h-[560px] rounded-lg border border-slate-200 bg-white sm:h-[640px]">
+      <div className="h-[560px] rounded-lg border border-ui-border bg-surface sm:h-[640px]">
         <ReactFlow
           key={`${environment}:${graph.nodes.length}`}
           nodes={graph.nodes}
@@ -331,23 +331,23 @@ export function BridgeLanes() {
           minZoom={0.15}
           maxZoom={1.8}
         >
-          <Background color="#cbd5e1" gap={20} />
+          <Background color="var(--graph-dot)" gap={20} />
           <Controls showInteractive={false} />
         </ReactFlow>
       </div>
       {failedChains.length > 0 && (
-        <p role="status" className="text-sm text-slate-600">
+        <p role="status" className="text-sm text-muted">
           Snapshots unavailable: {failedChains.join(", ")}. Their lane coverage
           remains unknown.
         </p>
       )}
       {queries.some((query) => query.isPending) && (
-        <p role="status" className="text-sm text-slate-500">
+        <p role="status" className="text-sm text-muted">
           Loading available chain snapshots…
         </p>
       )}
       {!lanes.length && !queries.some((query) => query.isPending) && (
-        <p className="rounded border border-slate-200 bg-white p-4 text-sm text-slate-600">
+        <p className="rounded border border-ui-border bg-surface p-4 text-sm text-muted">
           {hasObservations
             ? "No outbound routes have been observed in the available configurations."
             : "Bridge-lane observations are unavailable in these snapshots."}{" "}
@@ -355,9 +355,9 @@ export function BridgeLanes() {
         </p>
       )}
       {lanes.length > 0 && (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-ui-border bg-surface">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
+            <thead className="border-b border-ui-border bg-background text-muted">
               <tr>
                 <th className="px-4 py-3">Source</th>
                 <th>Destination</th>
@@ -369,7 +369,7 @@ export function BridgeLanes() {
               {lanes.map((lane) => (
                 <tr
                   key={lane.id}
-                  className={`border-b border-slate-100 ${selected === lane.id ? "bg-blue-50" : ""}`}
+                  className={`border-b border-ui-border ${selected === lane.id ? "bg-selection" : ""}`}
                 >
                   <td className="px-4 py-3">{lane.source.name}</td>
                   <td>{lane.destinationName}</td>
@@ -380,7 +380,7 @@ export function BridgeLanes() {
                     >
                       {lane.status}
                     </span>
-                    <div className="mt-1 text-xs text-slate-500">
+                    <div className="mt-1 text-xs text-muted">
                       {lane.blockers[0] ??
                         lane.unknowns[0] ??
                         "Pool and bridge configuration agree."}
@@ -391,7 +391,7 @@ export function BridgeLanes() {
                       type="button"
                       aria-label={`Inspect ${lane.source.name} to ${lane.destinationName}`}
                       onClick={() => navigate(environment, lane.id)}
-                      className="rounded border border-slate-300 px-3 py-1.5 hover:bg-slate-100"
+                      className="rounded border border-ui-border px-3 py-1.5 hover:bg-surface-muted"
                     >
                       Inspect
                     </button>
@@ -405,7 +405,7 @@ export function BridgeLanes() {
       {currentLane && (
         <section
           aria-label="Selected bridge lane"
-          className="rounded-lg border border-slate-200 bg-white p-5"
+          className="rounded-lg border border-ui-border bg-surface p-5"
         >
           <h2 className="text-lg font-semibold">
             {currentLane.source.name} → {currentLane.destinationName}
@@ -436,7 +436,7 @@ export function BridgeLanes() {
                       <h3 className="text-sm font-semibold">
                         {title as string}
                       </h3>
-                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600">
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted">
                         {(items as string[]).map((item) => (
                           <li key={item}>{item}</li>
                         ))}
@@ -446,7 +446,7 @@ export function BridgeLanes() {
               )}
             </div>
           )}
-          <div className="mt-5 space-y-1 border-t border-slate-100 pt-4">
+          <div className="mt-5 space-y-1 border-t border-ui-border pt-4">
             <RateLimit
               name="Source outbound limit"
               value={currentLane.outbound?.outbound}
@@ -457,10 +457,10 @@ export function BridgeLanes() {
             />
           </div>
           <details className="mt-4 text-sm">
-            <summary className="cursor-pointer text-slate-500">
+            <summary className="cursor-pointer text-muted">
               Pool and trusted-remote evidence
             </summary>
-            <pre className="mt-2 overflow-auto rounded bg-slate-50 p-3 text-xs">
+            <pre className="mt-2 overflow-auto rounded bg-background p-3 text-xs">
               {JSON.stringify(
                 {
                   sourceSelector: currentLane.source.ccipSelector,
@@ -497,7 +497,7 @@ export function BridgeLanes() {
               )}
             </pre>
           </details>
-          <p className="mt-4 text-xs text-slate-500">
+          <p className="mt-4 text-xs text-muted">
             These are configuration checks at the displayed blocks, not a
             transfer simulation. Pool liquidity and CCIP execution health are
             not established by this view.

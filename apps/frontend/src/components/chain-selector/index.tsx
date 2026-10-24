@@ -13,7 +13,7 @@ export function ChainSelector({
     <div className="flex items-center gap-2 mb-4">
       <label
         htmlFor="chain-select"
-        className="text-sm font-medium text-gray-700"
+        className="text-sm font-medium text-foreground"
       >
         Chain:
       </label>
@@ -21,7 +21,7 @@ export function ChainSelector({
         id="chain-select"
         value={selectedChainId}
         onChange={(e) => onChainChange(Number(e.target.value))}
-        className="block w-48 rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+        className="block w-48 rounded-md border border-ui-border bg-surface text-foreground shadow-xs focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
       >
         {["production", "testnet"].map((environment) => (
           <optgroup

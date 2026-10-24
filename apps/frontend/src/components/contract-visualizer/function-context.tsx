@@ -6,7 +6,7 @@ export function FunctionDocumentation({ value }: { value?: FunctionContext }) {
   if (!value) return null;
   const exact = value.source?.match === "exact";
   return (
-    <div className="mt-1 text-gray-600">
+    <div className="mt-1 text-muted">
       {exact && value.notice && <p>{value.notice}</p>}
       <details className="mt-1">
         <summary className="cursor-pointer">Function documentation</summary>
@@ -40,7 +40,7 @@ export function FunctionDocumentation({ value }: { value?: FunctionContext }) {
         )}
         {value.source && (
           <a
-            className="mt-1 inline-block text-blue-700 hover:underline"
+            className="mt-1 inline-block text-link hover:underline"
             href={value.source.url}
             target="_blank"
             rel="noopener noreferrer"

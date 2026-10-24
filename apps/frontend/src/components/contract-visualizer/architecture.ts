@@ -313,9 +313,9 @@ export function layoutArchitectureSections(nodes: Node[]): Node[] {
         padding: "16px 24px",
         fontSize: 20,
         fontWeight: 600,
-        color: "#64748b",
-        background: "rgba(241,245,249,0.5)",
-        border: "1px solid #cbd5e1",
+        color: "var(--muted)",
+        background: "var(--group-background)",
+        border: "1px solid var(--ui-border)",
         pointerEvents: "none",
       },
     });

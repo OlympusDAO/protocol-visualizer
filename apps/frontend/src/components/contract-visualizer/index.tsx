@@ -92,7 +92,7 @@ function StatusTooltip({
       {children}
       <span
         role="tooltip"
-        className="pointer-events-none invisible absolute right-0 top-full z-50 mt-2 whitespace-nowrap rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-normal text-slate-800 shadow-md group-hover/status:visible group-focus/status:visible"
+        className="pointer-events-none invisible absolute right-0 top-full z-50 mt-2 whitespace-nowrap rounded border border-ui-border bg-surface px-2 py-1 text-[11px] font-normal text-foreground shadow-md group-hover/status:visible group-focus/status:visible"
       >
         {label}
       </span>
@@ -104,7 +104,7 @@ function EnablementIndicator({ label }: { label: string }) {
   return (
     <StatusTooltip
       label={label}
-      className={`inline-flex align-middle ${label === "Contract enabled" ? "text-emerald-700" : "text-rose-700"}`}
+      className={`inline-flex align-middle ${label === "Contract enabled" ? "text-success" : "text-danger"}`}
     >
       <svg
         aria-hidden="true"
@@ -143,8 +143,8 @@ function ContractStatusIcons({
           }
           className={
             membership === "Kernel active"
-              ? "inline-flex text-blue-700"
-              : "inline-flex text-slate-500"
+              ? "inline-flex text-link"
+              : "inline-flex text-muted"
           }
         >
           <svg
@@ -200,45 +200,45 @@ const extractKeycode = (moduleName: string): string | null => {
 const NODE_COLORS = {
   kernel: {
     label: "Kernel",
-    background: "#fef3c7", // Amber 100
-    border: "#d97706", // Amber 600
-    text: "#92400e", // Amber 800
+    background: "light-dark(#fef3c7, #382911)",
+    border: "light-dark(#d97706, #fbbf24)",
+    text: "light-dark(#92400e, #fde68a)",
   },
   module: {
     label: "Module",
-    background: "#dbeafe", // Blue 100
-    border: "#2563eb", // Blue 600
-    text: "#1e40af", // Blue 800
+    background: "light-dark(#dbeafe, #172b4d)",
+    border: "light-dark(#2563eb, #60a5fa)",
+    text: "light-dark(#1e40af, #bfdbfe)",
   },
   policy: {
     label: "Policy",
-    background: "#dcfce7", // Green 100
-    border: "#16a34a", // Green 600
-    text: "#166534", // Green 800
+    background: "light-dark(#dcfce7, #133524)",
+    border: "light-dark(#16a34a, #4ade80)",
+    text: "light-dark(#166534, #bbf7d0)",
   },
   periphery: {
     label: "Protocol periphery",
-    background: "#e0e7ff",
-    border: "#6366f1",
-    text: "#3730a3",
+    background: "light-dark(#e0e7ff, #27264d)",
+    border: "light-dark(#6366f1, #a5b4fc)",
+    text: "light-dark(#3730a3, #c7d2fe)",
   },
   external: {
     label: "Other contracts",
-    background: "#f9fafb",
-    border: "#9ca3af",
-    text: "#374151",
+    background: "light-dark(#f9fafb, #1f2937)",
+    border: "light-dark(#9ca3af, #94a3b8)",
+    text: "light-dark(#374151, #e2e8f0)",
   },
   role: {
     label: "Role",
-    background: "#f3e8ff", // Purple 100
-    border: "#9333ea", // Purple 600
-    text: "#6b21a8", // Purple 800
+    background: "light-dark(#f3e8ff, #322047)",
+    border: "light-dark(#9333ea, #c084fc)",
+    text: "light-dark(#6b21a8, #e9d5ff)",
   },
   assignee: {
     label: "Multisigs & addresses",
-    background: "#fae8ff", // Pink 100
-    border: "#db2777", // Pink 600
-    text: "#9d174d", // Pink 800
+    background: "light-dark(#fae8ff, #422039)",
+    border: "light-dark(#db2777, #f472b6)",
+    text: "light-dark(#9d174d, #fbcfe8)",
   },
 };
 
@@ -527,7 +527,7 @@ export function ContractVisualizer() {
                 {shortenAddress(contract.address)}
               </a>
               {control.warning && (
-                <div className="text-xs mt-1 text-amber-800 max-w-[180px]">
+                <div className="text-xs mt-1 text-warning max-w-[180px]">
                   {control.warning}
                 </div>
               )}
@@ -715,17 +715,17 @@ export function ContractVisualizer() {
                 href={getEtherscanLink(contract.address, selectedChainId)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-blue-600"
+                className="text-xs text-link"
               >
                 {shortenAddress(contract.address)}
               </a>
               {contract.category === "external" && (
-                <div className="mt-1 text-xs text-gray-500">
+                <div className="mt-1 text-xs text-muted">
                   {getContractDeploymentLabel(contract)}
                 </div>
               )}
               {control.warning && (
-                <div className="text-xs mt-1 text-amber-800 max-w-[180px]">
+                <div className="text-xs mt-1 text-warning max-w-[180px]">
                   {control.warning}
                 </div>
               )}
@@ -865,7 +865,7 @@ export function ContractVisualizer() {
     }
     for (const edge of relationships.edges) {
       const periodicTask = edge.relationship.kind === "periodic-task";
-      const color = periodicTask ? "#0f766e" : "#475569";
+      const color = periodicTask ? "var(--periodic)" : "var(--edge)";
       newEdges.push({
         ...createEdge(edge.source, edge.target),
         id: edge.id,
@@ -903,7 +903,7 @@ export function ContractVisualizer() {
         },
         labelStyle: {
           fontSize: 11,
-          fill: "#334155",
+          fill: "var(--foreground)",
         },
         markerEnd: { type: MarkerType.Arrow, color },
       });
@@ -1057,7 +1057,7 @@ export function ContractVisualizer() {
     if (!assignedRoles.length && !selectedNodeData.assigneeAddress) return null;
 
     return (
-      <div className="border-t border-gray-200 my-2 pt-2">
+      <div className="border-t border-ui-border my-2 pt-2">
         <h4 className="font-semibold text-sm mb-2">Assigned Roles:</h4>
         <div className="text-sm">
           {assignedRoles.length > 0 ? (
@@ -1066,7 +1066,7 @@ export function ContractVisualizer() {
                 <li key={role} className="text-xs mb-1">
                   <button
                     type="button"
-                    className="text-purple-600 hover:text-purple-800 hover:underline text-left"
+                    className="text-role hover:text-role hover:underline text-left"
                     onClick={() => setSelectedNode(`role-${role}`)}
                   >
                     {role}
@@ -1075,7 +1075,7 @@ export function ContractVisualizer() {
               ))}
             </ul>
           ) : (
-            <div className="text-gray-500">No roles assigned</div>
+            <div className="text-muted">No roles assigned</div>
           )}
         </div>
       </div>
@@ -1127,7 +1127,7 @@ export function ContractVisualizer() {
 
     return (
       <>
-        <div className="border-t border-gray-200 my-2 pt-2">
+        <div className="border-t border-ui-border my-2 pt-2">
           <h4 className="font-semibold text-sm mb-2">
             Assignees ({assignees.length}):
           </h4>
@@ -1138,7 +1138,7 @@ export function ContractVisualizer() {
                   <li key={assignee.address} className="text-xs mb-1">
                     <button
                       type="button"
-                      className="text-pink-600 hover:text-pink-800 hover:underline text-left"
+                      className="text-assignee hover:text-assignee hover:underline text-left"
                       onClick={() =>
                         setSelectedNode(assignee.address.toLowerCase())
                       }
@@ -1151,7 +1151,7 @@ export function ContractVisualizer() {
                       href={getEtherscanLink(assignee.address, selectedChainId)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-gray-500 hover:underline ml-1"
+                      className="text-muted hover:underline ml-1"
                     >
                       ({shortenAddress(assignee.address)})
                     </a>
@@ -1159,12 +1159,12 @@ export function ContractVisualizer() {
                 ))}
               </ul>
             ) : (
-              <div className="text-gray-500">No assignees</div>
+              <div className="text-muted">No assignees</div>
             )}
           </div>
         </div>
 
-        <div className="border-t border-gray-200 my-2 pt-2">
+        <div className="border-t border-ui-border my-2 pt-2">
           <h4 className="font-semibold text-sm mb-2">
             Policies ({policiesUsingRole.length}):
           </h4>
@@ -1174,9 +1174,9 @@ export function ContractVisualizer() {
                 {policiesUsingRole.map((policy) => (
                   <li
                     key={policy.address}
-                    className="mb-2 pb-2 border-b border-gray-100 last:border-b-0"
+                    className="mb-2 pb-2 border-b border-ui-border last:border-b-0"
                   >
-                    <div className="font-medium text-xs text-green-700 mb-1">
+                    <div className="font-medium text-xs text-policy mb-1">
                       <button
                         type="button"
                         className="hover:underline text-left"
@@ -1189,13 +1189,13 @@ export function ContractVisualizer() {
                       href={getEtherscanLink(policy.address, selectedChainId)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-gray-500 hover:underline"
+                      className="text-xs text-muted hover:underline"
                     >
                       {shortenAddress(policy.address)}
                     </a>
                     {policy.functions.length > 0 && (
                       <div className="mt-1">
-                        <div className="text-xs text-gray-600">Functions:</div>
+                        <div className="text-xs text-muted">Functions:</div>
                         <ul className="list-disc pl-4">
                           {policy.functions.map((func) => (
                             <li
@@ -1204,7 +1204,7 @@ export function ContractVisualizer() {
                                 func.signature ??
                                 func.name
                               }
-                              className="text-xs text-blue-600"
+                              className="text-xs text-link"
                             >
                               {func.canonicalSignature ??
                                 func.signature ??
@@ -1221,7 +1221,7 @@ export function ContractVisualizer() {
                 ))}
               </ul>
             ) : (
-              <div className="text-gray-500">No policies use this role</div>
+              <div className="text-muted">No policies use this role</div>
             )}
           </div>
         </div>
@@ -1265,7 +1265,7 @@ export function ContractVisualizer() {
     );
 
     return (
-      <div className="border-t border-gray-200 my-2 pt-2">
+      <div className="border-t border-ui-border my-2 pt-2">
         <h4 className="font-semibold text-sm mb-2">
           Modules Used ({uniqueKeycodes.length}):
         </h4>
@@ -1278,7 +1278,7 @@ export function ContractVisualizer() {
               return (
                 <li key={keycode} className="py-2 first:pt-0 last:pb-0">
                   <div className="flex items-center mb-1">
-                    <div className="font-medium text-xs text-blue-700">
+                    <div className="font-medium text-xs text-link">
                       {moduleContract ? (
                         <button
                           type="button"
@@ -1301,30 +1301,28 @@ export function ContractVisualizer() {
                         )}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-gray-500 hover:underline ml-2"
+                        className="text-xs text-muted hover:underline ml-2"
                       >
                         ({shortenAddress(moduleContract.address)})
                       </a>
                     )}
                   </div>
-                  <div className="text-xs text-blue-600 mb-1">
+                  <div className="text-xs text-link mb-1">
                     Keycode: {keycode}
                   </div>
                   {moduleFunctions.length === 0 && (
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-muted">
                       No permissioned functions requested.
                     </div>
                   )}
                   {moduleFunctions.length > 0 && (
                     <div className="mt-1">
-                      <div className="text-xs text-gray-600 mb-1">
-                        Functions:
-                      </div>
+                      <div className="text-xs text-muted mb-1">Functions:</div>
                       <ul className="list-disc pl-4">
                         {moduleFunctions.map((func) => (
                           <li
                             key={`${keycode}-${func.function}`}
-                            className="text-xs text-blue-600"
+                            className="text-xs text-link"
                           >
                             {func.function}
                             <FunctionDocumentation
@@ -1361,11 +1359,11 @@ export function ContractVisualizer() {
     return (
       <>
         {extractKeycode(moduleContract.name) && (
-          <div className="text-xs text-blue-600 mb-3">
+          <div className="text-xs text-link mb-3">
             Keycode: {extractKeycode(moduleContract.name)}
           </div>
         )}
-        <div className="border-t border-gray-200 my-2 pt-2">
+        <div className="border-t border-ui-border my-2 pt-2">
           <h4 className="font-semibold text-sm mb-2">
             Policies Using This Module ({policiesUsingModule.length}):
           </h4>
@@ -1376,7 +1374,7 @@ export function ContractVisualizer() {
                   <li key={policy.address} className="text-xs mb-1">
                     <button
                       type="button"
-                      className="text-green-600 hover:text-green-800 hover:underline text-left"
+                      className="text-policy hover:text-policy hover:underline text-left"
                       onClick={() => setSelectedNode(policy.address)}
                     >
                       {formatContractName(policy)}
@@ -1385,7 +1383,7 @@ export function ContractVisualizer() {
                       href={getEtherscanLink(policy.address, selectedChainId)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-gray-500 hover:underline ml-1"
+                      className="text-muted hover:underline ml-1"
                     >
                       ({shortenAddress(policy.address)})
                     </a>
@@ -1393,9 +1391,7 @@ export function ContractVisualizer() {
                 ))}
               </ul>
             ) : (
-              <div className="text-gray-500">
-                No indexed policy dependencies
-              </div>
+              <div className="text-muted">No indexed policy dependencies</div>
             )}
           </div>
         </div>
@@ -1466,12 +1462,12 @@ export function ContractVisualizer() {
         onChainChange={setSelectedChainId}
       />
       {!isHistorical && (
-        <div className="mb-3 flex flex-wrap items-center gap-4 text-xs text-slate-600">
+        <div className="mb-3 flex flex-wrap items-center gap-4 text-xs text-muted">
           <label>
             View:{" "}
             <select
               aria-label="Architecture view"
-              className="rounded border border-slate-300 bg-white p-1"
+              className="rounded border border-ui-border bg-surface p-1"
               value={architectureView}
               onChange={(event) => {
                 setSelectedNode(null);
@@ -1519,7 +1515,7 @@ export function ContractVisualizer() {
           {selectedNode && (
             <button
               type="button"
-              className="text-blue-700 hover:underline"
+              className="text-link hover:underline"
               onClick={() => setSelectedNode(null)}
             >
               Back to {architectureView === "overview" ? "overview" : "view"}
@@ -1534,7 +1530,7 @@ export function ContractVisualizer() {
       {!isHistorical && (
         <section
           aria-label="Node colour legend"
-          className="mb-3 text-xs text-slate-600"
+          className="mb-3 text-xs text-muted"
         >
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <span className="font-medium">Node colours:</span>
@@ -1554,32 +1550,32 @@ export function ContractVisualizer() {
               ))}
             </ul>
           </div>
-          <p className="mt-1 text-slate-500">
+          <p className="mt-1 text-muted">
             Colours show node type. Status icons show Kernel membership and
             enablement.
           </p>
         </section>
       )}
       {navigationNotice && (
-        <p role="status" className="mb-2 text-sm text-amber-800">
+        <p role="status" className="mb-2 text-sm text-warning">
           {navigationNotice}
         </p>
       )}
       {error && data && !isHistorical && (
-        <p role="status" className="mb-2 text-sm text-amber-800">
+        <p role="status" className="mb-2 text-sm text-warning">
           Snapshot refresh failed. Showing the last loaded snapshot.
         </p>
       )}
       {!isHistorical && (data?.relationships.length ?? 0) > 0 && (
-        <p className="mb-2 text-xs text-gray-500">
+        <p className="mb-2 text-xs text-muted">
           Control and reference links are labelled. Dashed links show pending
           nominations. Missing links may reflect incomplete source coverage.
         </p>
       )}
-      <div className="relative h-[800px] border border-gray-200 rounded-lg">
+      <div className="relative h-[800px] border border-ui-border rounded-lg">
         {isHistorical ? (
           <div className="h-full overflow-auto p-4">
-            <p className="mb-4 text-sm text-gray-600">
+            <p className="mb-4 text-sm text-muted">
               Historical network. Recorded deployments are shown below; live
               indexing and contract state are unavailable.
             </p>
@@ -1593,7 +1589,7 @@ export function ContractVisualizer() {
                   <li
                     key={contract.address}
                     id={`inventory-${contract.address}`}
-                    className={`border-b border-gray-200 pb-2 ${selectedNode === contract.address ? "bg-blue-50" : ""}`}
+                    className={`border-b border-ui-border pb-2 ${selectedNode === contract.address ? "bg-selection" : ""}`}
                   >
                     <button
                       type="button"
@@ -1603,7 +1599,7 @@ export function ContractVisualizer() {
                     >
                       {contract.name}
                     </button>
-                    <code className="break-all text-xs text-gray-600">
+                    <code className="break-all text-xs text-muted">
                       {contract.address}
                     </code>
                   </li>
@@ -1616,7 +1612,7 @@ export function ContractVisualizer() {
               <div className="text-lg font-semibold">
                 Unable to load protocol data
               </div>
-              <div className="mt-2 text-sm text-gray-600">
+              <div className="mt-2 text-sm text-muted">
                 {error instanceof Error
                   ? error.message
                   : "The protocol snapshot request failed."}
@@ -1659,17 +1655,22 @@ export function ContractVisualizer() {
                 setSelectedNode(null);
               }}
             >
-              <Background />
+              <Background color="var(--graph-dot)" />
               <Controls />
-              <MiniMap pannable zoomable />
+              <MiniMap
+                pannable
+                zoomable
+                nodeColor="var(--ui-border)"
+                maskColor="var(--minimap-mask)"
+              />
             </ReactFlow>
             {(selectedContract || selectedGraphNode) && selectedNode && (
               <aside
                 key={selectedNode}
-                className="absolute top-4 right-4 z-50 flex w-[460px] max-w-[calc(100%-2rem)] max-h-[min(720px,60vh)] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white text-xs shadow-lg"
+                className="absolute top-4 right-4 z-50 flex w-[460px] max-w-[calc(100%-2rem)] max-h-[min(720px,60vh)] flex-col overflow-hidden rounded-lg border border-ui-border bg-surface text-xs shadow-lg"
                 aria-label="Selection details"
               >
-                <div className="shrink-0 border-b border-gray-200 p-4">
+                <div className="shrink-0 border-b border-ui-border p-4">
                   <div className="flex justify-between gap-4">
                     <h3 className="min-w-0 break-words font-semibold">
                       {selectedContract
@@ -1677,7 +1678,7 @@ export function ContractVisualizer() {
                         : selectedGraphNode?.data.name}
                     </h3>
                     {selectedKind && (
-                      <span className="self-start rounded-full bg-slate-100 px-2 py-0.5 text-slate-600 capitalize">
+                      <span className="self-start rounded-full bg-surface-muted px-2 py-0.5 text-muted capitalize">
                         {selectedKind}
                       </span>
                     )}
@@ -1691,7 +1692,7 @@ export function ContractVisualizer() {
                   </div>
                   {selectedNode.startsWith("0x") && (
                     <a
-                      className="mt-1 block break-all text-blue-600"
+                      className="mt-1 block break-all text-link"
                       href={getEtherscanLink(selectedNode, selectedChainId)}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -1722,14 +1723,14 @@ export function ContractVisualizer() {
                     </div>
                   )}
                   {selectedControl.warning && (
-                    <p className="mt-2 text-amber-800 break-all">
+                    <p className="mt-2 text-warning break-all">
                       {selectedControl.warning}
                     </p>
                   )}
                   {renderSelectedDetails()}
                   {selectedTaskList && (
                     <section
-                      className="mt-3 border-t border-gray-200 pt-2"
+                      className="mt-3 border-t border-ui-border pt-2"
                       aria-label="Periodic tasks"
                     >
                       <h4 className="font-semibold">
@@ -1738,17 +1739,15 @@ export function ContractVisualizer() {
                           ? ` (${selectedTaskList.tasks.length})`
                           : ""}
                       </h4>
-                      <p className="mt-1 text-gray-500">
+                      <p className="mt-1 text-muted">
                         Invocation order; disabled tasks remain configured.
                       </p>
                       {selectedTaskList.tasks === null ? (
-                        <p className="mt-2 text-amber-800">
+                        <p className="mt-2 text-warning">
                           Task configuration is unknown.
                         </p>
                       ) : selectedTaskList.tasks.length === 0 ? (
-                        <p className="mt-2 text-gray-500">
-                          No tasks configured.
-                        </p>
+                        <p className="mt-2 text-muted">No tasks configured.</p>
                       ) : (
                         <ol className="mt-2 space-y-2">
                           {selectedTaskList.tasks.map((task, index) => {
@@ -1771,13 +1770,13 @@ export function ContractVisualizer() {
                                 key={task.address}
                                 className="flex items-start gap-2"
                               >
-                                <span className="text-gray-500 tabular-nums">
+                                <span className="text-muted tabular-nums">
                                   {index + 1}.
                                 </span>
                                 <div className="min-w-0 flex-1">
                                   <button
                                     type="button"
-                                    className="text-left text-blue-600 hover:underline break-all"
+                                    className="text-left text-link hover:underline break-all"
                                     onClick={() =>
                                       setSelectedNode(task.address)
                                     }
@@ -1786,7 +1785,7 @@ export function ContractVisualizer() {
                                       ? getGraphContractName(contract)
                                       : shortenAddress(task.address)}
                                   </button>
-                                  <code className="mt-0.5 block break-all text-gray-600">
+                                  <code className="mt-0.5 block break-all text-muted">
                                     {task.selector === "0x00000000"
                                       ? "execute()"
                                       : (task.signature ?? task.selector)}
@@ -1796,7 +1795,7 @@ export function ContractVisualizer() {
                                   <EnablementIndicator label={enabled.badge} />
                                 ) : (
                                   <span
-                                    className="text-gray-500"
+                                    className="text-muted"
                                     title="No task-local enablement observation"
                                   >
                                     Unknown
@@ -1808,14 +1807,14 @@ export function ContractVisualizer() {
                         </ol>
                       )}
                       {selectedTaskList.verification.outcome !== "match" && (
-                        <p className="mt-2 text-amber-800">
+                        <p className="mt-2 text-warning">
                           Task configuration verification:{" "}
                           {selectedTaskList.verification.outcome}. Indexed order
                           is retained.
                         </p>
                       )}
                       {selectedTaskList.indexedThrough && (
-                        <p className="mt-2 text-gray-500">
+                        <p className="mt-2 text-muted">
                           Indexed through block{" "}
                           {selectedTaskList.indexedThrough.number}.
                         </p>
@@ -1825,16 +1824,16 @@ export function ContractVisualizer() {
                   {selectedContract && (
                     <>
                       {selectedControl.notices.map((notice) => (
-                        <p key={notice} className="mt-2 text-amber-800">
+                        <p key={notice} className="mt-2 text-warning">
                           {notice}
                         </p>
                       ))}
                       <details className="mt-2">
-                        <summary className="cursor-pointer text-gray-500">
+                        <summary className="cursor-pointer text-muted">
                           Indexing &amp; verification
                         </summary>
                         {selectedCoreContract && (
-                          <p className="mt-2 text-gray-600">
+                          <p className="mt-2 text-muted">
                             Last Kernel update:{" "}
                             {new Date(
                               Number(
@@ -1850,7 +1849,7 @@ export function ContractVisualizer() {
                           .map((detail) => (
                             <p
                               key={detail}
-                              className="mt-2 break-all text-gray-600"
+                              className="mt-2 break-all text-muted"
                             >
                               {detail}
                             </p>
@@ -1860,7 +1859,7 @@ export function ContractVisualizer() {
                   )}
                   {selectedRelationships.length > 0 && (
                     <section
-                      className="mt-3 border-t border-gray-200 pt-2"
+                      className="mt-3 border-t border-ui-border pt-2"
                       aria-label="Control relationships"
                     >
                       <h4 className="font-semibold">
@@ -1869,7 +1868,7 @@ export function ContractVisualizer() {
                       {selectedRelationships.map((relationship) => (
                         <div
                           key={relationship.id}
-                          className="mt-2 border-t border-gray-100 pt-2"
+                          className="mt-2 border-t border-ui-border pt-2"
                         >
                           <strong>
                             {relationship.status === "pending"
@@ -1883,7 +1882,7 @@ export function ContractVisualizer() {
                             value={relationship.functionContext}
                           />
                           {relationship.targetCode && (
-                            <p className="mt-1 text-gray-500">
+                            <p className="mt-1 text-muted">
                               {relationship.targetCode === "present"
                                 ? "Target has deployed code at the observation block."
                                 : "Target has no code at the observation block; address type is not inferred."}
@@ -1896,7 +1895,7 @@ export function ContractVisualizer() {
                                   <span key={address}>
                                     {index > 0 && " → "}
                                     <a
-                                      className="text-blue-600"
+                                      className="text-link"
                                       href={getEtherscanLink(
                                         address,
                                         selectedChainId
@@ -1923,24 +1922,24 @@ export function ContractVisualizer() {
                             </p>
                           )}
                           <details className="mt-1">
-                            <summary className="cursor-pointer text-gray-500">
+                            <summary className="cursor-pointer text-muted">
                               Evidence
                             </summary>
                             {relationship.scope && (
-                              <p className="mt-1 break-all text-gray-500">
+                              <p className="mt-1 break-all text-muted">
                                 Registry: {relationship.scope.registry}; token:{" "}
                                 {relationship.scope.token}.
                               </p>
                             )}
                             {relationship.status === "reference" &&
                               relationship.getter && (
-                                <p className="mt-1 text-gray-500">
+                                <p className="mt-1 text-muted">
                                   Address reference from{" "}
                                   {relationship.getter.split(":")[0]}(
                                   {relationship.scope?.token}).
                                 </p>
                               )}
-                            <p className="mt-1 break-all text-gray-500">
+                            <p className="mt-1 break-all text-muted">
                               Observed at block {relationship.provenance.number}{" "}
                               ({relationship.provenance.hash})
                               {"transactionHash" in relationship.provenance
@@ -1949,20 +1948,20 @@ export function ContractVisualizer() {
                               .
                             </p>
                             {relationship.indexedThrough && (
-                              <p className="mt-1 text-gray-500">
+                              <p className="mt-1 text-muted">
                                 Indexed through block{" "}
                                 {relationship.indexedThrough.number}.
                               </p>
                             )}
                             {relationship.verification?.outcome === "match" && (
-                              <p className="mt-1 text-gray-500">
+                              <p className="mt-1 text-muted">
                                 Getter matches at block{" "}
                                 {relationship.verification.block?.number}.
                               </p>
                             )}
                             {relationship.status === "reference" &&
                               relationship.coverage && (
-                                <p className="mt-1 text-gray-500">
+                                <p className="mt-1 text-muted">
                                   {relationship.coverage}
                                 </p>
                               )}
@@ -1971,7 +1970,7 @@ export function ContractVisualizer() {
                             (!relationship.indexedThrough ||
                               BigInt(relationship.lastChange.number) >
                                 BigInt(relationship.indexedThrough.number)) && (
-                              <p className="mt-1 text-amber-800">
+                              <p className="mt-1 text-warning">
                                 Latest relationship change awaits a completed
                                 verification checkpoint.
                               </p>
@@ -1982,7 +1981,7 @@ export function ContractVisualizer() {
                                 BigInt(
                                   data.observation.indexedThrough.number
                                 )) && (
-                              <p className="mt-1 text-amber-800">
+                              <p className="mt-1 text-warning">
                                 Relationship coverage is behind chain
                                 observation block{" "}
                                 {data.observation.indexedThrough.number}.
@@ -1990,13 +1989,13 @@ export function ContractVisualizer() {
                             )}
                           {relationship.status !== "reference" &&
                             relationship.coverage && (
-                              <p className="mt-1 text-amber-800">
+                              <p className="mt-1 text-warning">
                                 {relationship.coverage}
                               </p>
                             )}
                           {relationship.verification?.outcome ===
                             "mismatch" && (
-                            <p className="mt-1 break-all text-amber-800">
+                            <p className="mt-1 break-all text-warning">
                               Verification mismatch: indexed{" "}
                               {relationship.value}, getter{" "}
                               {relationship.verification.getterValue} at block{" "}
@@ -2007,7 +2006,7 @@ export function ContractVisualizer() {
                           )}
                           {relationship.verification?.outcome ===
                             "unavailable" && (
-                            <p className="mt-1 text-amber-800">
+                            <p className="mt-1 text-warning">
                               Getter verification unavailable at block{" "}
                               {relationship.verification.block?.number}.
                               Established indexed state is retained.

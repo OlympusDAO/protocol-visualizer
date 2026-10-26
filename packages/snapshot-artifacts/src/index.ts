@@ -834,6 +834,7 @@ export const protocolSnapshotSchema = {
         contractType: { enum: ["KERNEL", "MODULE", "POLICY"] },
         type: { enum: ["kernel", "module", "policy"] },
         isEnabled: { type: "boolean" },
+        kernelHistory: { enum: ["installed", "never-installed", "unknown"] },
         policyPermissions: { $ref: "#/$defs/jsonValue" },
         policyFunctions: { $ref: "#/$defs/jsonValue" },
       },

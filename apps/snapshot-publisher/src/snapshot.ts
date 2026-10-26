@@ -295,6 +295,7 @@ const normalizeContract = (
     contractType: contract.contractType,
     type,
     isEnabled: Boolean(contract.isEnabled),
+    kernelHistory: contract.kernelHistory ?? undefined,
     policyPermissions: contract.policyPermissions ?? null,
     policyFunctions: contract.policyFunctions ?? null,
   };

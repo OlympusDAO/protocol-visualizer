@@ -374,6 +374,50 @@ test("history changes move cards between separate inactive groups without keepin
   );
 });
 
+test("core contract Kernel history survives publisher serialization and frontend decoding without defaults", async () => {
+  const sample = getSampleProtocolData(4663).Contract[0];
+  const histories = [
+    "installed",
+    "never-installed",
+    "unknown",
+    null,
+    undefined,
+  ];
+  const batch = await createSnapshotBatch({
+    chains: [chain],
+    deploymentId: "kernel-history-roundtrip",
+    additionalContracts: [],
+    loadProtocolData: () => ({
+      Contract: histories.map((kernelHistory, index) => ({
+        ...sample,
+        id: `4663:${index}`,
+        address: `0x${String(index + 1).padStart(40, "0")}`,
+        kernelHistory,
+      })),
+    }),
+  });
+  const snapshot = JSON.parse(batch.files[0].body);
+  const data = decodeProtocolSnapshot(snapshot);
+  const expected = [
+    "installed",
+    "never-installed",
+    "unknown",
+    undefined,
+    undefined,
+  ];
+  assert.deepEqual(
+    snapshot.data.contracts.map((contract) => contract.kernelHistory),
+    expected
+  );
+  assert.deepEqual(
+    data.contracts.map((contract) => contract.kernelHistory),
+    expected
+  );
+  for (const contract of snapshot.data.contracts.slice(3)) {
+    assert.equal(Object.hasOwn(contract, "kernelHistory"), false);
+  }
+});
+
 test("sample snapshot demonstrates Kernel active and Contract disabled independently", async () => {
   const sample = getSampleProtocolData(4663);
   const batch = await createSnapshotBatch({

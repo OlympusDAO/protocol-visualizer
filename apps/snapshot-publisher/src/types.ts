@@ -104,6 +104,7 @@ export type Contract = {
   contractType: EnvioContractType;
   type: ContractType;
   isEnabled: boolean;
+  kernelHistory?: "installed" | "never-installed" | "unknown";
   policyPermissions: JsonValue;
   policyFunctions: JsonValue;
 };

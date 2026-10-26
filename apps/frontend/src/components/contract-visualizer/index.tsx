@@ -494,6 +494,7 @@ export function ContractVisualizer() {
           name: formatContractName(contract),
           contractType: type,
           kernelInactive: contract.isEnabled === false,
+          kernelHistory: contract.kernelHistory,
           label: (
             <div className="p-1 text-sm relative">
               <Handle

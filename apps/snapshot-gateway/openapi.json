@@ -1058,6 +1058,9 @@
               "isEnabled": {
                 "type": "boolean"
               },
+              "kernelHistory": {
+                "enum": ["installed", "never-installed", "unknown"]
+              },
               "policyPermissions": {
                 "$ref": "#/components/schemas/ProtocolSnapshot/$defs/jsonValue"
               },

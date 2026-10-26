@@ -27,6 +27,7 @@ export const PROTOCOL_VISUALIZER_QUERIES: ProtocolVisualizerQuery[] = [
           version
           contractType
           isEnabled
+          kernelHistory
           policyPermissions
           policyFunctions
         }
@@ -74,6 +75,7 @@ export const PROTOCOL_VISUALIZER_QUERIES: ProtocolVisualizerQuery[] = [
           version
           contractType
           isEnabled
+          kernelHistory
           policyPermissions
           policyFunctions
         }

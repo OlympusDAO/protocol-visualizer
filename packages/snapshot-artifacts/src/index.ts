@@ -503,57 +503,104 @@ export const protocolSnapshotSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   $id: "/v1/schemas/protocol-snapshot-v1.schema.json",
   title: "Protocol Visualizer Protocol Snapshot",
-  type: "object",
-  additionalProperties: false,
-  required: ["schemaVersion", "generatedAt", "chainId", "recordCounts", "data"],
-  properties: {
-    schemaVersion: { enum: ["1.0.0", SCHEMA_VERSION] },
-    generatedAt: { type: "string", format: "date-time" },
-    chainId: { type: "integer" },
-    recordCounts: {
+  oneOf: [
+    {
       type: "object",
-      additionalProperties: false,
-      required: ["contracts", "roles", "roleAssignments"],
+      required: [
+        "schemaVersion",
+        "generatedAt",
+        "chainId",
+        "recordCounts",
+        "data",
+      ],
+      additionalProperties: true,
       properties: {
-        contracts: { type: "integer", minimum: 0 },
-        roles: { type: "integer", minimum: 0 },
-        roleAssignments: { type: "integer", minimum: 0 },
-      },
-    },
-    data: {
-      type: "object",
-      additionalProperties: false,
-      required: ["contracts", "roles", "roleAssignments"],
-      properties: {
-        bridgeConfigurations: {
-          type: "array",
-          items: { $ref: "#/$defs/bridgeConfiguration" },
+        schemaVersion: { const: "1.0.0" },
+        generatedAt: { type: "string", format: "date-time" },
+        chainId: { type: "integer" },
+        recordCounts: {
+          type: "object",
+          required: ["contracts", "roles", "roleAssignments"],
+          properties: {
+            contracts: { type: "integer", minimum: 0 },
+            roles: { type: "integer", minimum: 0 },
+            roleAssignments: { type: "integer", minimum: 0 },
+          },
         },
-        periodicTasks: { type: "array", items: { $ref: "#/$defs/heartTasks" } },
-        additionalContracts: {
-          type: "array",
-          items: { $ref: "#/$defs/additionalContract" },
-        },
-        contractStates: {
-          type: "array",
-          items: { $ref: "#/$defs/contractState" },
-        },
-        relationships: {
-          type: "array",
-          items: { $ref: "#/$defs/relationship" },
-        },
-        observation: {
-          anyOf: [{ $ref: "#/$defs/observation" }, { type: "null" }],
-        },
-        contracts: { type: "array", items: { $ref: "#/$defs/contract" } },
-        roles: { type: "array", items: { $ref: "#/$defs/role" } },
-        roleAssignments: {
-          type: "array",
-          items: { $ref: "#/$defs/roleAssignment" },
+        data: {
+          type: "object",
+          required: ["contracts", "roles", "roleAssignments"],
+          properties: {
+            contracts: { type: "array", items: { type: "object" } },
+            roles: { type: "array", items: { type: "object" } },
+            roleAssignments: { type: "array", items: { type: "object" } },
+          },
         },
       },
     },
-  },
+    {
+      type: "object",
+      additionalProperties: false,
+      required: [
+        "schemaVersion",
+        "generatedAt",
+        "chainId",
+        "recordCounts",
+        "data",
+      ],
+      properties: {
+        schemaVersion: { const: SCHEMA_VERSION },
+        generatedAt: { type: "string", format: "date-time" },
+        chainId: { type: "integer" },
+        recordCounts: {
+          type: "object",
+          additionalProperties: false,
+          required: ["contracts", "roles", "roleAssignments"],
+          properties: {
+            contracts: { type: "integer", minimum: 0 },
+            roles: { type: "integer", minimum: 0 },
+            roleAssignments: { type: "integer", minimum: 0 },
+          },
+        },
+        data: {
+          type: "object",
+          additionalProperties: false,
+          required: ["contracts", "roles", "roleAssignments"],
+          properties: {
+            bridgeConfigurations: {
+              type: "array",
+              items: { $ref: "#/$defs/bridgeConfiguration" },
+            },
+            periodicTasks: {
+              type: "array",
+              items: { $ref: "#/$defs/heartTasks" },
+            },
+            additionalContracts: {
+              type: "array",
+              items: { $ref: "#/$defs/additionalContract" },
+            },
+            contractStates: {
+              type: "array",
+              items: { $ref: "#/$defs/contractState" },
+            },
+            relationships: {
+              type: "array",
+              items: { $ref: "#/$defs/relationship" },
+            },
+            observation: {
+              anyOf: [{ $ref: "#/$defs/observation" }, { type: "null" }],
+            },
+            contracts: { type: "array", items: { $ref: "#/$defs/contract" } },
+            roles: { type: "array", items: { $ref: "#/$defs/role" } },
+            roleAssignments: {
+              type: "array",
+              items: { $ref: "#/$defs/roleAssignment" },
+            },
+          },
+        },
+      },
+    },
+  ],
   $defs: {
     bridgeRateLimit: {
       type: "object",

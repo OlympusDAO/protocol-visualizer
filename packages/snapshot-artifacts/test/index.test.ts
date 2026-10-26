@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { Ajv2020 } from "ajv/dist/2020.js";
 import {
   createOpenApiDocument,
   deploymentArtifactKey,
@@ -9,8 +10,67 @@ import {
   sanitizeManifestForPublic,
   SCHEMA_VERSION,
   readSnapshotData,
+  protocolSnapshotSchema,
   type SnapshotManifest,
 } from "../src/index.js";
+
+test("snapshot schemas preserve the legacy contract while keeping 1.1 strict", () => {
+  const document = createOpenApiDocument();
+  const schemas = [
+    protocolSnapshotSchema,
+    {
+      components: document.components,
+      $ref: "#/components/schemas/ProtocolSnapshot",
+    },
+  ];
+  const legacy = {
+    schemaVersion: "1.0.0",
+    generatedAt: "2026-10-26T00:00:00.000Z",
+    chainId: 1,
+    recordCounts: { contracts: 1, roles: 1, roleAssignments: 1 },
+    data: {
+      contracts: [{ legacyContract: true }],
+      roles: [{ legacyRole: true }],
+      roleAssignments: [{ legacyAssignment: true }],
+    },
+  };
+  const current = {
+    ...legacy,
+    schemaVersion: "1.1.0",
+    recordCounts: { contracts: 0, roles: 0, roleAssignments: 0 },
+    data: { contracts: [], roles: [], roleAssignments: [] },
+  };
+  for (const schema of schemas) {
+    const ajv = new Ajv2020({ strict: false, validateFormats: false });
+    const validate = ajv.compile(schema);
+    for (const payload of [
+      legacy,
+      { ...legacy, legacyEnvelope: true },
+      { ...legacy, recordCounts: { ...legacy.recordCounts, legacyCount: 1 } },
+      { ...legacy, data: { ...legacy.data, legacyData: true } },
+      current,
+    ]) {
+      assert.equal(validate(payload), true, ajv.errorsText(validate.errors));
+    }
+    for (const payload of [
+      { ...current, legacyEnvelope: true },
+      { ...current, recordCounts: { ...current.recordCounts, legacyCount: 1 } },
+      { ...current, data: { ...current.data, legacyData: true } },
+      { ...current, data: legacy.data },
+      { ...legacy, data: { ...legacy.data, contracts: ["not an object"] } },
+      { ...current, schemaVersion: "2.0.0" },
+    ]) {
+      assert.equal(validate(payload), false, JSON.stringify(payload));
+    }
+    for (const payload of [legacy, current]) {
+      for (const required of ["generatedAt", "recordCounts"]) {
+        const missing = { ...payload } as Record<string, unknown>;
+        delete missing[required];
+        assert.equal(validate(missing), false, JSON.stringify(missing));
+      }
+    }
+  }
+});
 
 test("reads 1.0 and 1.1 additions and rejects unsupported versions clearly", () => {
   const data = { contracts: [], roles: [], roleAssignments: [] };

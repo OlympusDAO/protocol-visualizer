@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
+    "ajv": "8.20.0",
     "typescript": "^7.0.2"
   },
   "engines": {

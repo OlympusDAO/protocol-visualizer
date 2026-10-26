@@ -361,111 +361,180 @@
       },
       "ProtocolSnapshot": {
         "title": "Protocol Visualizer Protocol Snapshot",
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "schemaVersion",
-          "generatedAt",
-          "chainId",
-          "recordCounts",
-          "data"
-        ],
-        "properties": {
-          "schemaVersion": {
-            "enum": ["1.0.0", "1.1.0"]
-          },
-          "generatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "chainId": {
-            "type": "integer"
-          },
-          "recordCounts": {
+        "oneOf": [
+          {
             "type": "object",
-            "additionalProperties": false,
-            "required": ["contracts", "roles", "roleAssignments"],
+            "required": [
+              "schemaVersion",
+              "generatedAt",
+              "chainId",
+              "recordCounts",
+              "data"
+            ],
+            "additionalProperties": true,
             "properties": {
-              "contracts": {
-                "type": "integer",
-                "minimum": 0
+              "schemaVersion": {
+                "const": "1.0.0"
               },
-              "roles": {
-                "type": "integer",
-                "minimum": 0
+              "generatedAt": {
+                "type": "string",
+                "format": "date-time"
               },
-              "roleAssignments": {
-                "type": "integer",
-                "minimum": 0
+              "chainId": {
+                "type": "integer"
+              },
+              "recordCounts": {
+                "type": "object",
+                "required": ["contracts", "roles", "roleAssignments"],
+                "properties": {
+                  "contracts": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "roles": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "roleAssignments": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              },
+              "data": {
+                "type": "object",
+                "required": ["contracts", "roles", "roleAssignments"],
+                "properties": {
+                  "contracts": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "roles": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "roleAssignments": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                }
               }
             }
           },
-          "data": {
+          {
             "type": "object",
             "additionalProperties": false,
-            "required": ["contracts", "roles", "roleAssignments"],
+            "required": [
+              "schemaVersion",
+              "generatedAt",
+              "chainId",
+              "recordCounts",
+              "data"
+            ],
             "properties": {
-              "bridgeConfigurations": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ProtocolSnapshot/$defs/bridgeConfiguration"
-                }
+              "schemaVersion": {
+                "const": "1.1.0"
               },
-              "periodicTasks": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ProtocolSnapshot/$defs/heartTasks"
-                }
+              "generatedAt": {
+                "type": "string",
+                "format": "date-time"
               },
-              "additionalContracts": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ProtocolSnapshot/$defs/additionalContract"
-                }
+              "chainId": {
+                "type": "integer"
               },
-              "contractStates": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ProtocolSnapshot/$defs/contractState"
-                }
-              },
-              "relationships": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ProtocolSnapshot/$defs/relationship"
-                }
-              },
-              "observation": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/observation"
+              "recordCounts": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["contracts", "roles", "roleAssignments"],
+                "properties": {
+                  "contracts": {
+                    "type": "integer",
+                    "minimum": 0
                   },
-                  {
-                    "type": "null"
+                  "roles": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "roleAssignments": {
+                    "type": "integer",
+                    "minimum": 0
                   }
-                ]
-              },
-              "contracts": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ProtocolSnapshot/$defs/contract"
                 }
               },
-              "roles": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ProtocolSnapshot/$defs/role"
-                }
-              },
-              "roleAssignments": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ProtocolSnapshot/$defs/roleAssignment"
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["contracts", "roles", "roleAssignments"],
+                "properties": {
+                  "bridgeConfigurations": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ProtocolSnapshot/$defs/bridgeConfiguration"
+                    }
+                  },
+                  "periodicTasks": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ProtocolSnapshot/$defs/heartTasks"
+                    }
+                  },
+                  "additionalContracts": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ProtocolSnapshot/$defs/additionalContract"
+                    }
+                  },
+                  "contractStates": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ProtocolSnapshot/$defs/contractState"
+                    }
+                  },
+                  "relationships": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ProtocolSnapshot/$defs/relationship"
+                    }
+                  },
+                  "observation": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/ProtocolSnapshot/$defs/observation"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "contracts": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ProtocolSnapshot/$defs/contract"
+                    }
+                  },
+                  "roles": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ProtocolSnapshot/$defs/role"
+                    }
+                  },
+                  "roleAssignments": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ProtocolSnapshot/$defs/roleAssignment"
+                    }
+                  }
                 }
               }
             }
           }
-        },
+        ],
         "$defs": {
           "bridgeRateLimit": {
             "type": "object",

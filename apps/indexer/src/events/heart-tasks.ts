@@ -276,7 +276,7 @@ export async function handlePeriodicTaskEvent(
         event.logIndex <= state.lastChange.logIndex))
   )
     throw new Error("periodic task events must replay in canonical log order");
-  const tasks = state.tasks === null ? null : [...state.tasks];
+  let tasks = state.tasks === null ? null : [...state.tasks];
   const index = Number(event.params.index_);
   const task = {
     address: event.params.task_.toLowerCase(),
@@ -290,8 +290,8 @@ export async function handlePeriodicTaskEvent(
       (action === "PeriodicTaskRemoved" &&
         tasks[index]?.address !== task.address)
     )
-      throw new Error("periodic task event does not match indexed order");
-    if (action === "PeriodicTaskAdded") tasks.splice(index, 0, task);
+      tasks = null;
+    else if (action === "PeriodicTaskAdded") tasks.splice(index, 0, task);
     else tasks.splice(index, 1);
   }
   const lastChange = {

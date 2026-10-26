@@ -112,6 +112,42 @@ test("A partial replay stays unknown until a successful completed-block seed; an
   assert.equal(row(ctx).verification.outcome, "match");
 });
 
+test("A diverged task order recovers from conflicting events at the next successful checkpoint", async () => {
+  for (const [action, params] of [
+    ["PeriodicTaskRemoved", { task_: b, index_: 0n }],
+    ["PeriodicTaskAdded", { task_: b, index_: 3n }],
+  ]) {
+    const ctx = context();
+    await complete(ctx, 10, [task(a)]);
+    await complete(ctx, 11, [task(b)]);
+    assert.equal(row(ctx).verification.outcome, "mismatch");
+    const conflicting = event(12, 0, params);
+    await handlePeriodicTaskEvent(ctx, conflicting, action);
+    await handlePeriodicTaskEvent(ctx, conflicting, action);
+    assert.equal(row(ctx).tasks, null);
+    assert.equal(row(ctx).lastChange.number, "12");
+    assert.equal(ctx.ControlTransition.rows.size, 1);
+    await complete(ctx, 13);
+    assert.equal(row(ctx).tasks, null);
+    await complete(ctx, 14, [task(a)]);
+    assert.deepEqual(row(ctx).tasks, [task(a)]);
+    assert.equal(row(ctx).verification.outcome, "match");
+    assert.ok(
+      [...ctx.ContractStateSeed.rows.values()].some(
+        (seed) => seed.boundary.number === "14"
+      )
+    );
+    await handlePeriodicTaskEvent(
+      ctx,
+      event(15, 0, { task_: b, index_: 1n }),
+      "PeriodicTaskAdded"
+    );
+    await complete(ctx, 15, [task(a), task(b)]);
+    assert.deepEqual(row(ctx).tasks, [task(a), task(b)]);
+    assert.equal(row(ctx).verification.outcome, "match");
+  }
+});
+
 test("Periodic task tuple reads preserve custom selectors, reject malformed arrays and changing canonical hashes", async () => {
   let changed = false;
   let changeDuringRead = false;

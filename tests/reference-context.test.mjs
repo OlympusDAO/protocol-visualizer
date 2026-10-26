@@ -203,6 +203,20 @@ test("parallel reference curves and captions have distinct lanes and documentati
 });
 
 test("optional getter documentation and code evidence survive publisher, gateway and legacy-compatible decoding", async () => {
+  const permissionSignatures = [
+    ["updateMovingAverage()()", "updateMovingAverage()"],
+    ["mintOhm(address,uint256)()", "mintOhm(address,uint256)"],
+    [
+      "getPriceIn(address,address,uint8)(uint256,uint48)",
+      "getPriceIn(address,address,uint8)",
+    ],
+    [
+      "configure((address,uint256)[])((address,uint256)[])",
+      "configure((address,uint256)[])",
+    ],
+    ["mintOhm(address,uint256)", "mintOhm(address,uint256)"],
+    ["legacyName", "legacyName"],
+  ];
   const relationship = {
     ...admin("reference", current, "reference"),
     kind: "contract-reference",
@@ -231,6 +245,22 @@ test("optional getter documentation and code evidence survive publisher, gateway
       { chainId: 1, address: current, name: "Documented source" },
     ],
     loadProtocolData: () => ({
+      Contract: [
+        {
+          id: "1-policy",
+          chainId: 1,
+          address: current,
+          name: "Policy",
+          contractType: "POLICY",
+          isEnabled: true,
+          lastUpdatedTimestamp: "1",
+          lastUpdatedBlockNumber: "10",
+          policyPermissions: permissionSignatures.map(([signature]) => ({
+            keycode: "MINTR",
+            function: signature,
+          })),
+        },
+      ],
       ContractRelationship: [relationship],
       ChainObservation: [
         { chainId: 1, indexedThrough: relationship.provenance },
@@ -257,6 +287,12 @@ test("optional getter documentation and code evidence survive publisher, gateway
     assert.equal(response.status, 200);
     const payload = await response.json();
     const data = decodeProtocolSnapshot(payload);
+    assert.deepEqual(
+      data.contracts[0].policyPermissions.map(
+        (permission) => permission.function
+      ),
+      permissionSignatures.map(([, signature]) => signature)
+    );
     assert.deepEqual(
       data.relationships[0].functionContext,
       relationship.functionContext

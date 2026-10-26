@@ -144,6 +144,14 @@ export function decodeProtocolSnapshot(
       ...contract,
       address: contract.address.toLowerCase(),
       name: resolveName(contract.address, contract.name),
+      // Legacy snapshots append return types after the input signature.
+      policyPermissions:
+        (contract.policyPermissions as PolicyPermission[] | null)?.map(
+          (permission) => ({
+            ...permission,
+            function: permission.function?.replace(/\)\(.*$/, ")"),
+          })
+        ) ?? contract.policyPermissions,
     })),
     additionalContracts: data.additionalContracts.map((contract) => ({
       ...contract,

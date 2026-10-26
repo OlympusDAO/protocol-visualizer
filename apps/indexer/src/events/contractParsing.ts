@@ -250,7 +250,8 @@ export async function parsePolicyPermissions(
 
         return {
           keycode: currentResult.moduleKeycode,
-          function: functionDetails.signature,
+          function:
+            functionDetails.canonicalSignature ?? functionDetails.signature,
           ...(functionDetails.documentation
             ? { functionContext: functionDetails.documentation }
             : {}),

@@ -2,10 +2,56 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { getKernelConstants } from "../src/constants.ts";
 import { handleKernelActionExecuted } from "../src/events/kernel.ts";
+import { parsePolicyPermissions } from "../src/events/contractParsing.ts";
+import { processAbiMetadata } from "../src/services/contracts/abi.ts";
 import {
   getCoreContracts,
   seedCoreContracts,
 } from "../src/events/kernel-history.ts";
+
+test("permission labels use canonical inputs rather than appending return types", async () => {
+  const metadata = processAbiMetadata([
+    {
+      type: "function",
+      name: "mintOhm",
+      inputs: [{ type: "address" }, { type: "uint256" }],
+      outputs: [],
+      stateMutability: "nonpayable",
+    },
+  ]);
+  const contract = getCoreContracts(1).find(
+    (row) => row.name === "CCIPTokenPoolConfig"
+  );
+  const context = {
+    CurrentModule: {
+      get: async () => ({
+        address: "0x00000000000000000000000000000000000000ab",
+      }),
+    },
+    effect: async (_effect, input) =>
+      input.policyAddress
+        ? {
+            permissions: [
+              {
+                keycode: "0x4d494e5452",
+                funcSelector: Object.keys(metadata.functionSelectors)[0],
+              },
+            ],
+            usedLatestFallback: false,
+          }
+        : metadata,
+  };
+  const permissions = await parsePolicyPermissions(
+    2,
+    getKernelConstants(1).address,
+    contract.address,
+    contract.name,
+    BigInt(contract.startBlock + 1),
+    1,
+    context
+  );
+  assert.equal(permissions[0].function, "mintOhm(address,uint256)");
+});
 
 test("only completed creation coverage establishes never-installed; Kernel event history wins", async () => {
   const rows = new Map();

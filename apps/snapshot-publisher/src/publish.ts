@@ -1,3 +1,4 @@
+import { resolveEnvioProgressTimestamps } from "@protocol-visualizer/snapshot-artifacts/indexer-progress";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -13,6 +14,7 @@ import {
   type EnvioMetricsReadiness,
   parseDeploymentId,
   parseEnvioMetricsReadiness,
+  type EnvioMetricsChainConfig,
   PUBLISHER_LOCK_KEY,
   type IndexingProgress,
 } from "@protocol-visualizer/snapshot-artifacts";
@@ -625,7 +627,10 @@ const indexingProgressFields = (
     },
     {
       name: "Time",
-      value: `<t:${chain.timestamp}:F>`,
+      value:
+        chain.timestamp === null
+          ? "Timestamp unavailable"
+          : `<t:${chain.timestamp}:F>`,
       inline: true,
     },
   ]);
@@ -772,7 +777,7 @@ const writeLocalFile = async (outputDir: string, file: SnapshotFile) => {
 
 const fetchIndexerReadiness = async (
   url: string,
-  chains: Array<{ key: string; chainId: number }>
+  chains: EnvioMetricsChainConfig[]
 ) => {
   let response: Response;
   try {
@@ -797,7 +802,10 @@ const fetchIndexerReadiness = async (
       )} failed with HTTP ${response.status}`
     );
   }
-  return parseEnvioMetricsReadiness(await response.text(), chains);
+  return resolveEnvioProgressTimestamps(
+    parseEnvioMetricsReadiness(await response.text(), chains),
+    chains
+  );
 };
 
 export async function runPublisher(deps: PublisherDependencies = {}) {

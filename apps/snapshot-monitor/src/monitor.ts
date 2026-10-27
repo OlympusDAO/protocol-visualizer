@@ -1,3 +1,4 @@
+import { resolveEnvioProgressTimestamps } from "@protocol-visualizer/snapshot-artifacts/indexer-progress";
 import {
   GetObjectCommand,
   PutObjectCommand,
@@ -21,7 +22,7 @@ type MonitorState = {
     string,
     {
       block: number;
-      timestamp: number;
+      timestamp: number | null;
       observedAt: string;
     }
   >;
@@ -234,9 +235,12 @@ export async function fetchIndexerMetricsReadiness(input: {
       )} failed with HTTP ${response.status}`
     );
   }
-  return parseEnvioMetricsReadiness(
-    await response.text(),
-    input.chains.filter((chain) => chain.availability !== "historical")
+  const chains = input.chains.filter(
+    (chain) => chain.availability !== "historical"
+  );
+  return resolveEnvioProgressTimestamps(
+    parseEnvioMetricsReadiness(await response.text(), chains),
+    chains
   );
 }
 
@@ -284,7 +288,10 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
   if (input.state.lastDailySummaryAt !== today) {
     const chainEntries = Object.entries(progress?.chains ?? {});
     const chainLines = chainEntries
-      .map(([name, chain]) => `${name}: ${chain.date} / block ${chain.block}`)
+      .map(
+        ([name, chain]) =>
+          `${name}: ${chain.date ?? "Timestamp unavailable"} / block ${chain.block}`
+      )
       .join("; ");
     const message = `Protocol visualizer indexing summary for ${environmentName} / ${shortId(
       input.deploymentId
@@ -317,7 +324,10 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
                     },
                     {
                       name: "Time",
-                      value: `<t:${chain.timestamp}:F>`,
+                      value:
+                        chain.timestamp === null
+                          ? "Timestamp unavailable"
+                          : `<t:${chain.timestamp}:F>`,
                       inline: true,
                     },
                   ]),

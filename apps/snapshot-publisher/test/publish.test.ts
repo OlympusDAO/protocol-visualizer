@@ -364,7 +364,7 @@ test("publisher logs continuing indexing for a previously observed deployment", 
   assert(decision.reasons.includes("chains_not_ready"));
 });
 
-test("publisher sends handover-in-progress Discord embed for an unready new deployment", async () => {
+test("publisher reports the RPC block date during backfill in its result and Discord embed", async () => {
   const originalEnv = { ...process.env };
   const originalFetch = globalThis.fetch;
   const consoleCapture = captureConsole();
@@ -392,10 +392,18 @@ test("publisher sends handover-in-progress Discord embed for an unready new depl
           hyperindex_synced_to_head 0
           envio_progress_ready{chainId="1"} 0
           envio_progress_block{chainId="1"} 25272069
-          envio_progress_block_time_seconds{chainId="1"} 1780491216
         `,
         { status: 200 }
       );
+    }
+    if (String(url) === "https://ethereum-rpc.publicnode.com") {
+      assert.deepEqual(JSON.parse(String(init?.body)).params, [
+        "0x1819f05",
+        false,
+      ]);
+      return Response.json({
+        result: { number: "0x1819f05", timestamp: "0x6a2023d0" },
+      });
     }
     assert.equal(String(url), "https://discord.example/webhook");
     discordBodies.push(JSON.parse(String(init?.body)));
@@ -413,6 +421,9 @@ test("publisher sends handover-in-progress Discord embed for an unready new depl
   }
 
   assert.equal(discordBodies.length, 1);
+  const result = publisherResultFrom(consoleCapture.logs);
+  assert.equal(result.published, false);
+  assert.equal(result.indexingProgress.chains.Mainnet.date, "2026-06-03");
   const body = discordBodies[0] as {
     content: string;
     embeds: Array<{
@@ -421,6 +432,11 @@ test("publisher sends handover-in-progress Discord embed for an unready new depl
     }>;
   };
   assert.equal(body.content, "Protocol visualizer new deployment indexing");
+  assert.ok(
+    body.embeds[0]?.fields.some(
+      (field) => field.name === "Time" && field.value === "<t:1780491216:F>"
+    )
+  );
   assert.equal(
     body.embeds[0]?.title,
     "Protocol Visualizer New Deployment Indexing"

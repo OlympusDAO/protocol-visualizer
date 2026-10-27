@@ -118,6 +118,7 @@ test("includes inactive and inventory-only contracts without changing active cor
     false,
     "inventory and publication time cannot invent indexing progress"
   );
+  assert.equal(batch.indexingProgress.chains.Mainnet?.date, null);
   const observed = await createSnapshotBatch({
     chains: [mainnet],
     loadProtocolData: () => ({}),
@@ -133,8 +134,8 @@ test("includes inactive and inventory-only contracts without changing active cor
         Mainnet: {
           chainId: 1,
           block: 123,
-          timestamp: 1700000000,
-          date: "2023-11-14",
+          timestamp: null,
+          date: null,
         },
       },
     },
@@ -142,7 +143,7 @@ test("includes inactive and inventory-only contracts without changing active cor
   assert.equal(
     observed.ready,
     true,
-    "real chain progress permits external-only publication"
+    "real chain progress permits external-only publication without an optional timestamp"
   );
 });
 

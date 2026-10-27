@@ -181,8 +181,8 @@ export type RecordCounts = {
 
 export type ChainIndexingProgress = {
   chainId: number;
-  date: string;
-  timestamp: number;
+  date: string | null;
+  timestamp: number | null;
   block: number;
 };
 
@@ -455,16 +455,8 @@ export function parseEnvioMetricsReadiness(
     const block = blockByChainId.get(chain.chainId);
     const timestamp = timestampByChainId.get(chain.chainId);
     const chainReady =
-      readyMetric === 1 &&
-      typeof block === "number" &&
-      block > 0 &&
-      typeof timestamp === "number" &&
-      timestamp > 0;
-    if (
-      readyMetric === undefined ||
-      block === undefined ||
-      timestamp === undefined
-    ) {
+      readyMetric === 1 && typeof block === "number" && block > 0;
+    if (readyMetric === undefined || block === undefined) {
       missingChainIds.push(chain.chainId);
     }
     if (!chainReady) {
@@ -473,13 +465,19 @@ export function parseEnvioMetricsReadiness(
       readyChainIds.push(chain.chainId);
     }
 
-    const chainTimestamp = Math.trunc(timestamp ?? 0);
+    const chainTimestamp =
+      timestamp !== undefined && timestamp >= 1 && timestamp <= 8.64e12
+        ? Math.trunc(timestamp)
+        : null;
 
     progressEntries.push([
       chain.key,
       {
         chainId: chain.chainId,
-        date: new Date(chainTimestamp * 1000).toISOString().slice(0, 10),
+        date:
+          chainTimestamp === null
+            ? null
+            : new Date(chainTimestamp * 1000).toISOString().slice(0, 10),
         timestamp: chainTimestamp,
         block: Math.trunc(block ?? 0),
       },
@@ -934,8 +932,8 @@ export const indexingProgressSchema = {
         required: ["chainId", "date", "timestamp", "block"],
         properties: {
           chainId: { type: "integer" },
-          date: { type: "string" },
-          timestamp: { type: "integer" },
+          date: { type: ["string", "null"] },
+          timestamp: { type: ["integer", "null"] },
           block: { type: "integer" },
         },
       },

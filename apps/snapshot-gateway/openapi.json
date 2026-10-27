@@ -216,10 +216,10 @@
                           "type": "integer"
                         },
                         "date": {
-                          "type": "string"
+                          "type": ["string", "null"]
                         },
                         "timestamp": {
-                          "type": "integer"
+                          "type": ["integer", "null"]
                         },
                         "block": {
                           "type": "integer"
@@ -305,10 +305,10 @@
                       "type": "integer"
                     },
                     "date": {
-                      "type": "string"
+                      "type": ["string", "null"]
                     },
                     "timestamp": {
-                      "type": "integer"
+                      "type": ["integer", "null"]
                     },
                     "block": {
                       "type": "integer"

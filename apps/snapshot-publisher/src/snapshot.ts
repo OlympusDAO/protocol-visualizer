@@ -527,10 +527,13 @@ const progressFromSnapshot = (
   snapshot: ProtocolSnapshot
 ): ChainIndexingProgress => {
   const observation = snapshot.data.observation?.indexedThrough;
-  const timestamp = Number(observation?.timestamp ?? 0);
+  const timestamp = observation ? Number(observation.timestamp) : null;
   return {
     chainId: chain.chainId,
-    date: new Date(timestamp * 1000).toISOString().slice(0, 10),
+    date:
+      timestamp === null
+        ? null
+        : new Date(timestamp * 1000).toISOString().slice(0, 10),
     timestamp,
     block: Number(observation?.number ?? 0),
   };
@@ -626,9 +629,7 @@ export async function createSnapshotBatch({
         snapshot.recordCounts.roles +
         snapshot.recordCounts.roleAssignments +
         (snapshot.data.additionalContracts?.length ?? 0) >
-        0 &&
-      progress.block > 0 &&
-      progress.timestamp > 0
+        0 && progress.block > 0
   );
 
   const manifest = createManifest({

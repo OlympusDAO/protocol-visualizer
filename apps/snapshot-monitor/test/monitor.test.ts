@@ -184,17 +184,22 @@ test("does not alert when a new deployment is indexing before handover", () => {
   assert.match(result.messages.join("\n"), /is not synced to head/);
 });
 
-test("fetches current indexing readiness from Envio metrics", async () => {
+test("monitor resolves a missing optional metric to the exact RPC block timestamp", async () => {
   let requestedUrl = "";
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = (async (url) => {
+  globalThis.fetch = (async (url, init) => {
+    if (String(url) === "https://ethereum-rpc.publicnode.com") {
+      assert.deepEqual(JSON.parse(String(init?.body)).params, ["0x7b", false]);
+      return Response.json({
+        result: { number: "0x7b", timestamp: "0x6a2023d0" },
+      });
+    }
     requestedUrl = String(url);
     return new Response(
       `
         hyperindex_synced_to_head 1
         envio_progress_ready{chainId="1"} 1
         envio_progress_block{chainId="1"} 123
-        envio_progress_block_time_seconds{chainId="1"} 1780876800
       `,
       { status: 200, headers: { "content-type": "text/plain" } }
     );
@@ -204,7 +209,11 @@ test("fetches current indexing readiness from Envio metrics", async () => {
     const readiness = await fetchIndexerMetricsReadiness({
       metricsUrl: "http://indexer.internal/metrics",
       chains: [
-        { key: "Mainnet", chainId: 1, name: "Mainnet" },
+        {
+          key: "Mainnet",
+          chainId: 1,
+          name: "Mainnet",
+        },
         {
           key: "Goerli",
           chainId: 5,
@@ -216,10 +225,36 @@ test("fetches current indexing readiness from Envio metrics", async () => {
     assert.equal(readiness.ready, true);
     assert.deepEqual(readiness.readyChainIds, [1]);
     assert.equal(readiness.indexingProgress.chains.Mainnet?.block, 123);
+    assert.equal(readiness.indexingProgress.chains.Mainnet?.date, "2026-06-03");
     assert.equal(requestedUrl, "http://indexer.internal/metrics");
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("monitor displays unavailable timestamps without epoch dates or Discord epoch markup", () => {
+  const result = evaluateMonitor({
+    deploymentId: "deployment-a",
+    manifest: manifest("2026-06-05T00:00:00.000Z"),
+    progress: {
+      chains: {
+        Mainnet: { chainId: 1, block: 123, timestamp: null, date: null },
+      },
+    },
+    state: {},
+    now: new Date("2026-06-05T01:00:00.000Z"),
+  });
+  assert.match(
+    result.messages.join("\n"),
+    /Mainnet: Timestamp unavailable \/ block 123/
+  );
+  assert.ok(
+    result.discordMessages[0]?.embeds?.[0]?.fields?.some(
+      (field) =>
+        field.name === "Time" && field.value === "Timestamp unavailable"
+    )
+  );
+  assert.doesNotMatch(JSON.stringify(result), /1970-01-01|<t:0:F>/);
 });
 
 test("reports indexer metrics network failures with safe context", async () => {

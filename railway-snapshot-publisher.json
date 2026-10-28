@@ -16,6 +16,7 @@
     ]
   },
   "deploy": {
+    "preDeployCommand": ["node dist/src/publish.js --check-config"],
     "cronSchedule": "0 * * * *",
     "restartPolicyType": "NEVER"
   }

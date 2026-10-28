@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { test } from "node:test";
+import { spawnSync } from "node:child_process";
+import { resolve } from "node:path";
 
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 
@@ -97,6 +99,53 @@ test("Railway configs use root-anchored watch patterns and expected restart poli
     readJson("railway-snapshot-monitor.json").deploy.cronSchedule,
     "5 0 * * *"
   );
+});
+
+test("snapshot pre-deploy commands fail on missing RPC settings and validate without running jobs", () => {
+  const chains = readJson(
+    "packages/protocol-config/protocol-chains.json"
+  ).filter((chain) => chain.availability !== "historical");
+  const environment = Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => !name.startsWith("RPC_URL_"))
+  );
+  environment.PROTOCOL_CHAINS_CONFIG_PATH = resolve(
+    "packages/protocol-config/protocol-chains.json"
+  );
+  environment.SNAPSHOT_CHAIN_IDS = "1";
+  const configured = Object.fromEntries(
+    chains.map(({ chainId }) => [
+      `RPC_URL_${chainId}`,
+      "https://rpc.example/configured",
+    ])
+  );
+  for (const [service, entry] of [
+    ["snapshot-publisher", "publish.js"],
+    ["snapshot-monitor", "index.js"],
+  ]) {
+    const command = readJson(`railway-${service}.json`).deploy.preDeployCommand;
+    assert.deepEqual(command, [`node dist/src/${entry} --check-config`]);
+    const run = (variables) =>
+      spawnSync(process.execPath, [`dist/src/${entry}`, "--check-config"], {
+        cwd: resolve(`apps/${service}`),
+        env: { ...environment, ...variables },
+        encoding: "utf8",
+        timeout: 5000,
+      });
+    const missing = run({
+      RPC_URL_1: "  ",
+    });
+    assert.equal(missing.status, 1);
+    assert.match(missing.stderr, /Missing required RPC variables: RPC_URL_1/);
+    const valid = run(configured);
+    assert.equal(valid.status, 0, valid.stderr);
+    assert.equal(valid.stdout, "");
+    const subset = run({ RPC_URL_1: configured.RPC_URL_1 });
+    assert.equal(
+      subset.status,
+      service === "snapshot-publisher" ? 0 : 1,
+      subset.stderr
+    );
+  }
 });
 
 test("CI scans every Dockerfile and local image", () => {

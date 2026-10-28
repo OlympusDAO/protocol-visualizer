@@ -1,4 +1,7 @@
-import { resolveEnvioProgressTimestamps } from "@protocol-visualizer/snapshot-artifacts/indexer-progress";
+import {
+  assertRpcConfiguration,
+  resolveEnvioProgressTimestamps,
+} from "@protocol-visualizer/snapshot-artifacts/indexer-progress";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -807,16 +810,20 @@ const fetchIndexerReadiness = async (
   );
 };
 
-export async function runPublisher(deps: PublisherDependencies = {}) {
-  const publicBasePath =
-    process.env.SNAPSHOT_PUBLIC_BASE_PATH || DEFAULT_PUBLIC_BASE_PATH;
-  const publicOrigin = process.env.SNAPSHOT_PUBLIC_ORIGIN;
+const loadPublisherChains = async () => {
   const supportedChains = await loadSupportedChains();
   const chainIds = parseChainIds(
     process.env.SNAPSHOT_CHAIN_IDS,
     supportedChains
   );
-  const chains = selectChains(chainIds, supportedChains);
+  return selectChains(chainIds, supportedChains);
+};
+
+export async function runPublisher(deps: PublisherDependencies = {}) {
+  const publicBasePath =
+    process.env.SNAPSHOT_PUBLIC_BASE_PATH || DEFAULT_PUBLIC_BASE_PATH;
+  const publicOrigin = process.env.SNAPSHOT_PUBLIC_ORIGIN;
+  const chains = await loadPublisherChains();
   const outputDir = process.env.SNAPSHOT_OUTPUT_DIR;
   const source = (process.env.SNAPSHOT_SOURCE ||
     (outputDir ? "sample" : "hasura")) as SnapshotSource;
@@ -829,6 +836,7 @@ export async function runPublisher(deps: PublisherDependencies = {}) {
   const deploymentId = resolveDeploymentId(source, outputDir);
   const environmentName =
     source === "hasura" ? getRailwayEnvironmentName() : undefined;
+  if (source === "hasura") assertRpcConfiguration(chains);
   const indexerReadiness =
     source === "hasura"
       ? await fetchIndexerReadiness(
@@ -1072,7 +1080,10 @@ export async function runPublisher(deps: PublisherDependencies = {}) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  runPublisher().catch((error) => {
+  const run = process.argv.includes("--check-config")
+    ? loadPublisherChains().then((chains) => assertRpcConfiguration(chains))
+    : runPublisher();
+  run.catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   });

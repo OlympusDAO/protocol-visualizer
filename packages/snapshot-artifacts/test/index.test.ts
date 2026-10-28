@@ -1,4 +1,7 @@
-import { resolveEnvioProgressTimestamps } from "../src/indexer-progress.js";
+import {
+  assertRpcConfiguration,
+  resolveEnvioProgressTimestamps,
+} from "../src/indexer-progress.js";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Ajv2020 } from "ajv/dist/2020.js";
@@ -306,6 +309,24 @@ test("blocks readiness when Envio metrics are missing or not ready", () => {
   assert.deepEqual(readiness.readyChainIds, [1]);
 });
 
+test("RPC configuration requires a primary URL for each selected chain without exposing values", () => {
+  const chains = [{ chainId: 1 }, { chainId: 10 }];
+  assert.throws(
+    () =>
+      assertRpcConfiguration(chains, {
+        RPC_URL_1: "  ",
+        ENVIO_RPC_URL_10: "https://rpc.example/old-name-placeholder",
+      }),
+    { message: "Missing required RPC variables: RPC_URL_1, RPC_URL_10" }
+  );
+  assert.doesNotThrow(() =>
+    assertRpcConfiguration(chains, {
+      RPC_URL_1: "https://rpc.example/mainnet",
+      RPC_URL_10: "https://rpc.example/optimism",
+    })
+  );
+});
+
 test("backfill reports the exact progress block time without making the chain ready", async (t) => {
   const chains = [{ key: "Test", chainId: 999 }];
   t.mock.method(
@@ -329,7 +350,7 @@ envio_progress_ready{chainId="999"} 0
 envio_progress_block{chainId="999"} 123`,
       chains
     ),
-    { ENVIO_RPC_URL_999: "https://rpc.example" }
+    { RPC_URL_999: "https://rpc.example" }
   );
   assert.equal(readiness.ready, false);
   assert.deepEqual(readiness.notReadyChainIds, [999]);
@@ -359,7 +380,7 @@ envio_progress_ready{chainId="999"} 1
 envio_progress_block{chainId="999"} 123`,
         chains
       ),
-      { ENVIO_RPC_URL_999: "https://rpc.example" }
+      { RPC_URL_999: "https://rpc.example" }
     );
     assert.equal(readiness.ready, true);
     assert.deepEqual(readiness.indexingProgress.chains.Test, {
@@ -385,7 +406,7 @@ envio_progress_block{chainId="999"} 123
 envio_progress_block_time_seconds{chainId="999"} 1780491216`,
       chains
     ),
-    { ENVIO_RPC_URL_999: "https://rpc.example" }
+    { RPC_URL_999: "https://rpc.example" }
   );
   assert.equal(readiness.indexingProgress.chains.Test?.timestamp, 1780491216);
   assert.equal(readiness.ready, true);
@@ -415,9 +436,8 @@ envio_progress_block{chainId="1"} 123`,
   assert.equal(readiness.indexingProgress.chains.Mainnet?.date, null);
 });
 
-test("private RPC settings stay inside the server lookup and failed requests fall back safely", async (t) => {
+test("failed RPC requests keep private settings out of results and logs", async (t) => {
   const privateUrl = "https://rpc.example/private-credential-placeholder";
-  const fallbackUrl = "https://rpc.example/fallback";
   const requested: string[] = [];
   const errors = t.mock.method(console, "error", () => {});
   t.mock.method(
@@ -425,10 +445,7 @@ test("private RPC settings stay inside the server lookup and failed requests fal
     "fetch",
     async (url: Parameters<typeof fetch>[0]) => {
       requested.push(String(url));
-      if (url === privateUrl) throw new Error(`Request failed: ${privateUrl}`);
-      return Response.json({
-        result: { number: "0x7b", timestamp: "0x6a207221" },
-      });
+      throw new Error(`Request failed: ${privateUrl}`);
     }
   );
 
@@ -440,10 +457,10 @@ envio_progress_ready{chainId="999"} 0
 envio_progress_block{chainId="999"} 123`,
       chains
     ),
-    { ENVIO_RPC_URL_999: privateUrl, ENVIO_RPC_URL_FALLBACK_999: fallbackUrl }
+    { RPC_URL_999: privateUrl }
   );
-  assert.deepEqual(requested, [privateUrl, fallbackUrl]);
-  assert.equal(readiness.indexingProgress.chains.Test?.date, "2026-06-03");
+  assert.deepEqual(requested, [privateUrl]);
+  assert.equal(readiness.indexingProgress.chains.Test?.date, null);
   assert.doesNotMatch(
     JSON.stringify(readiness),
     /rpc\.example|credential-placeholder/

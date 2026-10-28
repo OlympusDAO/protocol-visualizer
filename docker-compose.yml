@@ -13,6 +13,17 @@ x-snapshot-s3-env: &snapshot-s3-env
   REGION: ${REGION:-us-east-1}
   ENDPOINT: http://minio:9000
 
+x-snapshot-rpc-env: &snapshot-rpc-env
+  RPC_URL_1: ${RPC_URL_1:-${ENVIO_RPC_URL_1}}
+  RPC_URL_10: ${RPC_URL_10:-${ENVIO_RPC_URL_10}}
+  RPC_URL_42161: ${RPC_URL_42161:-${ENVIO_RPC_URL_42161}}
+  RPC_URL_421614: ${RPC_URL_421614:-${ENVIO_RPC_URL_421614}}
+  RPC_URL_84532: ${RPC_URL_84532:-${ENVIO_RPC_URL_84532}}
+  RPC_URL_4663: ${RPC_URL_4663:-${ENVIO_RPC_URL_4663}}
+  RPC_URL_8453: ${RPC_URL_8453:-${ENVIO_RPC_URL_8453}}
+  RPC_URL_80094: ${RPC_URL_80094:-${ENVIO_RPC_URL_80094}}
+  RPC_URL_11155111: ${RPC_URL_11155111:-${ENVIO_RPC_URL_11155111}}
+
 services:
   postgres:
     image: postgres:17-alpine@sha256:979c4379dd698aba0b890599a6104e082035f98ef31d9b9291ec22f2b13059ca
@@ -128,7 +139,7 @@ services:
     profiles:
       - jobs
     environment:
-      <<: *snapshot-s3-env
+      <<: [*snapshot-s3-env, *snapshot-rpc-env]
       RAILWAY_ENVIRONMENT_NAME: ${RAILWAY_ENVIRONMENT_NAME:?Set RAILWAY_ENVIRONMENT_NAME in .env to run snapshot jobs}
       INDEXER_METRICS_URL: http://indexer:9898/metrics
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
@@ -160,7 +171,7 @@ services:
     profiles:
       - jobs
     environment:
-      <<: *snapshot-s3-env
+      <<: [*snapshot-s3-env, *snapshot-rpc-env]
       HASURA_GRAPHQL_URL: http://hasura:8080/v1/graphql
       HASURA_GRAPHQL_ADMIN_SECRET: *hasura-admin-secret
       RAILWAY_ENVIRONMENT_NAME: ${RAILWAY_ENVIRONMENT_NAME:?Set RAILWAY_ENVIRONMENT_NAME in .env to run snapshot jobs}

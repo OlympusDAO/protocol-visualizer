@@ -189,7 +189,7 @@ test("monitor resolves a missing optional metric to the exact RPC block timestam
   const originalEnv = { ...process.env };
   process.env = {
     ...originalEnv,
-    ENVIO_RPC_URL_1: "https://rpc.example/envio",
+    RPC_URL_1: "https://rpc.example/envio",
   };
   const originalFetch = globalThis.fetch;
   globalThis.fetch = (async (url, init) => {
@@ -353,6 +353,16 @@ test("logs a sanitized stage when indexer metrics cannot be fetched", async () =
     throw new Error("fetch failed");
   }) as typeof fetch;
   Object.assign(process.env, {
+    RPC_URL_1: "https://rpc.example/1",
+    RPC_URL_10: "https://rpc.example/10",
+    RPC_URL_42161: "https://rpc.example/42161",
+    RPC_URL_8453: "https://rpc.example/8453",
+    RPC_URL_80094: "https://rpc.example/80094",
+    RPC_URL_4663: "https://rpc.example/4663",
+    RPC_URL_11155111: "https://rpc.example/11155111",
+    RPC_URL_421614: "https://rpc.example/421614",
+    RPC_URL_84532: "https://rpc.example/84532",
+
     RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-63",
     INDEXER_METRICS_URL:
       "http://user:password@indexer.railway.internal:9898/metrics?secret=value",

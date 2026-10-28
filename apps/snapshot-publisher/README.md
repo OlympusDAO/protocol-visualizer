@@ -91,13 +91,19 @@ the publisher fails before metrics reads or bucket writes if it is missing.
 The `indexingProgress.block` value is the latest Envio progress block for that
 chain. Its `date` and `timestamp` come from `envio_progress_block_time_seconds`
 when available. During backfill, the publisher and monitor look up that exact
-block through RPC. They try `ENVIO_RPC_URL_<chainId>`,
-then `ENVIO_RPC_URL_FALLBACK_<chainId>` if configured. Provide the same Envio
-RPC variables to the publisher and monitor server environments. No built-in
+block through the configured `RPC_URL_<chainId>`. Set that variable
+for every chain selected by `SNAPSHOT_CHAIN_IDS` (all indexed chains by default).
+The monitor requires it for every indexed chain. No built-in
 RPC endpoints are used.
 RPC configuration stays in the server-only timestamp resolver; it is not part
 of the public chain catalog or the frontend bundle. Keep API keys in server
 environment variables.
+Railway runs `node dist/src/publish.js --check-config` before deployment.
+Missing or blank required RPC variables fail that check and stop deployment.
+Live publisher runs also check before metrics reads or storage access.
+Sample snapshot generation does not require RPC variables. Docker image builds do not require or embed RPC credentials.
+Local Compose explicitly supplies these variables to both snapshot jobs, using
+the local indexer's RPC settings unless a `RPC_URL_<chainId>` override is set.
 Each RPC request has a five-second timeout. If no block timestamp is available,
 both values are `null` and Discord shows `Timestamp unavailable`. Timestamp
 availability does not affect readiness. Scrape time and protocol record dates

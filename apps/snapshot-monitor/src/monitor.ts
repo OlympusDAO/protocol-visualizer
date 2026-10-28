@@ -1,4 +1,7 @@
-import { resolveEnvioProgressTimestamps } from "@protocol-visualizer/snapshot-artifacts/indexer-progress";
+import {
+  assertRpcConfiguration,
+  resolveEnvioProgressTimestamps,
+} from "@protocol-visualizer/snapshot-artifacts/indexer-progress";
 import {
   GetObjectCommand,
   PutObjectCommand,
@@ -207,6 +210,14 @@ async function loadChains(
     "config/protocol-chains.json"
 ): Promise<ChainConfig[]> {
   return JSON.parse(await readFile(configPath, "utf8")) as ChainConfig[];
+}
+
+export async function loadConfiguredChains(): Promise<ChainConfig[]> {
+  const chains = (await loadChains()).filter(
+    (chain) => chain.availability !== "historical"
+  );
+  assertRpcConfiguration(chains);
+  return chains;
 }
 
 export async function fetchIndexerMetricsReadiness(input: {
@@ -461,7 +472,7 @@ export async function runMonitorFromEnv(logger: MonitorLogger = defaultLogger) {
     });
 
     stage = "load_chain_configuration";
-    const chains = await loadChains();
+    const chains = await loadConfiguredChains();
 
     stage = "fetch_indexer_metrics";
     const readiness = await fetchIndexerMetricsReadiness({

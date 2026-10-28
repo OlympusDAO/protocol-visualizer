@@ -234,6 +234,30 @@ test("destroys the S3 client when upload verification fails", async () => {
   assert.equal(destroyed, true);
 });
 
+test("publisher rejects missing RPC variables before metrics or storage access", async (t) => {
+  const originalEnv = { ...process.env };
+  process.env = {
+    ...originalEnv,
+    SNAPSHOT_SOURCE: "hasura",
+    SNAPSHOT_CHAIN_IDS: "1",
+    INDEXER_DEPLOYMENT_ID: "deployment-a",
+    RAILWAY_ENVIRONMENT_NAME: "preview",
+  };
+  delete process.env.RPC_URL_1;
+  const fetchMock = t.mock.method(globalThis, "fetch", async () => {
+    throw new Error("unexpected network request");
+  });
+  try {
+    await assert.rejects(
+      () => runPublisher(),
+      /Missing required RPC variables: RPC_URL_1/
+    );
+    assert.equal(fetchMock.mock.calls.length, 0);
+  } finally {
+    process.env = originalEnv;
+  }
+});
+
 test("publisher skips before Hasura reads when indexer metrics are not ready", async () => {
   const originalEnv = { ...process.env };
   const originalFetch = globalThis.fetch;
@@ -245,6 +269,8 @@ test("publisher skips before Hasura reads when indexer metrics are not ready", a
   process.env = {
     ...originalEnv,
     SNAPSHOT_SOURCE: "hasura",
+    RPC_URL_10: "https://rpc.example/optimism",
+    RPC_URL_1: "https://rpc.example/mainnet",
     SNAPSHOT_CHAIN_IDS: "1,10",
     INDEXER_DEPLOYMENT_ID: "deployment-a",
     RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
@@ -323,6 +349,7 @@ test("publisher logs continuing indexing for a previously observed deployment", 
   process.env = {
     ...originalEnv,
     SNAPSHOT_SOURCE: "hasura",
+    RPC_URL_1: "https://rpc.example/mainnet",
     SNAPSHOT_CHAIN_IDS: "1",
     INDEXER_DEPLOYMENT_ID: "deployment-a",
     RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
@@ -380,7 +407,7 @@ test("publisher reports the RPC block date during backfill in its result and Dis
     INDEXER_DEPLOYMENT_ID: "deployment-a",
     RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
     INDEXER_METRICS_URL: "http://indexer:9898/metrics",
-    ENVIO_RPC_URL_1: "https://rpc.example/envio",
+    RPC_URL_1: "https://rpc.example/envio",
     DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
     BUCKET: "bucket",
   };
@@ -468,6 +495,7 @@ test("publisher reports indexer metrics network failures with safe context", asy
   process.env = {
     ...originalEnv,
     SNAPSHOT_SOURCE: "hasura",
+    RPC_URL_1: "https://rpc.example/mainnet",
     SNAPSHOT_CHAIN_IDS: "1",
     INDEXER_DEPLOYMENT_ID: "deployment-a",
     RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
@@ -507,6 +535,7 @@ test("publisher requires Railway environment name for live Hasura runs", async (
   process.env = {
     ...originalEnv,
     SNAPSHOT_SOURCE: "hasura",
+    RPC_URL_1: "https://rpc.example/mainnet",
     SNAPSHOT_CHAIN_IDS: "1",
     INDEXER_DEPLOYMENT_ID: "deployment-a",
     INDEXER_METRICS_URL: "http://indexer:9898/metrics",

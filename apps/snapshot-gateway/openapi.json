@@ -152,6 +152,125 @@
         }
       }
     },
+    "/v1/abis": {
+      "get": {
+        "summary": "Contracts with a known ABI, by chain: label and address",
+        "responses": {
+          "200": {
+            "description": "JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbiIndex"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/abis/{chainId}/{address}": {
+      "get": {
+        "summary": "ABI of a deployed contract, found by address",
+        "parameters": [
+          {
+            "name": "chainId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "address",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[0-9a-fA-F]{40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbiDeploymentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/abis/{chainId}/labels/{label}": {
+      "get": {
+        "summary": "ABI of a deployed contract, found by label",
+        "parameters": [
+          {
+            "name": "chainId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "label",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_]+$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbiDeploymentResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/openapi.json": {
       "get": {
         "summary": "OpenAPI document",
@@ -174,7 +293,9 @@
     "schemas": {
       "Ready": {
         "type": "object",
-        "required": ["ok"],
+        "required": [
+          "ok"
+        ],
         "properties": {
           "ok": {
             "type": "boolean"
@@ -183,7 +304,9 @@
       },
       "Error": {
         "type": "object",
-        "required": ["error"],
+        "required": [
+          "error"
+        ],
         "properties": {
           "error": {
             "type": "string"
@@ -192,11 +315,15 @@
       },
       "Bounds": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "type": "object",
-            "required": ["generatedAt"],
+            "required": [
+              "generatedAt"
+            ],
             "properties": {
               "generatedAt": {
                 "type": "string",
@@ -204,13 +331,20 @@
               },
               "indexingProgress": {
                 "type": "object",
-                "required": ["chains"],
+                "required": [
+                  "chains"
+                ],
                 "properties": {
                   "chains": {
                     "type": "object",
                     "additionalProperties": {
                       "type": "object",
-                      "required": ["chainId", "date", "timestamp", "block"],
+                      "required": [
+                        "chainId",
+                        "date",
+                        "timestamp",
+                        "block"
+                      ],
                       "properties": {
                         "chainId": {
                           "type": "integer"
@@ -235,7 +369,12 @@
       },
       "Manifest": {
         "type": "object",
-        "required": ["schemaVersion", "generatedAt", "schemas", "chains"],
+        "required": [
+          "schemaVersion",
+          "generatedAt",
+          "schemas",
+          "chains"
+        ],
         "additionalProperties": false,
         "properties": {
           "schemaVersion": {
@@ -247,7 +386,11 @@
           },
           "schemas": {
             "type": "object",
-            "required": ["openapi", "manifest", "protocolSnapshot"],
+            "required": [
+              "openapi",
+              "manifest",
+              "protocolSnapshot"
+            ],
             "properties": {
               "openapi": {
                 "type": "string"
@@ -293,13 +436,20 @@
           },
           "indexingProgress": {
             "type": "object",
-            "required": ["chains"],
+            "required": [
+              "chains"
+            ],
             "properties": {
               "chains": {
                 "type": "object",
                 "additionalProperties": {
                   "type": "object",
-                  "required": ["chainId", "date", "timestamp", "block"],
+                  "required": [
+                    "chainId",
+                    "date",
+                    "timestamp",
+                    "block"
+                  ],
                   "properties": {
                     "chainId": {
                       "type": "integer"
@@ -322,13 +472,19 @@
       },
       "Chains": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["chainId", "name", "path"],
+              "required": [
+                "chainId",
+                "name",
+                "path"
+              ],
               "properties": {
                 "chainId": {
                   "type": "integer"
@@ -374,7 +530,11 @@
           },
           "recordCounts": {
             "type": "object",
-            "required": ["contracts", "roles", "roleAssignments"],
+            "required": [
+              "contracts",
+              "roles",
+              "roleAssignments"
+            ],
             "properties": {
               "contracts": {
                 "type": "integer",
@@ -392,7 +552,11 @@
           },
           "data": {
             "type": "object",
-            "required": ["contracts", "roles", "roleAssignments"],
+            "required": [
+              "contracts",
+              "roles",
+              "roleAssignments"
+            ],
             "properties": {
               "contracts": {
                 "type": "array",
@@ -407,6 +571,155 @@
                 }
               },
               "roleAssignments": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "AbiDeployment": {
+        "type": "object",
+        "required": [
+          "abiHash",
+          "abiSource",
+          "address",
+          "chain",
+          "chainId",
+          "label",
+          "origin"
+        ],
+        "properties": {
+          "abiHash": {
+            "type": "string"
+          },
+          "abiSource": {
+            "type": "string",
+            "enum": [
+              "etherscan",
+              "override"
+            ]
+          },
+          "address": {
+            "type": "string"
+          },
+          "chain": {
+            "type": "string"
+          },
+          "chainId": {
+            "type": "integer"
+          },
+          "contractName": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "object",
+            "properties": {
+              "env": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "kernel": {
+                "type": "string"
+              }
+            }
+          },
+          "proxy": {
+            "type": "object",
+            "required": [
+              "implementation",
+              "implementationSource"
+            ],
+            "properties": {
+              "contractName": {
+                "type": "string"
+              },
+              "implementation": {
+                "type": "string"
+              },
+              "implementationSource": {
+                "type": "string",
+                "enum": [
+                  "eip1967",
+                  "etherscan"
+                ]
+              }
+            }
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "AbiIndex": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "chainId",
+                "chain",
+                "contracts"
+              ],
+              "properties": {
+                "chainId": {
+                  "type": "integer"
+                },
+                "chain": {
+                  "type": "string"
+                },
+                "contracts": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "label",
+                      "address"
+                    ],
+                    "properties": {
+                      "label": {
+                        "type": "string"
+                      },
+                      "address": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "AbiDeploymentResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "deployment",
+              "abi"
+            ],
+            "properties": {
+              "deployment": {
+                "$ref": "#/components/schemas/AbiDeployment"
+              },
+              "abi": {
                 "type": "array",
                 "items": {
                   "type": "object"

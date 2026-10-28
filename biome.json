@@ -18,7 +18,8 @@
       "!**/.pnpm-store",
       "!**/coverage",
       "!**/*.tsbuildinfo",
-      "!apps/indexer/envio-env.d.ts"
+      "!apps/indexer/envio-env.d.ts",
+      "!apps/snapshot-gateway/openapi.json"
     ]
   },
   "formatter": {

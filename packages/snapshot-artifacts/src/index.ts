@@ -76,7 +76,7 @@ export type AbiDeployment = {
   label: string;
   origin: { env?: string[]; kernel?: string };
   proxy?: {
-    contractName: string;
+    contractName?: string;
     implementation: string;
     implementationSource: "eip1967" | "etherscan";
   };
@@ -463,7 +463,7 @@ export const abiDeploymentSchema = {
     },
     proxy: {
       type: "object",
-      required: ["contractName", "implementation", "implementationSource"],
+      required: ["implementation", "implementationSource"],
       properties: {
         contractName: { type: "string" },
         implementation: { type: "string" },

@@ -634,7 +634,6 @@
           "proxy": {
             "type": "object",
             "required": [
-              "contractName",
               "implementation",
               "implementationSource"
             ],

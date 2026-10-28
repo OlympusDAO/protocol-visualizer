@@ -4,6 +4,7 @@ import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import { ADDRESS } from "./registry.mjs";
 
 export const packageRoot = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -31,6 +32,14 @@ export async function readOverride(chain, address) {
   if (!override.reason || !Array.isArray(override.abi)) {
     throw new Error(
       `overrides/${chain}/${address.toLowerCase()}.json must have reason and abi`
+    );
+  }
+  if (
+    override.implementation !== undefined &&
+    !ADDRESS.test(override.implementation)
+  ) {
+    throw new Error(
+      `overrides/${chain}/${address.toLowerCase()}.json: implementation must be an address`
     );
   }
   return override;

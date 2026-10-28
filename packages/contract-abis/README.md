@@ -91,12 +91,13 @@ Proxies are the exception:
   a `fallback` function. This rule ignores factories that only store an
   implementation address.
 - The ABI of a proxy is the implementation ABI, plus the entries that only the
-  proxy has, such as upgrade functions.
-- Each sync reads the implementation again. If it changed, the script gets the
-  ABI again.
+  proxy has, such as upgrade functions. If Etherscan has no verified source for
+  the proxy, the ABI is only the implementation ABI.
+- Each sync reads the implementation again, also for a proxy with a manual ABI.
+  If it changed, the script gets the ABI again.
 
-If Etherscan has no verified source for an address, the sync stops. Then add a
-manual ABI:
+If Etherscan has no verified source for an address without an EIP-1967 slot,
+or for the implementation of a proxy, the sync stops. Then add a manual ABI:
 
 ```json
 {
@@ -106,7 +107,14 @@ manual ABI:
 }
 ```
 
-Save it as `overrides/<chain>/<lowercase address>.json`.
+Save it as `overrides/<chain>/<lowercase address>.json`. For a proxy, use the
+address of the proxy, and add `implementation`: the address of the
+implementation that the ABI describes. The sync finds a proxy only from its
+EIP-1967 slot or its verified source. For a proxy that the sync cannot find, do
+not add `implementation`. After an upgrade, the sync does not use the manual
+ABI of the old implementation. It gets the ABI of the new implementation from
+Etherscan. If Etherscan has no verified source for it, the sync stops until you
+update `implementation` and `abi`.
 
 `abiHash` is the SHA-256 hash of the callable ABI. It ignores parameter names,
 `internalType`, declaration order and the constructor. Two deployments with the

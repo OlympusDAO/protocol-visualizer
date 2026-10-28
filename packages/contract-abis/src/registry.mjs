@@ -3,7 +3,7 @@ import { abiHash, isAbi } from "./identity.mjs";
 
 export const SCHEMA_VERSION = 1;
 
-const ADDRESS = /^0x[\da-fA-F]{40}$/;
+export const ADDRESS = /^0x[\da-fA-F]{40}$/;
 const ZERO_ADDRESS = /^0x0{40}$/;
 const LABEL = /^[A-Za-z0-9_]+$/;
 
@@ -33,6 +33,10 @@ const compare = (first, second) =>
   first < second ? -1 : first > second ? 1 : 0;
 
 const addressKey = (chain, address) => `${chain}:${address.toLowerCase()}`;
+
+// Two addresses that can be undefined. Two undefined values are the same.
+const sameAddress = (first, second) =>
+  first?.toLowerCase() === second?.toLowerCase();
 
 function leaves(value, path = "") {
   if (typeof value === "string") return [[path, value]];
@@ -220,27 +224,44 @@ export async function buildRegistry({
       : null;
   };
 
-  // The manual ABI of an address, if Etherscan has no verified source for the
-  // address or for the implementation of the proxy at the address.
-  const overrideFor = async (entry, error) => {
-    const override = await readOverride(entry.chain, entry.address);
-    if (!override) throw error;
+  // A manual ABI. The manual ABI of a proxy names the implementation that it
+  // describes, so that a sync after an upgrade does not use it for the new
+  // implementation.
+  const fromOverride = (override, proxy) => {
+    if (!sameAddress(override.implementation, proxy?.implementation)) {
+      throw new SourceUnavailableError(
+        proxy
+          ? `The manual ABI must have "implementation": "${proxy.implementation}", the current implementation of the proxy.`
+          : "The manual ABI has an implementation, but the address is not a proxy."
+      );
+    }
     return {
       abi: override.abi,
       abiSource: "override",
       contractName: override.contractName,
+      ...(proxy ? { proxy } : {}),
     };
   };
 
+  // The manual ABI of an address, if Etherscan has no verified source for the
+  // address or for the implementation of the proxy at the address.
+  const overrideFor = async (entry, error, proxy) => {
+    const override = await readOverride(entry.chain, entry.address);
+    if (!override) throw error;
+    return fromOverride(override, proxy);
+  };
+
   const fetchAbi = async (entry) => {
+    // Read the slot first, so that a proxy without a verified source is also
+    // a proxy.
+    const slot = await rpc.implementation(entry.chainId, entry.address);
     let source;
     try {
       source = await etherscan(entry.chainId, entry.address);
     } catch (error) {
       if (!(error instanceof SourceUnavailableError)) throw error;
-      return overrideFor(entry, error);
+      if (!slot) return overrideFor(entry, error);
     }
-    const slot = await rpc.implementation(entry.chainId, entry.address);
     const implementation = slot ?? etherscanImplementation(source);
     if (!implementation) {
       return {
@@ -249,6 +270,11 @@ export async function buildRegistry({
         contractName: source.contractName,
       };
     }
+    const proxy = {
+      ...(source ? { contractName: source.contractName } : {}),
+      implementation,
+      implementationSource: slot ? "eip1967" : "etherscan",
+    };
     let target;
     try {
       target = await etherscan(entry.chainId, implementation);
@@ -258,18 +284,15 @@ export async function buildRegistry({
         entry,
         new SourceUnavailableError(
           `Etherscan has no verified source for the implementation ${implementation}.`
-        )
+        ),
+        proxy
       );
     }
     return {
-      abi: mergeAbis(target.abi, source.abi),
+      abi: mergeAbis(target.abi, source?.abi ?? []),
       abiSource: "etherscan",
       contractName: target.contractName,
-      proxy: {
-        contractName: source.contractName,
-        implementation,
-        implementationSource: slot ? "eip1967" : "etherscan",
-      },
+      proxy,
     };
   };
 
@@ -288,29 +311,31 @@ export async function buildRegistry({
     );
     const knownAbi = known ? await previous.readAbi(known.abi) : undefined;
     if (known && isAbi(knownAbi) && abiHash(knownAbi) === known.abiHash) {
-      if (known.abiSource === "override") {
-        const override = await readOverride(entry.chain, entry.address);
-        if (override) {
-          counts.kept++;
-          return { ...pick(known), abi: override.abi };
-        }
-      } else if (known.proxy) {
+      // Check a proxy before reuse, also if its ABI is manual.
+      if (known.proxy) {
         const current = await currentImplementation(entry);
-        if (
-          current?.implementation.toLowerCase() !==
-          known.proxy.implementation.toLowerCase()
-        ) {
+        if (!sameAddress(current?.implementation, known.proxy.implementation)) {
           log(
             `Proxy ${entry.chain} ${entry.address} changed its implementation. Fetching the ABI again.`
           );
           counts.refetched++;
           return fetchWithVersion(entry, known.version);
         }
+      }
+      if (known.abiSource !== "override") {
         counts.kept++;
         return { ...pick(known), abi: knownAbi };
-      } else {
+      }
+      // If the manual ABI and the manifest do not agree about the
+      // implementation, fetch again. The fetch compares the manual ABI with
+      // the chain, not with the manifest.
+      const override = await readOverride(entry.chain, entry.address);
+      if (
+        override &&
+        sameAddress(override.implementation, known.proxy?.implementation)
+      ) {
         counts.kept++;
-        return { ...pick(known), abi: knownAbi };
+        return { ...pick(known), ...fromOverride(override, known.proxy) };
       }
     }
     counts.fetched++;
@@ -356,7 +381,7 @@ export async function buildRegistry({
     } catch (error) {
       if (!(error instanceof SourceUnavailableError)) throw error;
       errors.push(
-        `${name}: ${error.message} Add a manual ABI in overrides/${entry.chain}/${entry.address.toLowerCase()}.json, or an exclusion in config.json.`
+        `${name}: ${error.message} Add or correct the manual ABI in overrides/${entry.chain}/${entry.address.toLowerCase()}.json, or add an exclusion in config.json.`
       );
       continue;
     }

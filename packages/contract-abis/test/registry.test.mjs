@@ -323,24 +323,46 @@ test("a missing verified source uses the override, else fails with instructions"
     buildRegistry({ ...source, config, env: unverifiedEnv }),
     new RegExp(`overrides/mainnet/${UNVERIFIED.toLowerCase()}.json`)
   );
+  const lenderOverride = (extra) => async (_chain, addr) =>
+    addr === UNVERIFIED
+      ? {
+          contractName: "OlympusLender",
+          reason: "No source.",
+          abi: [fn("lend")],
+          ...extra,
+        }
+      : undefined;
   const { manifest } = await buildRegistry({
     ...source,
     config,
     env: unverifiedEnv,
-    readOverride: async (_chain, addr) =>
-      addr === UNVERIFIED
-        ? {
-            contractName: "OlympusLender",
-            reason: "No source.",
-            abi: [fn("lend")],
-          }
-        : undefined,
+    readOverride: lenderOverride(),
   });
   const lender = byLabel(manifest)["mainnet/Lender"];
   assert.equal(lender.abiSource, "override");
+  assert.equal(lender.proxy, undefined);
+  await assert.rejects(
+    buildRegistry({
+      ...source,
+      config,
+      env: unverifiedEnv,
+      readOverride: lenderOverride({ implementation: GOHM_IMPL }),
+    }),
+    /has an implementation, but the address is not a proxy/
+  );
 });
 
-test("a proxy with an unverified implementation uses the override of the proxy", async () => {
+const gohmOverride = (implementation, method) => async (_chain, addr) =>
+  addr === GOHM_PROXY
+    ? {
+        contractName: "SynapseERC20",
+        reason: "No source.",
+        implementation,
+        abi: [fn(method)],
+      }
+    : undefined;
+
+test("a proxy with an unverified implementation uses an override for that implementation", async () => {
   const unverifiedImplementation = address(0x301);
   const source = fakes({
     slots: { [GOHM_PROXY]: unverifiedImplementation },
@@ -351,19 +373,125 @@ test("a proxy with an unverified implementation uses the override of the proxy",
       `no verified source for the implementation ${unverifiedImplementation}`
     )
   );
+  await assert.rejects(
+    build(source, { readOverride: gohmOverride(undefined, "mint") }),
+    new RegExp(`must have "implementation": "${unverifiedImplementation}"`)
+  );
   const { manifest } = await build(source, {
-    readOverride: async (_chain, addr) =>
-      addr === GOHM_PROXY
-        ? {
-            contractName: "SynapseERC20",
-            reason: "No source.",
-            abi: [fn("mint")],
-          }
-        : undefined,
+    readOverride: gohmOverride(unverifiedImplementation, "mint"),
   });
   const gohm = byLabel(manifest)["arbitrum/gOHM"];
   assert.equal(gohm.abiSource, "override");
-  assert.equal(gohm.proxy, undefined);
+  assert.deepEqual(gohm.proxy, {
+    contractName: "TransparentUpgradeableProxy",
+    implementation: unverifiedImplementation,
+    implementationSource: "eip1967",
+  });
+});
+
+test("an upgrade does not reuse the override of the old implementation", async () => {
+  const oldImplementation = address(0x302);
+  const newImplementation = address(0x303);
+  const gohm = (result) => byLabel(result.manifest)["arbitrum/gOHM"];
+  const gohmAbi = (result) =>
+    result.abis.get("arbitrum/gOHM.json").map((entry) => entry.name);
+  const first = await build(
+    fakes({ slots: { [GOHM_PROXY]: oldImplementation } }),
+    { readOverride: gohmOverride(oldImplementation, "oldMethod") }
+  );
+  assert.equal(gohm(first).proxy.implementation, oldImplementation);
+  const previous = {
+    manifest: first.manifest,
+    readAbi: async (file) => first.abis.get(file),
+  };
+
+  const unchanged = await build(
+    fakes({ slots: { [GOHM_PROXY]: oldImplementation } }),
+    { previous, readOverride: gohmOverride(oldImplementation, "oldMethod") }
+  );
+  assert.equal(unchanged.counts.refetched, 0);
+  assert.deepEqual(gohmAbi(unchanged), ["oldMethod"]);
+
+  // A verified new implementation replaces the override.
+  const verified = await build(
+    fakes({
+      slots: { [GOHM_PROXY]: newImplementation },
+      sources: {
+        [`42161:${newImplementation}`]: {
+          contractName: "SynapseERC20V2",
+          abi: [fn("newMethod")],
+        },
+      },
+    }),
+    { previous, readOverride: gohmOverride(oldImplementation, "oldMethod") }
+  );
+  assert.equal(gohm(verified).abiSource, "etherscan");
+  assert.equal(gohm(verified).proxy.implementation, newImplementation);
+  assert.equal(verified.counts.refetched, 1);
+  assert.deepEqual(gohmAbi(verified), [
+    "newMethod",
+    "upgradeTo",
+    "transfer",
+    undefined,
+  ]);
+
+  // An unverified new implementation needs an override for it.
+  const unverified = fakes({ slots: { [GOHM_PROXY]: newImplementation } });
+  await assert.rejects(
+    build(unverified, {
+      previous,
+      readOverride: gohmOverride(oldImplementation, "oldMethod"),
+    }),
+    new RegExp(`must have "implementation": "${newImplementation}"`)
+  );
+  const updated = await build(unverified, {
+    previous,
+    readOverride: gohmOverride(newImplementation, "newMethod"),
+  });
+  assert.equal(gohm(updated).proxy.implementation, newImplementation);
+  assert.deepEqual(gohmAbi(updated), ["newMethod"]);
+});
+
+test("a manual ABI that does not agree with the manifest is fetched again", async () => {
+  const implementation = address(0x304);
+  const source = fakes({ slots: { [GOHM_PROXY]: implementation } });
+  const readOverride = gohmOverride(implementation, "mint");
+  const first = await build(source, { readOverride });
+  // A manifest entry without the proxy, such as one from before manual ABIs
+  // had an implementation.
+  const { proxy, ...legacy } = byLabel(first.manifest)["arbitrum/gOHM"];
+  assert.equal(proxy.implementation, implementation);
+  const previous = {
+    manifest: {
+      ...first.manifest,
+      deployments: first.manifest.deployments.map((deployment) =>
+        deployment.address === GOHM_PROXY ? legacy : deployment
+      ),
+    },
+    readAbi: async (file) => first.abis.get(file),
+  };
+  const second = await build(source, { previous, readOverride });
+  assert.deepEqual(byLabel(second.manifest)["arbitrum/gOHM"].proxy, proxy);
+  assert.equal(second.counts.fetched, 1);
+});
+
+test("a proxy without a verified source gets the ABI of its verified implementation", async () => {
+  const { manifest, abis } = await build(
+    fakes({
+      slots: { [GOHM_PROXY]: GOHM_IMPL },
+      sources: { [`42161:${GOHM_PROXY}`]: undefined },
+    })
+  );
+  const gohm = byLabel(manifest)["arbitrum/gOHM"];
+  assert.equal(gohm.contractName, "SynapseERC20");
+  assert.deepEqual(gohm.proxy, {
+    implementation: GOHM_IMPL,
+    implementationSource: "eip1967",
+  });
+  assert.deepEqual(
+    abis.get("arbitrum/gOHM.json"),
+    sources[`42161:${GOHM_IMPL}`].abi
+  );
 });
 
 test("the version comes from the Kernel index if VERSION() cannot be read", async () => {

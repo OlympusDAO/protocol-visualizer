@@ -12,6 +12,7 @@
     "base-sepolia": "Testnet that the protocol visualizer does not index.",
     "berachain-bartio": "Retired network. Etherscan V2 does not support it.",
     "goerli": "Retired network. Etherscan V2 does not support it.",
+    "robinhood": "Not indexed yet",
     "solana": "Non-EVM chain; Solidity ABIs do not describe Solana programs.",
     "solana-devnet": "Non-EVM chain; Solidity ABIs do not describe Solana programs."
   },

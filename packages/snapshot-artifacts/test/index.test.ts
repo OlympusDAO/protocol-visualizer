@@ -408,6 +408,36 @@ envio_progress_block_time_seconds{chainId="999"} 1780491216`,
   }
 });
 
+test("no RPC request is made without configured Envio endpoints", async () => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls++;
+    return Response.json({
+      result: { number: "0x7b", timestamp: "0x6a207221" },
+    });
+  };
+  try {
+    const chains = [{ key: "Mainnet", chainId: 1 }];
+    const readiness = await resolveEnvioProgressTimestamps(
+      parseEnvioMetricsReadiness(
+        `hyperindex_synced_to_head 1
+envio_progress_ready{chainId="1"} 1
+envio_progress_block{chainId="1"} 123`,
+        chains
+      ),
+      chains,
+      {}
+    );
+    assert.equal(calls, 0);
+    assert.equal(readiness.ready, true);
+    assert.equal(readiness.indexingProgress.chains.Mainnet?.timestamp, null);
+    assert.equal(readiness.indexingProgress.chains.Mainnet?.date, null);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("private RPC settings stay inside the server lookup and failed requests fall back safely", async (t) => {
   const originalFetch = globalThis.fetch;
   const privateUrl = "https://rpc.example/private-credential-placeholder";

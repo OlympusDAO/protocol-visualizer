@@ -92,7 +92,9 @@ The `indexingProgress.block` value is the latest Envio progress block for that
 chain. Its `date` and `timestamp` come from `envio_progress_block_time_seconds`
 when available. During backfill, the publisher and monitor look up that exact
 block through RPC. They try `ENVIO_RPC_URL_<chainId>`,
-`ENVIO_RPC_URL_FALLBACK_<chainId>`, then a built-in public RPC endpoint.
+then `ENVIO_RPC_URL_FALLBACK_<chainId>` if configured. Provide the same Envio
+RPC variables to the publisher and monitor server environments. No built-in
+RPC endpoints are used.
 RPC configuration stays in the server-only timestamp resolver; it is not part
 of the public chain catalog or the frontend bundle. Keep API keys in server
 environment variables.

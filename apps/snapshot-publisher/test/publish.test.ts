@@ -380,6 +380,7 @@ test("publisher reports the RPC block date during backfill in its result and Dis
     INDEXER_DEPLOYMENT_ID: "deployment-a",
     RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
     INDEXER_METRICS_URL: "http://indexer:9898/metrics",
+    ENVIO_RPC_URL_1: "https://rpc.example/envio",
     DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
     BUCKET: "bucket",
   };
@@ -396,7 +397,7 @@ test("publisher reports the RPC block date during backfill in its result and Dis
         { status: 200 }
       );
     }
-    if (String(url) === "https://ethereum-rpc.publicnode.com") {
+    if (String(url) === "https://rpc.example/envio") {
       assert.deepEqual(JSON.parse(String(init?.body)).params, [
         "0x1819f05",
         false,

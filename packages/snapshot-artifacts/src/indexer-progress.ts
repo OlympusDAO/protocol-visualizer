@@ -4,18 +4,6 @@ import type {
   EnvioMetricsReadiness,
 } from "./index.js";
 
-const DEFAULT_RPC_URLS: Record<number, string> = {
-  "1": "https://ethereum-rpc.publicnode.com",
-  "10": "https://optimism.llamarpc.com",
-  "42161": "https://arb1.arbitrum.io/rpc",
-  "8453": "https://base.llamarpc.com",
-  "80094": "https://rpc.berachain.com",
-  "4663": "https://rpc.mainnet.chain.robinhood.com",
-  "11155111": "https://ethereum-sepolia-rpc.publicnode.com",
-  "421614": "https://sepolia-rollup.arbitrum.io/rpc",
-  "84532": "https://sepolia.base.org",
-};
-
 /** Optional block time enriches progress reports; it never changes readiness. */
 export async function resolveEnvioProgressTimestamps(
   readiness: EnvioMetricsReadiness,
@@ -31,7 +19,6 @@ export async function resolveEnvioProgressTimestamps(
         [
           environment[`ENVIO_RPC_URL_${chain.chainId}`],
           environment[`ENVIO_RPC_URL_FALLBACK_${chain.chainId}`],
-          DEFAULT_RPC_URLS[chain.chainId],
         ].filter((url): url is string => Boolean(url))
       );
       for (const url of urls) {

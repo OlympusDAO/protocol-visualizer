@@ -186,9 +186,14 @@ test("does not alert when a new deployment is indexing before handover", () => {
 
 test("monitor resolves a missing optional metric to the exact RPC block timestamp", async () => {
   let requestedUrl = "";
+  const originalEnv = { ...process.env };
+  process.env = {
+    ...originalEnv,
+    ENVIO_RPC_URL_1: "https://rpc.example/envio",
+  };
   const originalFetch = globalThis.fetch;
   globalThis.fetch = (async (url, init) => {
-    if (String(url) === "https://ethereum-rpc.publicnode.com") {
+    if (String(url) === "https://rpc.example/envio") {
       assert.deepEqual(JSON.parse(String(init?.body)).params, ["0x7b", false]);
       return Response.json({
         result: { number: "0x7b", timestamp: "0x6a2023d0" },
@@ -228,6 +233,7 @@ test("monitor resolves a missing optional metric to the exact RPC block timestam
     assert.equal(readiness.indexingProgress.chains.Mainnet?.date, "2026-06-03");
     assert.equal(requestedUrl, "http://indexer.internal/metrics");
   } finally {
+    process.env = originalEnv;
     globalThis.fetch = originalFetch;
   }
 });

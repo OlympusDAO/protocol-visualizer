@@ -221,8 +221,7 @@ test("parses Envio metrics readiness for supported chains", () => {
     [
       { key: "Mainnet", chainId: 1 },
       { key: "Optimism", chainId: 10 },
-    ],
-    new Date("2026-06-08T00:00:00.000Z")
+    ]
   );
 
   assert.equal(readiness.ready, true);
@@ -250,8 +249,7 @@ test("uses Envio per-chain progress timestamps when present", () => {
     [
       { key: "Mainnet", chainId: 1 },
       { key: "Optimism", chainId: 10 },
-    ],
-    new Date("2026-06-08T00:00:00.000Z")
+    ]
   );
 
   assert.equal(
@@ -271,8 +269,7 @@ test("missing optional timestamps neither block readiness nor invent chain cover
     `hyperindex_synced_to_head 1
 envio_progress_ready{chainId="1"} 1
 envio_progress_block{chainId="1"} 123`,
-    [{ key: "Mainnet", chainId: 1 }],
-    new Date("2026-10-22T00:00:00.000Z")
+    [{ key: "Mainnet", chainId: 1 }]
   );
   assert.equal(readiness.ready, true);
   assert.equal(readiness.indexingProgress.chains.Mainnet?.timestamp, null);
@@ -309,170 +306,149 @@ test("blocks readiness when Envio metrics are missing or not ready", () => {
   assert.deepEqual(readiness.readyChainIds, [1]);
 });
 
-test("backfill reports the exact progress block time without making the chain ready", async () => {
-  const originalFetch = globalThis.fetch;
+test("backfill reports the exact progress block time without making the chain ready", async (t) => {
   const chains = [{ key: "Test", chainId: 999 }];
-  globalThis.fetch = async (url, init) => {
-    assert.equal(url, "https://rpc.example");
-    const request = JSON.parse(String(init?.body));
-    assert.equal(request.method, "eth_getBlockByNumber");
-    assert.deepEqual(request.params, ["0x7b", false]);
-    return Response.json({
-      result: { number: "0x7b", timestamp: "0x6a207221" },
-    });
-  };
-  try {
-    const readiness = await resolveEnvioProgressTimestamps(
-      parseEnvioMetricsReadiness(
-        `hyperindex_synced_to_head 0
-envio_progress_ready{chainId="999"} 0
-envio_progress_block{chainId="999"} 123`,
-        chains
-      ),
-      chains,
-      { ENVIO_RPC_URL_999: "https://rpc.example" }
-    );
-    assert.equal(readiness.ready, false);
-    assert.deepEqual(readiness.notReadyChainIds, [999]);
-    assert.deepEqual(readiness.missingChainIds, []);
-    assert.equal(readiness.indexingProgress.chains.Test?.timestamp, 1780511265);
-    assert.equal(readiness.indexingProgress.chains.Test?.date, "2026-06-03");
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-});
-
-test("missing, invalid and failed RPC block lookups leave time unavailable without blocking readiness", async () => {
-  const originalFetch = globalThis.fetch;
-  const chains = [{ key: "Test", chainId: 999 }];
-  try {
-    for (const result of [
-      null,
-      { number: "0x7c", timestamp: "0x6a207221" },
-      { number: "0x7b", timestamp: "0x0" },
-      { number: "0x7b", timestamp: "bogus" },
-      "network failure",
-    ]) {
-      globalThis.fetch = async () => {
-        if (result === "network failure") throw new Error("fetch failed");
-        return Response.json({ result });
-      };
-      const readiness = await resolveEnvioProgressTimestamps(
-        parseEnvioMetricsReadiness(
-          `hyperindex_synced_to_head 1
-envio_progress_ready{chainId="999"} 1
-envio_progress_block{chainId="999"} 123`,
-          chains
-        ),
-        chains,
-        { ENVIO_RPC_URL_999: "https://rpc.example" }
-      );
-      assert.equal(readiness.ready, true);
-      assert.deepEqual(readiness.indexingProgress.chains.Test, {
-        chainId: 999,
-        block: 123,
-        timestamp: null,
-        date: null,
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async (...[url, init]: Parameters<typeof fetch>) => {
+      assert.equal(url, "https://rpc.example");
+      const request = JSON.parse(String(init?.body));
+      assert.equal(request.method, "eth_getBlockByNumber");
+      assert.deepEqual(request.params, ["0x7b", false]);
+      return Response.json({
+        result: { number: "0x7b", timestamp: "0x6a207221" },
       });
     }
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
+  );
+
+  const readiness = await resolveEnvioProgressTimestamps(
+    parseEnvioMetricsReadiness(
+      `hyperindex_synced_to_head 0
+envio_progress_ready{chainId="999"} 0
+envio_progress_block{chainId="999"} 123`,
+      chains
+    ),
+    { ENVIO_RPC_URL_999: "https://rpc.example" }
+  );
+  assert.equal(readiness.ready, false);
+  assert.deepEqual(readiness.notReadyChainIds, [999]);
+  assert.deepEqual(readiness.missingChainIds, []);
+  assert.equal(readiness.indexingProgress.chains.Test?.timestamp, 1780511265);
+  assert.equal(readiness.indexingProgress.chains.Test?.date, "2026-06-03");
 });
 
-test("Envio block times need no RPC lookup", async () => {
-  const originalFetch = globalThis.fetch;
-  let calls = 0;
-  globalThis.fetch = async () => {
-    calls++;
-    throw new Error("unexpected RPC lookup");
-  };
-  try {
-    const chains = [{ key: "Test", chainId: 999 }];
+test("missing, invalid and failed RPC block lookups leave time unavailable without blocking readiness", async (t) => {
+  const chains = [{ key: "Test", chainId: 999 }];
+  const fetchMock = t.mock.method(globalThis, "fetch");
+  for (const result of [
+    null,
+    { number: "0x7c", timestamp: "0x6a207221" },
+    { number: "0x7b", timestamp: "0x0" },
+    { number: "0x7b", timestamp: "bogus" },
+    "network failure",
+  ]) {
+    fetchMock.mock.mockImplementation(async () => {
+      if (result === "network failure") throw new Error("fetch failed");
+      return Response.json({ result });
+    });
     const readiness = await resolveEnvioProgressTimestamps(
       parseEnvioMetricsReadiness(
         `hyperindex_synced_to_head 1
+envio_progress_ready{chainId="999"} 1
+envio_progress_block{chainId="999"} 123`,
+        chains
+      ),
+      { ENVIO_RPC_URL_999: "https://rpc.example" }
+    );
+    assert.equal(readiness.ready, true);
+    assert.deepEqual(readiness.indexingProgress.chains.Test, {
+      chainId: 999,
+      block: 123,
+      timestamp: null,
+      date: null,
+    });
+  }
+});
+
+test("Envio block times need no RPC lookup", async (t) => {
+  const fetchMock = t.mock.method(globalThis, "fetch", async () => {
+    throw new Error("unexpected RPC lookup");
+  });
+
+  const chains = [{ key: "Test", chainId: 999 }];
+  const readiness = await resolveEnvioProgressTimestamps(
+    parseEnvioMetricsReadiness(
+      `hyperindex_synced_to_head 1
 envio_progress_ready{chainId="999"} 1
 envio_progress_block{chainId="999"} 123
 envio_progress_block_time_seconds{chainId="999"} 1780491216`,
-        chains
-      ),
-      chains,
-      { ENVIO_RPC_URL_999: "https://rpc.example" }
-    );
-    assert.equal(readiness.indexingProgress.chains.Test?.timestamp, 1780491216);
-    assert.equal(readiness.ready, true);
-    assert.equal(calls, 0);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
+      chains
+    ),
+    { ENVIO_RPC_URL_999: "https://rpc.example" }
+  );
+  assert.equal(readiness.indexingProgress.chains.Test?.timestamp, 1780491216);
+  assert.equal(readiness.ready, true);
+  assert.equal(fetchMock.mock.calls.length, 0);
 });
 
-test("no RPC request is made without configured Envio endpoints", async () => {
-  const originalFetch = globalThis.fetch;
-  let calls = 0;
-  globalThis.fetch = async () => {
-    calls++;
+test("no RPC request is made without configured Envio endpoints", async (t) => {
+  const fetchMock = t.mock.method(globalThis, "fetch", async () => {
     return Response.json({
       result: { number: "0x7b", timestamp: "0x6a207221" },
     });
-  };
-  try {
-    const chains = [{ key: "Mainnet", chainId: 1 }];
-    const readiness = await resolveEnvioProgressTimestamps(
-      parseEnvioMetricsReadiness(
-        `hyperindex_synced_to_head 1
+  });
+
+  const chains = [{ key: "Mainnet", chainId: 1 }];
+  const readiness = await resolveEnvioProgressTimestamps(
+    parseEnvioMetricsReadiness(
+      `hyperindex_synced_to_head 1
 envio_progress_ready{chainId="1"} 1
 envio_progress_block{chainId="1"} 123`,
-        chains
-      ),
-      chains,
-      {}
-    );
-    assert.equal(calls, 0);
-    assert.equal(readiness.ready, true);
-    assert.equal(readiness.indexingProgress.chains.Mainnet?.timestamp, null);
-    assert.equal(readiness.indexingProgress.chains.Mainnet?.date, null);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
+      chains
+    ),
+    {}
+  );
+  assert.equal(fetchMock.mock.calls.length, 0);
+  assert.equal(readiness.ready, true);
+  assert.equal(readiness.indexingProgress.chains.Mainnet?.timestamp, null);
+  assert.equal(readiness.indexingProgress.chains.Mainnet?.date, null);
 });
 
 test("private RPC settings stay inside the server lookup and failed requests fall back safely", async (t) => {
-  const originalFetch = globalThis.fetch;
   const privateUrl = "https://rpc.example/private-credential-placeholder";
   const fallbackUrl = "https://rpc.example/fallback";
   const requested: string[] = [];
   const errors = t.mock.method(console, "error", () => {});
-  globalThis.fetch = async (url) => {
-    requested.push(String(url));
-    if (url === privateUrl) throw new Error(`Request failed: ${privateUrl}`);
-    return Response.json({
-      result: { number: "0x7b", timestamp: "0x6a207221" },
-    });
-  };
-  try {
-    const chains = [{ key: "Test", chainId: 999 }];
-    const readiness = await resolveEnvioProgressTimestamps(
-      parseEnvioMetricsReadiness(
-        `hyperindex_synced_to_head 0
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async (url: Parameters<typeof fetch>[0]) => {
+      requested.push(String(url));
+      if (url === privateUrl) throw new Error(`Request failed: ${privateUrl}`);
+      return Response.json({
+        result: { number: "0x7b", timestamp: "0x6a207221" },
+      });
+    }
+  );
+
+  const chains = [{ key: "Test", chainId: 999 }];
+  const readiness = await resolveEnvioProgressTimestamps(
+    parseEnvioMetricsReadiness(
+      `hyperindex_synced_to_head 0
 envio_progress_ready{chainId="999"} 0
 envio_progress_block{chainId="999"} 123`,
-        chains
-      ),
-      chains,
-      { ENVIO_RPC_URL_999: privateUrl, ENVIO_RPC_URL_FALLBACK_999: fallbackUrl }
-    );
-    assert.deepEqual(requested, [privateUrl, fallbackUrl]);
-    assert.equal(readiness.indexingProgress.chains.Test?.date, "2026-06-03");
-    assert.doesNotMatch(
-      JSON.stringify(readiness),
-      /rpc\.example|credential-placeholder/
-    );
-    assert.equal(errors.mock.calls.length, 0);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
+      chains
+    ),
+    { ENVIO_RPC_URL_999: privateUrl, ENVIO_RPC_URL_FALLBACK_999: fallbackUrl }
+  );
+  assert.deepEqual(requested, [privateUrl, fallbackUrl]);
+  assert.equal(readiness.indexingProgress.chains.Test?.date, "2026-06-03");
+  assert.doesNotMatch(
+    JSON.stringify(readiness),
+    /rpc\.example|credential-placeholder/
+  );
+  assert.equal(errors.mock.calls.length, 0);
 });
 
 test("ignores long malformed metrics without regex backtracking", () => {

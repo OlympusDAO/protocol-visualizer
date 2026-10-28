@@ -1,24 +1,18 @@
 import process from "node:process";
-import type {
-  EnvioMetricsChainConfig,
-  EnvioMetricsReadiness,
-} from "./index.js";
+import type { EnvioMetricsReadiness } from "./index.js";
 
 /** Optional block time enriches progress reports; it never changes readiness. */
 export async function resolveEnvioProgressTimestamps(
   readiness: EnvioMetricsReadiness,
-  chains: EnvioMetricsChainConfig[],
   environment: Record<string, string | undefined> = process.env
 ): Promise<EnvioMetricsReadiness> {
   await Promise.all(
-    chains.map(async (chain) => {
-      const progress = readiness.indexingProgress.chains[chain.key];
-      if (!progress || progress.timestamp !== null || progress.block <= 0)
-        return;
+    Object.values(readiness.indexingProgress.chains).map(async (progress) => {
+      if (progress.timestamp !== null || progress.block <= 0) return;
       const urls = new Set(
         [
-          environment[`ENVIO_RPC_URL_${chain.chainId}`],
-          environment[`ENVIO_RPC_URL_FALLBACK_${chain.chainId}`],
+          environment[`ENVIO_RPC_URL_${progress.chainId}`],
+          environment[`ENVIO_RPC_URL_FALLBACK_${progress.chainId}`],
         ].filter((url): url is string => Boolean(url))
       );
       for (const url of urls) {

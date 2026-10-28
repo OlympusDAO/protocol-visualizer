@@ -409,8 +409,7 @@ const parsePrometheusNumber = (value: string): number | undefined => {
 
 export function parseEnvioMetricsReadiness(
   metricsText: string,
-  chains: EnvioMetricsChainConfig[],
-  _observedAt?: Date
+  chains: EnvioMetricsChainConfig[]
 ): EnvioMetricsReadiness {
   const readyByChainId = new Map<number, number>();
   const blockByChainId = new Map<number, number>();

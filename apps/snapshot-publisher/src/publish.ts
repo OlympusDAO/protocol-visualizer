@@ -803,8 +803,7 @@ const fetchIndexerReadiness = async (
     );
   }
   return resolveEnvioProgressTimestamps(
-    parseEnvioMetricsReadiness(await response.text(), chains),
-    chains
+    parseEnvioMetricsReadiness(await response.text(), chains)
   );
 };
 

@@ -239,8 +239,7 @@ export async function fetchIndexerMetricsReadiness(input: {
     (chain) => chain.availability !== "historical"
   );
   return resolveEnvioProgressTimestamps(
-    parseEnvioMetricsReadiness(await response.text(), chains),
-    chains
+    parseEnvioMetricsReadiness(await response.text(), chains)
   );
 }
 

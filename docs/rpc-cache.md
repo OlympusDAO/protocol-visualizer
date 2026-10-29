@@ -203,6 +203,9 @@ For an approved full rebuild:
    docker compose run --rm --no-deps indexer scripts/start-envio.mjs local db-migrate setup
    ```
 
+   For a local machine targeting Railway, follow
+   [the local reset procedure](#run-the-one-off-reset-from-your-local-machine).
+
 3. Restore the normal image command `scripts/start-envio.mjs`, then start the
    indexer. It rebuilds from configured start blocks. Leave `rpc-cache-postgres`
    and its volume alone. Resetting Envio cannot reach this separate database.
@@ -214,6 +217,141 @@ An explicit `scripts/start-envio.mjs start -r` (or `--restart`) remains availabl
 for a deliberate reset-and-run; never save it as the normal Railway command.
 No cursor SQL, partial replay, automatic incompatibility recovery, or volume
 removal is part of this workflow.
+
+## Run the one-off reset from your local machine
+
+This procedure runs the deployed image in local Docker. SSH tunnels connect it
+to the existing Railway environment. It resets the **Envio database**, not the
+RPC cache database. Complete the stop, pause, and backup steps above first.
+Keep the indexer stopped until the reset container exits successfully.
+
+### Prerequisites
+
+- Obtain a pullable or exported copy of the **exact deployed indexer image**.
+  Record its registry reference, digest, and platform from the deployment artifact.
+  A bare Railway image digest is not a registry reference. If the artifact is
+  unavailable locally, use the private one-off runner described above.
+  Do not substitute the current checkout or an image tagged `latest`.
+- Register your SSH key with Railway. In the Hasura service, copy its **Service
+  Instance ID** from the dashboard command palette. Keep Hasura running.
+  The stopped indexer cannot serve as the SSH target.
+- On Docker Desktop 4.34 or later, enable **Settings > Resources > Network >
+  Enable host networking**. Docker Engine on Linux supports host networking.
+  See [Docker host networking](https://docs.docker.com/engine/network/drivers/host/).
+- Check the actual private hostnames and ports in the selected environment.
+  The examples below use the service names in this runbook. They create no
+  public domains or TCP proxies.
+
+### Terminal 1: open the tunnels
+
+Set the Hasura instance ID and actual private hostnames:
+
+```bash
+HASURA_INSTANCE_ID='<running-hasura-service-instance-id>'
+ENVIO_DB_HOST='postgres.railway.internal'
+HASURA_HOST='hasura.railway.internal'
+RPC_CACHE_HOST='rpc-cache.railway.internal'
+
+ssh -N -o ExitOnForwardFailure=yes \
+  -L "127.0.0.1:15432:${ENVIO_DB_HOST}:5432" \
+  -L "127.0.0.1:18080:${HASURA_HOST}:8080" \
+  -L "127.0.0.1:14000:${RPC_CACHE_HOST}:4000" \
+  "${HASURA_INSTANCE_ID}@ssh.railway.com"
+```
+
+Keep this terminal open. The forwards bind only to local loopback.
+[Railway SSH](https://docs.railway.com/cli/ssh#forward-a-port-with-ssh--l)
+supports forwarding into the same project's private network. This command runs
+no shell or reset inside Hasura.
+
+### Terminal 2: prepare the local configuration
+
+Set the immutable image reference and its deployed platform:
+
+```bash
+INDEXER_IMAGE='<registry>/<indexer-image>@sha256:<deployed-image-digest>'
+INDEXER_PLATFORM='linux/amd64' # Replace if the deployed artifact uses another platform.
+ENVIO_DB_HOST='postgres.railway.internal' # Match Terminal 1 and DATABASE_URL.
+docker pull --platform "$INDEXER_PLATFORM" "$INDEXER_IMAGE"
+
+RESET_ENV_FILE="$(mktemp -t pv-indexer-reset.XXXXXX)"
+chmod 600 "$RESET_ENV_FILE"
+vi "$RESET_ENV_FILE"
+```
+
+If you loaded an exported image instead, omit `docker pull`. Check its digest
+against the deployment artifact before continuing.
+
+In the editor, copy the deployed indexer's service variables into this file.
+Use the service configuration, not the wrapper process's derived environment.
+Use plain `KEY=value` entries without shell interpolation or surrounding quotes.
+Keep credentials out of shell commands and terminal output. Apply these changes:
+
+- Keep the Envio database username, password, database name, hostname, and SSL
+  mode. Change only its port to `15432`. Percent-encode credentials in the URI.
+  Do not use `RPC_CACHE_DATABASE_URL` or the cache database credentials.
+- Remove explicit `ENVIO_PG_*` connection variables. The wrapper derives them
+  from `DATABASE_URL`. Keep `ENVIO_PG_SCHEMA` unset, as on Railway.
+- Set `HASURA_GRAPHQL_ENDPOINT=http://127.0.0.1:18080/v1/metadata`.
+  Keep the existing `HASURA_GRAPHQL_ADMIN_SECRET` and `ETHERSCAN_API_KEY`.
+- Keep the existing Envio token and RPC mode. Set the nine RPC URLs below.
+  The reset uses the deployed chain configuration; it does not start ingestion.
+
+The network overrides in the file are:
+
+```text
+DATABASE_URL=postgresql://<user>:<encoded-password>@postgres.railway.internal:15432/<envio-database>?sslmode=<existing-mode>
+HASURA_GRAPHQL_ENDPOINT=http://127.0.0.1:18080/v1/metadata
+ENVIO_RPC_URL_1=http://127.0.0.1:14000/pv/evm/1
+ENVIO_RPC_URL_10=http://127.0.0.1:14000/pv/evm/10
+ENVIO_RPC_URL_42161=http://127.0.0.1:14000/pv/evm/42161
+ENVIO_RPC_URL_8453=http://127.0.0.1:14000/pv/evm/8453
+ENVIO_RPC_URL_80094=http://127.0.0.1:14000/pv/evm/80094
+ENVIO_RPC_URL_4663=http://127.0.0.1:14000/pv/evm/4663
+ENVIO_RPC_URL_11155111=http://127.0.0.1:14000/pv/evm/11155111
+ENVIO_RPC_URL_421614=http://127.0.0.1:14000/pv/evm/421614
+ENVIO_RPC_URL_84532=http://127.0.0.1:14000/pv/evm/84532
+```
+
+These entries supplement the retained runtime configuration; they are not a
+complete environment file. Use your actual database hostname in both the URI
+and `ENVIO_DB_HOST`. The Docker host override below preserves that hostname for
+SSL verification while directing traffic through the local tunnel.
+
+### Run the reset and restore normal operation
+
+Check that the image, environment, database, and stopped indexer belong to the
+same deployment. Then run this destructive command once:
+
+```bash
+docker run --rm \
+  --platform "$INDEXER_PLATFORM" \
+  --network host \
+  --add-host "${ENVIO_DB_HOST}:127.0.0.1" \
+  --env-file "$RESET_ENV_FILE" \
+  --workdir /app/apps/indexer \
+  --entrypoint /nodejs/bin/node \
+  "$INDEXER_IMAGE" scripts/start-envio.mjs local db-migrate setup
+```
+
+The command exits after Envio recreates its schema and updates Hasura metadata.
+It uses the image's Node binary and configuration, without a container shell.
+If the command fails or the logs report a Hasura metadata error, keep the
+indexer stopped and investigate. Do not repeat the reset automatically.
+
+After a successful reset, remove the temporary credentials file:
+
+```bash
+rm -f "$RESET_ENV_FILE"
+unset RESET_ENV_FILE
+```
+
+Close Terminal 1 with `Ctrl-C` to remove the tunnels. Resume the indexer with its
+normal command, then follow the readiness and publisher checks above.
+`railway run` alone is insufficient: it runs locally and does not make private
+Railway hostnames reachable. No production reset or SSH tunnel was executed to
+validate this documentation. The underlying distroless reset command passed the
+controlled integration check described below.
 
 ## Local operation and validation
 

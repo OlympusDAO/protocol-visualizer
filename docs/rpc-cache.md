@@ -4,7 +4,8 @@
 in [`.railway/railway.ts`](../.railway/railway.ts) defines the whole project,
 including `rpc-cache` and its separate `rpc-cache-postgres` database and volume.
 Use [the project migration guide](railway-self-hosting.md) for bootstrap and the
-plan-on-PR/apply-on-merge workflow. Service variables remain managed in Railway.
+plan-on-PR/apply-on-merge workflow. IaC supplies connection references and preserves
+provider credentials supplied in Railway.
 No resources or live variables are changed by building this repository.
 Do not reuse the Envio database or role for cache storage.
 
@@ -90,9 +91,10 @@ finalized watermark remains safe if a provider later becomes unavailable.
 
 ## Railway variables and private networking
 
-Set these variables on `rpc-cache` after the service is created. Existing
-Railway shared variables can be referenced instead of copying their secret
-values. IaC leaves service variables unchanged; it does not populate these.
+IaC supplies `PORT` and `RPC_CACHE_DATABASE_URL`. Manually supply all nine
+`UPSTREAM_RPC_URL_<id>` values on `rpc-cache` after its creation. Existing Railway
+shared variables can supply references instead of copied credentials. IaC uses
+`preserve()` for upstream values; it does not generate them or contain their values.
 
 ```text
 PORT=4000
@@ -122,7 +124,7 @@ configured. Add approved failover providers only inside eRPC, with their own
 budgets. Envio may still retry its own failed ingestion requests; the proxy
 owns the provider budget and retries for each request.
 
-On `indexer`, set all existing `ENVIO_RPC_URL_<chainId>` variables to:
+After cache verification, IaC supplies all nine `ENVIO_RPC_URL_<chainId>` variables on `indexer`:
 
 ```text
 ENVIO_RPC_URL_1=http://${{rpc-cache.RAILWAY_PRIVATE_DOMAIN}}:4000/pv/evm/1
@@ -137,7 +139,7 @@ ENVIO_RPC_URL_84532=http://${{rpc-cache.RAILWAY_PRIVATE_DOMAIN}}:4000/pv/evm/845
 ```
 
 On **both** `snapshot-publisher` and
-`snapshot-monitor`, set the same nine paths under `RPC_URL_<chainId>`:
+`snapshot-monitor`, IaC supplies the same nine paths under `RPC_URL_<chainId>`:
 
 ```text
 RPC_URL_1=http://${{rpc-cache.RAILWAY_PRIVATE_DOMAIN}}:4000/pv/evm/1
@@ -311,7 +313,33 @@ volumes, bucket, and groups, with no deletions or existing storage changes.
 Production adds the cache service, database, and volume; PR #82 already has the
 cache database and volume, so it adds only the service. Both plans restore the
 six application services' Docker, healthcheck, restart, and cron settings from
-the former repository JSON files. Service variables are unmanaged by IaC.
-No infrastructure apply, cutover, or workflow deployment was executed locally.
+the former repository JSON files. These initial plans left variables unmanaged.
+The later variable wiring declares connection references and preserves manual secrets.
+No production apply or workflow deployment was executed locally.
 The earlier cache integration used disposable Postgres 17, not the live cache
 Postgres 18 service. Real archive providers still need verification.
+
+## PR 82 cache bootstrap (2026-10-29)
+
+A cache-only IaC plan created `rpc-cache` in `protocol-visualizer-pr-82`.
+The existing cache Postgres 18 database and volume remained unchanged.
+The bootstrap copied the nine existing indexer provider URLs into the cache's
+`UPSTREAM_RPC_URL_<id>` variables without printing or committing their values.
+Temporary partial ownership was released after the apply.
+
+The initial Railway build rejected the optional Go cache mount. The portable
+Dockerfile removes that mount. A minimal CLI upload deployed the corrected image;
+Railway reports `SUCCESS` with `/healthcheck`. The service has no public domain
+or TCP endpoint. The Dockerfile correction still needs publication before future
+GitHub deployments can use it.
+
+Direct provider smoke checks returned the expected chain ID and a numeric
+`finalized` block for all nine configured URLs. These checks do not prove historical
+state coverage, EIP-1898 support, or Robinhood's finality semantics.
+The local eRPC/Postgres integration passed cache persistence and Envio reset isolation.
+The final image passed Trivy with the approved exception that expires November 5.
+
+The operator deferred SSH access. Private-network proxy requests and live Postgres
+cache hits remain unverified. Consumer RPC URLs remain unchanged pending those checks.
+An exact final comparison found no changes to pre-existing services, variables,
+databases, volumes, buckets, or groups. No production apply, push, or PR update occurred.

@@ -10,7 +10,8 @@ ENV GOTOOLCHAIN=local CGO_ENABLED=0
 RUN go get golang.org/x/crypto@v0.57.0 golang.org/x/net@v0.60.0 && go mod download
 COPY services/rpc-cache/private-errors.patch /tmp/private-errors.patch
 RUN apk add --no-cache patch && patch -p1 < /tmp/private-errors.patch && gofmt -w erpc/http_server.go
-RUN --mount=type=cache,target=/root/.cache/go-build go build -ldflags="-w -s -X github.com/erpc/erpc/common.ErpcVersion=0.5.0-pv1 -X github.com/erpc/erpc/common.ErpcCommitSha=204f98cb" -o /erpc-server ./cmd/erpc/main.go
+# Railway requires service-specific IDs for cache mounts. Use a portable build.
+RUN go build -ldflags="-w -s -X github.com/erpc/erpc/common.ErpcVersion=0.5.0-pv1 -X github.com/erpc/erpc/common.ErpcCommitSha=204f98cb" -o /erpc-server ./cmd/erpc/main.go
 
 # Same nonroot static runtime pinned by the upstream release Dockerfile.
 FROM gcr.io/distroless/static-debian12:nonroot@sha256:f5b485ea962d9bd1186b2f6b3a061191539b905b82ec395de78cbfae51f20e35

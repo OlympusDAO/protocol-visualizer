@@ -16,8 +16,9 @@ consumers through the proxy.
 [`.railway/railway.ts`](../.railway/railway.ts) defines the whole project:
 all seven application services, both databases, both volumes, the storage bucket,
 production domains, and canvas groups. It preserves the current database image
-majors and volume names. Service variables stay managed in Railway; IaC does
-not read, write, or delete their values.
+majors and volume names. IaC supplies service connections through Railway references.
+Provider URLs and operator secrets use `preserve()`; their values stay in Railway.
+Optional operator settings listed in `variables.ignore` remain outside IaC ownership.
 
 | Resource | Role |
 | --- | --- |
@@ -73,20 +74,48 @@ Before the first merge:
 
 1. Create a Railway project token scoped to **production**.
 2. Add it as the GitHub repository secret **`RAILWAY_TOKEN`**.
-3. Check all nine `ENVIO_RPC_URL_<id>` variables on the production indexer.
-4. Set all nine `RPC_URL_<id>` variables on both publisher and monitor.
-5. Preserve the other service variables listed below.
+3. Provision and verify the private cache service and its separate database first.
+4. Supply all nine `UPSTREAM_RPC_URL_<id>` values on `rpc-cache`.
+5. Preserve the other operator secrets listed below.
 6. Review the production plan posted on the PR.
 
-The inspected production environment lacks indexer RPC variables for chains
-421614 and 84532, and the publisher/monitor RPC variables. Supply these before
-merging. Initially use existing provider URLs where the proxy is not ready.
+IaC supplies all nine consumer RPC URLs. The production rollout must wait until
+the cache service passes private-network and provider checks. Otherwise, a whole-project
+apply switches consumers to an unready proxy. Do not merge the automatic apply
+workflow before this prerequisite is complete.
 
-The first production apply runs after merge, so it uses the new resume-capable
-indexer image on `master`. It creates the cache service, database, and volume.
-After creation, set the cache variables from [rpc-cache.md](rpc-cache.md) and
-redeploy that service. Its runtime fails clearly until those variables exist.
-Switch consumers to the proxy only after provider and cache checks pass.
+For a new environment, provision the cache resources first through a reviewed,
+cache-only IaC plan or the Railway dashboard. Supply provider credentials manually
+on `rpc-cache`. Configure its Dockerfile as `Dockerfile-rpc-cache`, its healthcheck
+as `/healthcheck`, and its database reference as shown in [rpc-cache.md](rpc-cache.md).
+Verify the proxy before the whole-project apply routes consumers through it.
+
+## Automatic variables and manual secrets
+
+| Destination | Supplied by IaC | Manual values retained in Railway |
+| --- | --- | --- |
+| `rpc-cache` | `PORT=4000`, `RPC_CACHE_DATABASE_URL` from `rpc-cache-postgres.DATABASE_URL` | Nine `UPSTREAM_RPC_URL_<id>` values; optional `RPC_CACHE_MAX_RPS` |
+| `indexer` | Nine `ENVIO_RPC_URL_<id>` paths through `rpc-cache`; Envio database and Hasura references; `PORT=9898` | `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY`; optional `ENVIO_RPC_MODE` |
+| `snapshot-publisher` | Nine `RPC_URL_<id>` paths; bucket, Hasura, and indexer metrics references | Optional `DISCORD_WEBHOOK_URL` and operator overrides |
+| `snapshot-monitor` | Nine `RPC_URL_<id>` paths; bucket and indexer metrics references | Required `DISCORD_WEBHOOK_URL`; optional operator overrides |
+| `snapshot-gateway` | Five bucket references; `PORT=8080` | Optional operator overrides |
+| `hasura` | Envio database reference; shared admin-secret reference; `PORT=8080` | The shared `HASURA_GRAPHQL_ADMIN_SECRET` value |
+| `frontend` | HTTPS URL from `snapshot-gateway.RAILWAY_PUBLIC_DOMAIN` | None for these connections |
+
+The bucket references use `storage.BUCKET`, `storage.ACCESS_KEY_ID`,
+`storage.SECRET_ACCESS_KEY`, `storage.REGION`, and `storage.ENDPOINT`.
+Railway resolves them separately in each environment. Do not copy bucket credentials
+into source or frontend variables. The frontend receives only the public gateway URL.
+
+`preserve()` retains an existing value. It does not generate a missing provider URL,
+API token, or webhook. Supply required secrets in Railway before deploying the service.
+The RPC cache fails clearly at runtime when a required upstream value is absent.
+Builds and IaC evaluation do not need provider credentials.
+
+The PR 82 bootstrap copied existing indexer provider URLs into the cache's upstream
+variables through the authenticated CLI. It did not print or commit their values.
+This bootstrap does not supply credentials to production or future environments.
+Before any consumer switch, retain the previous provider values for rollback.
 
 ## Automatic plan and apply
 
@@ -125,7 +154,7 @@ railway config apply --environment "$RAILWAY_ENVIRONMENT"
 ```
 
 Preview branches must be explicit. No production custom domains are attached to
-previews. Existing variables and generated Railway domains remain on Railway.
+previews. Operator secrets and generated Railway domains remain on Railway.
 A PR environment's databases survive ordinary redeploys and disappear when
 Railway deletes that temporary environment.
 
@@ -237,11 +266,11 @@ HASURA_GRAPHQL_URL=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql
 HASURA_GRAPHQL_ADMIN_SECRET=${{hasura.HASURA_GRAPHQL_ADMIN_SECRET}}
 RAILWAY_ENVIRONMENT_NAME=<provided by Railway>
 INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
-BUCKET=${{<bucket-service>.BUCKET}}
-ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
-SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
-REGION=${{<bucket-service>.REGION}}
-ENDPOINT=${{<bucket-service>.ENDPOINT}}
+BUCKET=${{storage.BUCKET}}
+ACCESS_KEY_ID=${{storage.ACCESS_KEY_ID}}
+SECRET_ACCESS_KEY=${{storage.SECRET_ACCESS_KEY}}
+REGION=${{storage.REGION}}
+ENDPOINT=${{storage.ENDPOINT}}
 # INDEXER_DEPLOYMENT_ID=${{shared.INDEXER_DEPLOYMENT_ID}}
 # DISCORD_WEBHOOK_URL=<discord webhook url>
 # MONITOR_STALE_CHAIN_HOURS=24
@@ -267,11 +296,11 @@ Set on `snapshot-monitor`:
 DISCORD_WEBHOOK_URL=<discord webhook url>
 RAILWAY_ENVIRONMENT_NAME=<provided by Railway>
 INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
-BUCKET=${{<bucket-service>.BUCKET}}
-ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
-SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
-REGION=${{<bucket-service>.REGION}}
-ENDPOINT=${{<bucket-service>.ENDPOINT}}
+BUCKET=${{storage.BUCKET}}
+ACCESS_KEY_ID=${{storage.ACCESS_KEY_ID}}
+SECRET_ACCESS_KEY=${{storage.SECRET_ACCESS_KEY}}
+REGION=${{storage.REGION}}
+ENDPOINT=${{storage.ENDPOINT}}
 # INDEXER_DEPLOYMENT_ID=${{shared.INDEXER_DEPLOYMENT_ID}}
 # MONITOR_STATE_KEY=v1/monitor-state.json
 # MONITOR_STALE_CHAIN_HOURS=24
@@ -282,11 +311,11 @@ ENDPOINT=${{<bucket-service>.ENDPOINT}}
 Set on `snapshot-gateway`:
 
 ```bash
-BUCKET=${{<bucket-service>.BUCKET}}
-ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
-SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
-REGION=${{<bucket-service>.REGION}}
-ENDPOINT=${{<bucket-service>.ENDPOINT}}
+BUCKET=${{storage.BUCKET}}
+ACCESS_KEY_ID=${{storage.ACCESS_KEY_ID}}
+SECRET_ACCESS_KEY=${{storage.SECRET_ACCESS_KEY}}
+REGION=${{storage.REGION}}
+ENDPOINT=${{storage.ENDPOINT}}
 ```
 
 Set on `frontend`:

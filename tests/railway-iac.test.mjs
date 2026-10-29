@@ -19,14 +19,15 @@ async function infrastructure(environment, branch) {
   }
 }
 
-test("whole-project IaC retains all services, storage and groups without managing secrets", async () => {
+test("whole-project IaC retains storage and wires services without embedding secrets", async () => {
   for (const [environment, branch, envioSize] of [
     ["production", undefined, 5000],
     ["protocol-visualizer-pr-82", "feat/robinhood-chain", 50000],
   ]) {
     const { definition, resources } = await infrastructure(environment, branch);
     assert.equal(definition.name, "protocol-visualizer");
-    assert.deepEqual(definition.variables, { managed: false });
+    assert.equal(definition.variables.managed, true);
+    assert(definition.variables.ignore.includes("RPC_CACHE_MAX_RPS"));
     assert.deepEqual(resources.map((r) => r.address).sort(), [
       "bucket.storage",
       "database.Postgres",
@@ -66,7 +67,7 @@ test("whole-project IaC retains all services, storage and groups without managin
       assert(node.build.watchPatterns.includes(`/Dockerfile-${node.name}`));
       if (!["hasura", "rpc-cache"].includes(node.name))
         assert(node.build.watchPatterns.includes("/package.json"));
-      assert.equal(node.variables, undefined);
+      assert(node.variables);
       assert.equal(node.configFile, undefined);
       const job =
         node.name === "snapshot-publisher" || node.name === "snapshot-monitor";
@@ -81,6 +82,58 @@ test("whole-project IaC retains all services, storage and groups without managin
     assert.equal(get("rpc-cache").deploy.healthcheckPath, "/healthcheck");
     assert.equal(get("rpc-cache").networking, undefined);
     assert.equal(get("rpc-cache-postgres").networking, undefined);
+    const ids = [
+      ...readFileSync("apps/indexer/config.yaml", "utf8").matchAll(
+        /^ {2}- id: (\d+)$/gm
+      ),
+    ].map((match) => Number(match[1]));
+    for (const [name, prefix] of [
+      ["indexer", "ENVIO_RPC_URL_"],
+      ["snapshot-publisher", "RPC_URL_"],
+      ["snapshot-monitor", "RPC_URL_"],
+    ]) {
+      const variables = get(name).variables;
+      assert.deepEqual(
+        Object.keys(variables)
+          .filter((key) => key.startsWith(prefix))
+          .map((key) => Number(key.slice(prefix.length)))
+          .sort((a, b) => a - b),
+        [...ids].sort((a, b) => a - b)
+      );
+      for (const id of ids)
+        assert.equal(
+          variables[`${prefix}${id}`].value,
+          `http://\${{rpc-cache.RAILWAY_PRIVATE_DOMAIN}}:4000/pv/evm/${id}`
+        );
+    }
+    for (const id of ids)
+      assert.deepEqual(get("rpc-cache").variables[`UPSTREAM_RPC_URL_${id}`], {
+        type: "preserve",
+      });
+    assert.deepEqual(get("rpc-cache").variables.RPC_CACHE_DATABASE_URL, {
+      type: "reference",
+      resource: "database.rpc-cache-postgres",
+      output: "DATABASE_URL",
+    });
+    for (const name of [
+      "snapshot-publisher",
+      "snapshot-monitor",
+      "snapshot-gateway",
+    ])
+      for (const key of [
+        "BUCKET",
+        "ACCESS_KEY_ID",
+        "SECRET_ACCESS_KEY",
+        "REGION",
+        "ENDPOINT",
+      ])
+        assert.deepEqual(get(name).variables[key], {
+          type: "reference",
+          resource: "bucket.storage",
+          output: key,
+        });
+    for (const key of ["ENVIO_API_TOKEN", "ETHERSCAN_API_KEY"])
+      assert.deepEqual(get("indexer").variables[key], { type: "preserve" });
     for (const [name, domain] of [
       ["frontend", "protocol-visualizer.olympusdao.finance"],
       ["snapshot-gateway", "protocol-visualizer-api.olympusdao.finance"],

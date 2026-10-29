@@ -2,7 +2,9 @@
 
 `railway.ts` defines all services, databases, volumes, the bucket, and groups.
 It is the project definition; there is no named partial. Removing a resource
-can delete it on apply. Existing service variables remain managed in Railway.
+can delete it on apply. IaC supplies connection references. Provider URLs and
+operator secrets stay in Railway through `preserve()`; optional overrides remain
+outside IaC ownership. Configure and verify the cache before routing consumers.
 
 Use the repository-pinned SDK and Railway CLI 5.71.0 or newer:
 

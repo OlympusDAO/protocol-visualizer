@@ -5,11 +5,13 @@ import {
   group,
   database,
   project,
+  preserve,
+  ref,
   service,
   volume,
 } from "railway/iac";
 
-// Service variables remain in Railway. Do not import or commit secret values.
+// Secret values remain in Railway; IaC owns connections, not provider credentials.
 export default defineRailway((ctx) => {
   const production = ctx.isEnvironment("production");
   const branch = production
@@ -53,9 +55,32 @@ export default defineRailway((ctx) => {
     alerts: { usage: { "80": {}, "95": {}, "100": {} } },
   });
   const storage = bucket("storage", { region: "sjc" });
+  const chainIds = [1, 10, 42161, 8453, 80094, 4663, 11155111, 421614, 84532];
+  const rpcUrls = (prefix: string) =>
+    Object.fromEntries(
+      chainIds.map((id) => [
+        `${prefix}${id}`,
+        `http://\${{rpc-cache.RAILWAY_PRIVATE_DOMAIN}}:4000/pv/evm/${id}`,
+      ])
+    );
+  const bucketVariables = Object.fromEntries(
+    ["BUCKET", "ACCESS_KEY_ID", "SECRET_ACCESS_KEY", "REGION", "ENDPOINT"].map(
+      (key) => [key, ref(storage, key)]
+    )
+  );
 
   const snapshotPublisher = service("snapshot-publisher", {
     source,
+    env: {
+      ...bucketVariables,
+      ...rpcUrls("RPC_URL_"),
+      HASURA_GRAPHQL_ADMIN_SECRET: ctx.shared.HASURA_GRAPHQL_ADMIN_SECRET,
+      HASURA_GRAPHQL_URL:
+        "http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql",
+      INDEXER_METRICS_URL:
+        "http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:${{indexer.PORT}}/metrics",
+      DISCORD_WEBHOOK_URL: preserve(),
+    },
     build: {
       builder: "DOCKERFILE",
       dockerfilePath: "Dockerfile-snapshot-publisher",
@@ -83,6 +108,7 @@ export default defineRailway((ctx) => {
 
   const snapshotGateway = service("snapshot-gateway", {
     source,
+    env: { ...bucketVariables, PORT: "8080" },
     build: {
       builder: "DOCKERFILE",
       dockerfilePath: "Dockerfile-snapshot-gateway",
@@ -114,6 +140,11 @@ export default defineRailway((ctx) => {
 
   const hasura = service("hasura", {
     source,
+    env: {
+      PORT: "8080",
+      HASURA_GRAPHQL_DATABASE_URL: ref(envioDatabase, "DATABASE_URL"),
+      HASURA_GRAPHQL_ADMIN_SECRET: ctx.shared.HASURA_GRAPHQL_ADMIN_SECRET,
+    },
     build: {
       builder: "DOCKERFILE",
       dockerfilePath: "Dockerfile-hasura",
@@ -132,6 +163,16 @@ export default defineRailway((ctx) => {
 
   const indexer = service("indexer", {
     source,
+    env: {
+      ...rpcUrls("ENVIO_RPC_URL_"),
+      PORT: "9898",
+      DATABASE_URL: ref(envioDatabase, "DATABASE_URL"),
+      HASURA_GRAPHQL_ADMIN_SECRET: ctx.shared.HASURA_GRAPHQL_ADMIN_SECRET,
+      HASURA_GRAPHQL_ENDPOINT:
+        "http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/metadata",
+      ENVIO_API_TOKEN: preserve(),
+      ETHERSCAN_API_KEY: preserve(),
+    },
     build: {
       builder: "DOCKERFILE",
       dockerfilePath: "Dockerfile-indexer",
@@ -158,6 +199,10 @@ export default defineRailway((ctx) => {
 
   const frontend = service("frontend", {
     source,
+    env: {
+      VITE_PROTOCOL_SNAPSHOT_BASE_URL:
+        "https://${{snapshot-gateway.RAILWAY_PUBLIC_DOMAIN}}",
+    },
     build: {
       builder: "DOCKERFILE",
       dockerfilePath: "Dockerfile-frontend",
@@ -187,6 +232,13 @@ export default defineRailway((ctx) => {
 
   const snapshotMonitor = service("snapshot-monitor", {
     source,
+    env: {
+      ...bucketVariables,
+      ...rpcUrls("RPC_URL_"),
+      INDEXER_METRICS_URL:
+        "http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:${{indexer.PORT}}/metrics",
+      DISCORD_WEBHOOK_URL: preserve(),
+    },
     build: {
       builder: "DOCKERFILE",
       dockerfilePath: "Dockerfile-snapshot-monitor",
@@ -213,6 +265,13 @@ export default defineRailway((ctx) => {
 
   const cache = service("rpc-cache", {
     source,
+    env: {
+      PORT: "4000",
+      RPC_CACHE_DATABASE_URL: ref(cacheDatabase, "DATABASE_URL"),
+      ...Object.fromEntries(
+        chainIds.map((id) => [`UPSTREAM_RPC_URL_${id}`, preserve()])
+      ),
+    },
     build: {
       builder: "DOCKERFILE",
       dockerfilePath: "Dockerfile-rpc-cache",
@@ -232,7 +291,20 @@ export default defineRailway((ctx) => {
   const data = group("Data", [envioDatabase]);
   const publicServices = group("Public", [snapshotGateway, frontend]);
   const definition = {
-    variables: { managed: false },
+    variables: {
+      managed: true,
+      // Optional operator settings remain outside IaC ownership.
+      ignore: [
+        "ENVIO_RPC_MODE",
+        "INDEXER_DEPLOYMENT_ID",
+        "MONITOR_*",
+        "SNAPSHOT_*",
+        "PUBLISHER_*",
+        "PROTOCOL_CHAINS_CONFIG_PATH",
+        "OTHER_CONTRACTS_CONFIG_PATH",
+        "RPC_CACHE_MAX_RPS",
+      ],
+    },
     resources: [
       snapshotPublisher,
       snapshotMonitor,

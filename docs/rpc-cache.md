@@ -175,7 +175,7 @@ retry or public fallback; `ENVIO_RPC_URL_FALLBACK_*` is no longer used.
 ## Indexer resets and cache persistence
 
 Normal indexer deployments resume compatible state. Deliberate resets and the
-manual Railway CLI job are documented in [indexer-operations.md](indexer-operations.md).
+manual SSH procedure are documented in [indexer-operations.md](indexer-operations.md).
 The cache uses its own database and survives Envio schema resets. Leave the
 cache service and its database intact during an indexer rebuild.
 

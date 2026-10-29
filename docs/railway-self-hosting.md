@@ -105,7 +105,7 @@ Do not set `ENVIO_PG_SCHEMA` on Railway. The indexer wrapper fails fast if it is
 set. Railway start commands run `envio start` and resume compatible state.
 Envio rejects incompatible changes; it does not automatically wipe data.
 For an intentional reset, follow [indexer-operations.md](indexer-operations.md),
-including the manual Railway CLI job that avoids SSH.
+including the manual SSH reset in the existing indexer service.
 
 The publisher and monitor read Envio's private `/metrics` endpoint to decide
 whether a deployment is ready. The indexer Railway service must set `PORT=9898`

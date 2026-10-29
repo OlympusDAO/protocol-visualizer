@@ -17,10 +17,11 @@ on:
 permissions:
   contents: read
 
-# Plans and applies target the same production environment. Do not interrupt an apply.
+# Serialize production plans/applies and retain pending runs instead of replacing them.
 concurrency:
   group: railway-infrastructure-production
   cancel-in-progress: false
+  queue: max
 
 jobs:
   plan:

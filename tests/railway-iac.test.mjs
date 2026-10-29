@@ -166,6 +166,7 @@ test("Railway workflow applies only reviewed merges and blocks destructive chang
     2
   );
   assert(workflow.includes("cancel-in-progress: false"));
+  assert(workflow.includes("queue: max"));
   for (const [, action] of workflow.matchAll(/uses: (\S+)/g))
     if (!action.startsWith("./")) assert.match(action, /@[0-9a-f]{40}$/);
 });

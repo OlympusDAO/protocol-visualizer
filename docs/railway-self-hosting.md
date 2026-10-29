@@ -68,7 +68,8 @@ That command changes live Config File settings and saves a local rollback
 snapshot. It is separate from the filesystem-only `config migrate --apply`
 generator. Keep the snapshot locally; `railway config migrate undo` restores
 its settings if needed. Neither operation resets application databases.
-No cutover, undo, or apply was run while preparing this migration.
+The initial migration preparation did not run cutover, undo, or apply.
+Later PR 82 cache setup is recorded in [PR 82 cache bootstrap](rpc-cache.md#pr-82-cache-bootstrap-2026-10-29).
 
 Before the first merge:
 
@@ -498,8 +499,9 @@ Run the repository validation sequence from `AGENTS.md`. The local
 `validate:local` script also checks generated OpenAPI and the monitor build.
 
 
-## Recorded migration checks (2026-10-29)
+## Recorded initial migration checks (2026-10-29)
 
+These checks preceded the PR 82 cache bootstrap and later variable wiring.
 Railway CLI 5.71.0 and SDK 3.16.0 evaluated the complete definition. Read-only
 plans show 3 additions and 12 build/deploy updates in production, and 1 addition
 and 12 build/deploy updates in PR #82. Both have zero deletions and no changes
@@ -512,4 +514,6 @@ variable ownership, and merge workflow guards. Checksum-verified Actionlint
 1.7.12 validated the workflow. The workflow itself has not run against GitHub.
 The current GitHub credential received HTTP 403 when listing secret names, so
 the presence and scope of `RAILWAY_TOKEN` must be confirmed by a repository admin.
-No infrastructure apply, live variable edit, cutover, push, or deployment was run.
+These initial checks were read-only. Later PR 82 cache creation, upstream variable
+setup, and CLI deployment are recorded in [PR 82 cache bootstrap](rpc-cache.md#pr-82-cache-bootstrap-2026-10-29).
+No production apply was run.

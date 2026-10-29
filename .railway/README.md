@@ -9,13 +9,14 @@ outside IaC ownership. Configure and verify the cache before routing consumers.
 Use the repository-pinned SDK and Railway CLI 5.71.0 or newer:
 
 ```bash
-railway link --environment protocol-visualizer-pr-82
+railway link
 railway status
 pnpm run railway:check
 umask 077
 pnpm run railway:plan
 ```
 
+Select the intended project and environment, then verify them with `railway status`.
 The commands use the linked project and environment. Railway selects the PR
 branch from its environment metadata; production always uses `master`. Changing
 Git branches does not change the Railway link. Verify the plan target before apply.

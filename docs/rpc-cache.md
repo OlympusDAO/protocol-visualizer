@@ -241,8 +241,8 @@ The whole-project definition and merge workflow are documented in
 [railway-self-hosting.md](railway-self-hosting.md). The workflow plans production
 changes on PR updates and applies the reviewed plan on merge to `master`.
 Application GitHub autodeploys continue according to watch patterns.
-Preview infrastructure is applied explicitly with the target environment and
-`RAILWAY_SOURCE_BRANCH`; it is not auto-applied on each PR commit.
+Preview infrastructure is applied explicitly against the linked target
+environment; it is not auto-applied on each PR commit.
 
 Cached responses survive commits and indexer rebuilds within an environment.
 Closing a PR deletes its temporary environment and cache. New PR environments
@@ -320,6 +320,8 @@ The earlier cache integration used disposable Postgres 17, not the live cache
 Postgres 18 service. Real archive providers still need verification.
 
 ## PR 82 cache bootstrap (2026-10-29)
+
+This section records the initial bootstrap, before later whole-project applies and GitHub publication.
 
 A cache-only IaC plan created `rpc-cache` in `protocol-visualizer-pr-82`.
 The existing cache Postgres 18 database and volume remained unchanged.

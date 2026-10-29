@@ -1,0 +1,74 @@
+name: Railway infrastructure
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened, closed]
+    paths:
+      - ".railway/**"
+      - ".github/workflows/railway-config.yml"
+      - ".github/actions/bootstrap/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".nvmrc"
+      - ".node-version"
+
+permissions:
+  contents: read
+
+# Plans and applies target the same production environment. Do not interrupt an apply.
+concurrency:
+  group: railway-infrastructure-production
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: read
+      id-token: write
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Bootstrap
+        uses: ./.github/actions/bootstrap
+      - name: Verify IaC
+        run: pnpm run railway:check
+      - name: Plan production changes
+        uses: railwayapp/config@f1f0c715716fe035319b0a716b95c6e83e0f6595
+        with:
+          command: plan
+          railway-token: ${{ secrets.RAILWAY_TOKEN }}
+          cli-version: 5.71.0
+          package-manager: none
+          artifact-name: railway-production-plan
+          confirm-destructive: "false"
+
+  apply:
+    if: github.event.action == 'closed' && github.event.pull_request.merged && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    steps:
+      - name: Checkout merged configuration
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+      - name: Apply reviewed production plan
+        uses: railwayapp/config@f1f0c715716fe035319b0a716b95c6e83e0f6595
+        with:
+          command: apply
+          railway-token: ${{ secrets.RAILWAY_TOKEN }}
+          cli-version: 5.71.0
+          artifact-name: railway-production-plan
+          confirm-destructive: "false"

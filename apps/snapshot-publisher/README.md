@@ -143,7 +143,7 @@ live Hasura data to a local output directory.
 
 ## Railway Cron
 
-The Railway service uses `/railway-snapshot-publisher.json`, which configures:
+The Railway service is defined in [`.railway/railway.ts`](../../.railway/railway.ts), which configures:
 
 ```text
 cronSchedule: 0 * * * *

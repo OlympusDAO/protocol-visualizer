@@ -1,10 +1,10 @@
-# Railway cache infrastructure
+# Railway project infrastructure
 
-`railway.ts` is a named partial for the two new cache resources. Existing
-services and storage remain outside its ownership. This is an incremental
-migration, not a complete definition of the monorepo environment.
+`railway.ts` defines all services, databases, volumes, the bucket, and groups.
+It is the project definition; there is no named partial. Removing a resource
+can delete it on apply. Existing service variables remain managed in Railway.
 
-Use the pinned SDK from the root install and Railway CLI 5.71.0 or newer:
+Use the repository-pinned SDK and Railway CLI 5.71.0 or newer:
 
 ```bash
 export RAILWAY_ENVIRONMENT=protocol-visualizer-pr-82
@@ -13,20 +13,13 @@ pnpm run railway:check
 pnpm run railway:plan
 ```
 
-Review the plan. Apply only after approval:
+For production, use `RAILWAY_ENVIRONMENT=production`; its source branch is always
+`master`. Preview source branches must be explicit.
 
-```bash
-railway config apply --environment "$RAILWAY_ENVIRONMENT"
-```
+The GitHub workflow plans production changes on PR updates and applies the saved
+plan on merge to `master`. Set a production-scoped project token as the GitHub
+secret `RAILWAY_TOKEN`. Destructive applies are blocked. Preview infrastructure
+still needs an explicit operator apply; application autodeploys remain enabled.
 
-Do not remove the `partial` export while the file lists only the cache pair.
-A whole-project apply can delete resources absent from the definition.
-Do not rename the partial without a separate ownership migration.
-
-Provider credentials stay in Railway shared variables referenced by the cache
-service. Do not commit credentials or plans containing decrypted values.
-No automatic infrastructure apply is configured. Application GitHub autodeploys
-and infrastructure plan/apply are separate operations.
-
-See [the RPC cache runbook](../docs/rpc-cache.md) for variables, preview behavior,
-consumer cutover, and rollback.
+See [the Railway guide](../docs/railway-self-hosting.md) for bootstrap, migration,
+variables, plan review, and rollback. Do not commit decrypted plans or secrets.

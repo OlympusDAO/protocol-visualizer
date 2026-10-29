@@ -2,34 +2,141 @@
 
 This project runs the Envio indexer, private Hasura, private Railway Bucket,
 snapshot publisher, snapshot monitor, public REST API, and frontend on Railway.
-Hasura, Postgres, the indexer, publisher, monitor, and bucket stay private. The
-only public data service is `snapshot-gateway`.
+Hasura, the indexer, publisher, monitor, bucket, and cache use private networking.
+The existing Envio Postgres operator TCP proxy is retained during migration.
+The public application services are `snapshot-gateway` and `frontend`.
 
 The private RPC proxy and its independent Postgres are described in
 [rpc-cache.md](rpc-cache.md), including variables, finality limits,
 deployment order, and rollback. Provision those two resources before routing
 consumers through the proxy.
 
-## Services
+## Infrastructure as Code
 
-New cache services use Railway native IaC. Review and apply the `rpc-cache`
-partial as documented in [rpc-cache.md](rpc-cache.md). Pushing an application
-commit does not apply infrastructure changes. Existing services keep their
-legacy JSON settings during this migration; those settings expire on 2026-12-01.
+[`.railway/railway.ts`](../.railway/railway.ts) defines the whole project:
+all seven application services, both databases, both volumes, the storage bucket,
+production domains, and canvas groups. It preserves the current database image
+majors and volume names. Service variables stay managed in Railway; IaC does
+not read, write, or delete their values.
 
+| Resource | Role |
+| --- | --- |
+| `Postgres` / `destruction-volume` | Envio data and Hasura metadata; existing Postgres 16 |
+| `rpc-cache-postgres` / `postgres-volume` | Independent RPC cache; existing Postgres 18 |
+| `hasura` | Private GraphQL for publisher and monitor |
+| `indexer` | Private Envio indexer |
+| `rpc-cache` | Private JSON-RPC cache |
+| `snapshot-publisher` | Hourly bucket publisher |
+| `snapshot-monitor` | Daily indexing monitor |
+| `snapshot-gateway` | Public REST API |
+| `frontend` | Public UI |
+| `storage` | Private snapshot bucket in `sjc` |
 
-| Service              | Railway config                    | Role                                      |
-| -------------------- | --------------------------------- | ----------------------------------------- |
-| `rpc-cache` | `.railway/railway.ts` | Private JSON-RPC cache |
-| `rpc-cache-postgres` | `.railway/railway.ts` | Persistent RPC cache only |
-| `Postgres`           | Railway template                  | Envio data and Hasura metadata            |
-| `hasura`             | `/railway-hasura.json`            | Private GraphQL for publisher/monitor     |
-| `indexer`            | `/railway-indexer.json`           | Private Envio indexer                     |
-| `snapshot-publisher` | `/railway-snapshot-publisher.json`| Hourly bucket publisher                   |
-| `snapshot-monitor`   | `/railway-snapshot-monitor.json`  | Daily Discord indexing monitor            |
-| `snapshot-gateway`   | `/railway-snapshot-gateway.json`  | Public Node REST API                      |
-| `frontend`           | `/railway-frontend.json`          | Public UI                                 |
-| Railway Bucket       | Railway storage bucket            | Private S3-compatible snapshot storage    |
+The imported Envio volume is 5,000 MB in production and 50,000 MB in previews.
+The cache volume is 50,000 MB. These are existing capacity limits, not database
+reset commands. Review any later capacity or region change before merging.
+
+## Bootstrap and migration
+
+Use Railway CLI 5.71.0 or newer, Node and pnpm from this repository, and the
+pinned Railway SDK installed by `pnpm install --frozen-lockfile`.
+
+The local migration used Railway's `config migrate --show` preview and
+`config pull --environment production --force --variables unmanaged` import.
+The preview found no active legacy Config File settings. The import retained
+storage and resource names; the repository's Docker, healthcheck, restart, and
+cron settings were then moved into the IaC file. The legacy JSON files are removed.
+Do not run `config pull --force` over the reviewed file during a normal rollout.
+
+For each existing environment, check migration state before deploying this change:
+
+```bash
+railway link
+railway config migrate status
+```
+
+Select the intended project and environment when linking. If the status lists
+legacy file readers, use the reversible cutover command before deploying the
+commit that removes those files:
+
+```bash
+railway config migrate cutover
+```
+
+That command changes live Config File settings and saves a local rollback
+snapshot. It is separate from the filesystem-only `config migrate --apply`
+generator. Keep the snapshot locally; `railway config migrate undo` restores
+its settings if needed. Neither operation resets application databases.
+No cutover, undo, or apply was run while preparing this migration.
+
+Before the first merge:
+
+1. Create a Railway project token scoped to **production**.
+2. Add it as the GitHub repository secret **`RAILWAY_TOKEN`**.
+3. Check all nine `ENVIO_RPC_URL_<id>` variables on the production indexer.
+4. Set all nine `RPC_URL_<id>` variables on both publisher and monitor.
+5. Preserve the other service variables listed below.
+6. Review the production plan posted on the PR.
+
+The inspected production environment lacks indexer RPC variables for chains
+421614 and 84532, and the publisher/monitor RPC variables. Supply these before
+merging. Initially use existing provider URLs where the proxy is not ready.
+
+The first production apply runs after merge, so it uses the new resume-capable
+indexer image on `master`. It creates the cache service, database, and volume.
+After creation, set the cache variables from [rpc-cache.md](rpc-cache.md) and
+redeploy that service. Its runtime fails clearly until those variables exist.
+Switch consumers to the proxy only after provider and cache checks pass.
+
+## Automatic plan and apply
+
+[`.github/workflows/railway-config.yml`](../.github/workflows/railway-config.yml)
+uses the pinned official [Railway Config Action](https://github.com/railwayapp/config).
+For same-repository PRs into `master` that affect IaC or its tooling:
+
+- Opening, reopening, or updating the PR produces a **production** plan comment.
+- Merging applies that exact saved plan to production.
+- Closing without merging does not apply anything.
+- Fork PRs do not receive the Railway credential or run these jobs.
+
+The action checks the environment revision and `.railway/` tree before apply.
+A changed environment or configuration requires a fresh PR plan. Destructive
+changes are blocked by `confirm-destructive: false`; they need a separate,
+explicitly approved operator action. Workflow runs are serialized for production
+and do not cancel an apply already in progress.
+
+The token selects the environment. It must be scoped to production for both
+jobs. Do not substitute a preview token. Production sources always use `master`,
+even while the production plan is generated from an unmerged PR.
+
+Application code continues to use Railway GitHub autodeploys and watch patterns.
+Those deployments can start independently of the IaC workflow; this workflow
+does not serialize application deployments behind an infrastructure apply.
+This workflow does **not** auto-apply IaC changes to PR environments on every
+commit. For preview infrastructure changes, run an explicit plan and apply:
+
+```bash
+export RAILWAY_ENVIRONMENT=protocol-visualizer-pr-82
+export RAILWAY_SOURCE_BRANCH=feat/robinhood-chain
+pnpm run railway:check
+pnpm run railway:plan
+# After reviewing the preview plan:
+railway config apply --environment "$RAILWAY_ENVIRONMENT"
+```
+
+Preview branches must be explicit. No production custom domains are attached to
+previews. Existing variables and generated Railway domains remain on Railway.
+A PR environment's databases survive ordinary redeploys and disappear when
+Railway deletes that temporary environment.
+
+## Rollback
+
+Restore previous application settings through a reviewed IaC change. Keep both
+databases, volumes, and the bucket in the definition. Omitting a resource from
+this whole-project file proposes deletion; the workflow blocks destructive
+applies. Never change the Envio database image major during this migration.
+Do not restore an old indexer image that resets the database at startup.
+For proxy failures, restore prior consumer RPC URLs while keeping cache storage.
 
 ## Handover Model
 
@@ -214,20 +321,12 @@ after the active manifest and every referenced chain artifact are accessible.
 Readiness failures emit sanitized, state-change-aware logs with provider error
 codes, affected chain ids when available, and check duration.
 
-## Deployment
+## Deployment checks
 
-For the existing deployment, plan and apply the cache partial using
-[rpc-cache.md](rpc-cache.md). Preserve the current Postgres, bucket, Hasura,
-indexer, publisher, monitor, gateway, and frontend resources. Route consumers
-through eRPC only after provider and cache checks pass.
-
-A fresh whole-stack deployment needs a complete IaC definition. The legacy
-JSON files in the table document existing service settings; new services cannot
-opt into them. Migrate the existing stack separately before the 2026-12-01
-cutoff, including its storage and environment-specific values.
-
-After consumer cutover, confirm gateway `GET /ready`, `GET /v1/bounds`, and
-`GET /v1/chains/1/protocol`, plus indexer progress and snapshot publication.
+After the initial apply, configure and verify the RPC cache, then check indexer
+progress, publisher and monitor configuration, gateway `GET /ready`,
+`GET /v1/bounds`, and `GET /v1/chains/1/protocol`. An infrastructure apply does
+not prove that every application deployment or provider is healthy.
 
 ## Cloudflare
 
@@ -239,3 +338,20 @@ paths outside the public REST surface. Let Cloudflare handle edge compression.
 
 Run the repository validation sequence from `AGENTS.md`. The local
 `validate:local` script also checks generated OpenAPI and the monitor build.
+
+
+## Recorded migration checks (2026-10-29)
+
+Railway CLI 5.71.0 and SDK 3.16.0 evaluated the complete definition. Read-only
+plans show 3 additions and 12 build/deploy updates in production, and 1 addition
+and 12 build/deploy updates in PR #82. Both have zero deletions and no changes
+to existing databases, volumes, bucket, groups, or service variables.
+The PostgreSQL images remain 16 for Envio and 18 for the separate cache.
+
+All nine required repository validation steps passed in order. Native SDK tests
+cover the resource inventory, database images, capacities, branch/domain rules,
+variable ownership, and merge workflow guards. Checksum-verified Actionlint
+1.7.12 validated the workflow. The workflow itself has not run against GitHub.
+The current GitHub credential received HTTP 403 when listing secret names, so
+the presence and scope of `RAILWAY_TOKEN` must be confirmed by a repository admin.
+No infrastructure apply, live variable edit, cutover, push, or deployment was run.

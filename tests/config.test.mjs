@@ -4,6 +4,13 @@ import { test } from "node:test";
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
+import { createRailwayContext } from "railway/iac";
+import defineInfrastructure from "../.railway/railway.ts";
+
+const railwayServices = defineInfrastructure(
+  createRailwayContext({ environment: "production" })
+).resources.flat(Infinity);
+
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 
 const dockerfileContent = (path) => readFileSync(path, "utf8");
@@ -40,67 +47,6 @@ test("other contracts are valid, unique chain-scoped identities", () => {
   }
 });
 
-test("Railway configs use root-anchored watch patterns and expected restart policies", () => {
-  const configs = [
-    ["railway-hasura.json", "Dockerfile-hasura", "ON_FAILURE"],
-    ["railway-indexer.json", "Dockerfile-indexer", "ON_FAILURE"],
-    ["railway-frontend.json", "Dockerfile-frontend", "ON_FAILURE"],
-    [
-      "railway-snapshot-gateway.json",
-      "Dockerfile-snapshot-gateway",
-      "ON_FAILURE",
-    ],
-    [
-      "railway-snapshot-publisher.json",
-      "Dockerfile-snapshot-publisher",
-      "NEVER",
-    ],
-    ["railway-snapshot-monitor.json", "Dockerfile-snapshot-monitor", "NEVER"],
-  ];
-
-  for (const [configPath, dockerfilePath, restartPolicy] of configs) {
-    const config = readJson(configPath);
-    assert.equal(config.build.dockerfilePath, dockerfilePath);
-    assert(
-      config.build.watchPatterns.every((pattern) => pattern.startsWith("/"))
-    );
-    assert(config.build.watchPatterns.includes(`/${dockerfilePath}`));
-    assert(config.build.watchPatterns.includes(`/${configPath}`));
-    assert(existsSync(dockerfilePath));
-    assert.equal(config.deploy.restartPolicyType, restartPolicy);
-    if (restartPolicy === "ON_FAILURE") {
-      assert.equal(config.deploy.restartPolicyMaxRetries, 1);
-    }
-  }
-
-  assert.equal(
-    readJson("railway-indexer.json").deploy.healthcheckPath,
-    "/healthz"
-  );
-  assert(
-    readJson("railway-indexer.json").build.watchPatterns.includes(
-      "/packages/protocol-config/**"
-    )
-  );
-  assert.equal(
-    readJson("railway-snapshot-gateway.json").deploy.healthcheckPath,
-    "/ready"
-  );
-  assert.equal(
-    readJson("railway-snapshot-publisher.json").deploy.cronSchedule,
-    "0 * * * *"
-  );
-  assert(
-    readJson("railway-snapshot-publisher.json").build.watchPatterns.includes(
-      "/apps/indexer/**"
-    )
-  );
-  assert.equal(
-    readJson("railway-snapshot-monitor.json").deploy.cronSchedule,
-    "5 0 * * *"
-  );
-});
-
 test("snapshot pre-deploy commands fail on missing RPC settings and validate without running jobs", () => {
   const chains = readJson(
     "packages/protocol-config/protocol-chains.json"
@@ -122,7 +68,8 @@ test("snapshot pre-deploy commands fail on missing RPC settings and validate wit
     ["snapshot-publisher", "publish.js"],
     ["snapshot-monitor", "index.js"],
   ]) {
-    const command = readJson(`railway-${service}.json`).deploy.preDeployCommand;
+    const command = railwayServices.find((node) => node.name === service).deploy
+      .preDeployCommand;
     assert.deepEqual(command, [`node dist/src/${entry} --check-config`]);
     const run = (variables) =>
       spawnSync(process.execPath, [`dist/src/${entry}`, "--check-config"], {

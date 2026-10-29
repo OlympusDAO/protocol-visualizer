@@ -116,7 +116,7 @@ For Railway or any externally managed Postgres database, set `DATABASE_URL`.
 `scripts/start-envio.mjs` maps it to Envio's `ENVIO_PG_*` variables at startup.
 Do not set `ENVIO_PG_SCHEMA` on Railway. Railway starts use `envio start` and resume compatible state. Envio retains its
 compatibility checks and does not automatically reset on failure. Use the
-[one-off rebuild procedure](../../docs/rpc-cache.md) for an intentional reset.
+[indexer operations runbook](../../docs/indexer-operations.md) for an intentional reset.
 
 ## Code Generation
 

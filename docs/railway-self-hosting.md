@@ -6,7 +6,7 @@ Hasura, Postgres, the indexer, publisher, monitor, and bucket stay private. The
 only public data service is `snapshot-gateway`.
 
 The private RPC proxy and its independent Postgres are described in
-[rpc-cache.md](rpc-cache.md), including variables, finality limits, rebuild,
+[rpc-cache.md](rpc-cache.md), including variables, finality limits,
 deployment order, and rollback. Provision those two resources before routing
 consumers through the proxy.
 
@@ -104,7 +104,8 @@ is not already precomputed or available in local ABI/source-code files.
 Do not set `ENVIO_PG_SCHEMA` on Railway. The indexer wrapper fails fast if it is
 set. Railway start commands run `envio start` and resume compatible state.
 Envio rejects incompatible changes; it does not automatically wipe data.
-For an intentional reset, follow the one-off rebuild in [rpc-cache.md](rpc-cache.md).
+For an intentional reset, follow [indexer-operations.md](indexer-operations.md),
+including the manual Railway CLI job that avoids SSH.
 
 The publisher and monitor read Envio's private `/metrics` endpoint to decide
 whether a deployment is ready. The indexer Railway service must set `PORT=9898`

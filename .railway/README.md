@@ -9,20 +9,22 @@ outside IaC ownership. Configure and verify the cache before routing consumers.
 Use the repository-pinned SDK and Railway CLI 5.71.0 or newer:
 
 ```bash
-export RAILWAY_ENVIRONMENT=protocol-visualizer-pr-82
-export RAILWAY_SOURCE_BRANCH=feat/robinhood-chain
+railway link --environment protocol-visualizer-pr-82
+railway status
 pnpm run railway:check
 umask 077
-pnpm run railway:plan --out railway-plan.json
+pnpm run railway:plan
 ```
 
-For production, use `RAILWAY_ENVIRONMENT=production`; its source branch is always
-`master`. Preview source branches must be explicit.
+The commands use the linked project and environment. Railway selects the PR
+branch from its environment metadata; production always uses `master`. Changing
+Git branches does not change the Railway link. Verify the plan target before apply.
+For production, pass `--environment production` to both commands.
 
 After reviewing the saved whole-project plan, apply those exact changes:
 
 ```bash
-railway config apply --environment "$RAILWAY_ENVIRONMENT" --plan railway-plan.json
+pnpm run railway:apply
 ```
 
 This can redeploy services and change consumer RPC URLs. Verify the cache before

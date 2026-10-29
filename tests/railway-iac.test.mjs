@@ -4,27 +4,19 @@ import { test } from "node:test";
 import { createRailwayContext } from "railway/iac";
 import defineInfrastructure from "../.railway/railway.ts";
 
-async function infrastructure(environment, branch) {
-  const previous = process.env.RAILWAY_SOURCE_BRANCH;
-  if (branch) process.env.RAILWAY_SOURCE_BRANCH = branch;
-  else delete process.env.RAILWAY_SOURCE_BRANCH;
-  try {
-    const definition = await defineInfrastructure(
-      createRailwayContext({ environment })
-    );
-    return { definition, resources: definition.resources.flat(Infinity) };
-  } finally {
-    if (previous === undefined) delete process.env.RAILWAY_SOURCE_BRANCH;
-    else process.env.RAILWAY_SOURCE_BRANCH = previous;
-  }
+async function infrastructure(environment) {
+  const definition = await defineInfrastructure(
+    createRailwayContext({ environment })
+  );
+  return { definition, resources: definition.resources.flat(Infinity) };
 }
 
 test("whole-project IaC retains storage and wires services without embedding secrets", async () => {
-  for (const [environment, branch, envioSize] of [
-    ["production", undefined, 5000],
-    ["protocol-visualizer-pr-82", "feat/robinhood-chain", 50000],
+  for (const [environment, envioSize] of [
+    ["production", 5000],
+    ["protocol-visualizer-pr-82", 50000],
   ]) {
-    const { definition, resources } = await infrastructure(environment, branch);
+    const { definition, resources } = await infrastructure(environment);
     assert.equal(definition.name, "protocol-visualizer");
     assert.equal(definition.variables.managed, true);
     assert(definition.variables.ignore.includes("RPC_CACHE_MAX_RPS"));
@@ -58,7 +50,10 @@ test("whole-project IaC retains storage and wires services without embedding sec
     assert.equal(get("postgres-volume").config.sizeMB, 50000);
     assert.equal(get("storage").config.region, "sjc");
     for (const node of resources.filter((r) => r.type === "service")) {
-      assert.equal(node.source.branch, branch ?? "master");
+      assert.equal(
+        node.source.branch,
+        environment === "production" ? "master" : undefined
+      );
       assert.equal(node.source.checkSuites, true);
       assert.equal(node.build.builder, "DOCKERFILE");
       assert.equal(node.build.dockerfilePath, `Dockerfile-${node.name}`);
@@ -146,31 +141,6 @@ test("whole-project IaC retains storage and wires services without embedding sec
           0
         );
     }
-  }
-});
-
-test("preview planning requires an explicit branch; production always uses master", async () => {
-  const previous = process.env.RAILWAY_SOURCE_BRANCH;
-  delete process.env.RAILWAY_SOURCE_BRANCH;
-  try {
-    assert.throws(
-      () =>
-        defineInfrastructure(
-          createRailwayContext({ environment: "protocol-visualizer-pr-82" })
-        ),
-      /Set RAILWAY_SOURCE_BRANCH/
-    );
-    const { resources } = await infrastructure(
-      "production",
-      "unmerged-feature"
-    );
-    assert(
-      resources
-        .filter((r) => r.type === "service")
-        .every((r) => r.source.branch === "master")
-    );
-  } finally {
-    if (previous !== undefined) process.env.RAILWAY_SOURCE_BRANCH = previous;
   }
 });
 

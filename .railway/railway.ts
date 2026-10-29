@@ -14,13 +14,9 @@ import {
 // Secret values remain in Railway; IaC owns connections, not provider credentials.
 export default defineRailway((ctx) => {
   const production = ctx.isEnvironment("production");
-  const branch = production
-    ? "master"
-    : process.env.RAILWAY_SOURCE_BRANCH?.trim();
-  if (!branch)
-    throw new Error("Set RAILWAY_SOURCE_BRANCH to the target PR branch");
   const source = github("OlympusDAO/protocol-visualizer", {
-    branch,
+    // Explicit undefined overrides the SDK's "main" default for PR environments.
+    branch: production ? "master" : undefined,
     checkSuites: true,
   });
 

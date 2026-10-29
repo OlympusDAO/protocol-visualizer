@@ -41,7 +41,8 @@
     "test:rpc-cache": "node --test services/rpc-cache/integration.test.mjs",
     "indexer:reset:railway": "railway ssh --service indexer --environment \"${RAILWAY_ENVIRONMENT:?Set RAILWAY_ENVIRONMENT to the target Railway environment}\" -- /nodejs/bin/node /app/apps/indexer/scripts/reset-envio.mjs",
     "railway:check": "tsc -p .railway/tsconfig.json",
-    "railway:plan": "railway config plan --environment \"${RAILWAY_ENVIRONMENT:?Set RAILWAY_ENVIRONMENT to the target Railway environment}\""
+    "railway:plan": "railway config plan --out railway-plan.json",
+    "railway:apply": "railway config apply --plan railway-plan.json"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

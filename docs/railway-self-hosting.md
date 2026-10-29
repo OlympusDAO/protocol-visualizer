@@ -175,52 +175,42 @@ If a valid CLI login already exists, omit `railway login`.
 If `RAILWAY_TOKEN` is set, use a token scoped to the intended environment.
 The GitHub workflow's token is scoped to production.
 
-### 2. Select the environment and source branch
+### 2. Select the environment
 
-For PR 82:
-
-```bash
-export RAILWAY_ENVIRONMENT=protocol-visualizer-pr-82
-export RAILWAY_SOURCE_BRANCH=feat/robinhood-chain
-```
-
-For production:
+Link this directory once to the intended project and environment:
 
 ```bash
-export RAILWAY_ENVIRONMENT=production
-unset RAILWAY_SOURCE_BRANCH
+railway link --environment protocol-visualizer-pr-82
+railway status
 ```
 
-Production sources always use `master`. Each preview requires its own explicit GitHub branch.
-`RAILWAY_ENVIRONMENT` selects the deployment destination. `RAILWAY_SOURCE_BRANCH` selects application source for previews.
-These are local terminal variables. They do not create service variables in Railway.
-
-Link this directory to the `protocol-visualizer` project and the intended environment:
-
-```bash
-railway link --environment "$RAILWAY_ENVIRONMENT"
-railway status --environment "$RAILWAY_ENVIRONMENT"
-```
-
-Verify the project and environment names before continuing.
-Select `protocol-visualizer` if the link command prompts for a project.
+Select `protocol-visualizer` if prompted. Verify the project and environment names.
+The plan and apply scripts use this linked context without repeated environment exports.
+Railway gets the source branch from its PR environment metadata when creating services.
+Existing preview services retain their configured branch. Production sources always use `master`.
+No PR number or source branch export is required by the scripts.
+Changing Git branches does not change the Railway link. Link again when switching deployment targets.
 
 ### 3. Generate a plan without deploying
 
 ```bash
 pnpm run railway:check
 umask 077
-pnpm run railway:plan --out railway-plan.json
+pnpm run railway:plan
 ```
 
-The package script forwards `--out` to `railway config plan` and supplies the selected environment.
+The script saves `railway-plan.json` for the linked environment.
+To select production explicitly, use `pnpm run railway:plan --environment production`.
+Pass the same environment to apply. Verify the target in the plan before continuing.
+
 The equivalent direct command is:
 
 ```bash
-railway config plan --environment "$RAILWAY_ENVIRONMENT" --out railway-plan.json
+railway config plan --out railway-plan.json
 ```
 
-For a terminal-only preview, omit `--out railway-plan.json`.
+For a terminal-only preview, run `railway config plan`.
+For a different artifact path, use the direct CLI command with `--out <path>`.
 The saved artifact pins the proposed changes and environment revision for the later apply.
 `railway-plan.json` is ignored by Git. Treat it as private even though terminal values are redacted.
 Do not commit, share, or force-add the artifact.
@@ -263,9 +253,10 @@ If the configuration, checkout revision, or live environment changes, generate a
 Only after reviewing the saved plan, run:
 
 ```bash
-railway config apply --environment "$RAILWAY_ENVIRONMENT" --plan railway-plan.json
+pnpm run railway:apply
 ```
 
+For an explicit production plan, use `pnpm run railway:apply --environment production`.
 Keep the target environment unchanged between plan and apply.
 The command applies the saved changes without re-evaluating the authoring file.
 If Railway rejects a stale plan, generate a fresh plan and review it again.
@@ -275,9 +266,9 @@ A manual production apply can invalidate an older saved plan from the GitHub wor
 ### 6. Verify the application deployments
 
 ```bash
-railway deployment list --service rpc-cache --environment "$RAILWAY_ENVIRONMENT"
-railway deployment list --service indexer --environment "$RAILWAY_ENVIRONMENT"
-railway logs --service indexer --environment "$RAILWAY_ENVIRONMENT" --latest --lines 50
+railway deployment list --service rpc-cache
+railway deployment list --service indexer
+railway logs --service indexer --latest --lines 50
 ```
 
 Verify the healthchecks, advancing indexer blocks, and cache hits through private-network access.
@@ -288,10 +279,11 @@ See [Deployment checks](#deployment-checks) and [the cache checks](rpc-cache.md#
 
 | Message | Action |
 | --- | --- |
-| `Set RAILWAY_SOURCE_BRANCH to the target PR branch` | Export the preview's GitHub branch in the same terminal before the plan. For production, select `RAILWAY_ENVIRONMENT=production`. |
-| `Set RAILWAY_ENVIRONMENT to the target Railway environment` | Export the target environment before using `pnpm run railway:plan`. |
+| `Set RAILWAY_SOURCE_BRANCH to the target PR branch` | Update the checkout. Current IaC follows Railway's PR branch metadata without this export. |
+| No linked project or wrong environment | Run `railway link` and verify `railway status`, or pass `--environment <name>` to both scripts. |
 | `variables.ignore pattern ... matches no variable` | If the optional operator variable is absent, no action is required. |
 | `preserve() → «hidden»` | Read this as a hidden current value changing to the value declared in IaC. |
+| `CI check suite failed` / deployment `SKIPPED` | Fix the failing GitHub check and publish the fix to the configured source branch. An IaC apply uses published application code; local fixes are not uploaded. |
 | Stale saved plan or environment revision mismatch | Generate and review a fresh plan for the same target environment. |
 | Service still managed by a repository config file | Follow [Bootstrap and migration](#bootstrap-and-migration) before applying. |
 

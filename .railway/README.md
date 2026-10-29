@@ -12,11 +12,23 @@ Use the repository-pinned SDK and Railway CLI 5.71.0 or newer:
 export RAILWAY_ENVIRONMENT=protocol-visualizer-pr-82
 export RAILWAY_SOURCE_BRANCH=feat/robinhood-chain
 pnpm run railway:check
-pnpm run railway:plan
+umask 077
+pnpm run railway:plan --out railway-plan.json
 ```
 
 For production, use `RAILWAY_ENVIRONMENT=production`; its source branch is always
 `master`. Preview source branches must be explicit.
+
+After reviewing the saved whole-project plan, apply those exact changes:
+
+```bash
+railway config apply --environment "$RAILWAY_ENVIRONMENT" --plan railway-plan.json
+```
+
+This can redeploy services and change consumer RPC URLs. Verify the cache before
+that switch. The plan is private and ignored by Git.
+Use the [manual deployment procedure](../docs/railway-self-hosting.md#manual-iac-plan-and-deployment)
+for login, project selection, required validation, and common plan messages.
 
 The GitHub workflow plans production changes on PR updates and applies the saved
 plan on merge to `master`. Set a production-scoped project token as the GitHub

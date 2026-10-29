@@ -142,21 +142,158 @@ Application code continues to use Railway GitHub autodeploys and watch patterns.
 Those deployments can start independently of the IaC workflow; this workflow
 does not serialize application deployments behind an infrastructure apply.
 This workflow does **not** auto-apply IaC changes to PR environments on every
-commit. For preview infrastructure changes, run an explicit plan and apply:
-
-```bash
-export RAILWAY_ENVIRONMENT=protocol-visualizer-pr-82
-export RAILWAY_SOURCE_BRANCH=feat/robinhood-chain
-pnpm run railway:check
-pnpm run railway:plan
-# After reviewing the preview plan:
-railway config apply --environment "$RAILWAY_ENVIRONMENT"
-```
+commit. Preview infrastructure changes use the manual procedure below.
 
 Preview branches must be explicit. No production custom domains are attached to
 previews. Operator secrets and generated Railway domains remain on Railway.
 A PR environment's databases survive ordinary redeploys and disappear when
 Railway deletes that temporary environment.
+
+## Manual IaC plan and deployment
+
+Run these commands from the repository root on your local machine.
+Use Railway CLI 5.71.0 or newer and the repository-pinned Node and pnpm versions.
+The target Railway environment must already exist.
+
+A plan reads Railway configuration without changing resources or service variables.
+An apply changes the whole environment described by `.railway/railway.ts`.
+It can create resources, update variables, and trigger application deployments.
+It does not upload local application code. Application builds use their configured GitHub branch.
+
+### 1. Prepare the local checkout and login
+
+```bash
+nvm use
+pnpm run check:runtime-versions
+pnpm install --frozen-lockfile
+railway --version
+railway login
+railway whoami
+```
+
+If a valid CLI login already exists, omit `railway login`.
+If `RAILWAY_TOKEN` is set, use a token scoped to the intended environment.
+The GitHub workflow's token is scoped to production.
+
+### 2. Select the environment and source branch
+
+For PR 82:
+
+```bash
+export RAILWAY_ENVIRONMENT=protocol-visualizer-pr-82
+export RAILWAY_SOURCE_BRANCH=feat/robinhood-chain
+```
+
+For production:
+
+```bash
+export RAILWAY_ENVIRONMENT=production
+unset RAILWAY_SOURCE_BRANCH
+```
+
+Production sources always use `master`. Each preview requires its own explicit GitHub branch.
+`RAILWAY_ENVIRONMENT` selects the deployment destination. `RAILWAY_SOURCE_BRANCH` selects application source for previews.
+These are local terminal variables. They do not create service variables in Railway.
+
+Link this directory to the `protocol-visualizer` project and the intended environment:
+
+```bash
+railway link --environment "$RAILWAY_ENVIRONMENT"
+railway status --environment "$RAILWAY_ENVIRONMENT"
+```
+
+Verify the project and environment names before continuing.
+Select `protocol-visualizer` if the link command prompts for a project.
+
+### 3. Generate a plan without deploying
+
+```bash
+pnpm run railway:check
+umask 077
+pnpm run railway:plan --out railway-plan.json
+```
+
+The package script forwards `--out` to `railway config plan` and supplies the selected environment.
+The equivalent direct command is:
+
+```bash
+railway config plan --environment "$RAILWAY_ENVIRONMENT" --out railway-plan.json
+```
+
+For a terminal-only preview, omit `--out railway-plan.json`.
+The saved artifact pins the proposed changes and environment revision for the later apply.
+`railway-plan.json` is ignored by Git. Treat it as private even though terminal values are redacted.
+Do not commit, share, or force-add the artifact.
+
+### 4. Review the plan
+
+Verify the target environment, resource changes, and variable changes.
+Stop for unexpected deletions, database image changes, volume changes, or unrelated service changes.
+
+This is a whole-project plan. There is no `--service` or `--target` selector for this apply.
+It is not the cache-only bootstrap procedure. A reusable cache-only bootstrap command is not yet provided.
+The full apply also routes the indexer, publisher, and monitor through eRPC.
+Before that switch, supply all nine upstream credentials and verify the cache.
+The manual values and automatic references are listed in [Automatic variables and manual secrets](#automatic-variables-and-manual-secrets).
+
+Variable diffs show the current value before the arrow and the desired value after it:
+
+```text
+Update variable indexer.ENVIO_RPC_URL_1
+  indexer.ENVIO_RPC_URL_1 (preserve() → «hidden»)
+```
+
+Here, `preserve()` represents the hidden current value. The update replaces it with the reference declared in IaC.
+`«hidden»` means that the CLI redacts the desired value. It does not mean that the variable stays unchanged.
+An explicit `preserve()` in the service's `env` definition retains its existing value.
+The provider URLs, API tokens, and webhooks use that explicit form.
+Connection references and consumer RPC URLs do not.
+
+Warnings such as `variables.ignore pattern "RPC_CACHE_MAX_RPS" matches no variable` describe absent optional operator variables.
+If an operator supplies those variables later, the ignore rules retain their values.
+They do not create values or disable automatic connection references.
+
+### 5. Apply the reviewed plan
+
+Before applying, complete the repository validation sequence in [AGENTS.md](../AGENTS.md).
+Publish required application and Dockerfile changes to the configured GitHub branch before its builds start.
+Commit intended IaC changes before generating the final plan.
+If the configuration, checkout revision, or live environment changes, generate and review a fresh plan.
+
+Only after reviewing the saved plan, run:
+
+```bash
+railway config apply --environment "$RAILWAY_ENVIRONMENT" --plan railway-plan.json
+```
+
+Keep the target environment unchanged between plan and apply.
+The command applies the saved changes without re-evaluating the authoring file.
+If Railway rejects a stale plan, generate a fresh plan and review it again.
+Do not add `--confirm-destructive` to bypass an unexpected destructive change.
+A manual production apply can invalidate an older saved plan from the GitHub workflow.
+
+### 6. Verify the application deployments
+
+```bash
+railway deployment list --service rpc-cache --environment "$RAILWAY_ENVIRONMENT"
+railway deployment list --service indexer --environment "$RAILWAY_ENVIRONMENT"
+railway logs --service indexer --environment "$RAILWAY_ENVIRONMENT" --latest --lines 50
+```
+
+Verify the healthchecks, advancing indexer blocks, and cache hits through private-network access.
+An accepted IaC apply does not prove that indexing works.
+See [Deployment checks](#deployment-checks) and [the cache checks](rpc-cache.md#deployment-order-and-rollback-checklist).
+
+### Troubleshooting
+
+| Message | Action |
+| --- | --- |
+| `Set RAILWAY_SOURCE_BRANCH to the target PR branch` | Export the preview's GitHub branch in the same terminal before the plan. For production, select `RAILWAY_ENVIRONMENT=production`. |
+| `Set RAILWAY_ENVIRONMENT to the target Railway environment` | Export the target environment before using `pnpm run railway:plan`. |
+| `variables.ignore pattern ... matches no variable` | If the optional operator variable is absent, no action is required. |
+| `preserve() → «hidden»` | Read this as a hidden current value changing to the value declared in IaC. |
+| Stale saved plan or environment revision mismatch | Generate and review a fresh plan for the same target environment. |
+| Service still managed by a repository config file | Follow [Bootstrap and migration](#bootstrap-and-migration) before applying. |
 
 ## Rollback
 

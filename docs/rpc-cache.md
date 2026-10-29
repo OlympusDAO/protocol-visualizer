@@ -1,9 +1,16 @@
 # Private RPC cache
 
-Provision **two new Railway resources manually**: `rpc-cache` (this repository,
-config `/railway-rpc-cache.json`) and `rpc-cache-postgres` (a separate Postgres
-service with persistent storage). Do not reuse the Envio database or role.
-No infrastructure resources or live variables are created by this change.
+[Railway native Infrastructure as Code](https://docs.railway.com/infrastructure-as-code)
+in [`.railway/railway.ts`](../.railway/railway.ts)
+declares `rpc-cache` and its separate `rpc-cache-postgres` database.
+An operator reviews and applies this configuration. No resources or live
+variables are changed by building or committing this repository.
+
+The named `rpc-cache` partial limits ownership to these two resources during
+migration. Existing Envio services, databases, volumes, and buckets stay outside
+that ownership. Keep the partial name stable. Removing a resource from this
+partial after it owns that resource can delete it on a later apply.
+Do not reuse the Envio database or role.
 
 ## Image and request behavior
 
@@ -87,11 +94,11 @@ finalized watermark remains safe if a provider later becomes unavailable.
 
 ## Railway variables and private networking
 
-On `rpc-cache` (Required):
+Before applying IaC, set these nine **shared variables** in the target Railway
+environment. The configuration references them only on `rpc-cache`; it does not
+copy credentials into source or frontend variables.
 
 ```text
-PORT=4000
-RPC_CACHE_DATABASE_URL=${{rpc-cache-postgres.DATABASE_URL}}
 UPSTREAM_RPC_URL_1=<Ethereum archive provider URL>
 UPSTREAM_RPC_URL_10=<Optimism archive provider URL>
 UPSTREAM_RPC_URL_42161=<Arbitrum archive provider URL>
@@ -103,7 +110,13 @@ UPSTREAM_RPC_URL_421614=<Arbitrum Sepolia archive provider URL>
 UPSTREAM_RPC_URL_84532=<Base Sepolia archive provider URL>
 ```
 
-Optional: `RPC_CACHE_MAX_RPS=50`. This is one aggregate upstream request budget
+IaC sets `PORT=4000`, `RPC_CACHE_MAX_RPS=50`, and
+`RPC_CACHE_DATABASE_URL=${{rpc-cache-postgres.DATABASE_URL}}` on `rpc-cache`.
+The database helper provisions its own persistent storage. Configure backups
+and check the database connection before consumer cutover.
+
+Edit the budget in `.railway/railway.ts` when the provider allowance changes.
+This is one aggregate upstream request budget
 per second per eRPC instance, shared by all nine providers, including polling.
 Start with **one replica**; multiple replicas multiply the provider budget.
 Tune it to the provider account's actual allowance. Cache hits do not spend this
@@ -226,14 +239,79 @@ Remove the exception after remediation. Any extension needs explicit approval
 and a new deadline; do not renew it automatically. A passing scan during this
 window means the known risk is temporarily accepted, not fixed.
 
+## Plan and apply the cache infrastructure
+
+Use Railway CLI 5.71.0 or newer and the repository-pinned `railway` 3.16.0 SDK.
+Install dependencies with the pinned Node and pnpm versions. Link the checkout
+to the intended Railway project with `railway link`.
+
+Set the target environment and GitHub source branch explicitly:
+
+```bash
+export RAILWAY_ENVIRONMENT=protocol-visualizer-pr-82
+export RAILWAY_SOURCE_BRANCH=feat/robinhood-chain
+pnpm run railway:check
+pnpm run railway:plan
+```
+
+For production, select `RAILWAY_ENVIRONMENT=production` and
+`RAILWAY_SOURCE_BRANCH=master`. The source branch is required; the configuration
+never guesses a default branch for a PR environment. It selects the branch,
+not a fixed commit, so later commits can trigger ordinary GitHub autodeploys.
+
+Review the plan before applying. For a new environment, it must add only the
+cache pair and their managed database storage. An existing cache database is
+matched by name and retained. Reject unexpected changes to existing services,
+volumes, buckets, or variables. The initial plan may also
+report missing shared variables until the upstream settings above exist.
+Do not use `--show-values`, `--decrypt-variables`, or a secret-bearing import.
+
+After approval, run from the same shell:
+
+```bash
+railway config apply --environment "$RAILWAY_ENVIRONMENT"
+```
+
+This command creates or updates infrastructure and can trigger deployments.
+It is an operator action, not a normal build or application startup step.
+Review its fresh plan and confirmation prompt. No apply command was run while
+implementing this change. If the cache service already has a legacy Config File
+setting, clear that setting before planning it with IaC.
+
+### PR environments
+
+IaC is compatible with Railway PR environments. Application commits still
+trigger GitHub autodeploys according to each service's watch patterns.
+Railway does not evaluate `.railway/railway.ts` during an application deployment;
+infrastructure changes need a separate `config plan` and `config apply`.
+The official plan-on-PR/apply-on-merge action targets the environment of its
+token; it does not automatically apply to every PR environment.
+
+For this existing preview, apply the partial to `protocol-visualizer-pr-82`.
+Once the base environment contains the cache pair, standard PR environments can
+clone those services and their variable references. Use full PR environments
+for an isolated cache and database. Verify the target branch and shared
+credentials in each preview. Focused previews can omit unchanged dependencies.
+Sealed variables are not copied into previews and need separate preview values.
+
+Cached responses survive commits and indexer rebuilds within one environment.
+Closing the PR deletes its temporary environment and cache. A new PR starts
+with its own cache; this configuration does not share production cache storage.
+
+The existing services retain their legacy JSON configuration during this scoped
+migration. Railway stops reading those files on 2026-12-01. A full-project
+migration must preserve every existing resource and clear the legacy Config File
+settings. Do not remove this partial export or run a whole-project apply with
+only the cache pair: omitted resources can be deleted.
+
 ## Deployment order and rollback checklist
 
 - Confirm the image security finding is fixed or the approved exception above
   remains valid before cutover.
-- Provision `rpc-cache-postgres` with a dedicated role/database and persistent
-  volume; configure backups, monitor disk growth, and confirm the DSN targets it.
-- Create `rpc-cache`, select `/railway-rpc-cache.json`, set the variables above,
-  keep it private, deploy one replica, and check database initialization.
+- Set the nine upstream shared variables and review the IaC plan for the target
+  environment. Apply only after approval.
+- Check `rpc-cache-postgres` storage, backups, and connectivity, then the private
+  `rpc-cache` deployment. Keep one replica and no public domain or TCP proxy.
 - For each chain, verify the real provider's chain ID, finalized head, archive
   reads, and log limits. Send a numeric finalized historical request twice and
   check `X-ERPC-Cache: MISS` then `HIT`. Check `/healthcheck` and private metrics.
@@ -277,3 +355,19 @@ credentials were found in the session or local indexer/root env files. All nine
 real providers, especially Robinhood's finality semantics and archive/EIP-1898
 support, still need verification before cutover. Hash-bound calls with unknown
 finality remain deliberately uncached and may limit rebuild savings.
+
+
+## IaC migration validation (2026-10-29)
+
+The configuration typechecks against the pinned Railway SDK 3.16.0. Native SDK
+fixtures check PR and production branch selection, exact chain coverage, private
+credential references, health settings, and the two-resource ownership boundary.
+A read-only plan against `protocol-visualizer-pr-82` reports one addition
+(`rpc-cache`), zero changes, and zero deletions. `rpc-cache-postgres` already
+exists there with Railway's Postgres 18 image. No apply or live migration was run.
+The earlier cache/database integration used disposable Postgres 17; it does not
+prove behavior against that live Postgres 18 service or its upstream providers.
+
+The required nine-step repository validation passed again after a clean install
+with the pinned SDK. The dependency audit has no moderate-or-higher findings;
+one existing low-severity `deepmerge` advisory remains outside this change.

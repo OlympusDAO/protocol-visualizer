@@ -12,10 +12,16 @@ consumers through the proxy.
 
 ## Services
 
+New cache services use Railway native IaC. Review and apply the `rpc-cache`
+partial as documented in [rpc-cache.md](rpc-cache.md). Pushing an application
+commit does not apply infrastructure changes. Existing services keep their
+legacy JSON settings during this migration; those settings expire on 2026-12-01.
+
+
 | Service              | Railway config                    | Role                                      |
 | -------------------- | --------------------------------- | ----------------------------------------- |
-| `rpc-cache` | `/railway-rpc-cache.json` | Private JSON-RPC cache |
-| `rpc-cache-postgres` | Railway template | Persistent RPC cache only |
+| `rpc-cache` | `.railway/railway.ts` | Private JSON-RPC cache |
+| `rpc-cache-postgres` | `.railway/railway.ts` | Persistent RPC cache only |
 | `Postgres`           | Railway template                  | Envio data and Hasura metadata            |
 | `hasura`             | `/railway-hasura.json`            | Private GraphQL for publisher/monitor     |
 | `indexer`            | `/railway-indexer.json`           | Private Envio indexer                     |
@@ -210,15 +216,18 @@ codes, affected chain ids when available, and check duration.
 
 ## Deployment
 
-1. Create Postgres and Railway Bucket.
-2. Create Hasura, indexer, publisher, monitor, gateway, and frontend services
-   with their config-as-code files.
-3. Configure variables using Railway references.
-4. Deploy Hasura and indexer.
-5. Manually run `snapshot-publisher` once.
-6. Confirm `GET /ready`, `GET /v1/bounds`, and
-   `GET /v1/chains/1/protocol` through the gateway.
-7. Point the frontend at the Cloudflare-proxied gateway domain.
+For the existing deployment, plan and apply the cache partial using
+[rpc-cache.md](rpc-cache.md). Preserve the current Postgres, bucket, Hasura,
+indexer, publisher, monitor, gateway, and frontend resources. Route consumers
+through eRPC only after provider and cache checks pass.
+
+A fresh whole-stack deployment needs a complete IaC definition. The legacy
+JSON files in the table document existing service settings; new services cannot
+opt into them. Migrate the existing stack separately before the 2026-12-01
+cutoff, including its storage and environment-specific values.
+
+After consumer cutover, confirm gateway `GET /ready`, `GET /v1/bounds`, and
+`GET /v1/chains/1/protocol`, plus indexer progress and snapshot publication.
 
 ## Cloudflare
 

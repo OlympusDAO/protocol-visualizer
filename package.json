@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@11.28.7",
   "scripts": {
-    "build": "turbo run build && pnpm run test:config",
+    "build": "turbo run build && pnpm run railway:check && pnpm run test:config",
     "check:runtime-versions": "node scripts/verify-runtime-versions.mjs",
     "docker:build:frontend": "docker build -f Dockerfile-frontend --build-arg VITE_PROTOCOL_SNAPSHOT_BASE_URL=http://localhost:8082 -t protocol-visualizer/frontend:local .",
     "docker:build:hasura": "docker build -f Dockerfile-hasura -t protocol-visualizer/hasura:local .",
@@ -39,7 +39,9 @@
     "docker:build:rpc-cache": "docker build -f Dockerfile-rpc-cache -t protocol-visualizer/rpc-cache:local .",
     "docker:tag:scan:rpc-cache": "docker tag protocol-visualizer/rpc-cache:local protocol-visualizer/rpc-cache:scan",
     "test:rpc-cache": "node --test services/rpc-cache/integration.test.mjs",
-    "indexer:reset:railway": "railway ssh --service indexer --environment \"${RAILWAY_ENVIRONMENT:?Set RAILWAY_ENVIRONMENT to the target Railway environment}\" -- /nodejs/bin/node /app/apps/indexer/scripts/reset-envio.mjs"
+    "indexer:reset:railway": "railway ssh --service indexer --environment \"${RAILWAY_ENVIRONMENT:?Set RAILWAY_ENVIRONMENT to the target Railway environment}\" -- /nodejs/bin/node /app/apps/indexer/scripts/reset-envio.mjs",
+    "railway:check": "tsc -p .railway/tsconfig.json",
+    "railway:plan": "railway config plan --environment \"${RAILWAY_ENVIRONMENT:?Set RAILWAY_ENVIRONMENT to the target Railway environment}\""
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
@@ -47,7 +49,8 @@
     "@typescript/typescript6": "^6.0.2",
     "semver": "^7.8.5",
     "turbo": "^2.11.8",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "railway": "3.16.0"
   },
   "workspaces": [
     "apps/*",

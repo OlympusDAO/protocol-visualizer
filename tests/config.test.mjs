@@ -44,7 +44,6 @@ test("Railway configs use root-anchored watch patterns and expected restart poli
   const configs = [
     ["railway-hasura.json", "Dockerfile-hasura", "ON_FAILURE"],
     ["railway-indexer.json", "Dockerfile-indexer", "ON_FAILURE"],
-    ["railway-rpc-cache.json", "Dockerfile-rpc-cache", "ON_FAILURE"],
     ["railway-frontend.json", "Dockerfile-frontend", "ON_FAILURE"],
     [
       "railway-snapshot-gateway.json",

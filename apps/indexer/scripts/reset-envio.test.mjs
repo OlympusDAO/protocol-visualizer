@@ -23,8 +23,7 @@ async function until(check) {
   }
   throw new Error("Fixture did not become ready");
 }
-function command(file, args, options) {
-  const child = spawn(file, args, options);
+function command(child) {
   let output = "";
   child.stdout?.on("data", (chunk) => {
     output += chunk;
@@ -43,7 +42,9 @@ for (const migrationCode of [0, 17]) {
   test(`reset stops ingestion before migration and resumes only after success (exit ${migrationCode})`, {
     timeout: 20_000,
   }, async () => {
-    const root = realpathSync(mkdtempSync(join(tmpdir(), "envio-reset-test-")));
+    const root = realpathSync(
+      mkdtempSync(join(tmpdir(), "envio reset 'quoted' $path;-"))
+    );
     const app = join(root, "apps/indexer");
     const scripts = join(app, "scripts");
     const running = join(root, "running");
@@ -55,26 +56,9 @@ for (const migrationCode of [0, 17]) {
     writeFileSync(migrationBlocked, "");
     for (const file of ["start-envio.mjs", "reset-envio.mjs"])
       copyFileSync(new URL(file, import.meta.url), join(scripts, file));
-    const worker = `const fs=require("node:fs");fs.writeFileSync(${JSON.stringify(workerRunning)},String(process.pid));process.on("SIGTERM",()=>{fs.unlinkSync(${JSON.stringify(workerRunning)});process.exit(0)});setInterval(()=>{},1000);`;
-    writeFileSync(
-      join(app, "node_modules/envio/bin.mjs"),
-      `
-import fs from "node:fs";
-import { spawn } from "node:child_process";
-if (process.argv[2] === "start") {
-  fs.writeFileSync(${JSON.stringify(running)}, String(process.pid));
-  const worker=spawn(process.execPath,["-e",${JSON.stringify(worker)}],{stdio:"ignore"});
-  let stopping=false;
-  worker.once("exit",()=>{if(stopping)process.exit(0)});
-  process.on("SIGTERM",()=>{stopping=true;fs.unlinkSync(${JSON.stringify(running)});if(worker.exitCode!==null)process.exit(0);worker.kill("SIGTERM")});
-  setInterval(()=>{},1000);
-} else {
-  if (fs.existsSync(${JSON.stringify(running)}) || fs.existsSync(${JSON.stringify(workerRunning)})) throw new Error("Migration started before ingestion stopped");
-  fs.appendFileSync(${JSON.stringify(migrated)}, process.argv.slice(2).join(" ")+"\\n");
-  while (fs.existsSync(${JSON.stringify(migrationBlocked)})) await new Promise(resolve=>setTimeout(resolve,25));
-  process.exit(${migrationCode});
-}
-`
+    copyFileSync(
+      new URL("fixtures/reset-envio.mjs", import.meta.url),
+      join(app, "node_modules/envio/bin.mjs")
     );
     const hasura = http.createServer((_req, res) => res.end("{}"));
     await new Promise((accept) => hasura.listen(0, "127.0.0.1", accept));
@@ -91,13 +75,18 @@ if (process.argv[2] === "start") {
       ENVIO_RPC_MODE: "sync",
       PORT: String(port),
       ENVIO_INDEXER_PORT: String(port),
+      RESET_FIXTURE_ROOT: root,
+      RESET_FIXTURE_MIGRATION_CODE: String(migrationCode),
     };
     for (const id of [1, 10, 42161, 8453, 80094, 4663, 11155111, 421614, 84532])
       env[`ENVIO_RPC_URL_${id}`] = "http://fixture.invalid";
     const wrapper = command(
-      process.execPath,
-      [join(scripts, "start-envio.mjs")],
-      { cwd: "/", env, stdio: ["ignore", "pipe", "pipe"] }
+      spawn(process.execPath, [join(scripts, "start-envio.mjs")], {
+        cwd: "/",
+        env,
+        stdio: ["ignore", "pipe", "pipe"],
+        shell: false,
+      })
     );
     try {
       await until(() => {
@@ -106,9 +95,11 @@ if (process.argv[2] === "start") {
       });
       const oldPid = readFileSync(running, "utf8");
       const resetting = command(
-        process.execPath,
-        [join(scripts, "reset-envio.mjs")],
-        { cwd: "/", stdio: ["ignore", "pipe", "pipe"] }
+        spawn(process.execPath, [join(scripts, "reset-envio.mjs")], {
+          cwd: "/",
+          stdio: ["ignore", "pipe", "pipe"],
+          shell: false,
+        })
       );
       await until(() => existsSync(migrated));
       for (const route of ["ready", "metrics"])
@@ -117,9 +108,11 @@ if (process.argv[2] === "start") {
           503
         );
       const duplicate = await command(
-        process.execPath,
-        [join(scripts, "reset-envio.mjs")],
-        { stdio: ["ignore", "pipe", "pipe"], timeout: 5_000 }
+        spawn(process.execPath, [join(scripts, "reset-envio.mjs")], {
+          stdio: ["ignore", "pipe", "pipe"],
+          timeout: 5_000,
+          shell: false,
+        })
       ).done;
       assert.equal(duplicate.code, 1);
       assert.match(duplicate.output, /already in progress/);
@@ -173,30 +166,36 @@ test("Railway package command requires an explicit environment and forwards it b
   const script = JSON.parse(
     readFileSync(new URL("../../../package.json", import.meta.url))
   ).scripts["indexer:reset:railway"];
-  const root = mkdtempSync(join(tmpdir(), "railway-reset-command-"));
+  const root = mkdtempSync(join(tmpdir(), "railway reset 'quoted' $path;-"));
   writeFileSync(join(root, "railway"), '#!/bin/sh\nprintf "%s\\n" "$@"\n', {
     mode: 0o700,
   });
   const env = { ...process.env, PATH: `${root}:${process.env.PATH}` };
   delete env.RAILWAY_ENVIRONMENT;
   try {
-    const missing = await command("sh", ["-c", script], {
-      env,
-      stdio: ["ignore", "pipe", "pipe"],
-    }).done;
+    const missing = await command(
+      spawn("/bin/sh", ["-c", script], {
+        env,
+        stdio: ["ignore", "pipe", "pipe"],
+        shell: false,
+      })
+    ).done;
     assert.notEqual(missing.code, 0);
     assert.match(missing.output, /Set RAILWAY_ENVIRONMENT/);
-    const valid = await command("sh", ["-c", script], {
-      env: { ...env, RAILWAY_ENVIRONMENT: "staging" },
-      stdio: ["ignore", "pipe", "pipe"],
-    }).done;
+    const valid = await command(
+      spawn("/bin/sh", ["-c", script], {
+        env: { ...env, RAILWAY_ENVIRONMENT: "staging 'quoted'; $branch" },
+        stdio: ["ignore", "pipe", "pipe"],
+        shell: false,
+      })
+    ).done;
     assert.equal(valid.code, 0, valid.output);
     assert.deepEqual(valid.output.trim().split("\n"), [
       "ssh",
       "--service",
       "indexer",
       "--environment",
-      "staging",
+      "staging 'quoted'; $branch",
       "--",
       "/nodejs/bin/node",
       "/app/apps/indexer/scripts/reset-envio.mjs",

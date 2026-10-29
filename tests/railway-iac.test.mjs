@@ -160,11 +160,41 @@ test("Railway workflow applies only reviewed merges and blocks destructive chang
   assert(
     workflow.includes("ref: ${{ github.event.pull_request.merge_commit_sha }}")
   );
-  assert.equal(workflow.match(/confirm-destructive: "false"/g).length, 2);
+  assert(!workflow.includes("--confirm-destructive"));
+  assert(!/^\s+RAILWAY_TOKEN:/m.test(workflow));
   assert.equal(
-    workflow.match(/artifact-name: railway-production-plan/g).length,
+    workflow.match(/RAILWAY_API_TOKEN: \$\{\{ secrets.RAILWAY_TOKEN \}\}/g)
+      .length,
     2
   );
+  assert(
+    workflow.includes(
+      "RAILWAY_PROJECT_ID: d733dd5c-7076-48ad-ac8b-a147cb428300"
+    )
+  );
+  assert(
+    workflow.includes(
+      "RAILWAY_ENVIRONMENT_ID: 1b61e496-b565-42b4-9e5d-8096e28e13cd"
+    )
+  );
+  assert(
+    workflow.includes(
+      '--workflow railway-config.yml --commit "$PR_HEAD_SHA" --event pull_request --status success'
+    )
+  );
+  assert(
+    workflow.includes(
+      "plan.environmentId !== process.env.RAILWAY_ENVIRONMENT_ID"
+    )
+  );
+  assert(
+    workflow.includes(
+      'railway config apply --environment production --plan "$RUNNER_TEMP/railway-plan/railway-plan.json" --yes'
+    )
+  );
+  assert(!workflow.includes("railwayapp/config@"));
+  assert.equal(workflow.match(/name: railway-production-plan/g).length, 2);
+  assert(workflow.includes("run-id: ${{ steps.plan-run.outputs.run-id }}"));
   assert(workflow.includes("cancel-in-progress: false"));
   assert(workflow.includes("queue: max"));
   for (const [, action] of workflow.matchAll(/uses: (\S+)/g))

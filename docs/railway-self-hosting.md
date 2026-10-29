@@ -73,8 +73,8 @@ Later PR 82 cache setup is recorded in [PR 82 cache bootstrap](rpc-cache.md#pr-8
 
 Before the first merge:
 
-1. Create a Railway project token scoped to **production**.
-2. Add it as the GitHub repository secret **`RAILWAY_TOKEN`**.
+1. Create a Railway API token scoped to the **Olympus workspace** in Account Settings → Tokens.
+2. Add it as the GitHub Actions repository secret **`RAILWAY_TOKEN`**.
 3. Provision and verify the private cache service and its separate database first.
 4. Supply all nine `UPSTREAM_RPC_URL_<id>` values on `rpc-cache`.
 5. Preserve the other operator secrets listed below.
@@ -121,23 +121,29 @@ Before any consumer switch, retain the previous provider values for rollback.
 ## Automatic plan and apply
 
 [`.github/workflows/railway-config.yml`](../.github/workflows/railway-config.yml)
-uses the pinned official [Railway Config Action](https://github.com/railwayapp/config).
+uses Railway CLI 5.71.0 with workspace API authentication.
 For same-repository PRs into `master` that affect IaC or its tooling:
 
-- Opening, reopening, or updating the PR produces a **production** plan comment.
+- Opening, reopening, or updating the PR produces a **production** plan and a PR comment linking to its run.
 - Merging applies that exact saved plan to production.
 - Closing without merging does not apply anything.
 - Fork PRs do not receive the Railway credential or run these jobs.
 
-The action checks the environment revision and `.railway/` tree before apply.
+The apply job downloads the artifact from a successful run of this workflow for the merged PR's exact head commit.
+It verifies the production environment ID. The CLI checks the environment revision and `.railway/` tree before apply.
 A changed environment or configuration requires a fresh PR plan. Destructive
-changes are blocked by `confirm-destructive: false`; they need a separate,
+changes are blocked without `--confirm-destructive`; they need a separate,
 explicitly approved operator action. Workflow runs are serialized for production
 and do not cancel an apply already in progress.
 
-The token selects the environment. It must be scoped to production for both
-jobs. Do not substitute a preview token. Production sources always use `master`,
-even while the production plan is generated from an unmerged PR.
+One workspace token covers all environments. The existing GitHub secret name
+remains `RAILWAY_TOKEN`; both CLI steps export its value as `RAILWAY_API_TOKEN`.
+They do not set the CLI's `RAILWAY_TOKEN` variable, which expects a project token.
+The workflow selects project `d733dd5c-7076-48ad-ac8b-a147cb428300` and production
+environment `1b61e496-b565-42b4-9e5d-8096e28e13cd` explicitly.
+These IDs are configuration, not credentials. Environment selection is independent of authentication.
+Production sources always use `master`, including plans generated from unmerged PRs.
+See [Railway CLI authentication](https://docs.railway.com/cli/login#environment-variables) for the token types.
 
 Application code continues to use Railway GitHub autodeploys and watch patterns.
 Those deployments can start independently of the IaC workflow; this workflow
@@ -145,7 +151,7 @@ does not serialize application deployments behind an infrastructure apply.
 This workflow does **not** auto-apply IaC changes to PR environments on every
 commit. Preview infrastructure changes use the manual procedure below.
 
-Preview branches must be explicit. No production custom domains are attached to
+Preview branches follow Railway's PR metadata. No production custom domains are attached to
 previews. Operator secrets and generated Railway domains remain on Railway.
 A PR environment's databases survive ordinary redeploys and disappear when
 Railway deletes that temporary environment.
@@ -173,8 +179,9 @@ railway whoami
 ```
 
 If a valid CLI login already exists, omit `railway login`.
-If `RAILWAY_TOKEN` is set, use a token scoped to the intended environment.
-The GitHub workflow's token is scoped to production.
+If using a workspace token locally, set `RAILWAY_API_TOKEN` and leave `RAILWAY_TOKEN` unset.
+The GitHub workflow maps its existing `RAILWAY_TOKEN` secret to `RAILWAY_API_TOKEN` automatically.
+The same workspace credential can access different environments; the CLI's link or explicit selectors choose the destination.
 
 ### 2. Select the environment
 
@@ -282,6 +289,7 @@ See [Deployment checks](#deployment-checks) and [the cache checks](rpc-cache.md#
 | --- | --- |
 | `Set RAILWAY_SOURCE_BRANCH to the target PR branch` | Update the checkout. Current IaC follows Railway's PR branch metadata without this export. |
 | No linked project or wrong environment | Run `railway link` and verify `railway status`, or pass `--environment <name>` to both scripts. |
+| `Invalid RAILWAY_TOKEN` with a workspace token | Use `RAILWAY_API_TOKEN` for workspace authentication. The current workflow maps the existing Actions secret correctly; publish this fix before starting a new workflow run. |
 | `variables.ignore pattern ... matches no variable` | If the optional operator variable is absent, no action is required. |
 | `preserve() → «hidden»` | Read this as a hidden current value changing to the value declared in IaC. |
 | `CI check suite failed` / deployment `SKIPPED` | Fix the failing GitHub check and publish the fix to the configured source branch. An IaC apply uses published application code; local fixes are not uploaded. |

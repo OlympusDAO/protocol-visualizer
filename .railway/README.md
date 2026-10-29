@@ -34,8 +34,10 @@ Use the [manual deployment procedure](../docs/railway-self-hosting.md#manual-iac
 for login, project selection, required validation, and common plan messages.
 
 The GitHub workflow plans production changes on PR updates and applies the saved
-plan on merge to `master`. Set a production-scoped project token as the GitHub
-secret `RAILWAY_TOKEN`. Destructive applies are blocked. Preview infrastructure
+plan on merge to `master`. Set one Olympus workspace API token as the GitHub
+Actions secret `RAILWAY_TOKEN`. The workflow exports it as `RAILWAY_API_TOKEN`
+and selects the project and production environment explicitly. No token per
+environment is required. Destructive applies are blocked. Preview infrastructure
 still needs an explicit operator apply; application autodeploys remain enabled.
 
 See [the Railway guide](../docs/railway-self-hosting.md) for bootstrap, migration,

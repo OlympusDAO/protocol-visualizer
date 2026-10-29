@@ -49,8 +49,10 @@ for (const migrationCode of [0, 17]) {
     const running = join(root, "running");
     const workerRunning = join(root, "worker-running");
     const migrated = join(root, "migrated");
+    const migrationBlocked = join(root, "migration-blocked");
     mkdirSync(scripts, { recursive: true });
     mkdirSync(join(app, "node_modules/envio"), { recursive: true });
+    writeFileSync(migrationBlocked, "");
     for (const file of ["start-envio.mjs", "reset-envio.mjs"])
       copyFileSync(new URL(file, import.meta.url), join(scripts, file));
     const worker = `const fs=require("node:fs");fs.writeFileSync(${JSON.stringify(workerRunning)},String(process.pid));process.on("SIGTERM",()=>{fs.unlinkSync(${JSON.stringify(workerRunning)});process.exit(0)});setInterval(()=>{},1000);`;
@@ -69,7 +71,7 @@ if (process.argv[2] === "start") {
 } else {
   if (fs.existsSync(${JSON.stringify(running)}) || fs.existsSync(${JSON.stringify(workerRunning)})) throw new Error("Migration started before ingestion stopped");
   fs.appendFileSync(${JSON.stringify(migrated)}, process.argv.slice(2).join(" ")+"\\n");
-  await new Promise(resolve=>setTimeout(resolve,250));
+  while (fs.existsSync(${JSON.stringify(migrationBlocked)})) await new Promise(resolve=>setTimeout(resolve,25));
   process.exit(${migrationCode});
 }
 `
@@ -117,10 +119,11 @@ if (process.argv[2] === "start") {
       const duplicate = await command(
         process.execPath,
         [join(scripts, "reset-envio.mjs")],
-        { stdio: ["ignore", "pipe", "pipe"] }
+        { stdio: ["ignore", "pipe", "pipe"], timeout: 5_000 }
       ).done;
       assert.equal(duplicate.code, 1);
       assert.match(duplicate.output, /already in progress/);
+      rmSync(migrationBlocked);
       const reset = await resetting.done;
       assert.equal(reset.code, migrationCode, reset.output);
       assert.equal(readFileSync(migrated, "utf8"), "local db-migrate setup\n");
@@ -152,6 +155,7 @@ if (process.argv[2] === "start") {
             503
           );
     } finally {
+      rmSync(migrationBlocked, { force: true });
       if (existsSync(running)) {
         try {
           process.kill(-Number(readFileSync(running, "utf8")), "SIGKILL");

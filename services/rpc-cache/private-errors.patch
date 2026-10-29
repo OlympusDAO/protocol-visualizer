@@ -1,17 +1,8 @@
 --- a/erpc/http_server.go
 +++ b/erpc/http_server.go
-@@ -4,6 +4,7 @@
- 	"context"
- 	"crypto/tls"
- 	"crypto/x509"
+@@ -6,0 +7 @@
 +	"encoding/hex"
- 	"encoding/json"
- 	"errors"
- 	"fmt"
-@@ -1880,6 +1881,13 @@
- 	jre := &common.ErrJsonRpcExceptionInternal{}
- 	if errors.As(err, &jre) {
- 		message := jre.Message
+@@ -1882,0 +1884,7 @@
 +		if includeErrorDetails != nil && !*includeErrorDetails {
 +			message = "RPC request failed"
 +			lower := strings.ToLower(jre.Message)
@@ -19,13 +10,7 @@
 +				message = "historical state is not available"
 +			}
 +		}
- 		wireCode := jre.NormalizedCode()
- 		// eRPC's generic capacity code is -32005, but Solana assigns -32005 to
- 		// NodeUnhealthy. Local admission limits (auth/project/network/upstream
-@@ -1901,7 +1909,14 @@
- 			"message": message,
- 		}
- 		// Append "data" field, ref: https://www.jsonrpc.org/specification#:~:text=A%20Primitive%20or%20Structured%20value%20that%20contains%20additional%20information%20about%20the%20error.
+@@ -1904 +1912,8 @@
 -		if jre.Details["data"] != nil {
 +		if includeErrorDetails != nil && !*includeErrorDetails {
 +			// Keep ABI revert bytes, never provider-authored text or objects.
@@ -35,13 +20,7 @@
 +				}
 +			}
 +		} else if jre.Details["data"] != nil {
- 			errObj["data"] = jre.Details["data"]
- 		} else if includeErrorDetails != nil && *includeErrorDetails {
- 			if method != "eth_call" {
-@@ -1916,6 +1931,16 @@
- 			Id:      reqId,
- 			Error:   errObj,
- 			Cause:   causeForStatus,
+@@ -1918,0 +1934,10 @@
 +			Request: nq,
 +		}
 +	}
@@ -52,6 +31,3 @@
 +			Id: reqId,
 +			Error: map[string]interface{}{"code": -32603, "message": "RPC request failed"},
 +			Cause: causeForStatus,
- 			Request: nq,
- 		}
- 	}

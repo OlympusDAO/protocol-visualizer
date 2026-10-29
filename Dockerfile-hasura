@@ -12,6 +12,7 @@ RUN apt-get update \
         gzip \
         libattr1 \
         libblkid1 \
+        libbrotli1 \
         libc-bin \
         libc6 \
         libcap2 \

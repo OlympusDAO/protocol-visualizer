@@ -38,7 +38,8 @@
     "format": "biome format --write .",
     "docker:build:rpc-cache": "docker build -f Dockerfile-rpc-cache -t protocol-visualizer/rpc-cache:local .",
     "docker:tag:scan:rpc-cache": "docker tag protocol-visualizer/rpc-cache:local protocol-visualizer/rpc-cache:scan",
-    "test:rpc-cache": "node --test services/rpc-cache/integration.test.mjs"
+    "test:rpc-cache": "node --test services/rpc-cache/integration.test.mjs",
+    "indexer:reset:railway": "railway ssh --service indexer --environment \"${RAILWAY_ENVIRONMENT:?Set RAILWAY_ENVIRONMENT to the target Railway environment}\" -- /nodejs/bin/node /app/apps/indexer/scripts/reset-envio.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

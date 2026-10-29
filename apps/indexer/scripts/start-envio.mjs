@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import http from "node:http";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { startResetServer } from "./reset-envio.mjs";
 
 const RPC_MODES = new Set(["sync", "fallback"]);
 const DEFAULT_HASURA_STARTUP_TIMEOUT_MS = 180_000;
@@ -88,7 +89,7 @@ export const resolveEnvioArgs = (args) =>
 
 const envioArgs = resolveEnvioArgs(process.argv.slice(2));
 
-export const resolveEnvioCommand = (cwd = process.cwd()) => {
+export const resolveEnvioCommand = (cwd = indexerDir) => {
   const envioBinPath = resolve(cwd, "node_modules/envio/bin.mjs");
   return {
     command: process.execPath,
@@ -433,6 +434,8 @@ const proxyToIndexer = (request, response, internalPort) => {
   request.pipe(proxyRequest);
 };
 
+let maintenanceMode = false;
+
 const startHealthcheckWrapper = () => {
   if (!useHealthcheckWrapper) {
     return undefined;
@@ -448,6 +451,17 @@ const startHealthcheckWrapper = () => {
         "content-type": "application/json",
       });
       response.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    if (maintenanceMode) {
+      response.writeHead(503, { "content-type": "application/json" });
+      response.end(
+        JSON.stringify({
+          ready: false,
+          reason: "Ingestion stopped for reset",
+        })
+      );
       return;
     }
 
@@ -492,26 +506,109 @@ export const run = async () => {
   const wrapperServer = startHealthcheckWrapper();
   const envioCommand = resolveEnvioCommand();
 
-  const child = spawn(envioCommand.command, envioCommand.args, {
-    env: process.env,
-    stdio: "inherit",
-  });
+  let child;
+  const startChild = (args = envioCommand.args) => {
+    const started = spawn(envioCommand.command, args, {
+      env: process.env,
+      cwd: indexerDir,
+      detached: isStartCommand(),
+      stdio: "inherit",
+    });
+    child = started;
+    started.on("error", (error) => {
+      console.error(formatEnvioSpawnError(error));
+      process.exit(1);
+    });
+    started.on("exit", (code, signal) => {
+      if (maintenanceMode || child !== started) return;
+      wrapperServer?.close();
+      if (signal) {
+        process.kill(process.pid, signal);
+        return;
+      }
+      process.exit(code ?? 1);
+    });
+  };
+  startChild();
 
-  child.on("error", (error) => {
-    console.error(formatEnvioSpawnError(error));
-    process.exit(1);
-  });
-
-  child.on("exit", (code, signal) => {
-    wrapperServer?.close();
-
-    if (signal) {
-      process.kill(process.pid, signal);
-      return;
+  if (isStartCommand()) {
+    try {
+      await startResetServer(async (sendLog) => {
+        const log = (message) => {
+          process.stdout.write(message);
+          sendLog(message);
+        };
+        maintenanceMode = true;
+        log("Stopping Envio ingestion...\n");
+        try {
+          process.kill(-child.pid, "SIGTERM");
+        } catch (error) {
+          if (error.code !== "ESRCH") throw error;
+        }
+        const deadline = Date.now() + 30_000;
+        while (true) {
+          try {
+            process.kill(-child.pid, 0);
+          } catch (error) {
+            if (error.code === "ESRCH") break;
+            throw error;
+          }
+          if (Date.now() >= deadline)
+            throw new Error(
+              "Ingestion did not stop within 30 seconds; migration was not started"
+            );
+          await sleep(100);
+        }
+        log("Ingestion stopped. Running Envio local db-migrate setup...\n");
+        const code = await new Promise((accept, reject) => {
+          const migration = spawn(
+            process.execPath,
+            [envioCommand.args[0], "local", "db-migrate", "setup"],
+            {
+              env: process.env,
+              cwd: indexerDir,
+              stdio: ["ignore", "pipe", "pipe"],
+            }
+          );
+          migration.stdout.on("data", (chunk) => {
+            process.stdout.write(chunk);
+            sendLog(chunk.toString());
+          });
+          migration.stderr.on("data", (chunk) => {
+            process.stderr.write(chunk);
+            sendLog(chunk.toString());
+          });
+          migration.once("error", reject);
+          migration.once("exit", (code) => accept(code ?? 1));
+        });
+        if (code === 0) {
+          startChild(
+            envioCommand.args.filter(
+              (arg) => arg !== "-r" && arg !== "--restart"
+            )
+          );
+          maintenanceMode = false;
+          log(
+            "Envio migration completed. Envio restarted inside the existing container. Check /ready and indexing progress.\n"
+          );
+        } else {
+          log(
+            "Envio migration failed. Ingestion remains stopped. Inspect the error before retrying.\n"
+          );
+        }
+        return code;
+      });
+    } catch (error) {
+      console.error(`Reset control could not start: ${error.message}`);
+      try {
+        process.kill(-child.pid, "SIGTERM");
+      } catch (stopError) {
+        if (stopError.code !== "ESRCH") console.error(stopError.message);
+      }
+      wrapperServer?.close();
+      process.exit(1);
     }
-
-    process.exit(code ?? 1);
-  });
+  }
 };
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {

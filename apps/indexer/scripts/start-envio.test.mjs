@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
 
 const validEnv = {
   DATABASE_URL:
@@ -121,4 +123,18 @@ test("spawns Envio through node instead of the pnpm shell shim", async () => {
     "/app/apps/indexer/node_modules/envio/bin.mjs",
     "start",
   ]);
+});
+
+test("resolves the Envio entrypoint independently of the SSH working directory", async () => {
+  const { resolveEnvioCommand } = await loadModule();
+  const previous = process.cwd();
+  try {
+    process.chdir(tmpdir());
+    assert.equal(
+      resolveEnvioCommand().args[0],
+      fileURLToPath(new URL("../node_modules/envio/bin.mjs", import.meta.url))
+    );
+  } finally {
+    process.chdir(previous);
+  }
 });

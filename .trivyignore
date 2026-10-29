@@ -8,3 +8,10 @@
 CVE-2026-33671
 CVE-2026-33672
 CVE-2026-33750
+
+# Seven-day exception approved on 2026-10-29; expires 2026-11-05 at 00:00 UTC.
+# CVE-2026-32286 -> github.com/jackc/pgproto3/v2, installed version 2.3.3.
+# No upstream fixed version. A malicious Postgres server can crash this client.
+# Exposure is limited to the dedicated private cache database; the flaw remains.
+# Recheck upstream before expiry. Remove when fixed; do not renew automatically.
+CVE-2026-32286 exp:2026-11-05

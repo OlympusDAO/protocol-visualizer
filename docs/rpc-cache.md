@@ -212,14 +212,24 @@ to **one HIGH advisory**: `CVE-2026-32286` in
 `github.com/jackc/pgproto3/v2` 2.3.3. Trivy 0.76.1 reports no fixed version.
 A malicious or compromised PostgreSQL server can send a malformed DataRow that
 panics this client. The dedicated private database narrows exposure but does
-not remediate the vulnerable dependency. No ignore was added. The new image
-security gate intentionally fails until a fix is available or a separately
-approved exception is reviewed. Do not treat a successful build or fixture test
-as security approval to deploy.
+not remediate the vulnerable dependency.
+
+A seven-day repository-wide exception was approved on 2026-10-29. The root
+`.trivyignore` suppresses this advisory across all image scans until
+**2026-11-05 at 00:00 UTC**. All other findings retain their existing handling.
+Trivy enforces the expiration date; the next scan after expiry reports the
+advisory and fails if the dependency remains vulnerable. Existing weekly scans
+and scans on PR changes still run. Expiry does not stop a running service.
+
+Before expiry, recheck upstream for a fix and rebuild the image if one exists.
+Remove the exception after remediation. Any extension needs explicit approval
+and a new deadline; do not renew it automatically. A passing scan during this
+window means the known risk is temporarily accepted, not fixed.
 
 ## Deployment order and rollback checklist
 
-- Resolve the image security finding above before production cutover.
+- Confirm the image security finding is fixed or the approved exception above
+  remains valid before cutover.
 - Provision `rpc-cache-postgres` with a dedicated role/database and persistent
   volume; configure backups, monitor disk growth, and confirm the DSN targets it.
 - Create `rpc-cache`, select `/railway-rpc-cache.json`, set the variables above,
@@ -257,9 +267,11 @@ arguments and explicit restart arguments; no full live indexing run was made.
 
 Compose interpolation verified all 27 consumer URLs. eRPC startup without
 required settings failed with a variable-name-only message. Dockerfile Trivy
-checks passed. Final-image Trivy checks fail on the one HIGH advisory described
-above; the scan is not green. Local source review found and closed the two
-regressions reproduced against the original image (tagged log caching and
+checks passed. Without the exception, the final-image Trivy scan reports the
+one HIGH advisory above. With the approved exception, Trivy 0.76.1 returns zero.
+A control scan with an expired copy returns exit code 1 and reports the same
+advisory. The underlying vulnerability remains. Local source review found and
+closed the two regressions reproduced against the original image (tagged log caching and
 credential echo). No live archive providers were tested: no configured RPC
 credentials were found in the session or local indexer/root env files. All nine
 real providers, especially Robinhood's finality semantics and archive/EIP-1898

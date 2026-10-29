@@ -82,20 +82,9 @@ export const isRailwayRuntime = (env = process.env) =>
     ([key, value]) => key.startsWith("RAILWAY_") && value?.trim()
   );
 
-export const hasResetFlag = (args) =>
-  args.includes("-r") || args.includes("--reset");
-
-export const resolveEnvioArgs = (args, env = process.env) => {
-  const resolvedArgs = args.length === 0 ? ["start"] : [...args];
-  if (
-    isRailwayRuntime(env) &&
-    resolvedArgs[0] === "start" &&
-    !hasResetFlag(resolvedArgs)
-  ) {
-    resolvedArgs.push("-r");
-  }
-  return resolvedArgs;
-};
+// Envio checks compatibility and resumes by default. Reset is operator-only.
+export const resolveEnvioArgs = (args) =>
+  args.length === 0 ? ["start"] : [...args];
 
 const envioArgs = resolveEnvioArgs(process.argv.slice(2));
 

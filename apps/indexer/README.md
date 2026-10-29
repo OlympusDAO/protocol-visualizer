@@ -91,7 +91,9 @@ Local Docker Compose intentionally requires `ENVIO_API_TOKEN` so the default
 path is HyperSync with RPC fallback. Set `ENVIO_RPC_MODE=sync` only when you are
 deliberately testing RPC-only ingestion.
 
-Effect-handler RPC reads also support `ENVIO_RPC_URL_FALLBACK_<chainId>`.
+Effect-handler RPC reads use only `ENVIO_RPC_URL_<chainId>` with no public
+fallback or viem retries. Managed deployments route these URLs through the
+[private RPC cache](../../docs/rpc-cache.md).
 
 Control-state getter reads require archive state at the requested block.
 The effect input includes the chain, address, block number, block hash, and getter.
@@ -112,9 +114,9 @@ the other enabled-chain RPC URLs.
 
 For Railway or any externally managed Postgres database, set `DATABASE_URL`.
 `scripts/start-envio.mjs` maps it to Envio's `ENVIO_PG_*` variables at startup.
-Do not set `ENVIO_PG_SCHEMA` on Railway. Railway starts use `envio start -r`,
-and public blue/green handover is handled by the snapshot publisher manifest
-rather than deployment-scoped database schemas.
+Do not set `ENVIO_PG_SCHEMA` on Railway. Railway starts use `envio start` and resume compatible state. Envio retains its
+compatibility checks and does not automatically reset on failure. Use the
+[one-off rebuild procedure](../../docs/rpc-cache.md) for an intentional reset.
 
 ## Code Generation
 

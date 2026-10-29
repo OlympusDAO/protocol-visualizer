@@ -1,0 +1,22 @@
+# Build the verified eRPC 0.5.0 release with a small private-error patch.
+# The official image (1d0687aa...) contains Go 1.26.5 advisories; rebuild with
+# fixed tooling/modules and omit the unused profiler binary and config SDK.
+FROM golang:1.26.10-alpine@sha256:a2012b4a1d1f9f7e9f44e0d39b805a901e856b1dd80b4e6ee4338db547050308 AS build
+WORKDIR /src
+ADD --checksum=sha256:54c1776002ed22a93741296781fc7996a1bf64bf3f243da23545958b2f182138 https://codeload.github.com/erpc/erpc/tar.gz/refs/tags/0.5.0 /tmp/erpc.tar.gz
+RUN tar -xzf /tmp/erpc.tar.gz --strip-components=1
+# Security updates scoped to this new service; monorepo dependencies are unchanged.
+ENV GOTOOLCHAIN=local CGO_ENABLED=0
+RUN go get golang.org/x/crypto@v0.57.0 golang.org/x/net@v0.60.0 && go mod download
+COPY services/rpc-cache/private-errors.patch /tmp/private-errors.patch
+RUN apk add --no-cache patch && patch -p1 < /tmp/private-errors.patch && gofmt -w erpc/http_server.go
+RUN --mount=type=cache,target=/root/.cache/go-build go build -ldflags="-w -s -X github.com/erpc/erpc/common.ErpcVersion=0.5.0-pv1 -X github.com/erpc/erpc/common.ErpcCommitSha=204f98cb" -o /erpc-server ./cmd/erpc/main.go
+
+# Same nonroot static runtime pinned by the upstream release Dockerfile.
+FROM gcr.io/distroless/static-debian12:nonroot@sha256:f5b485ea962d9bd1186b2f6b3a061191539b905b82ec395de78cbfae51f20e35
+COPY --from=build /erpc-server /erpc-server
+COPY --from=build /src/LICENSE /licenses/erpc/LICENSE
+COPY --chown=nonroot:nonroot services/rpc-cache/erpc.js /etc/erpc/erpc.js
+USER nonroot
+EXPOSE 4000 4001
+CMD ["/erpc-server", "/etc/erpc/erpc.js"]

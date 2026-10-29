@@ -24,11 +24,10 @@ async function loadModule() {
   return import(`./start-envio.mjs?test=${Date.now()}-${Math.random()}`);
 }
 
-test("adds reset flag for Railway start commands", async () => {
+test("resumes on Railway by default and resets only when explicitly requested", async () => {
   const { resolveEnvioArgs } = await loadModule();
   assert.deepEqual(resolveEnvioArgs([], { RAILWAY_SERVICE_ID: "svc" }), [
     "start",
-    "-r",
   ]);
   assert.deepEqual(
     resolveEnvioArgs(["start", "-r"], { RAILWAY_SERVICE_ID: "svc" }),
@@ -38,6 +37,15 @@ test("adds reset flag for Railway start commands", async () => {
     "dev",
   ]);
   assert.deepEqual(resolveEnvioArgs(["start"], {}), ["start"]);
+  assert.deepEqual(
+    resolveEnvioArgs(["start", "--restart"], { RAILWAY_SERVICE_ID: "svc" }),
+    ["start", "--restart"]
+  );
+  assert.deepEqual(resolveEnvioArgs(["local", "db-migrate", "setup"], {}), [
+    "local",
+    "db-migrate",
+    "setup",
+  ]);
 });
 
 test("rejects Railway schema configuration and port mismatches", async () => {

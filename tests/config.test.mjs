@@ -44,6 +44,7 @@ test("Railway configs use root-anchored watch patterns and expected restart poli
   const configs = [
     ["railway-hasura.json", "Dockerfile-hasura", "ON_FAILURE"],
     ["railway-indexer.json", "Dockerfile-indexer", "ON_FAILURE"],
+    ["railway-rpc-cache.json", "Dockerfile-rpc-cache", "ON_FAILURE"],
     ["railway-frontend.json", "Dockerfile-frontend", "ON_FAILURE"],
     [
       "railway-snapshot-gateway.json",
@@ -158,6 +159,7 @@ test("CI scans every Dockerfile and local image", () => {
     "snapshot-gateway",
     "snapshot-publisher",
     "snapshot-monitor",
+    "rpc-cache",
   ]) {
     assert(packageJson.includes(`"docker:build:${name}"`));
     assert(packageJson.includes(`"docker:tag:scan:${name}"`));
@@ -170,6 +172,7 @@ test("CI scans every Dockerfile and local image", () => {
     "Dockerfile-snapshot-gateway",
     "Dockerfile-snapshot-publisher",
     "Dockerfile-snapshot-monitor",
+    "Dockerfile-rpc-cache",
   ]) {
     assert(existsSync(dockerfile));
   }
@@ -214,6 +217,8 @@ test("Compose includes the Railway-like snapshot services", () => {
   const compose = readFileSync("docker-compose.yml", "utf8");
   for (const service of [
     "postgres:",
+    "rpc-cache:",
+    "rpc-cache-postgres:",
     "hasura:",
     "indexer:",
     "minio:",
@@ -250,10 +255,14 @@ test("Compose requires Envio API token, Etherscan key, and RPC URLs for local in
     "80094",
     "11155111",
   ]) {
-    assert(compose.includes(`ENVIO_RPC_URL_${chainId}: $`));
-    assert(compose.includes(`Set ENVIO_RPC_URL_${chainId} in .env`));
-    assert(sampleEnv.includes(`ENVIO_RPC_URL_${chainId}=`));
-    assert(localDocs.includes(`ENVIO_RPC_URL_${chainId}`));
+    assert(
+      compose.includes(
+        `ENVIO_RPC_URL_${chainId}: http://rpc-cache:4000/pv/evm/${chainId}`
+      )
+    );
+    assert(compose.includes(`Set UPSTREAM_RPC_URL_${chainId} in .env`));
+    assert(sampleEnv.includes(`UPSTREAM_RPC_URL_${chainId}=`));
+    assert(localDocs.includes(`UPSTREAM_RPC_URL_${chainId}`));
   }
   assert(compose.includes("ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY:?"));
   assert(compose.includes("Set ETHERSCAN_API_KEY in .env"));

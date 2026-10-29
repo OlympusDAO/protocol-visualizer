@@ -5,10 +5,17 @@ snapshot publisher, snapshot monitor, public REST API, and frontend on Railway.
 Hasura, Postgres, the indexer, publisher, monitor, and bucket stay private. The
 only public data service is `snapshot-gateway`.
 
+The private RPC proxy and its independent Postgres are described in
+[rpc-cache.md](rpc-cache.md), including variables, finality limits, rebuild,
+deployment order, and rollback. Provision those two resources before routing
+consumers through the proxy.
+
 ## Services
 
 | Service              | Railway config                    | Role                                      |
 | -------------------- | --------------------------------- | ----------------------------------------- |
+| `rpc-cache` | `/railway-rpc-cache.json` | Private JSON-RPC cache |
+| `rpc-cache-postgres` | Railway template | Persistent RPC cache only |
 | `Postgres`           | Railway template                  | Envio data and Hasura metadata            |
 | `hasura`             | `/railway-hasura.json`            | Private GraphQL for publisher/monitor     |
 | `indexer`            | `/railway-indexer.json`           | Private Envio indexer                     |
@@ -27,8 +34,8 @@ v1/deployments/<deploymentId>/chain/<chainId>/protocol.json
 ```
 
 It publishes `v1/manifest.json` last. The manifest is the public blue/green
-handover boundary. While a new indexer deployment reindexes with
-`envio start -r`, `snapshot-gateway` keeps serving the previous active manifest.
+handover boundary. During a deliberate indexer rebuild, `snapshot-gateway`
+keeps serving the previous active manifest.
 Public REST responses never expose deployment ids or S3 object keys.
 
 ## Public REST API
@@ -73,15 +80,15 @@ PORT=9898
 DATABASE_URL=${{Postgres.DATABASE_URL}}
 HASURA_GRAPHQL_ENDPOINT=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/metadata
 HASURA_GRAPHQL_ADMIN_SECRET=${{shared.HASURA_GRAPHQL_ADMIN_SECRET}}
-ENVIO_RPC_URL_1=<ethereum RPC>
-ENVIO_RPC_URL_10=<optimism RPC>
-ENVIO_RPC_URL_42161=<arbitrum RPC>
-ENVIO_RPC_URL_421614=<arbitrum sepolia archive RPC>
-ENVIO_RPC_URL_84532=<base sepolia archive RPC>
-ENVIO_RPC_URL_4663=<robinhood archive RPC>
-ENVIO_RPC_URL_8453=<base RPC>
-ENVIO_RPC_URL_80094=<berachain RPC>
-ENVIO_RPC_URL_11155111=<sepolia RPC>
+ENVIO_RPC_URL_1=http://${{rpc-cache.RAILWAY_PRIVATE_DOMAIN}}:4000/pv/evm/1
+ENVIO_RPC_URL_10=http://${{rpc-cache.RAILWAY_PRIVATE_DOMAIN}}:4000/pv/evm/10
+ENVIO_RPC_URL_42161=http://${{rpc-cache.RAILWAY_PRIVATE_DOMAIN}}:4000/pv/evm/42161
+ENVIO_RPC_URL_421614=http://${{rpc-cache.RAILWAY_PRIVATE_DOMAIN}}:4000/pv/evm/421614
+ENVIO_RPC_URL_84532=http://${{rpc-cache.RAILWAY_PRIVATE_DOMAIN}}:4000/pv/evm/84532
+ENVIO_RPC_URL_4663=http://${{rpc-cache.RAILWAY_PRIVATE_DOMAIN}}:4000/pv/evm/4663
+ENVIO_RPC_URL_8453=http://${{rpc-cache.RAILWAY_PRIVATE_DOMAIN}}:4000/pv/evm/8453
+ENVIO_RPC_URL_80094=http://${{rpc-cache.RAILWAY_PRIVATE_DOMAIN}}:4000/pv/evm/80094
+ENVIO_RPC_URL_11155111=http://${{rpc-cache.RAILWAY_PRIVATE_DOMAIN}}:4000/pv/evm/11155111
 ENVIO_API_TOKEN=<envio-api-token>
 ETHERSCAN_API_KEY=<etherscan-api-key>
 # ENVIO_RPC_MODE=
@@ -95,8 +102,9 @@ back to RPC-only indexing and is materially slower for cold backfills.
 is not already precomputed or available in local ABI/source-code files.
 
 Do not set `ENVIO_PG_SCHEMA` on Railway. The indexer wrapper fails fast if it is
-set. Railway start commands run `envio start -r`; public handover is handled by
-the publisher manifest, not database schemas.
+set. Railway start commands run `envio start` and resume compatible state.
+Envio rejects incompatible changes; it does not automatically wipe data.
+For an intentional reset, follow the one-off rebuild in [rpc-cache.md](rpc-cache.md).
 
 The publisher and monitor read Envio's private `/metrics` endpoint to decide
 whether a deployment is ready. The indexer Railway service must set `PORT=9898`
@@ -104,6 +112,9 @@ so the health wrapper exposes `/healthz`, `/ready`, and proxied `/metrics` on
 `indexer.railway.internal:9898`. If that port is changed, update
 `INDEXER_METRICS_URL` on both `snapshot-publisher` and `snapshot-monitor` to
 match the indexer's `PORT`.
+
+Set all nine `RPC_URL_<chainId>` variables on both snapshot jobs to the private
+proxy paths documented in [rpc-cache.md](rpc-cache.md).
 
 Set on `snapshot-publisher`:
 

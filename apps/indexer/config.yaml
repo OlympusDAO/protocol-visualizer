@@ -135,7 +135,7 @@ chains:
   - id: 84532
     start_block: 21445237
     rpc:
-      - url: ${ENVIO_RPC_URL_84532:-https://sepolia.base.org}
+      - url: ${ENVIO_RPC_URL_84532}
         for: ${ENVIO_RPC_MODE:-sync}
     contracts:
       - name: Kernel
@@ -183,7 +183,7 @@ chains:
   - id: 421614
     start_block: 273448345
     rpc:
-      - url: ${ENVIO_RPC_URL_421614:-https://sepolia-rollup.arbitrum.io/rpc}
+      - url: ${ENVIO_RPC_URL_421614}
         for: ${ENVIO_RPC_MODE:-sync}
     contracts:
       - name: Kernel
@@ -220,7 +220,7 @@ chains:
   - id: 4663
     start_block: 4758
     rpc:
-      - url: ${ENVIO_RPC_URL_4663:-https://rpc.mainnet.chain.robinhood.com}
+      - url: ${ENVIO_RPC_URL_4663}
         for: ${ENVIO_RPC_MODE:-sync}
     contracts:
       - name: Kernel
@@ -278,7 +278,7 @@ chains:
   - id: 1
     start_block: 13674068
     rpc:
-      - url: ${ENVIO_RPC_URL_1:-https://eth.llamarpc.com}
+      - url: ${ENVIO_RPC_URL_1}
         for: ${ENVIO_RPC_MODE:-sync}
     contracts:
       - name: LegacyPeriodicTask
@@ -376,7 +376,7 @@ chains:
   - id: 42161
     start_block: 85886461
     rpc:
-      - url: ${ENVIO_RPC_URL_42161:-https://arb1.arbitrum.io/rpc}
+      - url: ${ENVIO_RPC_URL_42161}
         for: ${ENVIO_RPC_MODE:-sync}
     contracts:
       - name: Kernel
@@ -434,7 +434,7 @@ chains:
   - id: 8453
     start_block: 13204824
     rpc:
-      - url: ${ENVIO_RPC_URL_8453:-https://base.llamarpc.com}
+      - url: ${ENVIO_RPC_URL_8453}
         for: ${ENVIO_RPC_MODE:-sync}
     contracts:
       - name: Kernel
@@ -492,7 +492,7 @@ chains:
   - id: 80094
     start_block: 780011
     rpc:
-      - url: ${ENVIO_RPC_URL_80094:-https://rpc.berachain.com}
+      - url: ${ENVIO_RPC_URL_80094}
         for: ${ENVIO_RPC_MODE:-sync}
     contracts:
       - name: Kernel
@@ -550,7 +550,7 @@ chains:
   - id: 10
     start_block: 98531613
     rpc:
-      - url: ${ENVIO_RPC_URL_10:-https://optimism.llamarpc.com}
+      - url: ${ENVIO_RPC_URL_10}
         for: ${ENVIO_RPC_MODE:-sync}
     contracts:
       - name: Kernel
@@ -608,7 +608,7 @@ chains:
   - id: 11155111
     start_block: 6577288
     rpc:
-      - url: ${ENVIO_RPC_URL_11155111:-https://ethereum-sepolia-rpc.publicnode.com}
+      - url: ${ENVIO_RPC_URL_11155111}
         for: ${ENVIO_RPC_MODE:-sync}
     contracts:
       - name: LegacyPeriodicTask

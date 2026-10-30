@@ -9,6 +9,8 @@ export type EntityStore = {
 };
 
 export type EnvioContext = EvmOnEventContext & {
+  KernelReadEpoch: EntityStore;
+  KernelReadCache: EntityStore;
   BridgeConfiguration: EntityStore;
   HeartTasks: EntityStore;
   ContractState: EntityStore;

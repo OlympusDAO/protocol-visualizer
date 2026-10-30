@@ -125,10 +125,9 @@ test("activation and removal events retain prior installation independently of c
     };
   };
   const context = Object.fromEntries(
-    ["Contract", "ContractEvent", "ActionExecutedEvent"].map((key) => [
-      key,
-      store(),
-    ])
+    ["Contract", "ContractEvent", "ActionExecutedEvent", "KernelReadEpoch"].map(
+      (key) => [key, store()]
+    )
   );
   context.effect = async (_effect, input) =>
     input.policyAddress

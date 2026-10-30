@@ -22,6 +22,23 @@ The raw-call regression measures two independently decoded consumers becoming on
 
 Verification: 71 indexer tests passed; indexer TypeScript check passed. The PostgreSQL fixture used a new disposable tmpfs container, without resetting an existing database. Three result digests match the baseline and restart adds zero fixture RPC requests. Raw measurement: [milestone 1](indexer-rpc-milestone-1.json). The final required nine-step repository sequence is still pending.
 
+## Event-invalidated Kernel reuse
+
+Six exact-source Ethereum contracts provide 13 eligible pointer operations: RolesAdmin, Emergency, Clearinghouse, OlympusRoles, OlympusMinter and OlympusTreasury. One exact Kernel runtime provides dependency registry scans. The manifest binds chain/address/runtime hashes to verified public source hashes and mutation sites. This is a narrow allowlist, not the full 103 potentially reusable active pointer reads from the inventory. Inactive policies keep ordinary observations because configureDependencies can run without a Kernel event. Read-only dependencies still come from moduleDependents, not requestPermissions.
+
+KernelReadCache and KernelReadEpoch are ordinary Envio entities so rollback restores them. Every ActionExecuted changes the epoch. Migration permanently disables this optimization for the chain because the old Kernel leaves active records populated and the new Kernel may be untracked. Unknown sources and mismatched runtimes fall through. Cached observations must be older than the requested block and retain canonical anchors. Reused relationship/dependency verification retains the last actual RPC block while indexedThrough advances. Target-code presence is rechecked. changeExecutor uses the event target directly.
+
+A separate controlled fixture exercises 13 pointers and three dependency scans (two dependents each) over ten checkpoints with no intervening Kernel action, 10 ms per request and three serial repetitions. It uses actual production readers, the pinned Envio effect loader, PostgreSQL-backed effect and entity adapters, and restarts the loader after checkpoint five. Source/runtime bindings and return values are deliberately replaced with fixture data; this is not a live replay or an Envio database migration test.
+
+| Ten-checkpoint fixture | Requests | Median |
+| --- | ---: | ---: |
+| Same readers without event reuse | 780 | 13.883 s |
+| Event reuse | 107 | 1.996 s |
+
+This is 86.3% fewer requests and 85.6% shorter in the selected repeatable workload. Cold setup costs are included; raw per-method cold/warm counts are in [milestone 2](indexer-rpc-milestone-2.json). The original single-checkpoint fixture has no cross-block reuse opportunity and its previously measured 1361-request result remains the comparison reference, not a claim of additional savings.
+
+Regression checks cover active/inactive state, every action, migration, backward reads, runtime/address mismatch, empty dependency scans, restart, canonical fork rejection and retained verification provenance. Indexer tests and TypeScript checking pass; offline code generation succeeds using localhost-only RPC placeholders. This milestone adds two schema entities; no existing database was migrated or reset. Worker isolation remains disabled.
+
 ## Remaining milestones
 
 - Event-invalidated active Kernel/module pointer and dependency reuse, retaining original RPC provenance and inactive-policy fallback.

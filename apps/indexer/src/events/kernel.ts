@@ -11,7 +11,7 @@ import type {
   EnvioContext,
   KernelActionExecutedEvent,
 } from "./types";
-import { getKernelExecutor } from "./effects";
+import { invalidateKernelReads } from "./kernel-reuse";
 import { getPreviousModule, setCurrentModule } from "./modules";
 import {
   parseAction,
@@ -29,6 +29,7 @@ export async function handleKernelActionExecuted(
 ): Promise<void> {
   const envioContext = context;
   const chainId = event.chainId;
+  await invalidateKernelReads(context, event);
   await ensureKernelSeeded(envioContext, chainId);
 
   const actionInt = Number(event.params.action_);
@@ -187,12 +188,7 @@ export async function handleKernelActionExecuted(
   }
 
   if (action === "changeExecutor") {
-    const executor = await getKernelExecutor(
-      envioContext,
-      event.srcAddress,
-      chainId,
-      blockNumber
-    );
+    const executor = target;
 
     envioContext.KernelExecutor.set({
       id: kernelExecutorId(chainId, event.srcAddress),

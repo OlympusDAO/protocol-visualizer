@@ -8,6 +8,8 @@ import { createEffect, S } from "envio";
 import type { Address, Hex } from "viem";
 import { emptyCodeHash, getBytecodeHash } from "./code-cache";
 import { getEffectClient } from "./call-cache";
+import { reuseKernelRead, kernelReadProof } from "./kernel-reuse";
+import { getKernelConstants } from "../constants";
 
 import { KernelAbi } from "../../abis/Kernel";
 import { ModuleAbi } from "../../abis/Module";
@@ -519,13 +521,78 @@ export const readControlGetterEffect = createEffect(
 
 export async function getControlGetter(
   context: EnvioContext,
-  input: ControlGetterInput
+  input: ControlGetterInput,
+  observationBlock?: ControlBlock
 ): Promise<ControlGetterResult> {
-  return (await context.effect(readControlGetterEffect, {
+  const normalized = {
     ...input,
     address: normalizeAddress(input.address) as Address,
     blockHash: input.blockHash.toLowerCase(),
-  })) as ControlGetterResult;
+  };
+  const read = async () =>
+    (await context.effect(
+      readControlGetterEffect,
+      normalized
+    )) as ControlGetterResult;
+  if (!kernelReadProof(normalized)) return read();
+  const block =
+    observationBlock ??
+    (await getControlBlock(context, input.chainId, Number(input.blockNumber)));
+  if (!block || block.hash !== normalized.blockHash)
+    return { status: "unavailable", reason: "Canonical block changed" };
+  const result = await reuseKernelRead(
+    context,
+    { ...normalized, block },
+    read,
+    async () => {
+      const kernel = getKernelConstants(input.chainId).address;
+      const kernelProof = kernelReadProof({
+        chainId: input.chainId,
+        address: kernel,
+        getter: "moduleDependents:ROLES",
+      });
+      if (!kernelProof) return undefined;
+      const [code, kernelCode, kernelPointer] = await Promise.all([
+        getBytecodeHash(context, input.chainId, {
+          address: normalized.address,
+          blockHash: normalized.blockHash as Hex,
+          requireCanonical: true,
+        }),
+        getBytecodeHash(context, input.chainId, {
+          address: kernel,
+          blockHash: normalized.blockHash as Hex,
+          requireCanonical: true,
+        }),
+        context.effect(readControlGetterEffect, {
+          ...normalized,
+          getter: "kernel",
+        }) as Promise<ControlGetterResult>,
+      ]);
+      return kernelCode === kernelProof.codeHash &&
+        kernelPointer.status === "success" &&
+        kernelPointer.value === kernel.toLowerCase()
+        ? code
+        : undefined;
+    },
+    (number) => getControlBlock(context, input.chainId, Number(number))
+  );
+  if (result.status === "success" && result.verifiedAt && result.targetCode) {
+    const hash = await getBytecodeHash(context, input.chainId, {
+      address: result.value as Address,
+      blockHash: normalized.blockHash as Hex,
+      requireCanonical: true,
+    });
+    if (!hash)
+      return {
+        status: "unavailable",
+        reason: "historical target code unavailable",
+      };
+    return {
+      ...result,
+      targetCode: hash === emptyCodeHash ? "absent" : "present",
+    };
+  }
+  return result;
 }
 
 const readModuleDependenciesEffect = createEffect(
@@ -566,10 +633,34 @@ export async function getModuleDependencies(
     blockHash: string;
   }
 ): Promise<DependencyReadResult> {
-  return (await context.effect(
-    readModuleDependenciesEffect,
-    input
-  )) as DependencyReadResult;
+  const block = await getControlBlock(
+    context,
+    input.chainId,
+    Number(input.blockNumber)
+  );
+  if (!block || block.hash !== input.blockHash.toLowerCase())
+    return { status: "unavailable", reason: "Canonical block changed" };
+  return reuseKernelRead(
+    context,
+    {
+      chainId: input.chainId,
+      address: input.kernel,
+      getter: `moduleDependents:${input.keycode}`,
+      block,
+    },
+    async () =>
+      (await context.effect(
+        readModuleDependenciesEffect,
+        input
+      )) as DependencyReadResult,
+    () =>
+      getBytecodeHash(context, input.chainId, {
+        address: input.kernel,
+        blockHash: input.blockHash as Hex,
+        requireCanonical: true,
+      }),
+    (number) => getControlBlock(context, input.chainId, Number(number))
+  );
 }
 
 const readBridgeConfigurationEffect = createEffect(

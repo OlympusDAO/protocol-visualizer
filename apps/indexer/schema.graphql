@@ -194,6 +194,22 @@ type ChainObservation {
   indexedThrough: Json!
 }
 
+# Entity caches roll back with events. Effects alone survive rollback.
+type KernelReadEpoch {
+  id: ID!
+  chainId: Int! @index
+  epoch: String!
+  migrated: Boolean!
+}
+
+type KernelReadCache {
+  id: ID!
+  chainId: Int! @index
+  epoch: String!
+  result: Json!
+  verifiedAt: Json!
+}
+
 type HeartTasks {
   id: ID!
   chainId: Int! @index

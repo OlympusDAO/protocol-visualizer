@@ -1,0 +1,103 @@
+{
+  "before": {
+    "fixture": true,
+    "storage": "postgres-adapter",
+    "mode": "before",
+    "pointerOperationsPerBlock": 13,
+    "dependencyScansPerBlock": 3,
+    "checkpoints": 10,
+    "latencyMs": 10,
+    "restartAfterCheckpoint": 5,
+    "medianElapsedMs": 13882.674834,
+    "runs": [
+      {
+        "elapsedMs": 13882.674834,
+        "coldRequests": {
+          "eth_getBlockByNumber": 45,
+          "eth_getCode": 8,
+          "eth_call": 25
+        },
+        "warmNineCheckpoints": {
+          "eth_getBlockByNumber": 405,
+          "eth_getCode": 72,
+          "eth_call": 225
+        }
+      },
+      {
+        "elapsedMs": 13268.513959,
+        "coldRequests": {
+          "eth_getBlockByNumber": 45,
+          "eth_getCode": 8,
+          "eth_call": 25
+        },
+        "warmNineCheckpoints": {
+          "eth_getBlockByNumber": 405,
+          "eth_getCode": 72,
+          "eth_call": 225
+        }
+      },
+      {
+        "elapsedMs": 13922.636875,
+        "coldRequests": {
+          "eth_getBlockByNumber": 45,
+          "eth_getCode": 8,
+          "eth_call": 25
+        },
+        "warmNineCheckpoints": {
+          "eth_getBlockByNumber": 405,
+          "eth_getCode": 72,
+          "eth_call": 225
+        }
+      }
+    ]
+  },
+  "after": {
+    "fixture": true,
+    "storage": "postgres-adapter",
+    "mode": "after",
+    "pointerOperationsPerBlock": 13,
+    "dependencyScansPerBlock": 3,
+    "checkpoints": 10,
+    "latencyMs": 10,
+    "restartAfterCheckpoint": 5,
+    "medianElapsedMs": 1995.7796669999998,
+    "runs": [
+      {
+        "elapsedMs": 1759.7329579999998,
+        "coldRequests": {
+          "eth_getBlockByNumber": 46,
+          "eth_getCode": 8,
+          "eth_call": 25
+        },
+        "warmNineCheckpoints": {
+          "eth_getBlockByNumber": 10,
+          "eth_getCode": 18
+        }
+      },
+      {
+        "elapsedMs": 2028.6332920000004,
+        "coldRequests": {
+          "eth_getBlockByNumber": 46,
+          "eth_getCode": 8,
+          "eth_call": 25
+        },
+        "warmNineCheckpoints": {
+          "eth_getBlockByNumber": 10,
+          "eth_getCode": 18
+        }
+      },
+      {
+        "elapsedMs": 1995.7796669999998,
+        "coldRequests": {
+          "eth_getBlockByNumber": 46,
+          "eth_getCode": 8,
+          "eth_call": 25
+        },
+        "warmNineCheckpoints": {
+          "eth_getBlockByNumber": 10,
+          "eth_getCode": 18
+        }
+      }
+    ]
+  }
+}

@@ -454,7 +454,13 @@ export async function completeRelationshipBlock(
       result.status === "success" &&
       (state?.value == null || field.coverage?.startsWith("getter-only"))
     ) {
-      await writeField(context, chainId, field, result.value, block);
+      await writeField(
+        context,
+        chainId,
+        field,
+        result.value,
+        result.verifiedAt ?? block
+      );
       state = await context.ContractRelationship.get<RelationshipState>(id);
     }
     if (!state) {
@@ -506,7 +512,7 @@ export async function completeRelationshipBlock(
                   : state.value === result.value.toLowerCase()
                     ? "match"
                     : "mismatch",
-              block,
+              block: result.verifiedAt ?? block,
               getterValue: result.value.toLowerCase(),
             },
     });

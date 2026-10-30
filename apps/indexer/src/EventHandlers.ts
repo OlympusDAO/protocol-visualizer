@@ -127,6 +127,7 @@ indexer.onEvent(
   {
     contract: "Kernel",
     event: "ActionExecuted",
+    fields: { block: ["hash", "timestamp"], transaction: ["hash"] },
   },
   async ({ event, context }) => {
     await handleKernelActionExecuted(
@@ -489,13 +490,17 @@ for (const chainId of indexer.chainIds) {
     const readBlock = (number: string) =>
       getControlBlock(context, chainId, Number(number));
     const readGetter = (address: string, getter: string) =>
-      getControlGetter(context, {
-        chainId,
-        address: address as `0x${string}`,
-        blockNumber: BigInt(number),
-        blockHash: block.hash,
-        getter,
-      });
+      getControlGetter(
+        context,
+        {
+          chainId,
+          address: address as `0x${string}`,
+          blockNumber: BigInt(number),
+          blockHash: block.hash,
+          getter,
+        },
+        block
+      );
     if (
       !(await heartTaskAnchorsCanonical(
         context,

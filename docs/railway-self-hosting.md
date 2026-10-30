@@ -297,8 +297,10 @@ Update variable indexer.ENVIO_RPC_URL_1
 Here, `preserve()` represents the hidden current value. The update replaces it with the reference declared in IaC.
 `«hidden»` means that the CLI redacts the desired value. It does not mean that the variable stays unchanged.
 An explicit `preserve()` in the service's `env` definition retains its existing value.
-The provider URLs, API tokens, and webhooks use that explicit form.
-Connection references and consumer RPC URLs do not.
+Provider URLs and API tokens use that explicit form.
+The snapshot jobs use a shared reference for `DISCORD_WEBHOOK_URL`.
+Set the shared value in the target environment before deployment.
+Shared references, connection references, and consumer RPC URLs do not use `preserve()`.
 
 Warnings such as `variables.ignore pattern "RPC_CACHE_MAX_RPS" matches no variable` describe absent optional operator variables.
 If an operator supplies those variables later, the ignore rules retain their values.

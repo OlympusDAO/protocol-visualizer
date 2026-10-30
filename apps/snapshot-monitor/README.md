@@ -7,7 +7,7 @@ stale.
 It reads the active bucket manifest, reads current Envio metrics per chain,
 stores monitor state in the private bucket, and sends Discord messages for:
 
-- one daily indexing heartbeat;
+- daily indexing summaries for production chains and testnets;
 - missing active manifest state;
 - stale chain progress beyond the configured threshold.
 
@@ -17,6 +17,15 @@ omits its timestamp, the monitor looks up that exact block using
 `RPC_URL_<chainId>`. Failed lookups show
 `Timestamp unavailable`. Stalled-chain warnings compare block advancement
 across monitor runs.
+
+Each configured chain occupies one full-width field. Orange means behind head,
+green means synced, and gray means progress or readiness is unavailable.
+The group border is orange when any chain is behind, green when all are synced,
+and gray otherwise. Missing metrics never count as synced.
+Separate “not synced to head” warnings are replaced by these status rows.
+Extra runs while chains are unready refresh the grouped summaries.
+Grouping follows the catalog's `environment` property, which must be
+`production` or `testnet` for every indexed chain. Historical chains are excluded.
 
 Deployment lifecycle messages, including new deployment detection, hourly
 pre-handover progress, and completed handovers, belong in `snapshot-publisher`.

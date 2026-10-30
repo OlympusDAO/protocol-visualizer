@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
   SCHEMA_VERSION,
@@ -11,6 +12,23 @@ import {
   sendDiscordMessage,
   shortId,
 } from "../src/monitor.js";
+
+const mainnet = {
+  key: "Mainnet",
+  chainId: 1,
+  name: "Ethereum Mainnet",
+  environment: "production" as const,
+};
+const configuredChains: Parameters<typeof evaluateMonitor>[0]["chains"] =
+  JSON.parse(
+    readFileSync(
+      new URL(
+        "../../../../packages/protocol-config/protocol-chains.json",
+        import.meta.url
+      ),
+      "utf8"
+    )
+  );
 
 const manifest = (
   generatedAt: string,
@@ -43,6 +61,7 @@ test("shortens deployment ids for Discord output", () => {
 
 test("sends one daily indexing summary", () => {
   const result = evaluateMonitor({
+    chains: [mainnet],
     environmentName: "protocol-visualizer-pr-49",
     deploymentId: "deployment-a",
     manifest: manifest("2026-06-05T00:00:00.000Z", {
@@ -53,15 +72,18 @@ test("sends one daily indexing summary", () => {
     staleThresholdMs: Number.MAX_SAFE_INTEGER,
   });
   assert.equal(result.messages.length, 1);
-  assert.match(result.messages[0] ?? "", /Mainnet: 2026-06-05/);
+  assert.match(
+    result.messages[0] ?? "",
+    /Ethereum Mainnet: Status: Readiness unavailable/
+  );
   assert.equal(result.discordMessages.length, 1);
   assert.equal(
     result.discordMessages[0]?.content,
-    "Protocol visualizer indexing summary"
+    "Protocol visualizer indexing summary — Production chains"
   );
   assert.equal(
     result.discordMessages[0]?.embeds?.[0]?.title,
-    "Protocol Visualizer Indexing Summary"
+    "Protocol Visualizer Indexing Summary — Production chains"
   );
   assert.equal(
     result.discordMessages[0]?.embeds?.[0]?.description,
@@ -74,43 +96,112 @@ test("sends one daily indexing summary", () => {
       inline: false,
     },
     {
-      name: "Mainnet",
-      value: "Block: 123\nTime: <t:1780272000:F>",
-      inline: true,
+      name: "⚪ Ethereum Mainnet",
+      value:
+        "Status: Readiness unavailable\nBlock: 123\nTime: <t:1780272000:F>",
+      inline: false,
     },
   ]);
   assert.equal(result.state.lastDailySummaryAt, "2026-06-05");
 });
 
-test("nine-chain daily summary retains every chain within Discord's field limit", () => {
-  const chains = Object.fromEntries(
-    Array.from({ length: 9 }, (_, index) => [
-      `Chain ${index + 1}`,
-      { chainId: index + 1, block: 123 + index, timestamp: null, date: null },
-    ])
+test("groups all nine indexed chains by catalog environment with full-width status rows", () => {
+  const indexed = configuredChains.filter(
+    (chain) => chain.availability !== "historical"
   );
   const result = evaluateMonitor({
+    chains: configuredChains,
     deploymentId: "deployment-a",
-    manifest: manifest("2026-06-05T00:00:00.000Z", {
-      indexingProgress: { chains },
-    }),
+    manifest: manifest("2026-06-05T00:00:00.000Z"),
+    progress: {
+      chains: Object.fromEntries(
+        indexed.map((chain) => [
+          chain.key,
+          {
+            chainId: chain.chainId,
+            block: chain.chainId + 123,
+            timestamp: null,
+            date: null,
+          },
+        ])
+      ),
+    },
+    notReadyChainIds: [1],
+    readyChainIds: indexed
+      .filter((chain) => chain.chainId !== 1)
+      .map((chain) => chain.chainId),
     state: {},
     now: new Date("2026-06-05T01:00:00.000Z"),
   });
-  const fields = result.discordMessages[0]?.embeds?.[0]?.fields ?? [];
-  assert.equal(fields.length, 10);
-  for (const [name, chain] of Object.entries(chains)) {
-    assert(
-      fields.some(
-        (field) =>
-          field.name === name && field.value.includes(`Block: ${chain.block}`)
-      )
+  assert.equal(indexed.length, 9);
+  assert.equal(result.discordMessages.length, 2);
+  for (const [index, environment] of ["production", "testnet"].entries()) {
+    const embed = result.discordMessages[index]?.embeds?.[0];
+    assert.equal(embed?.color, index === 0 ? 0xf39c12 : 0x2ecc71);
+    assert.match(
+      embed?.title ?? "",
+      index === 0 ? /Production chains/ : /Testnets/
     );
+    const fields = embed?.fields?.slice(1) ?? [];
+    const group = indexed.filter((chain) => chain.environment === environment);
+    assert.equal(fields.length, index === 0 ? 6 : 3);
+    assert.deepEqual(
+      fields.map((field) => field.name),
+      group.map((chain) => `${chain.chainId === 1 ? "🟠" : "🟢"} ${chain.name}`)
+    );
+    for (const [i, chain] of group.entries()) {
+      assert.equal(fields[i]?.inline, false);
+      assert.match(
+        fields[i]?.value ?? "",
+        new RegExp(`Block: ${chain.chainId + 123}\\n`)
+      );
+      assert.match(
+        fields[i]?.value ?? "",
+        chain.chainId === 1 ? /Status: Behind head/ : /Status: Synced to head/
+      );
+    }
   }
+  assert.doesNotMatch(
+    JSON.stringify(result.discordMessages),
+    /not synced to head|Goerli|Bartio/
+  );
+});
+
+test("keeps chains with missing progress visible without reporting them synced or behind", () => {
+  const result = evaluateMonitor({
+    chains: configuredChains,
+    deploymentId: "deployment-a",
+    progress: {
+      chains: {
+        Mainnet: { chainId: 1, block: 0, timestamp: null, date: null },
+      },
+    },
+    readyChainIds: [1, 10],
+    notReadyChainIds: [1],
+    missingChainIds: [1],
+    state: {},
+    now: new Date("2026-06-05T01:00:00.000Z"),
+  });
+  const embeds = result.discordMessages.flatMap(
+    (message) => message.embeds ?? []
+  );
+  assert.equal(embeds.length, 2);
+  assert(embeds.every((embed) => embed.color === 0x95a5a6));
+  const fields = embeds.flatMap((embed) => embed.fields?.slice(1) ?? []);
+  assert.equal(fields.length, 9);
+  assert(fields.every((field) => field.name.startsWith("⚪ ")));
+  assert(
+    fields.every(
+      (field) =>
+        field.value ===
+        "Status: Progress unavailable\nBlock: Unavailable\nTime: Timestamp unavailable"
+    )
+  );
 });
 
 test("records active manifest changes without sending handover messages", () => {
   const result = evaluateMonitor({
+    chains: [mainnet],
     deploymentId: "deployment-indexing",
     manifest: manifest("2026-06-05T01:00:00.000Z", {
       indexerDeploymentId: "deployment-new-active",
@@ -131,6 +222,7 @@ test("records active manifest changes without sending handover messages", () => 
 
 test("warns when no manifest exists", () => {
   const result = evaluateMonitor({
+    chains: [mainnet],
     deploymentId: "deployment-c",
     state: { lastDailySummaryAt: "2026-06-05" },
     now: new Date("2026-06-05T02:00:00.000Z"),
@@ -141,6 +233,7 @@ test("warns when no manifest exists", () => {
 
 test("warns when chain progress stops advancing beyond the threshold", () => {
   const result = evaluateMonitor({
+    chains: [mainnet],
     deploymentId: "deployment-d",
     manifest: manifest("2026-06-05T00:00:00.000Z"),
     state: {
@@ -165,6 +258,7 @@ test("warns when chain progress stops advancing beyond the threshold", () => {
 
 test("warns when Envio metrics report a chain is not ready", () => {
   const result = evaluateMonitor({
+    chains: [mainnet],
     deploymentId: "deployment-e",
     manifest: manifest("2026-06-05T00:00:00.000Z"),
     notReadyChainIds: [1],
@@ -172,11 +266,17 @@ test("warns when Envio metrics report a chain is not ready", () => {
     now: new Date("2026-06-05T01:00:00.000Z"),
     staleThresholdMs: Number.MAX_SAFE_INTEGER,
   });
-  assert.match(result.messages.join("\n"), /is not synced to head/);
+  assert.match(result.messages.join("\n"), /Status: Behind head/);
+  assert.equal(result.discordMessages[0]?.embeds?.[0]?.color, 0xf39c12);
+  assert.doesNotMatch(
+    JSON.stringify(result.discordMessages),
+    /is not synced to head/
+  );
 });
 
 test("warns when active snapshots are older than the stale threshold", () => {
   const result = evaluateMonitor({
+    chains: [mainnet],
     deploymentId: "deployment-f",
     manifest: manifest("2026-06-04T00:00:00.000Z"),
     state: { lastDailySummaryAt: "2026-06-05" },
@@ -188,6 +288,7 @@ test("warns when active snapshots are older than the stale threshold", () => {
 
 test("does not alert when a new deployment is indexing before handover", () => {
   const result = evaluateMonitor({
+    chains: [mainnet],
     deploymentId: "deployment-new",
     manifest: manifest("2026-06-05T00:00:00.000Z", {
       indexerDeploymentId: "deployment-active",
@@ -198,7 +299,12 @@ test("does not alert when a new deployment is indexing before handover", () => {
     staleThresholdMs: Number.MAX_SAFE_INTEGER,
   });
   assert.doesNotMatch(result.messages.join("\n"), /has not handed over yet/);
-  assert.match(result.messages.join("\n"), /is not synced to head/);
+  assert.match(result.messages.join("\n"), /Status: Behind head/);
+  assert.equal(result.discordMessages[0]?.embeds?.[0]?.color, 0xf39c12);
+  assert.doesNotMatch(
+    JSON.stringify(result.discordMessages),
+    /is not synced to head/
+  );
 });
 
 test("monitor resolves a missing optional metric to the exact RPC block timestamp", async () => {
@@ -235,11 +341,13 @@ test("monitor resolves a missing optional metric to the exact RPC block timestam
           key: "Mainnet",
           chainId: 1,
           name: "Mainnet",
+          environment: "production",
         },
         {
           key: "Goerli",
           chainId: 5,
           name: "Goerli",
+          environment: "testnet",
           availability: "historical",
         },
       ],
@@ -257,6 +365,7 @@ test("monitor resolves a missing optional metric to the exact RPC block timestam
 
 test("monitor displays unavailable timestamps without epoch dates or Discord epoch markup", () => {
   const result = evaluateMonitor({
+    chains: [mainnet],
     deploymentId: "deployment-a",
     manifest: manifest("2026-06-05T00:00:00.000Z"),
     progress: {
@@ -267,15 +376,13 @@ test("monitor displays unavailable timestamps without epoch dates or Discord epo
     state: {},
     now: new Date("2026-06-05T01:00:00.000Z"),
   });
-  assert.match(
-    result.messages.join("\n"),
-    /Mainnet: Timestamp unavailable \/ block 123/
-  );
+  assert.match(result.messages.join("\n"), /Time: Timestamp unavailable/);
   assert.ok(
     result.discordMessages[0]?.embeds?.[0]?.fields?.some(
       (field) =>
-        field.name === "Mainnet" &&
-        field.value === "Block: 123\nTime: Timestamp unavailable"
+        field.name === "⚪ Ethereum Mainnet" &&
+        field.value ===
+          "Status: Readiness unavailable\nBlock: 123\nTime: Timestamp unavailable"
     )
   );
   assert.doesNotMatch(JSON.stringify(result), /1970-01-01|<t:0:F>/);
@@ -293,7 +400,7 @@ test("reports indexer metrics network failures with safe context", async () => {
         fetchIndexerMetricsReadiness({
           metricsUrl:
             "http://user:password@indexer.railway.internal:9898/metrics?secret=value",
-          chains: [{ key: "Mainnet", chainId: 1, name: "Mainnet" }],
+          chains: [mainnet],
         }),
       (error) => {
         assert(error instanceof Error);
@@ -316,7 +423,7 @@ test("reports malformed indexer metrics URLs as invalid", async () => {
     () =>
       fetchIndexerMetricsReadiness({
         metricsUrl: "indexer.railway.internal:9898/metrics",
-        chains: [{ key: "Mainnet", chainId: 1, name: "Mainnet" }],
+        chains: [mainnet],
       }),
     (error) => {
       assert(error instanceof Error);
@@ -338,7 +445,7 @@ test("reports indexer metrics HTTP failures with safe context", async () => {
         fetchIndexerMetricsReadiness({
           metricsUrl:
             "http://user:password@indexer.railway.internal:9898/metrics?secret=value",
-          chains: [{ key: "Mainnet", chainId: 1, name: "Mainnet" }],
+          chains: [mainnet],
         }),
       (error) => {
         assert(error instanceof Error);

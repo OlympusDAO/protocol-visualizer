@@ -35,6 +35,7 @@ type ChainConfig = {
   key: string;
   chainId: number;
   name: string;
+  environment: "production" | "testnet";
   availability?: "indexed" | "historical";
 };
 
@@ -44,11 +45,14 @@ type MonitorStore = {
 };
 
 type MonitorInput = {
+  chains: ChainConfig[];
   environmentName?: string;
   deploymentId: string;
   manifest?: SnapshotManifest;
   progress?: IndexingProgress;
   notReadyChainIds?: number[];
+  readyChainIds?: number[];
+  missingChainIds?: number[];
   state: MonitorState;
   now: Date;
   staleThresholdMs?: number;
@@ -68,6 +72,7 @@ type DiscordEmbedField = {
 
 type DiscordEmbed = {
   title: string;
+  color?: number;
   description?: string;
   fields?: DiscordEmbedField[];
   footer?: {
@@ -216,6 +221,15 @@ export async function loadConfiguredChains(): Promise<ChainConfig[]> {
   const chains = (await loadChains()).filter(
     (chain) => chain.availability !== "historical"
   );
+  if (
+    chains.some(
+      (chain) => !["production", "testnet"].includes(chain.environment)
+    )
+  ) {
+    throw new Error(
+      "Each indexed chain must specify environment: production or testnet"
+    );
+  }
   assertRpcConfiguration(chains);
   return chains;
 }
@@ -300,56 +314,92 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
   }
 
   const today = input.now.toISOString().slice(0, 10);
-  if (input.state.lastDailySummaryAt !== today) {
-    const chainEntries = Object.entries(progress?.chains ?? {});
-    const chainLines = chainEntries
-      .map(
-        ([name, chain]) =>
-          `${name}: ${chain.date ?? "Timestamp unavailable"} / block ${chain.block}`
-      )
-      .join("; ");
-    const message = `Protocol visualizer indexing summary for ${environmentName} / ${shortId(
-      input.deploymentId
-    )}: ${chainLines || "no per-chain progress available"}.`;
-    messages.push(message);
-    discordMessages.push({
-      content: "Protocol visualizer indexing summary",
-      embeds: [
-        {
-          title: "Protocol Visualizer Indexing Summary",
-          description: `Environment ${environmentName}`,
-          fields:
-            chainEntries.length > 0
-              ? [
-                  {
-                    name: "Deployment ID",
-                    value: shortId(input.deploymentId),
-                    inline: false,
-                  },
-                  ...chainEntries.map(([name, chain]) => ({
-                    name,
-                    value: `Block: ${chain.block}\nTime: ${
-                      chain.timestamp === null
-                        ? "Timestamp unavailable"
-                        : `<t:${chain.timestamp}:F>`
-                    }`,
-                    inline: true,
-                  })),
-                ]
-              : [
-                  {
-                    name: "Progress",
-                    value: "No per-chain progress available.",
-                    inline: false,
-                  },
-                ],
-          footer: input.manifest
-            ? { text: `Active manifest: ${input.manifest.generatedAt}` }
-            : undefined,
-          timestamp: input.now.toISOString(),
-        },
-      ],
-    });
+  if (input.state.lastDailySummaryAt !== today || notReadyChainIds.length > 0) {
+    const progressByChainId = new Map(
+      Object.values(progress?.chains ?? {}).map((chain) => [
+        chain.chainId,
+        chain,
+      ])
+    );
+    for (const environment of ["production", "testnet"] as const) {
+      const chains = input.chains.filter(
+        (chain) =>
+          chain.availability !== "historical" &&
+          chain.environment === environment
+      );
+      if (chains.length === 0) continue;
+      const group =
+        environment === "production" ? "Production chains" : "Testnets";
+      const rows = chains.map((chain) => {
+        const current = progressByChainId.get(chain.chainId);
+        const unavailable =
+          !current || input.missingChainIds?.includes(chain.chainId);
+        const behind = !unavailable && notReadyChainIds.includes(chain.chainId);
+        const ready =
+          !unavailable &&
+          !behind &&
+          input.readyChainIds?.includes(chain.chainId);
+        const status = unavailable
+          ? "Progress unavailable"
+          : behind
+            ? "Behind head"
+            : ready
+              ? "Synced to head"
+              : "Readiness unavailable";
+        return {
+          behind,
+          ready,
+          field: {
+            name: `${behind ? "🟠" : ready ? "🟢" : "⚪"} ${chain.name}`,
+            value: `Status: ${status}\nBlock: ${
+              unavailable ? "Unavailable" : current.block
+            }\nTime: ${
+              unavailable || current.timestamp === null
+                ? "Timestamp unavailable"
+                : `<t:${current.timestamp}:F>`
+            }`,
+            inline: false,
+          },
+        };
+      });
+      const color = rows.some((row) => row.behind)
+        ? 0xf39c12
+        : rows.every((row) => row.ready)
+          ? 0x2ecc71
+          : 0x95a5a6;
+      const chainFields = rows.map((row) => row.field);
+      messages.push(
+        `Protocol visualizer indexing summary for ${environmentName} / ${shortId(
+          input.deploymentId
+        )} — ${group}: ${chainFields
+          .map(
+            (field) => `${field.name}: ${field.value.replaceAll("\n", "; ")}`
+          )
+          .join("; ")}.`
+      );
+      discordMessages.push({
+        content: `Protocol visualizer indexing summary — ${group}`,
+        embeds: [
+          {
+            title: `Protocol Visualizer Indexing Summary — ${group}`,
+            color,
+            description: `Environment ${environmentName}`,
+            fields: [
+              {
+                name: "Deployment ID",
+                value: shortId(input.deploymentId),
+                inline: false,
+              },
+              ...chainFields,
+            ],
+            footer: input.manifest
+              ? { text: `Active manifest: ${input.manifest.generatedAt}` }
+              : undefined,
+            timestamp: input.now.toISOString(),
+          },
+        ],
+      });
+    }
     nextState.lastDailySummaryAt = today;
   }
 
@@ -372,12 +422,6 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
       input.now.getTime() - Date.parse(previous.observedAt) >= staleThresholdMs
     ) {
       const message = `Protocol visualizer indexing warning: ${name} has not advanced since ${previous.observedAt} at block ${chain.block}.`;
-      messages.push(message);
-      discordMessages.push({ content: message });
-    }
-
-    if (notReadyChainIds.includes(chain.chainId)) {
-      const message = `Protocol visualizer indexing warning: ${name} is not synced to head at block ${chain.block}.`;
       messages.push(message);
       discordMessages.push({ content: message });
     }
@@ -406,6 +450,7 @@ export async function sendDiscordMessage(
 }
 
 export async function runMonitor(input: {
+  chains: ChainConfig[];
   store: MonitorStore;
   webhookUrl: string;
   stateKey: string;
@@ -413,6 +458,8 @@ export async function runMonitor(input: {
   deploymentId: string;
   progress?: IndexingProgress;
   notReadyChainIds?: number[];
+  readyChainIds?: number[];
+  missingChainIds?: number[];
   now?: Date;
   staleThresholdMs?: number;
 }) {
@@ -421,11 +468,14 @@ export async function runMonitor(input: {
     input.store.getJson<MonitorState>(input.stateKey),
   ]);
   const result = evaluateMonitor({
+    chains: input.chains,
     deploymentId: input.deploymentId,
     environmentName: input.environmentName,
     manifest,
     progress: input.progress,
     notReadyChainIds: input.notReadyChainIds,
+    readyChainIds: input.readyChainIds,
+    missingChainIds: input.missingChainIds,
     state: state ?? {},
     now: input.now ?? new Date(),
     staleThresholdMs: input.staleThresholdMs,
@@ -479,6 +529,7 @@ export async function runMonitorFromEnv(logger: MonitorLogger = defaultLogger) {
 
     stage = "run_monitor";
     await runMonitor({
+      chains,
       store,
       webhookUrl,
       stateKey,
@@ -486,6 +537,8 @@ export async function runMonitorFromEnv(logger: MonitorLogger = defaultLogger) {
       deploymentId,
       progress: readiness.indexingProgress,
       notReadyChainIds: readiness.notReadyChainIds,
+      readyChainIds: readiness.readyChainIds,
+      missingChainIds: readiness.missingChainIds,
       staleThresholdMs: staleThresholdHours * 60 * 60 * 1000,
     });
   } catch (error) {

@@ -6,8 +6,9 @@ Both services use the environment's shared `DISCORD_WEBHOOK_URL` in Railway.
 The publisher treats notifications as optional. The monitor requires the webhook.
 
 These examples use fictional values and show all nine currently indexed chains.
-Actual notifications include every chain with available progress.
-Discord can arrange the chain fields in columns. The text blocks show their content, not the exact Discord layout.
+The monitor includes all nine configured chains, including rows with unavailable progress.
+Publisher notifications include every chain with available progress.
+Monitor chain fields occupy a full row. Discord can arrange publisher fields in columns.
 Deployment IDs use at most 12 characters in notifications.
 
 `<t:1700000000:F>` is Discord timestamp markup. Discord displays it in the reader's local time zone.
@@ -16,51 +17,86 @@ When the block timestamp is unavailable, that line reads `Time: Timestamp unavai
 
 ## Monitor: daily indexing summary
 
-The monitor sends one summary per UTC day, based on its saved state.
-An active manifest adds the footer shown in this example.
+The monitor sends two notifications: production chains and testnets. Groups follow the chain catalog, independent of the Railway environment.
+The saved state limits the daily summary to once per UTC day. Extra runs while chains are unready send updated grouped summaries.
+An active manifest adds the footer shown below.
+
+Each chain occupies one full-width field. Its indicator and `Status` line replace the separate “not synced to head” warnings.
+Discord supports color on the whole embed border, rather than individual fields.
+A group has an orange border when any chain is behind, green when all are synced, and gray otherwise.
+
+| Indicator | Status |
+| --- | --- |
+| 🟠 | Behind head, according to Envio readiness metrics |
+| 🟢 | Synced to head, according to Envio readiness metrics |
+| ⚪ | Progress or readiness unavailable; never inferred as synced |
+
+Missing metrics show `Block: Unavailable` and `Time: Timestamp unavailable`.
+A missing timestamp alone does not change the readiness status.
 
 ```text
-Protocol visualizer indexing summary
+Protocol visualizer indexing summary — Production chains
 
-Protocol Visualizer Indexing Summary
+Protocol Visualizer Indexing Summary — Production chains
 Environment protocol-visualizer-pr-123
 
 Deployment ID
 abcdef123456
 
-Mainnet
+🟠 Ethereum Mainnet
+Status: Behind head
 Block: 16000000
 Time: <t:1700000000:F>
 
-Optimism
+🟢 Optimism
+Status: Synced to head
 Block: 100000000
 Time: <t:1700000000:F>
 
-Arbitrum
+🟠 Arbitrum
+Status: Behind head
 Block: 150000000
 Time: <t:1700000000:F>
 
-Base
+🟢 Base
+Status: Synced to head
 Block: 10000000
 Time: <t:1700000000:F>
 
-Berachain
+🟢 Berachain
+Status: Synced to head
 Block: 5000000
 Time: <t:1700000000:F>
 
-Robinhood
+🟢 Robinhood Chain
+Status: Synced to head
 Block: 12000000
 Time: <t:1700000000:F>
 
-Sepolia
+Active manifest: 2026-10-30T00:00:00.000Z
+```
+
+```text
+Protocol visualizer indexing summary — Testnets
+
+Protocol Visualizer Indexing Summary — Testnets
+Environment protocol-visualizer-pr-123
+
+Deployment ID
+abcdef123456
+
+🟢 Sepolia
+Status: Synced to head
 Block: 7000000
 Time: <t:1700000000:F>
 
-ArbitrumSepolia
+🟢 Arbitrum Sepolia
+Status: Synced to head
 Block: 280000000
 Time: <t:1700000000:F>
 
-BaseSepolia
+🟢 Base Sepolia
+Status: Synced to head
 Block: 25000000
 Time: <t:1700000000:F>
 
@@ -85,14 +121,6 @@ This warning uses the manifest generation time and the configured stale threshol
 
 ```text
 Protocol visualizer snapshot warning: active snapshots are 25h old. Active manifest was generated at 2026-10-29T00:00:00.000Z.
-```
-
-### Chain not synced to head
-
-This warning reports readiness from the indexer metrics. It can occur during normal backfill.
-
-```text
-Protocol visualizer indexing warning: Mainnet is not synced to head at block 16000000.
 ```
 
 ### Chain stopped advancing
@@ -235,7 +263,8 @@ Time: <t:1700000000:F>
 ```
 
 Handover notifications use the chain display names from the manifest.
-The monitor and publisher progress notifications use the progress keys, such as `Mainnet`.
+The monitor uses catalog display names, such as `Ethereum Mainnet`.
+Publisher progress notifications use progress keys, such as `Mainnet`.
 
 ## Field limits and delivery errors
 
@@ -243,7 +272,8 @@ Each chain uses one field with its block and timestamp. No chain is removed to f
 
 | Notification | Fields with nine chains |
 | --- | ---: |
-| Monitor daily summary | 10: deployment ID plus nine chains |
+| Monitor production summary | 7: deployment ID plus six chains |
+| Monitor testnet summary | 4: deployment ID plus three chains |
 | Publisher handover | 10: deployment ID plus nine chains |
 | Publisher indexing progress | 13: four metadata fields plus nine chains |
 

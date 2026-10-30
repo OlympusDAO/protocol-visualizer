@@ -6,6 +6,10 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  processAbiMetadata,
+  processVerifiedContractMetadata,
+} from "../apps/indexer/src/services/contracts/abi.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
@@ -39,11 +43,8 @@ const etherscanMinRequestIntervalMs = readPositiveIntegerEnv(
 let lastEtherscanRequestAt = 0;
 
 const requireFromRepo = createRequire(path.join(repoRoot, "package.json"));
-const requireFromIndexer = createRequire(
-  path.join(indexerRoot, "package.json")
-);
-const ts = requireFromRepo("typescript");
-const { toFunctionSelector } = requireFromIndexer("viem");
+// TypeScript 7's native compiler does not expose this JavaScript AST API.
+const ts = requireFromRepo("@typescript/typescript6");
 
 const cliOptions = parseArgs(process.argv.slice(2));
 
@@ -55,11 +56,22 @@ function parseArgs(args) {
     force: false,
     includeUnknownType: false,
     cacheOnly: false,
+    verifiedSource: undefined,
+    refreshGetters: false,
   };
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === "--") {
+      continue;
+    }
+    if (arg === "--refresh-getters") {
+      options.refreshGetters = true;
+      continue;
+    }
+    if (arg === "--verified-source") {
+      index += 1;
+      options.verifiedSource = readRequiredArg(args, index, arg);
       continue;
     }
     if (arg === "--force") {
@@ -75,15 +87,18 @@ function parseArgs(args) {
       continue;
     }
     if (arg === "--chain-id") {
-      options.chainId = readRequiredArg(args, (index += 1), arg);
+      index += 1;
+      options.chainId = readRequiredArg(args, index, arg);
       continue;
     }
     if (arg === "--address") {
-      options.address = readRequiredArg(args, (index += 1), arg).toLowerCase();
+      index += 1;
+      options.address = readRequiredArg(args, index, arg).toLowerCase();
       continue;
     }
     if (arg === "--name") {
-      options.name = readRequiredArg(args, (index += 1), arg);
+      index += 1;
+      options.name = readRequiredArg(args, index, arg);
       continue;
     }
     throw new Error(`Unknown argument: ${arg}`);
@@ -512,32 +527,6 @@ async function fetchContractSourceCode(chainId, address) {
   return sourceCode;
 }
 
-function getFunctionSignature(func) {
-  const inputs = (func.inputs ?? []).map((input) => input.type).join(",");
-  const outputs = (func.outputs ?? []).map((output) => output.type).join(",");
-  return `${func.name}(${inputs})(${outputs})`;
-}
-
-function processAbi(abi) {
-  const roleToFunctions = {};
-  const functionSelectors = {};
-
-  for (const item of abi) {
-    if (item.type !== "function") continue;
-
-    const signature = getFunctionSignature(item);
-    const selector = toFunctionSelector(item);
-    functionSelectors[selector] = {
-      name: item.name,
-      selector,
-      signature,
-      roles: [],
-    };
-  }
-
-  return { roleToFunctions, functionSelectors };
-}
-
 function findRoleFromModifier(name, functionDefinition, sourceCode) {
   const constantMatch = functionDefinition.match(
     /onlyRole\(([A-Z_][A-Z0-9_]*)\)/
@@ -554,7 +543,7 @@ function findRoleFromModifier(name, functionDefinition, sourceCode) {
     }
   }
 
-  if (/onlyAdmin(?:\(\))?/.test(functionDefinition)) {
+  if (/onlyAdmin(?:Role)?\b(?:\(\))?/.test(functionDefinition)) {
     return name.includes("RolesAdmin") ? [roleRolesAdmin] : ["admin"];
   }
   if (/onlyEmergency(?:\(\))?/.test(functionDefinition)) {
@@ -579,7 +568,7 @@ function processSourceCode(name, sourceCode, processedData) {
     processedData.functionSelectors
   )) {
     const functionDefinition = sourceCode.match(
-      new RegExp(`function ${functionDetails.name}\\s*\\([^{]*\\)\\s*[^{]*{`)
+      new RegExp(`function ${functionDetails.name}\\s*\\([^;{]*\\)\\s*[^;{]*{`)
     );
     if (!functionDefinition) continue;
 
@@ -598,7 +587,7 @@ async function fetchProcessedContract(contract) {
     contract.chainId,
     contract.address
   );
-  return processSourceCode(contract.name, sourceCode, processAbi(abi));
+  return processSourceCode(contract.name, sourceCode, processAbiMetadata(abi));
 }
 
 const existingMetadata = await readJsonIfExists(outputPath, {});
@@ -613,11 +602,102 @@ for (const [chainId, contracts] of Object.entries(cache)) {
       continue;
     }
 
-    metadata[chainId][address.toLowerCase()] = cacheEntry.processedData;
+    metadata[chainId][address.toLowerCase()] ??= cacheEntry.processedData;
   }
 }
 
-if (!cliOptions.cacheOnly) {
+if (cliOptions.verifiedSource) {
+  if (!cliOptions.chainId || !cliOptions.address)
+    throw new Error("--verified-source requires --chain-id and --address");
+  const verified = JSON.parse(
+    await readFile(cliOptions.verifiedSource, "utf8")
+  );
+  metadata[cliOptions.chainId] ??= {};
+  metadata[cliOptions.chainId][cliOptions.address] =
+    processVerifiedContractMetadata(
+      verified,
+      cliOptions.chainId,
+      cliOptions.address,
+      metadata[cliOptions.chainId][cliOptions.address]
+    );
+} else if (cliOptions.refreshGetters) {
+  const inventory = await readJsonIfExists(
+    path.join(repoRoot, "packages/protocol-config/other-contracts.json"),
+    []
+  );
+  const targets = new Map(
+    parseContractNames().map((contract) => [
+      `${contract.chainId}:${contract.normalizedAddress}`,
+      contract,
+    ])
+  );
+  for (const contract of inventory.filter((entry) => !entry.labelOnly)) {
+    const identity = `${contract.chainId}:${contract.address.toLowerCase()}`;
+    if (!targets.has(identity))
+      targets.set(identity, {
+        ...contract,
+        chainId: String(contract.chainId),
+        normalizedAddress: contract.address.toLowerCase(),
+        type: "external",
+      });
+  }
+  const selected = [...targets.values()].filter(
+    (contract) =>
+      (!cliOptions.chainId || contract.chainId === cliOptions.chainId) &&
+      (!cliOptions.address ||
+        contract.normalizedAddress === cliOptions.address) &&
+      (!cliOptions.name || contract.name === cliOptions.name)
+  );
+  if (cliOptions.address && !selected.length)
+    throw new Error(
+      "No registered contract matches the requested getter refresh"
+    );
+  let unavailable = 0;
+  let updated = 0;
+  for (const contract of selected) {
+    const previous = metadata[contract.chainId]?.[contract.normalizedAddress];
+    const functions = Object.values(previous?.functionSelectors ?? {});
+    if (
+      !cliOptions.force &&
+      Array.isArray(previous?.addressGetters) &&
+      functions.every((fn) => fn.canonicalSignature && fn.documentation?.source)
+    )
+      continue;
+    try {
+      await waitForEtherscanRequestSlot();
+      lastEtherscanRequestAt = Date.now();
+      const url = `https://sourcify.dev/server/v2/contract/${contract.chainId}/${contract.normalizedAddress}?fields=metadata,runtimeBytecode.onchainBytecode`;
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (!response.ok) throw new Error(`Sourcify HTTP ${response.status}`);
+      const processed = processVerifiedContractMetadata(
+        await response.json(),
+        contract.chainId,
+        contract.normalizedAddress,
+        previous
+      );
+      metadata[contract.chainId] ??= {};
+      metadata[contract.chainId][contract.normalizedAddress] = processed;
+      updated++;
+      console.log(
+        `Verified getters: ${contract.chainId}:${contract.normalizedAddress} ${contract.name} (${processed.addressGetters.length})`
+      );
+    } catch (error) {
+      unavailable++;
+      console.warn(
+        `Getter verification unavailable: ${contract.chainId}:${contract.normalizedAddress} ${contract.name}: ${error.message}; retained previous metadata.`
+      );
+    }
+  }
+  console.log(
+    `Getter metadata: ${updated} refreshed, ${unavailable} unavailable, ${selected.length - updated - unavailable} already verified.`
+  );
+  if (unavailable && (cliOptions.address || cliOptions.name))
+    throw new Error(
+      "Requested getter verification unavailable; previous metadata retained"
+    );
+} else if (!cliOptions.cacheOnly) {
   if (!process.env.ETHERSCAN_API_KEY?.trim()) {
     throw new Error(
       "ETHERSCAN_API_KEY is required to fetch missing contract metadata"

@@ -51,10 +51,11 @@ pnpm run stack:publish:sample
 The full local stack guide is in `docs/local-stack.md`.
 
 Railway self-hosting is documented in `docs/railway-self-hosting.md`. The
-deployable Railway services are defined by `railway-indexer.json`,
-`railway-hasura.json`, `railway-snapshot-publisher.json`,
-`railway-snapshot-monitor.json`, `railway-snapshot-gateway.json`, and
-`railway-frontend.json`.
+deployable Railway services and storage are defined in
+[`.railway/railway.ts`](.railway/railway.ts). The Railway infrastructure workflow
+plans changes on PR updates and applies the reviewed production plan on merge.
+See [the Railway setup guide](docs/railway-self-hosting.md) for bootstrap and
+secrets.
 
 The frontend is a static build that points at the public snapshot gateway. The
 publisher talks to Hasura over Railway private networking and writes snapshots
@@ -88,6 +89,8 @@ pnpm run docker:build:snapshot-monitor
 
 Indexer setup, local Envio testing, metrics, and Docker runtime notes are
 documented in `apps/indexer/README.md`.
+For new contracts and getter links, use the
+[contract metadata update procedure](apps/indexer/README.md#contract-metadata).
 
 Quick local indexer commands:
 

@@ -1,36 +1,11 @@
 import {
   createPublicClient,
-  fallback,
   http,
   type PublicClient,
   type Transport,
 } from "viem";
 
-import { ChainId } from "../constants";
-
 const publicClients = new Map<number, PublicClient<Transport>>();
-
-const DEFAULT_RPC_URLS: Record<number, string> = {
-  [ChainId.Mainnet]: "https://eth.llamarpc.com",
-  [ChainId.Base]: "https://base.llamarpc.com",
-  [ChainId.Berachain]: "https://rpc.berachain.com",
-  [ChainId.Optimism]: "https://optimism.llamarpc.com",
-  [ChainId.Sepolia]: "https://ethereum-sepolia-rpc.publicnode.com",
-};
-
-function getRpcUrls(chainId: number): string[] {
-  const urls = [
-    process.env[`ENVIO_RPC_URL_${chainId}`],
-    process.env[`ENVIO_RPC_URL_FALLBACK_${chainId}`],
-    DEFAULT_RPC_URLS[chainId],
-  ].filter((url): url is string => !!url);
-
-  if (urls.length === 0) {
-    throw new Error(`RPC URL not found for chain ${chainId}`);
-  }
-
-  return urls;
-}
 
 export function getPublicClient(chainId: number): PublicClient<Transport> {
   const cached = publicClients.get(chainId);
@@ -38,20 +13,11 @@ export function getPublicClient(chainId: number): PublicClient<Transport> {
     return cached;
   }
 
-  const transports = getRpcUrls(chainId).map((url) =>
-    http(url, { batch: true })
-  );
-  let transport: Transport;
-  if (transports.length === 1) {
-    const [singleTransport] = transports;
-    if (!singleTransport) {
-      throw new Error(`RPC URL not found for chain ${chainId}`);
-    }
-    transport = singleTransport;
-  } else {
-    transport = fallback(transports);
-  }
-  const client = createPublicClient({ transport });
+  const url = process.env[`ENVIO_RPC_URL_${chainId}`];
+  if (!url?.trim()) throw new Error(`Missing ENVIO_RPC_URL_${chainId}`);
+  const client = createPublicClient({
+    transport: http(url, { batch: true, retryCount: 0 }),
+  });
   publicClients.set(chainId, client);
 
   return client;

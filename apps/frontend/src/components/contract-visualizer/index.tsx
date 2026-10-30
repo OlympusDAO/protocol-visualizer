@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import ReactFlow, {
   Background,
   Controls,
+  MiniMap,
   type Node,
   useEdgesState,
   useNodesState,
@@ -17,14 +18,50 @@ import { useQuery } from "@tanstack/react-query";
 import {
   type Contract,
   getProtocolVisualizerData,
+  getAdditionalGraphContracts,
   type RoleAssignment,
+  type PolicyFunction,
+  type PolicyPermission,
 } from "@/services/contracts";
-import dagre from "dagre";
+import { ConnectionLabel, FunctionDocumentation } from "./function-context";
 import { ChainSelector } from "../chain-selector";
-import { DEFAULT_CHAIN_ID, SUPPORTED_CHAINS } from "@/lib/constants";
+import { SUPPORTED_CHAINS } from "@/lib/constants";
+import { useGraphNavigation } from "./navigation";
+import {
+  getArchitectureView,
+  layoutArchitectureSections,
+  layoutContractGraph,
+  getSubsystem,
+  SUBSYSTEMS,
+  SIDE_SECTION_IDS,
+  type ConnectionFilters,
+  DEFAULT_CONNECTION_FILTERS,
+  FOCUSED_CONNECTION_FILTERS,
+  type ConnectionKind,
+} from "./architecture";
+import { RelationshipEdge } from "./relationship-edge";
+import otherContracts from "../../../../../packages/protocol-config/other-contracts.json";
+import {
+  getFunctionTooltip,
+  getPolicyModuleKeycodes,
+  getPoliciesUsingModule,
+  getEnablementPresentation,
+  getRelationshipGraph,
+  getRelationshipPath,
+  getContractPalette,
+  getContractDeploymentLabel,
+  getGraphContractName,
+  getContractNodeWidth,
+  getKernelLabel,
+  refreshGraph,
+  groupInactiveContracts,
+} from "./graph";
 
 interface NodeData {
   name: string;
+  contractType?: string;
+  kernelInactive?: boolean;
+  kernelHistory?: string;
   label: React.ReactNode;
   assignees?: RoleAssignment[];
   policiesCount?: number;
@@ -35,6 +72,102 @@ interface NodeData {
 }
 
 type CustomNode = Node<NodeData>;
+
+function StatusTooltip({
+  label,
+  className,
+  children,
+}: {
+  label: string;
+  className: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={(event) => event.stopPropagation()}
+      className={`nodrag nopan group/status relative inline-flex rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${className}`}
+    >
+      {children}
+      <span
+        role="tooltip"
+        className="pointer-events-none invisible absolute right-0 top-full z-50 mt-2 whitespace-nowrap rounded border border-ui-border bg-surface px-2 py-1 text-[11px] font-normal text-foreground shadow-md group-hover/status:visible group-focus/status:visible"
+      >
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function EnablementIndicator({ label }: { label: string }) {
+  return (
+    <StatusTooltip
+      label={label}
+      className={`inline-flex align-middle ${label === "Contract enabled" ? "text-success" : "text-danger"}`}
+    >
+      <svg
+        aria-hidden="true"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="12" cy="12" r="9" />
+        <path
+          d={label === "Contract enabled" ? "m8 12 3 3 5-6" : "m6 6 12 12"}
+        />
+      </svg>
+    </StatusTooltip>
+  );
+}
+
+function ContractStatusIcons({
+  contract,
+  enablementLabel,
+}: {
+  contract: { isEnabled?: boolean; category?: string; kernelHistory?: string };
+  enablementLabel: string | null;
+}) {
+  const membership = getKernelLabel(contract);
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1.5">
+      {membership && (
+        <StatusTooltip
+          label={
+            membership === "Kernel active" ? "Active in Kernel" : membership
+          }
+          className={
+            membership === "Kernel active"
+              ? "inline-flex text-link"
+              : "inline-flex text-muted"
+          }
+        >
+          <svg
+            aria-hidden="true"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="6" y="6" width="15" height="15" rx="2" />
+            <path d="M17 3H5a2 2 0 0 0-2 2v12" />
+            {membership !== "Kernel active" && <path d="m3 3 18 18" />}
+          </svg>
+        </StatusTooltip>
+      )}
+      {enablementLabel && <EnablementIndicator label={enablementLabel} />}
+    </span>
+  );
+}
 
 // Helper functions
 const shortenAddress = (address: string) => {
@@ -54,9 +187,7 @@ const getEtherscanLink = (address: string, chainId: number) => {
 // Helper function to format contract name with version
 const formatContractName = (contract: Contract) => {
   if (!contract.name) return "Unknown";
-  return contract.version
-    ? `${contract.name} (${contract.version})`
-    : contract.name;
+  return getGraphContractName(contract);
 };
 
 // Extract keycode from module name (e.g., "MINTR" from "MINTR: Minter")
@@ -68,40 +199,72 @@ const extractKeycode = (moduleName: string): string | null => {
 // Node color scheme
 const NODE_COLORS = {
   kernel: {
-    background: "#fef3c7", // Amber 100
-    border: "#d97706", // Amber 600
-    text: "#92400e", // Amber 800
+    label: "Kernel",
+    background: "light-dark(#fef3c7, #382911)",
+    border: "light-dark(#d97706, #fbbf24)",
+    text: "light-dark(#92400e, #fde68a)",
   },
   module: {
-    background: "#dbeafe", // Blue 100
-    border: "#2563eb", // Blue 600
-    text: "#1e40af", // Blue 800
+    label: "Module",
+    background: "light-dark(#dbeafe, #172b4d)",
+    border: "light-dark(#2563eb, #60a5fa)",
+    text: "light-dark(#1e40af, #bfdbfe)",
   },
   policy: {
-    background: "#dcfce7", // Green 100
-    border: "#16a34a", // Green 600
-    text: "#166534", // Green 800
+    label: "Policy",
+    background: "light-dark(#dcfce7, #133524)",
+    border: "light-dark(#16a34a, #4ade80)",
+    text: "light-dark(#166534, #bbf7d0)",
+  },
+  periphery: {
+    label: "Protocol periphery",
+    background: "light-dark(#e0e7ff, #27264d)",
+    border: "light-dark(#6366f1, #a5b4fc)",
+    text: "light-dark(#3730a3, #c7d2fe)",
+  },
+  external: {
+    label: "Other contracts",
+    background: "light-dark(#f9fafb, #1f2937)",
+    border: "light-dark(#9ca3af, #94a3b8)",
+    text: "light-dark(#374151, #e2e8f0)",
   },
   role: {
-    background: "#f3e8ff", // Purple 100
-    border: "#9333ea", // Purple 600
-    text: "#6b21a8", // Purple 800
+    label: "Role",
+    background: "light-dark(#f3e8ff, #322047)",
+    border: "light-dark(#9333ea, #c084fc)",
+    text: "light-dark(#6b21a8, #e9d5ff)",
   },
   assignee: {
-    background: "#fae8ff", // Pink 100
-    border: "#db2777", // Pink 600
-    text: "#9d174d", // Pink 800
+    label: "Multisigs & addresses",
+    background: "light-dark(#fae8ff, #422039)",
+    border: "light-dark(#db2777, #f472b6)",
+    text: "light-dark(#9d174d, #fbcfe8)",
   },
 };
 
-// Create a node for a non-contract assignee
-const createAssigneeNode = (
-  assignee: RoleAssignment,
+const createAddressNode = (
+  assignee: Pick<RoleAssignment, "assignee" | "assigneeName">,
   id: string,
-  chainId: number
+  chainId: number,
+  contract = false
 ) => {
+  const knownContract =
+    contract ||
+    otherContracts.some(
+      (entry) =>
+        entry.chainId === chainId &&
+        entry.address === id &&
+        !/\bMS\b|Multisig|^Deployer$/.test(entry.name)
+    );
   const assigneeName =
-    assignee.assigneeName === "UNKNOWN" ? "EOA" : assignee.assigneeName;
+    assignee.assigneeName === "UNKNOWN"
+      ? knownContract
+        ? "Unknown contract"
+        : "Unknown address"
+      : assignee.assigneeName;
+  const colors = knownContract
+    ? NODE_COLORS[getContractPalette({ name: assigneeName })]
+    : NODE_COLORS.assignee;
 
   return {
     id,
@@ -114,13 +277,13 @@ const createAssigneeNode = (
             type="target"
             position={Position.Left}
             style={{
-              background: NODE_COLORS.assignee.border,
-              border: `1px solid ${NODE_COLORS.assignee.border}`,
+              background: colors.border,
+              border: `1px solid ${colors.border}`,
             }}
           />
           <div
-            className="font-bold mb-1 break-words whitespace-pre-wrap max-w-[160px]"
-            style={{ color: NODE_COLORS.assignee.text }}
+            className="font-bold mb-1 wrap-break-word"
+            style={{ color: colors.text }}
           >
             {assigneeName}
           </div>
@@ -129,7 +292,7 @@ const createAssigneeNode = (
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs break-all hover:opacity-80"
-            style={{ color: NODE_COLORS.assignee.border }}
+            style={{ color: colors.border }}
           >
             {shortenAddress(assignee.assignee)}
           </a>
@@ -138,20 +301,20 @@ const createAssigneeNode = (
             type="source"
             position={Position.Right}
             style={{
-              background: NODE_COLORS.assignee.border,
-              border: `1px solid ${NODE_COLORS.assignee.border}`,
+              background: colors.border,
+              border: `1px solid ${colors.border}`,
             }}
           />
         </div>
       ),
-      assigneeAddress: assignee.assignee,
+      ...(knownContract ? {} : { assigneeAddress: assignee.assignee }),
     },
     style: {
-      background: NODE_COLORS.assignee.background,
-      border: `1px solid ${NODE_COLORS.assignee.border}`,
+      background: colors.background,
+      border: `1px solid ${colors.border}`,
       borderRadius: "8px",
       padding: "6px",
-      minWidth: "180px",
+      width: getContractNodeWidth({ name: assigneeName }),
     },
     targetPosition: Position.Left,
     sourcePosition: Position.Right,
@@ -159,7 +322,10 @@ const createAssigneeNode = (
 };
 
 // Node types configuration
+const edgeTypes = { relationship: RelationshipEdge };
+
 const nodeTypes: NodeTypes = {
+  group: ({ data }) => <div>{data.label}</div>,
   role: ({ data }: { data: NodeData }) => (
     // biome-ignore lint/a11y/noStaticElementInteractions: graph node hover state is handled by React Flow, not an interactive control.
     <div
@@ -208,118 +374,46 @@ const nodeTypes: NodeTypes = {
   ),
 };
 
-// Custom tooltip components
-
-// Custom tooltip component
-const PolicyTooltip = ({ contract }: { contract: Contract }) => {
-  if (!contract.policyPermissions) return null;
-
-  return (
-    <div
-      className="fixed ml-2 bg-white shadow-lg rounded-lg p-4 min-w-[300px] border border-gray-200"
-      style={{
-        zIndex: 9999,
-        left: "calc(100% + 8px)",
-        top: "50%",
-        transform: "translateY(-50%)",
-      }}
-    >
-      <h3 className="font-bold text-sm mb-2">{formatContractName(contract)}</h3>
-      <div className="text-xs text-gray-600 mb-3">
-        Last Updated:{" "}
-        {new Date(
-          Number(contract.lastUpdatedTimestamp) * 1000
-        ).toLocaleString()}
-      </div>
-      <div className="text-sm">
-        <div className="font-semibold mb-1">Modules Used:</div>
-        <ul className="list-disc pl-4">
-          {Array.from(
-            new Set(
-              (contract.policyPermissions as Array<{ keycode: string }>).map(
-                (p) => p.keycode
-              )
-            )
-          ).map((keycode) => (
-            <li key={keycode} className="text-xs mb-1">
-              <span className="text-blue-600">{keycode}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-};
-
-// Add dagre layout function
-const getLayoutedElements = (
-  nodes: Node[],
-  edges: Edge[],
-  direction = "TB"
-) => {
-  const dagreGraph = new dagre.graphlib.Graph();
-  dagreGraph.setDefaultEdgeLabel(() => ({}));
-
-  const nodeWidth = 180;
-  const nodeHeight = 100;
-
-  // Set graph direction and spacing
-  dagreGraph.setGraph({
-    rankdir: direction,
-    nodesep: 80,
-    ranksep: 150,
-    marginx: 100,
-    marginy: 100,
-  });
-
-  // Add nodes to dagre graph
-  nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, {
-      width: nodeWidth,
-      height: node.type === "role" ? 80 : nodeHeight,
-    });
-  });
-
-  // Add edges to dagre graph
-  edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
-  });
-
-  // Calculate layout
-  dagre.layout(dagreGraph);
-
-  // Get positioned nodes
-  const layoutedNodes = nodes.map((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id);
-    return {
-      ...node,
-      position: {
-        x: nodeWithPosition.x - nodeWidth / 2,
-        y: nodeWithPosition.y - (node.type === "role" ? 40 : nodeHeight / 2),
-      },
-    };
-  });
-
-  return { nodes: layoutedNodes, edges };
-};
-
 export function ContractVisualizer() {
   const [nodes, setNodes, onNodesChange] = useNodesState<NodeData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [hoveredPolicy, setHoveredPolicy] = useState<string | null>(null);
   const [hoveredRole, setHoveredRole] = useState<string | null>(null);
-  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const {
+    node: selectedNode,
+    chainId: selectedChainId,
+    notice: navigationNotice,
+    setSelectedNode,
+    setSelectedChainId,
+    reconcileSelection,
+  } = useGraphNavigation();
   const [layouting, setLayouting] = useState(false);
   const [initialized, setInitialized] = useState(false);
-  const [selectedChainId, setSelectedChainId] =
-    useState<number>(DEFAULT_CHAIN_ID);
-  const [originalLayout, setOriginalLayout] = useState<{
+  const [architectureView, setArchitectureView] = useState("overview");
+  const [connectionFilters, setConnectionFilters] = useState<ConnectionFilters>(
+    DEFAULT_CONNECTION_FILTERS
+  );
+  const [focusedConnectionFilters, setFocusedConnectionFilters] =
+    useState<ConnectionFilters>(FOCUSED_CONNECTION_FILTERS);
+  const isFocused = selectedNode !== null;
+  const visibleConnectionFilters = isFocused
+    ? focusedConnectionFilters
+    : connectionFilters;
+  const [canonicalGraph, setCanonicalGraph] = useState<{
+    chainId: number;
     nodes: CustomNode[];
     edges: Edge[];
   } | null>(null);
 
   // Add ref for ReactFlow instance
-  const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
+  const [reactFlowInstance, setReactFlowInstance] =
+    useState<ReactFlowInstance | null>(null);
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+  const previousView = useRef<{
+    key: string;
+    instance: ReactFlowInstance | null;
+    fitted: boolean;
+  } | null>(null);
 
   // Reset initialized state when chain ID changes
   // biome-ignore lint/correctness/useExhaustiveDependencies: selectedChainId intentionally triggers a graph reset.
@@ -327,24 +421,60 @@ export function ContractVisualizer() {
     setInitialized(false);
     setNodes([]);
     setEdges([]);
-    setOriginalLayout(null);
-    setSelectedNode(null);
+    setCanonicalGraph(null);
+    setArchitectureView("overview");
+    previousView.current = null;
   }, [selectedChainId, setNodes, setEdges]);
 
+  const isHistorical =
+    SUPPORTED_CHAINS.find((chain) => chain.chainId === selectedChainId)
+      ?.availability === "historical";
   const { data, isLoading, error } = useQuery({
     queryKey: ["protocol-visualizer", selectedChainId],
     queryFn: () => getProtocolVisualizerData(selectedChainId),
+    enabled: !isHistorical,
+    refetchInterval: 60_000,
   });
 
   const contracts = data?.contracts;
   const roles = data?.roles;
   const roleAssignments = data?.roleAssignments;
   const hasNoContractData =
-    !isLoading && !error && (contracts?.length ?? 0) === 0;
+    !isLoading &&
+    !error &&
+    (contracts?.length ?? 0) +
+      (data?.additionalContracts.length ?? 0) +
+      (data?.relationships.length ?? 0) ===
+      0;
+
+  useEffect(() => {
+    if (!isHistorical || !selectedNode) return;
+    const recorded = otherContracts.some(
+      (contract) =>
+        contract.chainId === selectedChainId &&
+        contract.address === selectedNode
+    );
+    if (!recorded) reconcileSelection(null);
+    else
+      document
+        .getElementById(`inventory-${selectedNode}`)
+        ?.scrollIntoView({ block: "nearest" });
+  }, [isHistorical, selectedNode, selectedChainId, reconcileSelection]);
+
+  useEffect(() => {
+    if (!data) return;
+    setInitialized(false);
+  }, [data]);
 
   const createNodeFromContract = useCallback(
     (contract: Contract, id: string) => {
       const type = contract.type;
+      const control = getEnablementPresentation(
+        data?.contractStates.find(
+          (state) => state.address.toLowerCase() === contract.address
+        ),
+        data?.observation
+      );
       const colors =
         type === "kernel"
           ? NODE_COLORS.kernel
@@ -352,36 +482,21 @@ export function ContractVisualizer() {
             ? NODE_COLORS.module
             : NODE_COLORS.policy;
 
-      // Calculate modules used count for policies
-      let modulesUsedCount = 0;
-      if (
-        type === "policy" &&
-        contract.policyPermissions &&
-        Array.isArray(contract.policyPermissions)
-      ) {
-        // Get unique keycodes from policy permissions
-        const uniqueKeycodes = new Set(
-          (contract.policyPermissions as Array<{ keycode: string }>).map(
-            (p) => p.keycode
-          )
-        );
-        modulesUsedCount = uniqueKeycodes.size;
-      }
+      const moduleKeycodes =
+        type === "policy"
+          ? getPolicyModuleKeycodes(contract, data?.relationships ?? [])
+          : [];
+      const modulesUsedCount = moduleKeycodes.length;
 
       return {
         id,
         data: {
           name: formatContractName(contract),
+          contractType: type,
+          kernelInactive: contract.isEnabled === false,
+          kernelHistory: contract.kernelHistory,
           label: (
-            // biome-ignore lint/a11y/noStaticElementInteractions: graph node hover state is handled by React Flow, not an interactive control.
-            <div
-              className="p-1 text-sm relative"
-              style={{ position: "relative" }}
-              onMouseEnter={() =>
-                type === "policy" && setHoveredPolicy(contract.address)
-              }
-              onMouseLeave={() => type === "policy" && setHoveredPolicy(null)}
-            >
+            <div className="p-1 text-sm relative">
               <Handle
                 id={`${id}-target`}
                 type="target"
@@ -391,8 +506,14 @@ export function ContractVisualizer() {
                   border: `1px solid ${colors.border}`,
                 }}
               />
+              <div className="flex justify-end mb-1">
+                <ContractStatusIcons
+                  contract={contract}
+                  enablementLabel={control.badge}
+                />
+              </div>
               <div
-                className="font-bold mb-1 break-words whitespace-pre-wrap max-w-[160px]"
+                className="font-bold wrap-break-word mb-1"
                 style={{ color: colors.text }}
               >
                 {formatContractName(contract)}
@@ -406,8 +527,10 @@ export function ContractVisualizer() {
               >
                 {shortenAddress(contract.address)}
               </a>
-              {!contract.isEnabled && (
-                <div className="text-xs mt-1 text-red-500">Disabled</div>
+              {control.warning && (
+                <div className="text-xs mt-1 text-warning max-w-[180px]">
+                  {control.warning}
+                </div>
               )}
               {type === "policy" && modulesUsedCount > 0 && (
                 <div
@@ -417,9 +540,6 @@ export function ContractVisualizer() {
                   {modulesUsedCount} Module{modulesUsedCount !== 1 ? "s" : ""}{" "}
                   Used
                 </div>
-              )}
-              {type === "policy" && hoveredPolicy === contract.address && (
-                <PolicyTooltip contract={contract} />
               )}
               <Handle
                 id={`${id}-source`}
@@ -440,14 +560,14 @@ export function ContractVisualizer() {
           borderRadius: "8px",
           padding: "6px",
           opacity: contract.isEnabled ? 1 : 0.7,
-          minWidth: "180px",
-          zIndex: hoveredPolicy === contract.address ? 1000 : 1,
+          width: getContractNodeWidth(contract),
+          zIndex: 1,
         },
         targetPosition: Position.Left,
         sourcePosition: Position.Right,
       };
     },
-    [hoveredPolicy, selectedChainId]
+    [selectedChainId, data]
   );
 
   // Memoize the edge creation function
@@ -470,10 +590,11 @@ export function ContractVisualizer() {
         sourceHandle: sourceIsRole ? "role-source" : `${source}-source`,
         targetHandle: targetIsRole ? "role-target" : `${target}-target`,
         type: "smoothstep",
+        data: { kind: "permission" },
         style: {
           stroke: edgeColor,
           strokeWidth: 2,
-          opacity: 0.1,
+          opacity: 0.65,
           transition: "opacity 0.2s",
         },
         animated,
@@ -488,7 +609,6 @@ export function ContractVisualizer() {
     []
   );
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: setNodes/setEdges are stable React Flow setters; this layout reset only tracks chain changes.
   const setupGraph = useCallback(() => {
     if (!contracts || !roles || !roleAssignments || layouting) return;
 
@@ -558,6 +678,75 @@ export function ContractVisualizer() {
       }
     });
 
+    const additional = data ? getAdditionalGraphContracts(data) : [];
+    for (const contract of additional) {
+      const state = data?.contractStates.find(
+        (state) => state.address.toLowerCase() === contract.address
+      );
+      const control = getEnablementPresentation(state, data?.observation);
+      const colors = NODE_COLORS[getContractPalette(contract)];
+      newNodes.push({
+        id: contract.address,
+        position: { x: 0, y: 0 },
+        data: {
+          name: getGraphContractName(contract),
+          contractType: contract.contractType?.toLowerCase(),
+          kernelInactive: contract.category === "inactive-core",
+          kernelHistory: contract.kernelHistory,
+          label: (
+            <div className="p-2 text-sm">
+              <Handle
+                id={`${contract.address}-target`}
+                type="target"
+                position={Position.Left}
+              />
+              <div className="flex justify-end mb-1">
+                <ContractStatusIcons
+                  contract={contract}
+                  enablementLabel={control.badge}
+                />
+              </div>
+              <div
+                className="font-semibold wrap-break-word mb-1"
+                style={{ color: colors.text }}
+              >
+                {getGraphContractName(contract)}
+              </div>
+              <a
+                href={getEtherscanLink(contract.address, selectedChainId)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-link"
+              >
+                {shortenAddress(contract.address)}
+              </a>
+              {contract.category === "external" && (
+                <div className="mt-1 text-xs text-muted">
+                  {getContractDeploymentLabel(contract)}
+                </div>
+              )}
+              {control.warning && (
+                <div className="text-xs mt-1 text-warning max-w-[180px]">
+                  {control.warning}
+                </div>
+              )}
+              <Handle
+                id={`${contract.address}-source`}
+                type="source"
+                position={Position.Right}
+              />
+            </div>
+          ),
+        },
+        style: {
+          background: colors.background,
+          border: `1px solid ${colors.border}`,
+          borderRadius: "8px",
+          width: getContractNodeWidth(contract),
+        },
+      });
+    }
+
     // Process roles and assignees
     roles.forEach((role) => {
       const roleId = `role-${role.role}`;
@@ -597,18 +786,19 @@ export function ContractVisualizer() {
 
       // Process assignees
       roleAssignmentsList.forEach((assignment) => {
-        const contractNode = contracts.find(
-          (c) => c.address.toLowerCase() === assignment.assignee.toLowerCase()
-        );
+        const isAssignee = (contract: { address: string }) =>
+          contract.address.toLowerCase() === assignment.assignee.toLowerCase();
+        const contractNode =
+          contracts.find(isAssignee) ?? additional.find(isAssignee);
 
         if (contractNode) {
           // Add edge to existing contract node
           newEdges.push(createEdge(assignment.assignee, roleId, false));
         } else {
           // Create node for non-contract assignee
-          const assigneeId = `assignee-${assignment.assignee}`;
+          const assigneeId = assignment.assignee.toLowerCase();
           newNodes.push({
-            ...createAssigneeNode(assignment, assigneeId, selectedChainId),
+            ...createAddressNode(assignment, assigneeId, selectedChainId),
             position: { x: 0, y: 0 },
           });
 
@@ -622,9 +812,7 @@ export function ContractVisualizer() {
         (c) => c.type === "policy" && Array.isArray(c.policyFunctions)
       );
       policyContracts.forEach((policy) => {
-        const policyFunctions = policy.policyFunctions as Array<{
-          roles: string[];
-        }>;
+        const policyFunctions = policy.policyFunctions as PolicyFunction[];
         const hasRole = policyFunctions.some((func) =>
           func.roles.includes(role.role)
         );
@@ -634,21 +822,105 @@ export function ContractVisualizer() {
       });
     });
 
-    // Apply dagre layout
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-      newNodes,
-      newEdges,
-      "TB"
+    const relationships = getRelationshipGraph(
+      data?.relationships ?? [],
+      selectedChainId,
+      data?.periodicTasks ?? []
     );
+    const nodeIds = new Set(newNodes.map((node) => node.id));
+    for (const address of relationships.addresses) {
+      if (nodeIds.has(address)) continue;
+      const assigneeName =
+        roleAssignments.find(
+          (assignment) => assignment.assignee.toLowerCase() === address
+        )?.assigneeName ??
+        otherContracts.find(
+          (contract) =>
+            contract.chainId === selectedChainId && contract.address === address
+        )?.name ??
+        "UNKNOWN";
+      newNodes.push({
+        ...createAddressNode(
+          { assignee: address, assigneeName },
+          address,
+          selectedChainId,
+          !roleAssignments.some(
+            (assignment) => assignment.assignee.toLowerCase() === address
+          ) &&
+            !data?.relationships.some(
+              (relationship) =>
+                relationship.status === "current" &&
+                relationship.source.toLowerCase() === address
+            ) &&
+            (data?.relationships.some(
+              (relationship) =>
+                relationship.status === "reference" &&
+                relationship.target?.toLowerCase() === address &&
+                relationship.targetCode === "present"
+            ) ??
+              false)
+        ),
+        position: { x: 0, y: 0 },
+      });
+      nodeIds.add(address);
+    }
+    for (const edge of relationships.edges) {
+      const periodicTask = edge.relationship.kind === "periodic-task";
+      const color = periodicTask ? "var(--periodic)" : "var(--edge)";
+      newEdges.push({
+        ...createEdge(edge.source, edge.target),
+        id: edge.id,
+        type: "relationship",
+        label: (
+          <ConnectionLabel
+            label={edge.label}
+            functions={
+              edge.relationship.callSignature
+                ? [{ signature: edge.relationship.callSignature }]
+                : edge.relationship.functionContext
+                  ? [edge.relationship.functionContext]
+                  : [{ signature: edge.label }]
+            }
+          />
+        ),
+        ariaLabel:
+          edge.relationship.callSignature ??
+          (edge.relationship.functionContext
+            ? getFunctionTooltip([edge.relationship.functionContext])
+            : edge.label),
+        data: {
+          kind:
+            edge.relationship.status === "reference" ? "reference" : "control",
+          pending: edge.pending,
+          relationship: edge.relationship,
+          labelText: edge.label,
+          laneOffset: edge.labelOffset * 2.5,
+        },
+        style: {
+          stroke: color,
+          strokeWidth: periodicTask ? 2.5 : 2,
+          opacity: periodicTask ? 1 : 0.7,
+          ...(edge.pending ? { strokeDasharray: "6 4" } : {}),
+        },
+        labelStyle: {
+          fontSize: 11,
+          fill: "var(--foreground)",
+        },
+        markerEnd: { type: MarkerType.Arrow, color },
+      });
+    }
 
-    // Store the original layout for resetting
-    setOriginalLayout({ nodes: layoutedNodes, edges: layoutedEdges });
-
-    setNodes(layoutedNodes);
-    setEdges(layoutedEdges);
+    const canonical = refreshGraph(newNodes, [], selectedNode);
+    setCanonicalGraph({
+      chainId: selectedChainId,
+      nodes: canonical.nodes,
+      edges: newEdges,
+    });
+    reconcileSelection(canonical.selectedNode);
     setLayouting(false);
     setInitialized(true);
   }, [
+    data,
     contracts,
     roles,
     roleAssignments,
@@ -657,130 +929,95 @@ export function ContractVisualizer() {
     createEdge,
     hoveredRole,
     selectedChainId,
+    selectedNode,
+    reconcileSelection,
   ]);
 
-  // Add function to get connected nodes
-  const getConnectedNodes = useCallback(
-    (nodeId: string) => {
-      const connectedNodeIds = new Set<string>([nodeId]);
-
-      // Add directly connected nodes through edges
-      edges.forEach((edge) => {
-        if (edge.source === nodeId) connectedNodeIds.add(edge.target);
-        if (edge.target === nodeId) connectedNodeIds.add(edge.source);
-      });
-
-      return Array.from(connectedNodeIds);
-    },
-    [edges]
-  );
-
-  // Add effect to handle node selection and layout
-  // biome-ignore lint/correctness/useExhaustiveDependencies: setNodes/setEdges are stable React Flow setters; this selection effect only tracks graph state.
   useEffect(() => {
-    if (!selectedNode || !originalLayout || !reactFlowInstance.current) return;
-
-    const connectedNodeIds = getConnectedNodes(selectedNode);
-
-    // Calculate the center of the current view
-    const { x: viewX, y: viewY } = reactFlowInstance.current.getViewport();
-
-    // Create a subgraph of connected nodes
-    const relevantNodes = nodes.map((node) => ({
-      ...node,
-      // Move unconnected nodes just outside the view
-      position: connectedNodeIds.includes(node.id)
-        ? node.position
-        : {
-            x: node.position.x + viewX + 800,
-            y: node.position.y + viewY + 800,
-          },
-      style: {
-        ...node.style,
-        opacity: connectedNodeIds.includes(node.id) ? 1 : 0.2,
-        transition: "all 0.5s ease-in-out",
-      },
-    }));
-
-    // Filter edges to only show those connecting selected nodes
-    const relevantEdges = edges.map((edge) => ({
-      ...edge,
-      style: {
-        ...edge.style,
-        opacity:
-          connectedNodeIds.includes(edge.source) &&
-          connectedNodeIds.includes(edge.target)
-            ? 1
-            : 0,
-        transition: "all 0.5s ease-in-out",
-      },
-    }));
-
-    // Re-layout the connected nodes to bring them closer
-    const { nodes: layoutedNodes } = getLayoutedElements(
-      relevantNodes.filter((node) => connectedNodeIds.includes(node.id)),
-      relevantEdges.filter(
-        (edge) =>
-          connectedNodeIds.includes(edge.source) &&
-          connectedNodeIds.includes(edge.target)
-      ),
-      "TB"
+    if (!canonicalGraph || canonicalGraph.chainId !== selectedChainId) return;
+    const projected = getArchitectureView(
+      canonicalGraph.nodes,
+      canonicalGraph.edges,
+      architectureView,
+      visibleConnectionFilters,
+      selectedNode
     );
-
-    // Combine the layouts
-    const finalNodes = relevantNodes.map((node) => {
-      const layoutedNode = layoutedNodes.find((n) => n.id === node.id);
-      return layoutedNode || node;
-    });
-
-    setNodes(finalNodes);
-    setEdges(relevantEdges);
-
-    // Fit view to connected nodes after a short delay to allow transition
-    setTimeout(() => {
-      if (reactFlowInstance.current) {
-        reactFlowInstance.current.fitView({
-          padding: 0.2,
-          duration: 0,
-          nodes: finalNodes.filter((node) =>
-            connectedNodeIds.includes(node.id)
-          ),
-        });
-      }
-    }, 10);
-  }, [selectedNode, originalLayout, getConnectedNodes, edges, nodes]);
-
-  // Modify effect to reset layout when deselecting
-  // biome-ignore lint/correctness/useExhaustiveDependencies: setNodes/setEdges are stable React Flow setters; this restore effect only tracks selection state.
-  useEffect(() => {
-    if (
-      !selectedNode &&
-      originalLayout &&
-      initialized &&
-      reactFlowInstance.current
-    ) {
-      const restoredNodes = originalLayout.nodes.map((node) => ({
-        ...node,
-        style: {
-          ...node.style,
-          opacity: 1,
-          transition: "all 0.5s ease-in-out",
-        },
-      }));
-
-      setNodes(restoredNodes);
-      setEdges(originalLayout.edges);
-
-      void setTimeout(() => {
-        if (reactFlowInstance.current) {
-          reactFlowInstance.current.fitView({
-            padding: 0.2,
-            duration: 800,
-          });
-        }
-      }, 50);
+    const viewNodes = projected.nodes;
+    const sectioned = architectureView === "overview" && !selectedNode;
+    let finalNodes: Node[];
+    let layoutEdges = projected.edges;
+    if (sectioned) finalNodes = layoutArchitectureSections(viewNodes);
+    else {
+      const inactive =
+        architectureView === "all" && !selectedNode
+          ? viewNodes.filter((node) => node.data.kernelInactive)
+          : [];
+      const inactiveIds = new Set(inactive.map((node) => node.id));
+      const active = viewNodes.filter((node) => !inactiveIds.has(node.id));
+      const activeIds = new Set(active.map((node) => node.id));
+      const layout = layoutContractGraph(
+        active,
+        projected.edges.filter(
+          (edge) => activeIds.has(edge.source) && activeIds.has(edge.target)
+        )
+      );
+      finalNodes = groupInactiveContracts(layout.nodes, inactive);
+      const routed = new Map(layout.edges.map((edge) => [edge.id, edge]));
+      layoutEdges = projected.edges.map((edge) => routed.get(edge.id) ?? edge);
     }
-  }, [selectedNode, originalLayout, initialized]);
+    const key = JSON.stringify([
+      selectedChainId,
+      architectureView,
+      selectedNode,
+      finalNodes.map((node) => [
+        node.id,
+        node.style?.width,
+        node.style?.height,
+      ]),
+      projected.edges.map((edge) => [edge.id, edge.source, edge.target]),
+    ]);
+    const previous = previousView.current;
+    const same =
+      previous?.key === key && previous.instance === reactFlowInstance;
+    const current = {
+      key,
+      instance: reactFlowInstance,
+      fitted: same ? previous.fitted : false,
+    };
+    previousView.current = current;
+    setNodes(
+      same
+        ? refreshGraph(finalNodes, nodesRef.current, selectedNode).nodes
+        : finalNodes
+    );
+    setEdges(layoutEdges);
+    if (!reactFlowInstance || current.fitted) return;
+    const timer = setTimeout(() => {
+      reactFlowInstance.fitView({
+        padding: 0.2,
+        duration: 0,
+        nodes: sectioned
+          ? finalNodes.filter(
+              (node) =>
+                !SIDE_SECTION_IDS.includes(
+                  node.data.sectionId ?? getSubsystem(node) ?? ""
+                )
+            )
+          : finalNodes,
+      });
+      current.fitted = true;
+    }, 10);
+    return () => clearTimeout(timer);
+  }, [
+    canonicalGraph,
+    selectedChainId,
+    selectedNode,
+    architectureView,
+    visibleConnectionFilters,
+    reactFlowInstance,
+    setNodes,
+    setEdges,
+  ]);
 
   // Add initialization effect back
   useEffect(() => {
@@ -790,20 +1027,22 @@ export function ContractVisualizer() {
   }, [initialized, layouting, contracts, roles, roleAssignments, setupGraph]);
 
   // Fix type for handleNodeClick
-  const handleNodeClick = useCallback((_: unknown, node: Node) => {
-    setSelectedNode((prevSelected) =>
-      prevSelected === node.id ? null : node.id
-    );
-  }, []);
+  const handleNodeClick = useCallback(
+    (_: unknown, node: Node) => {
+      setSelectedNode((prevSelected) =>
+        prevSelected === node.id ? null : node.id
+      );
+    },
+    [setSelectedNode]
+  );
 
   const graphIsLoading = isLoading || layouting;
 
-  // Render tooltip for hovered assignee
-  const renderAssigneeTooltip = () => {
-    if (!selectedNode?.startsWith("assignee-") || !roleAssignments) return null;
+  const renderAssigneeDetails = () => {
+    if (!selectedNode?.startsWith("0x") || !roleAssignments) return null;
 
     // Extract assignee address from node ID
-    const assigneeAddress = selectedNode.replace("assignee-", "");
+    const assigneeAddress = selectedNode;
 
     // Find the node data
     const selectedNodeData = nodes.find(
@@ -816,86 +1055,35 @@ export function ContractVisualizer() {
       .filter((a) => a.assignee.toLowerCase() === assigneeAddress.toLowerCase())
       .map((a) => a.role);
 
-    // Get assignee name from the node data label
-    const assigneeName = selectedNodeData.name;
+    if (!assignedRoles.length && !selectedNodeData.assigneeAddress) return null;
 
     return (
-      <div
-        className="fixed bg-white shadow-lg rounded-lg p-4 min-w-[300px] border border-gray-200"
-        style={{
-          zIndex: 9999,
-          top: "20px",
-          right: "20px",
-        }}
-      >
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-bold text-sm">{assigneeName}</h3>
-          <div className="flex items-center">
-            <span className="text-xs px-2 py-1 bg-pink-100 text-pink-800 rounded-full mr-2">
-              Assignee
-            </span>
-            <button
-              type="button"
-              onClick={() => setSelectedNode(null)}
-              className="text-gray-500 hover:text-gray-700"
-              aria-label="Close tooltip"
-            >
-              <svg
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-        <div className="text-xs text-gray-500 mb-2">
-          <a
-            href={getEtherscanLink(assigneeAddress, selectedChainId)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:underline"
-          >
-            {assigneeAddress}
-          </a>
-        </div>
-        <div className="border-t border-gray-200 my-2 pt-2">
-          <h4 className="font-semibold text-sm mb-2">Assigned Roles:</h4>
-          <div className="text-sm">
-            {assignedRoles.length > 0 ? (
-              <ul className="list-disc pl-4">
-                {assignedRoles.map((role) => (
-                  <li key={role} className="text-xs mb-1">
-                    <button
-                      type="button"
-                      className="text-purple-600 hover:text-purple-800 hover:underline text-left"
-                      onClick={() => setSelectedNode(`role-${role}`)}
-                    >
-                      {role}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="text-gray-500">No roles assigned</div>
-            )}
-          </div>
+      <div className="border-t border-ui-border my-2 pt-2">
+        <h4 className="font-semibold text-sm mb-2">Assigned Roles:</h4>
+        <div className="text-sm">
+          {assignedRoles.length > 0 ? (
+            <ul className="list-disc pl-4">
+              {assignedRoles.map((role) => (
+                <li key={role} className="text-xs mb-1">
+                  <button
+                    type="button"
+                    className="text-role hover:text-role hover:underline text-left"
+                    onClick={() => setSelectedNode(`role-${role}`)}
+                  >
+                    {role}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="text-muted">No roles assigned</div>
+          )}
         </div>
       </div>
     );
   };
 
-  // Render tooltip for hovered role
-  const renderRoleTooltip = () => {
+  const renderRoleDetails = () => {
     if (!selectedNode?.startsWith("role-") || !roleAssignments || !contracts)
       return null;
 
@@ -905,10 +1093,15 @@ export function ContractVisualizer() {
     // Find all assignees for this role
     const assignees = roleAssignments
       .filter((a) => a.role === roleName)
-      .map((a) => ({
-        address: a.assignee,
-        name: a.assigneeName,
-      }));
+      .map((a) => {
+        const contract = contracts.find(
+          (contract) => contract.address === a.assignee.toLowerCase()
+        );
+        return {
+          address: a.assignee,
+          name: contract ? formatContractName(contract) : a.assigneeName,
+        };
+      });
 
     // Find all policies that use this role
     const policiesUsingRole = contracts
@@ -922,83 +1115,44 @@ export function ContractVisualizer() {
       )
       .map((policy) => {
         // Get the specific functions that use this role
-        const functions = (
-          policy.policyFunctions as Array<{ roles: string[]; name: string }>
-        )
-          .filter((func) => func.roles.includes(roleName))
-          .map((func) => func.name);
+        const functions = (policy.policyFunctions as PolicyFunction[]).filter(
+          (func) => func.roles.includes(roleName)
+        );
 
         return {
-          name: policy.name,
+          name: formatContractName(policy),
           address: policy.address,
           functions,
         };
       });
 
     return (
-      <div
-        className="fixed bg-white shadow-lg rounded-lg p-4 min-w-[350px] max-w-[450px] border border-gray-200"
-        style={{
-          zIndex: 9999,
-          top: "20px",
-          right: "20px",
-        }}
-      >
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-bold text-sm">{roleName}</h3>
-          <div className="flex items-center">
-            <span className="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded-full mr-2">
-              Role
-            </span>
-            <button
-              type="button"
-              onClick={() => setSelectedNode(null)}
-              className="text-gray-500 hover:text-gray-700"
-              aria-label="Close tooltip"
-            >
-              <svg
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Assignees Section */}
-        <div className="border-t border-gray-200 my-2 pt-2">
+      <>
+        <div className="border-t border-ui-border my-2 pt-2">
           <h4 className="font-semibold text-sm mb-2">
             Assignees ({assignees.length}):
           </h4>
-          <div className="text-sm max-h-[120px] overflow-y-auto">
+          <div className="text-sm">
             {assignees.length > 0 ? (
               <ul className="list-disc pl-4">
                 {assignees.map((assignee) => (
                   <li key={assignee.address} className="text-xs mb-1">
                     <button
                       type="button"
-                      className="text-pink-600 hover:text-pink-800 hover:underline text-left"
+                      className="text-assignee hover:text-assignee hover:underline text-left"
                       onClick={() =>
-                        setSelectedNode(`assignee-${assignee.address}`)
+                        setSelectedNode(assignee.address.toLowerCase())
                       }
                     >
-                      {assignee.name === "UNKNOWN" ? "EOA" : assignee.name}
+                      {assignee.name === "UNKNOWN"
+                        ? "Unknown address"
+                        : assignee.name}
                     </button>
                     <a
                       href={getEtherscanLink(assignee.address, selectedChainId)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-gray-500 hover:underline ml-1"
+                      className="text-muted hover:underline ml-1"
                     >
                       ({shortenAddress(assignee.address)})
                     </a>
@@ -1006,25 +1160,24 @@ export function ContractVisualizer() {
                 ))}
               </ul>
             ) : (
-              <div className="text-gray-500">No assignees</div>
+              <div className="text-muted">No assignees</div>
             )}
           </div>
         </div>
 
-        {/* Policies Section */}
-        <div className="border-t border-gray-200 my-2 pt-2">
+        <div className="border-t border-ui-border my-2 pt-2">
           <h4 className="font-semibold text-sm mb-2">
             Policies ({policiesUsingRole.length}):
           </h4>
-          <div className="text-sm max-h-[150px] overflow-y-auto">
+          <div className="text-sm">
             {policiesUsingRole.length > 0 ? (
               <ul className="list-none">
                 {policiesUsingRole.map((policy) => (
                   <li
                     key={policy.address}
-                    className="mb-2 pb-2 border-b border-gray-100 last:border-b-0"
+                    className="mb-2 pb-2 border-b border-ui-border last:border-b-0"
                   >
-                    <div className="font-medium text-xs text-green-700 mb-1">
+                    <div className="font-medium text-xs text-policy mb-1">
                       <button
                         type="button"
                         className="hover:underline text-left"
@@ -1037,17 +1190,29 @@ export function ContractVisualizer() {
                       href={getEtherscanLink(policy.address, selectedChainId)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-gray-500 hover:underline"
+                      className="text-xs text-muted hover:underline"
                     >
                       {shortenAddress(policy.address)}
                     </a>
                     {policy.functions.length > 0 && (
                       <div className="mt-1">
-                        <div className="text-xs text-gray-600">Functions:</div>
+                        <div className="text-xs text-muted">Functions:</div>
                         <ul className="list-disc pl-4">
                           {policy.functions.map((func) => (
-                            <li key={func} className="text-xs text-blue-600">
-                              {func}
+                            <li
+                              key={
+                                func.canonicalSignature ??
+                                func.signature ??
+                                func.name
+                              }
+                              className="text-xs text-link"
+                            >
+                              {func.canonicalSignature ??
+                                func.signature ??
+                                func.name}
+                              <FunctionDocumentation
+                                value={func.documentation}
+                              />
                             </li>
                           ))}
                         </ul>
@@ -1057,22 +1222,21 @@ export function ContractVisualizer() {
                 ))}
               </ul>
             ) : (
-              <div className="text-gray-500">No policies use this role</div>
+              <div className="text-muted">No policies use this role</div>
             )}
           </div>
         </div>
-      </div>
+      </>
     );
   };
 
-  // Render tooltip for policy
-  const renderPolicyTooltip = () => {
+  const renderPolicyDetails = () => {
     if (!selectedNode?.startsWith("0x") || !contracts) return null;
 
     const contract = contracts.find(
       (c) => c.address === selectedNode && c.type === "policy"
     ) as Contract | undefined;
-    if (!contract?.policyPermissions) return null;
+    if (!contract) return null;
 
     // Create a mapping of module keycodes to module contracts
     const moduleKeycodeToContract = new Map<string, Contract>();
@@ -1086,150 +1250,100 @@ export function ContractVisualizer() {
     });
 
     // Group policy permissions by keycode
-    const permissionsByKeycode = new Map<string, Array<{ function: string }>>();
-    (
-      contract.policyPermissions as Array<{ keycode: string; function: string }>
-    ).forEach((permission) => {
-      if (!permissionsByKeycode.has(permission.keycode)) {
-        permissionsByKeycode.set(permission.keycode, []);
+    const permissionsByKeycode = new Map<string, PolicyPermission[]>();
+    ((contract.policyPermissions ?? []) as PolicyPermission[]).forEach(
+      (permission) => {
+        if (!permissionsByKeycode.has(permission.keycode)) {
+          permissionsByKeycode.set(permission.keycode, []);
+        }
+        permissionsByKeycode.get(permission.keycode)?.push(permission);
       }
-      permissionsByKeycode
-        .get(permission.keycode)
-        ?.push({ function: permission.function });
-    });
+    );
 
-    // Get unique keycodes from policy permissions
-    const uniqueKeycodes = Array.from(permissionsByKeycode.keys());
+    const uniqueKeycodes = getPolicyModuleKeycodes(
+      contract,
+      data?.relationships ?? []
+    );
 
     return (
-      <div
-        className="fixed bg-white shadow-lg rounded-lg p-4 min-w-[350px] max-w-[450px] border border-gray-200"
-        style={{
-          zIndex: 9999,
-          top: "20px",
-          right: "20px",
-        }}
-      >
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-bold text-sm">{formatContractName(contract)}</h3>
-          <div className="flex items-center">
-            <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full mr-2">
-              Policy
-            </span>
-            <button
-              type="button"
-              onClick={() => setSelectedNode(null)}
-              className="text-gray-500 hover:text-gray-700"
-              aria-label="Close tooltip"
-            >
-              <svg
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-        <div className="text-xs text-gray-500 mb-3">
-          <a
-            href={getEtherscanLink(contract.address, selectedChainId)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:underline"
-          >
-            {contract.address}
-          </a>
-        </div>
-        <div className="text-xs text-gray-600 mb-3">
-          Last Updated:{" "}
-          {new Date(
-            Number(contract.lastUpdatedTimestamp) * 1000
-          ).toLocaleString()}
-        </div>
-        <div className="border-t border-gray-200 my-2 pt-2">
-          <h4 className="font-semibold text-sm mb-2">
-            Modules Used ({uniqueKeycodes.length}):
-          </h4>
-          <div className="text-sm max-h-[250px] overflow-y-auto">
-            <ul className="list-none divide-y divide-gray-100">
-              {uniqueKeycodes.map((keycode) => {
-                const moduleContract = moduleKeycodeToContract.get(keycode);
-                const moduleFunctions = permissionsByKeycode.get(keycode) || [];
+      <div className="border-t border-ui-border my-2 pt-2">
+        <h4 className="font-semibold text-sm mb-2">
+          Modules Used ({uniqueKeycodes.length}):
+        </h4>
+        <div className="text-sm">
+          <ul className="list-none divide-y divide-gray-100">
+            {uniqueKeycodes.map((keycode) => {
+              const moduleContract = moduleKeycodeToContract.get(keycode);
+              const moduleFunctions = permissionsByKeycode.get(keycode) || [];
 
-                return (
-                  <li key={keycode} className="py-2 first:pt-0 last:pb-0">
-                    <div className="flex items-center mb-1">
-                      <div className="font-medium text-xs text-blue-700">
-                        {moduleContract ? (
-                          <button
-                            type="button"
-                            className="hover:underline text-left"
-                            onClick={() =>
-                              setSelectedNode(moduleContract.address)
-                            }
-                          >
-                            {formatContractName(moduleContract)}
-                          </button>
-                        ) : (
-                          <span>{keycode}</span>
-                        )}
-                      </div>
-                      {moduleContract && (
-                        <a
-                          href={getEtherscanLink(
-                            moduleContract.address,
-                            selectedChainId
-                          )}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-gray-500 hover:underline ml-2"
+              return (
+                <li key={keycode} className="py-2 first:pt-0 last:pb-0">
+                  <div className="flex items-center mb-1">
+                    <div className="font-medium text-xs text-link">
+                      {moduleContract ? (
+                        <button
+                          type="button"
+                          className="hover:underline text-left"
+                          onClick={() =>
+                            setSelectedNode(moduleContract.address)
+                          }
                         >
-                          ({shortenAddress(moduleContract.address)})
-                        </a>
+                          {formatContractName(moduleContract)}
+                        </button>
+                      ) : (
+                        <span>{keycode}</span>
                       )}
                     </div>
-                    <div className="text-xs text-blue-600 mb-1">
-                      Keycode: {keycode}
-                    </div>
-                    {moduleFunctions.length > 0 && (
-                      <div className="mt-1">
-                        <div className="text-xs text-gray-600 mb-1">
-                          Functions:
-                        </div>
-                        <ul className="list-disc pl-4">
-                          {moduleFunctions.map((func) => (
-                            <li
-                              key={`${keycode}-${func.function}`}
-                              className="text-xs text-blue-600"
-                            >
-                              {func.function}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+                    {moduleContract && (
+                      <a
+                        href={getEtherscanLink(
+                          moduleContract.address,
+                          selectedChainId
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-muted hover:underline ml-2"
+                      >
+                        ({shortenAddress(moduleContract.address)})
+                      </a>
                     )}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+                  </div>
+                  <div className="text-xs text-link mb-1">
+                    Keycode: {keycode}
+                  </div>
+                  {moduleFunctions.length === 0 && (
+                    <div className="text-xs text-muted">
+                      No permissioned functions requested.
+                    </div>
+                  )}
+                  {moduleFunctions.length > 0 && (
+                    <div className="mt-1">
+                      <div className="text-xs text-muted mb-1">Functions:</div>
+                      <ul className="list-disc pl-4">
+                        {moduleFunctions.map((func) => (
+                          <li
+                            key={`${keycode}-${func.function}`}
+                            className="text-xs text-link"
+                          >
+                            {func.function}
+                            <FunctionDocumentation
+                              value={func.functionContext}
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </div>
       </div>
     );
   };
 
-  // Add a tooltip for module nodes
-  const renderModuleTooltip = () => {
+  const renderModuleDetails = () => {
     if (!selectedNode?.startsWith("0x") || !contracts) return null;
 
     const moduleContract = contracts.find(
@@ -1237,96 +1351,40 @@ export function ContractVisualizer() {
     ) as Contract | undefined;
     if (!moduleContract) return null;
 
-    // Find all policies that use this module
-    const policiesUsingModule = contracts.filter(
-      (c) =>
-        c.type === "policy" &&
-        c.policyPermissions &&
-        Array.isArray(c.policyPermissions) &&
-        moduleContract.name && // Check if name exists
-        extractKeycode(moduleContract.name) && // Extract keycode from name
-        (c.policyPermissions as Array<{ keycode: string }>).some(
-          (p) => p.keycode === extractKeycode(moduleContract.name)
-        )
+    const policiesUsingModule = getPoliciesUsingModule(
+      moduleContract,
+      contracts,
+      data?.relationships ?? []
     );
 
     return (
-      <div
-        className="fixed bg-white shadow-lg rounded-lg p-4 min-w-[350px] max-w-[450px] border border-gray-200"
-        style={{
-          zIndex: 9999,
-          top: "20px",
-          right: "20px",
-        }}
-      >
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-bold text-sm">
-            {formatContractName(moduleContract)}
-          </h3>
-          <div className="flex items-center">
-            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full mr-2">
-              Module
-            </span>
-            <button
-              type="button"
-              onClick={() => setSelectedNode(null)}
-              className="text-gray-500 hover:text-gray-700"
-              aria-label="Close tooltip"
-            >
-              <svg
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-        <div className="text-xs text-gray-500 mb-2">
-          <a
-            href={getEtherscanLink(moduleContract.address, selectedChainId)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:underline"
-          >
-            {moduleContract.address}
-          </a>
-        </div>
+      <>
         {extractKeycode(moduleContract.name) && (
-          <div className="text-xs text-blue-600 mb-3">
+          <div className="text-xs text-link mb-3">
             Keycode: {extractKeycode(moduleContract.name)}
           </div>
         )}
-        <div className="border-t border-gray-200 my-2 pt-2">
+        <div className="border-t border-ui-border my-2 pt-2">
           <h4 className="font-semibold text-sm mb-2">
             Policies Using This Module ({policiesUsingModule.length}):
           </h4>
-          <div className="text-sm max-h-[150px] overflow-y-auto">
+          <div className="text-sm">
             {policiesUsingModule.length > 0 ? (
               <ul className="list-disc pl-4">
                 {policiesUsingModule.map((policy) => (
                   <li key={policy.address} className="text-xs mb-1">
                     <button
                       type="button"
-                      className="text-green-600 hover:text-green-800 hover:underline text-left"
+                      className="text-policy hover:text-policy hover:underline text-left"
                       onClick={() => setSelectedNode(policy.address)}
                     >
-                      {policy.name}
+                      {formatContractName(policy)}
                     </button>
                     <a
                       href={getEtherscanLink(policy.address, selectedChainId)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-gray-500 hover:underline ml-1"
+                      className="text-muted hover:underline ml-1"
                     >
                       ({shortenAddress(policy.address)})
                     </a>
@@ -1334,11 +1392,11 @@ export function ContractVisualizer() {
                 ))}
               </ul>
             ) : (
-              <div className="text-gray-500">No policies use this module</div>
+              <div className="text-muted">No indexed policy dependencies</div>
             )}
           </div>
         </div>
-      </div>
+      </>
     );
   };
 
@@ -1350,20 +1408,212 @@ export function ContractVisualizer() {
     );
   }
 
+  const selectedCoreContract = contracts?.find(
+    (contract) => contract.address === selectedNode
+  );
+  const selectedContract =
+    selectedCoreContract ??
+    (selectedNode && data
+      ? getAdditionalGraphContracts(data).find(
+          (contract) => contract.address === selectedNode
+        )
+      : undefined);
+  const selectedGraphNode = nodes.find((node) => node.id === selectedNode);
+  const selectedKind =
+    selectedCoreContract?.type ??
+    selectedContract?.contractType?.toLowerCase() ??
+    (selectedNode?.startsWith("role-")
+      ? "Role"
+      : selectedGraphNode?.data.assigneeAddress
+        ? "Address"
+        : null);
+  const renderSelectedDetails = () => {
+    if (selectedNode?.startsWith("role-")) return renderRoleDetails();
+    return (
+      <>
+        {renderAssigneeDetails()}
+        {selectedCoreContract?.type === "policy" && renderPolicyDetails()}
+        {selectedCoreContract?.type === "module" && renderModuleDetails()}
+      </>
+    );
+  };
+
+  const selectedRelationships =
+    data?.relationships.filter(
+      (relationship) =>
+        relationship.subject?.toLowerCase() === selectedNode ||
+        relationship.source.toLowerCase() === selectedNode ||
+        relationship.target?.toLowerCase() === selectedNode
+    ) ?? [];
+  const selectedState = data?.contractStates.find(
+    (state) => state.address.toLowerCase() === selectedNode
+  );
+  const selectedControl = getEnablementPresentation(
+    selectedState,
+    data?.observation
+  );
+  const selectedTaskList = data?.periodicTasks.find(
+    (list) => list.address.toLowerCase() === selectedNode
+  );
+
   return (
     <div className="w-full">
       <ChainSelector
         selectedChainId={selectedChainId}
         onChainChange={setSelectedChainId}
       />
-      <div className="h-[800px] border border-gray-200 rounded-lg">
-        {error ? (
+      {!isHistorical && (
+        <div className="mb-3 flex flex-wrap items-center gap-4 text-xs text-muted">
+          <label>
+            View:{" "}
+            <select
+              aria-label="Architecture view"
+              className="rounded border border-ui-border bg-surface p-1"
+              value={architectureView}
+              onChange={(event) => {
+                setSelectedNode(null);
+                setArchitectureView(event.target.value);
+              }}
+            >
+              <option value="overview">Architecture sections</option>
+              <option value="all">Unsectioned graph</option>
+              {SUBSYSTEMS.filter((group) =>
+                canonicalGraph?.nodes.some(
+                  (node) => getSubsystem(node) === group.id
+                )
+              ).map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {(
+            [
+              ["permission", "Role / module permissions"],
+              ["control", "Ownership / control"],
+              ["reference", "References"],
+              ["dependency", "Module dependencies"],
+            ] as [ConnectionKind, string][]
+          ).map(([kind, label]) => (
+            <label key={kind} className="flex items-center gap-1">
+              <input
+                type="checkbox"
+                checked={visibleConnectionFilters[kind]}
+                onChange={(event) => {
+                  const setFilters = isFocused
+                    ? setFocusedConnectionFilters
+                    : setConnectionFilters;
+                  setFilters((previous) => ({
+                    ...previous,
+                    [kind]: event.target.checked,
+                  }));
+                }}
+              />
+              {label}
+            </label>
+          ))}
+          {selectedNode && (
+            <button
+              type="button"
+              className="text-link hover:underline"
+              onClick={() => setSelectedNode(null)}
+            >
+              Back to {architectureView === "overview" ? "overview" : "view"}
+            </button>
+          )}
+          <span>
+            {nodes.filter((node) => node.type !== "group").length} nodes ·{" "}
+            {edges.length} connections
+          </span>
+        </div>
+      )}
+      {!isHistorical && (
+        <section
+          aria-label="Node colour legend"
+          className="mb-3 text-xs text-muted"
+        >
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span className="font-medium">Node colours:</span>
+            <ul className="flex flex-wrap gap-x-4 gap-y-2">
+              {Object.entries(NODE_COLORS).map(([type, colors]) => (
+                <li key={type} className="inline-flex items-center gap-1.5">
+                  <span
+                    aria-hidden="true"
+                    className="h-3 w-3 shrink-0 rounded-sm border"
+                    style={{
+                      background: colors.background,
+                      borderColor: colors.border,
+                    }}
+                  />
+                  {colors.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <p className="mt-1 text-muted">
+            Colours show node type. Status icons show Kernel membership and
+            enablement.
+          </p>
+        </section>
+      )}
+      {navigationNotice && (
+        <p role="status" className="mb-2 text-sm text-warning">
+          {navigationNotice}
+        </p>
+      )}
+      {error && data && !isHistorical && (
+        <p role="status" className="mb-2 text-sm text-warning">
+          Snapshot refresh failed. Showing the last loaded snapshot.
+        </p>
+      )}
+      {!isHistorical && (data?.relationships.length ?? 0) > 0 && (
+        <p className="mb-2 text-xs text-muted">
+          Control and reference links are labelled. Dashed links show pending
+          nominations. Missing links may reflect incomplete source coverage.
+        </p>
+      )}
+      <div className="relative h-[800px] border border-ui-border rounded-lg">
+        {isHistorical ? (
+          <div className="h-full overflow-auto p-4">
+            <p className="mb-4 text-sm text-muted">
+              Historical network. Recorded deployments are shown below; live
+              indexing and contract state are unavailable.
+            </p>
+            <ul className="space-y-3">
+              {otherContracts
+                .filter(
+                  (contract) =>
+                    contract.chainId === selectedChainId && !contract.labelOnly
+                )
+                .map((contract) => (
+                  <li
+                    key={contract.address}
+                    id={`inventory-${contract.address}`}
+                    className={`border-b border-ui-border pb-2 ${selectedNode === contract.address ? "bg-selection" : ""}`}
+                  >
+                    <button
+                      type="button"
+                      className="font-medium hover:underline"
+                      aria-pressed={selectedNode === contract.address}
+                      onClick={() => setSelectedNode(contract.address)}
+                    >
+                      {contract.name}
+                    </button>
+                    <code className="break-all text-xs text-muted">
+                      {contract.address}
+                    </code>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        ) : error && !data ? (
           <div className="w-full h-full flex items-center justify-center">
             <div className="max-w-md text-center">
               <div className="text-lg font-semibold">
                 Unable to load protocol data
               </div>
-              <div className="mt-2 text-sm text-gray-600">
+              <div className="mt-2 text-sm text-muted">
                 {error instanceof Error
                   ? error.message
                   : "The protocol snapshot request failed."}
@@ -1382,12 +1632,13 @@ export function ContractVisualizer() {
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
               fitView
               minZoom={0.2}
               maxZoom={1.5}
               defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
               onInit={(instance: ReactFlowInstance<NodeData>) => {
-                reactFlowInstance.current = instance;
+                setReactFlowInstance(instance);
               }}
               elementsSelectable={true}
               nodesConnectable={false}
@@ -1405,22 +1656,370 @@ export function ContractVisualizer() {
                 setSelectedNode(null);
               }}
             >
-              <Background />
+              <Background color="var(--graph-dot)" />
               <Controls />
+              <MiniMap
+                pannable
+                zoomable
+                nodeColor="var(--ui-border)"
+                maskColor="var(--minimap-mask)"
+              />
             </ReactFlow>
-            {selectedNode?.startsWith("assignee-")
-              ? renderAssigneeTooltip()
-              : selectedNode?.startsWith("role-")
-                ? renderRoleTooltip()
-                : selectedNode?.startsWith("0x") &&
-                    contracts?.find((c) => c.address === selectedNode)?.type ===
-                      "policy"
-                  ? renderPolicyTooltip()
-                  : selectedNode?.startsWith("0x") &&
-                      contracts?.find((c) => c.address === selectedNode)
-                        ?.type === "module"
-                    ? renderModuleTooltip()
-                    : null}
+            {(selectedContract || selectedGraphNode) && selectedNode && (
+              <aside
+                key={selectedNode}
+                className="absolute top-4 right-4 z-50 flex w-[460px] max-w-[calc(100%-2rem)] max-h-[min(720px,60vh)] flex-col overflow-hidden rounded-lg border border-ui-border bg-surface text-xs shadow-lg"
+                aria-label="Selection details"
+              >
+                <div className="shrink-0 border-b border-ui-border p-4">
+                  <div className="flex justify-between gap-4">
+                    <h3 className="min-w-0 break-words font-semibold">
+                      {selectedContract
+                        ? getGraphContractName(selectedContract)
+                        : selectedGraphNode?.data.name}
+                    </h3>
+                    {selectedKind && (
+                      <span className="self-start rounded-full bg-surface-muted px-2 py-0.5 text-muted capitalize">
+                        {selectedKind}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedNode(null)}
+                      aria-label="Close details"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  {selectedNode.startsWith("0x") && (
+                    <a
+                      className="mt-1 block break-all text-link"
+                      href={getEtherscanLink(selectedNode, selectedChainId)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {selectedNode}
+                    </a>
+                  )}
+                </div>
+                <div className="min-h-0 overflow-y-auto px-4 pb-4">
+                  {selectedContract && (
+                    <div className="mt-2 flex flex-wrap items-center gap-3">
+                      <span className="inline-flex items-center gap-1.5">
+                        <ContractStatusIcons
+                          contract={selectedContract}
+                          enablementLabel={null}
+                        />
+                        {getKernelLabel(selectedContract) ??
+                          getContractDeploymentLabel(selectedContract)}
+                      </span>
+                      {selectedControl.badge && (
+                        <span className="inline-flex items-center gap-1.5">
+                          <EnablementIndicator label={selectedControl.badge} />
+                          {selectedControl.badge === "Contract enabled"
+                            ? "Enabled"
+                            : "Disabled"}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {selectedControl.warning && (
+                    <p className="mt-2 text-warning break-all">
+                      {selectedControl.warning}
+                    </p>
+                  )}
+                  {renderSelectedDetails()}
+                  {selectedTaskList && (
+                    <section
+                      className="mt-3 border-t border-ui-border pt-2"
+                      aria-label="Periodic tasks"
+                    >
+                      <h4 className="font-semibold">
+                        Periodic tasks
+                        {selectedTaskList.tasks !== null
+                          ? ` (${selectedTaskList.tasks.length})`
+                          : ""}
+                      </h4>
+                      <p className="mt-1 text-muted">
+                        Invocation order; disabled tasks remain configured.
+                      </p>
+                      {selectedTaskList.tasks === null ? (
+                        <p className="mt-2 text-warning">
+                          Task configuration is unknown.
+                        </p>
+                      ) : selectedTaskList.tasks.length === 0 ? (
+                        <p className="mt-2 text-muted">No tasks configured.</p>
+                      ) : (
+                        <ol className="mt-2 space-y-2">
+                          {selectedTaskList.tasks.map((task, index) => {
+                            const contract =
+                              contracts?.find(
+                                (contract) => contract.address === task.address
+                              ) ??
+                              data?.additionalContracts.find(
+                                (contract) => contract.address === task.address
+                              );
+                            const state = data?.contractStates.find(
+                              (state) => state.address === task.address
+                            );
+                            const enabled = getEnablementPresentation(
+                              state,
+                              data?.observation
+                            );
+                            return (
+                              <li
+                                key={task.address}
+                                className="flex items-start gap-2"
+                              >
+                                <span className="text-muted tabular-nums">
+                                  {index + 1}.
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <button
+                                    type="button"
+                                    className="text-left text-link hover:underline break-all"
+                                    onClick={() =>
+                                      setSelectedNode(task.address)
+                                    }
+                                  >
+                                    {contract
+                                      ? getGraphContractName(contract)
+                                      : shortenAddress(task.address)}
+                                  </button>
+                                  <code className="mt-0.5 block break-all text-muted">
+                                    {task.selector === "0x00000000"
+                                      ? "execute()"
+                                      : (task.signature ?? task.selector)}
+                                  </code>
+                                </div>
+                                {enabled.badge ? (
+                                  <EnablementIndicator label={enabled.badge} />
+                                ) : (
+                                  <span
+                                    className="text-muted"
+                                    title="No task-local enablement observation"
+                                  >
+                                    Unknown
+                                  </span>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ol>
+                      )}
+                      {selectedTaskList.verification.outcome !== "match" && (
+                        <p className="mt-2 text-warning">
+                          Task configuration verification:{" "}
+                          {selectedTaskList.verification.outcome}. Indexed order
+                          is retained.
+                        </p>
+                      )}
+                      {selectedTaskList.indexedThrough && (
+                        <p className="mt-2 text-muted">
+                          Indexed through block{" "}
+                          {selectedTaskList.indexedThrough.number}.
+                        </p>
+                      )}
+                    </section>
+                  )}
+                  {selectedContract && (
+                    <>
+                      {selectedControl.notices.map((notice) => (
+                        <p key={notice} className="mt-2 text-warning">
+                          {notice}
+                        </p>
+                      ))}
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-muted">
+                          Indexing &amp; verification
+                        </summary>
+                        {selectedCoreContract && (
+                          <p className="mt-2 text-muted">
+                            Last Kernel update:{" "}
+                            {new Date(
+                              Number(
+                                selectedCoreContract.lastUpdatedTimestamp
+                              ) * 1000
+                            ).toLocaleString()}
+                          </p>
+                        )}
+                        {selectedControl.details
+                          .filter(
+                            (detail) => detail !== selectedControl.warning
+                          )
+                          .map((detail) => (
+                            <p
+                              key={detail}
+                              className="mt-2 break-all text-muted"
+                            >
+                              {detail}
+                            </p>
+                          ))}
+                      </details>
+                    </>
+                  )}
+                  {selectedRelationships.length > 0 && (
+                    <section
+                      className="mt-3 border-t border-ui-border pt-2"
+                      aria-label="Control relationships"
+                    >
+                      <h4 className="font-semibold">
+                        Relationships ({selectedRelationships.length})
+                      </h4>
+                      {selectedRelationships.map((relationship) => (
+                        <div
+                          key={relationship.id}
+                          className="mt-2 border-t border-ui-border pt-2"
+                        >
+                          <strong>
+                            {relationship.status === "pending"
+                              ? "Pending "
+                              : ""}
+                            {relationship.callSignature ??
+                              relationship.functionContext?.signature ??
+                              relationship.kind.replace(/-/g, " ")}
+                          </strong>
+                          <FunctionDocumentation
+                            value={relationship.functionContext}
+                          />
+                          {relationship.targetCode && (
+                            <p className="mt-1 text-muted">
+                              {relationship.targetCode === "present"
+                                ? "Target has deployed code at the observation block."
+                                : "Target has no code at the observation block; address type is not inferred."}
+                            </p>
+                          )}
+                          {relationship.target ? (
+                            <p className="mt-1 break-all">
+                              {getRelationshipPath(relationship).map(
+                                (address, index) => (
+                                  <span key={address}>
+                                    {index > 0 && " → "}
+                                    <a
+                                      className="text-link"
+                                      href={getEtherscanLink(
+                                        address,
+                                        selectedChainId
+                                      )}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title={address}
+                                    >
+                                      {shortenAddress(address)}
+                                    </a>
+                                  </span>
+                                )
+                              )}
+                            </p>
+                          ) : (
+                            <p>
+                              {relationship.value == null
+                                ? "Unknown; no successful observation establishes this field."
+                                : relationship.getter?.startsWith("new")
+                                  ? "No pending nomination."
+                                  : relationship.kind === "registered-pool"
+                                    ? "OHM is unregistered; no pool is selected."
+                                    : "Unset."}
+                            </p>
+                          )}
+                          <details className="mt-1">
+                            <summary className="cursor-pointer text-muted">
+                              Evidence
+                            </summary>
+                            {relationship.scope && (
+                              <p className="mt-1 break-all text-muted">
+                                Registry: {relationship.scope.registry}; token:{" "}
+                                {relationship.scope.token}.
+                              </p>
+                            )}
+                            {relationship.status === "reference" &&
+                              relationship.getter && (
+                                <p className="mt-1 text-muted">
+                                  Address reference from{" "}
+                                  {relationship.getter.split(":")[0]}(
+                                  {relationship.scope?.token}).
+                                </p>
+                              )}
+                            <p className="mt-1 break-all text-muted">
+                              Observed at block {relationship.provenance.number}{" "}
+                              ({relationship.provenance.hash})
+                              {"transactionHash" in relationship.provenance
+                                ? `; transaction ${relationship.provenance.transactionHash}, log ${relationship.provenance.logIndex}`
+                                : "; getter observation"}
+                              .
+                            </p>
+                            {relationship.indexedThrough && (
+                              <p className="mt-1 text-muted">
+                                Indexed through block{" "}
+                                {relationship.indexedThrough.number}.
+                              </p>
+                            )}
+                            {relationship.verification?.outcome === "match" && (
+                              <p className="mt-1 text-muted">
+                                Getter matches at block{" "}
+                                {relationship.verification.block?.number}.
+                              </p>
+                            )}
+                            {relationship.status === "reference" &&
+                              relationship.coverage && (
+                                <p className="mt-1 text-muted">
+                                  {relationship.coverage}
+                                </p>
+                              )}
+                          </details>
+                          {relationship.lastChange &&
+                            (!relationship.indexedThrough ||
+                              BigInt(relationship.lastChange.number) >
+                                BigInt(relationship.indexedThrough.number)) && (
+                              <p className="mt-1 text-warning">
+                                Latest relationship change awaits a completed
+                                verification checkpoint.
+                              </p>
+                            )}
+                          {data?.observation &&
+                            (!relationship.indexedThrough ||
+                              BigInt(relationship.indexedThrough.number) <
+                                BigInt(
+                                  data.observation.indexedThrough.number
+                                )) && (
+                              <p className="mt-1 text-warning">
+                                Relationship coverage is behind chain
+                                observation block{" "}
+                                {data.observation.indexedThrough.number}.
+                              </p>
+                            )}
+                          {relationship.status !== "reference" &&
+                            relationship.coverage && (
+                              <p className="mt-1 text-warning">
+                                {relationship.coverage}
+                              </p>
+                            )}
+                          {relationship.verification?.outcome ===
+                            "mismatch" && (
+                            <p className="mt-1 break-all text-warning">
+                              Verification mismatch: indexed{" "}
+                              {relationship.value}, getter{" "}
+                              {relationship.verification.getterValue} at block{" "}
+                              {relationship.verification.block?.number} (
+                              {relationship.verification.block?.hash}). Indexed
+                              state is retained.
+                            </p>
+                          )}
+                          {relationship.verification?.outcome ===
+                            "unavailable" && (
+                            <p className="mt-1 text-warning">
+                              Getter verification unavailable at block{" "}
+                              {relationship.verification.block?.number}.
+                              Established indexed state is retained.
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </section>
+                  )}
+                </div>
+              </aside>
+            )}
           </>
         )}
       </div>

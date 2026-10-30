@@ -13,7 +13,54 @@ x-snapshot-s3-env: &snapshot-s3-env
   REGION: ${REGION:-us-east-1}
   ENDPOINT: http://minio:9000
 
+x-snapshot-rpc-env: &snapshot-rpc-env
+  RPC_URL_1: http://rpc-cache:4000/pv/evm/1
+  RPC_URL_10: http://rpc-cache:4000/pv/evm/10
+  RPC_URL_42161: http://rpc-cache:4000/pv/evm/42161
+  RPC_URL_421614: http://rpc-cache:4000/pv/evm/421614
+  RPC_URL_84532: http://rpc-cache:4000/pv/evm/84532
+  RPC_URL_4663: http://rpc-cache:4000/pv/evm/4663
+  RPC_URL_8453: http://rpc-cache:4000/pv/evm/8453
+  RPC_URL_80094: http://rpc-cache:4000/pv/evm/80094
+  RPC_URL_11155111: http://rpc-cache:4000/pv/evm/11155111
+
 services:
+  rpc-cache-postgres:
+    image: postgres:17-alpine@sha256:979c4379dd698aba0b890599a6104e082035f98ef31d9b9291ec22f2b13059ca
+    environment:
+      POSTGRES_DB: rpc_cache
+      POSTGRES_USER: rpc_cache
+      POSTGRES_PASSWORD: ${RPC_CACHE_POSTGRES_PASSWORD:-local-rpc-cache}
+    volumes:
+      - rpc-cache-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rpc_cache -d rpc_cache"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rpc-cache:
+    build:
+      context: .
+      dockerfile: Dockerfile-rpc-cache
+    environment:
+      RPC_CACHE_DATABASE_URL: postgresql://rpc_cache:${RPC_CACHE_POSTGRES_PASSWORD:-local-rpc-cache}@rpc-cache-postgres:5432/rpc_cache
+      RPC_CACHE_MAX_RPS: ${RPC_CACHE_MAX_RPS:-50}
+      UPSTREAM_RPC_URL_1: ${UPSTREAM_RPC_URL_1:?Set UPSTREAM_RPC_URL_1 in .env to run the compose stack}
+      UPSTREAM_RPC_URL_10: ${UPSTREAM_RPC_URL_10:?Set UPSTREAM_RPC_URL_10 in .env to run the compose stack}
+      UPSTREAM_RPC_URL_42161: ${UPSTREAM_RPC_URL_42161:?Set UPSTREAM_RPC_URL_42161 in .env to run the compose stack}
+      UPSTREAM_RPC_URL_8453: ${UPSTREAM_RPC_URL_8453:?Set UPSTREAM_RPC_URL_8453 in .env to run the compose stack}
+      UPSTREAM_RPC_URL_80094: ${UPSTREAM_RPC_URL_80094:?Set UPSTREAM_RPC_URL_80094 in .env to run the compose stack}
+      UPSTREAM_RPC_URL_4663: ${UPSTREAM_RPC_URL_4663:?Set UPSTREAM_RPC_URL_4663 in .env to run the compose stack}
+      UPSTREAM_RPC_URL_11155111: ${UPSTREAM_RPC_URL_11155111:?Set UPSTREAM_RPC_URL_11155111 in .env to run the compose stack}
+      UPSTREAM_RPC_URL_421614: ${UPSTREAM_RPC_URL_421614:?Set UPSTREAM_RPC_URL_421614 in .env to run the compose stack}
+      UPSTREAM_RPC_URL_84532: ${UPSTREAM_RPC_URL_84532:?Set UPSTREAM_RPC_URL_84532 in .env to run the compose stack}
+    ports:
+      - "127.0.0.1:${RPC_CACHE_HOST_PORT:-4000}:4000"
+    depends_on:
+      rpc-cache-postgres:
+        condition: service_healthy
+
   postgres:
     image: postgres:17-alpine@sha256:979c4379dd698aba0b890599a6104e082035f98ef31d9b9291ec22f2b13059ca
     environment: *postgres-env
@@ -58,12 +105,15 @@ services:
       ENVIO_RPC_MODE: ${ENVIO_RPC_MODE:-}
       ENVIO_API_TOKEN: ${ENVIO_API_TOKEN:?Set ENVIO_API_TOKEN in .env to run the compose stack}
       ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY:?Set ETHERSCAN_API_KEY in .env to run the compose stack}
-      ENVIO_RPC_URL_1: ${ENVIO_RPC_URL_1:?Set ENVIO_RPC_URL_1 in .env to run the compose stack}
-      ENVIO_RPC_URL_10: ${ENVIO_RPC_URL_10:?Set ENVIO_RPC_URL_10 in .env to run the compose stack}
-      ENVIO_RPC_URL_42161: ${ENVIO_RPC_URL_42161:?Set ENVIO_RPC_URL_42161 in .env to run the compose stack}
-      ENVIO_RPC_URL_8453: ${ENVIO_RPC_URL_8453:?Set ENVIO_RPC_URL_8453 in .env to run the compose stack}
-      ENVIO_RPC_URL_80094: ${ENVIO_RPC_URL_80094:?Set ENVIO_RPC_URL_80094 in .env to run the compose stack}
-      ENVIO_RPC_URL_11155111: ${ENVIO_RPC_URL_11155111:?Set ENVIO_RPC_URL_11155111 in .env to run the compose stack}
+      ENVIO_RPC_URL_1: http://rpc-cache:4000/pv/evm/1
+      ENVIO_RPC_URL_10: http://rpc-cache:4000/pv/evm/10
+      ENVIO_RPC_URL_421614: http://rpc-cache:4000/pv/evm/421614
+      ENVIO_RPC_URL_84532: http://rpc-cache:4000/pv/evm/84532
+      ENVIO_RPC_URL_42161: http://rpc-cache:4000/pv/evm/42161
+      ENVIO_RPC_URL_4663: http://rpc-cache:4000/pv/evm/4663
+      ENVIO_RPC_URL_8453: http://rpc-cache:4000/pv/evm/8453
+      ENVIO_RPC_URL_80094: http://rpc-cache:4000/pv/evm/80094
+      ENVIO_RPC_URL_11155111: http://rpc-cache:4000/pv/evm/11155111
       ENVIO_HASURA_STARTUP_TIMEOUT_MS: ${ENVIO_HASURA_STARTUP_TIMEOUT_MS:-180000}
       ENVIO_HEALTHCHECK_WRAPPER_ENABLED: "true"
       ENVIO_INDEXER_INTERNAL_PORT: "9899"
@@ -71,6 +121,8 @@ services:
     ports:
       - "${INDEXER_HOST_PORT:-9898}:9898"
     depends_on:
+      rpc-cache:
+        condition: service_started
       postgres:
         condition: service_healthy
       hasura:
@@ -125,7 +177,7 @@ services:
     profiles:
       - jobs
     environment:
-      <<: *snapshot-s3-env
+      <<: [*snapshot-s3-env, *snapshot-rpc-env]
       RAILWAY_ENVIRONMENT_NAME: ${RAILWAY_ENVIRONMENT_NAME:?Set RAILWAY_ENVIRONMENT_NAME in .env to run snapshot jobs}
       INDEXER_METRICS_URL: http://indexer:9898/metrics
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
@@ -157,7 +209,7 @@ services:
     profiles:
       - jobs
     environment:
-      <<: *snapshot-s3-env
+      <<: [*snapshot-s3-env, *snapshot-rpc-env]
       HASURA_GRAPHQL_URL: http://hasura:8080/v1/graphql
       HASURA_GRAPHQL_ADMIN_SECRET: *hasura-admin-secret
       RAILWAY_ENVIRONMENT_NAME: ${RAILWAY_ENVIRONMENT_NAME:?Set RAILWAY_ENVIRONMENT_NAME in .env to run snapshot jobs}
@@ -197,5 +249,6 @@ services:
     restart: "no"
 
 volumes:
+  rpc-cache-postgres-data:
   postgres-data:
   minio-data:

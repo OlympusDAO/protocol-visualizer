@@ -7,6 +7,25 @@ field_selection:
     - hash
 
 contracts:
+  - name: LegacyPeriodicTask
+    abi_file_path: ./abis/json/LegacyPeriodicTask.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "Activated()"
+      - event: "Deactivated()"
+      - event: "Shutdown()"
+  - name: PeriodicTaskManager
+    abi_file_path: ./abis/json/PeriodicTaskManager.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "PeriodicTaskAdded(address indexed task_, bytes4 customSelector_, uint256 indexed index_)"
+      - event: "PeriodicTaskRemoved(address indexed task_, uint256 indexed index_)"
+  - name: MonoCoolerReferences
+    abi_file_path: ./abis/json/MonoCoolerReferences.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "LtvOracleSet(address indexed oracle)"
+      - event: "TreasuryBorrowerSet(address indexed treasuryBorrower)"
   - name: Kernel
     abi_file_path: ./abis/json/Kernel.json
     handler: ./src/EventHandlers.ts
@@ -26,13 +45,254 @@ contracts:
     events:
       - event: "NewAdminPulled(address indexed newAdmin_)"
 
+  - name: IEnabler
+    abi_file_path: ./abis/json/IEnabler.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "Enabled()"
+      - event: "Disabled()"
+
+  - name: IEnablerV2
+    abi_file_path: ./abis/json/IEnabler.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "Transition(address indexed by, bool indexed enable, bytes data, uint48 at)"
+
+  - name: Owned
+    abi_file_path: ./abis/json/Owned.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "OwnershipTransferred(address indexed user, address indexed newOwner)"
+
+  - name: OlympusAccessControlled
+    abi_file_path: ./abis/json/OlympusAccessControlled.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "AuthorityUpdated(address indexed authority)"
+
+  - name: StakedOHM
+    abi_file_path: ./abis/json/StakedOHM.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "LogStakingContractUpdated(address stakingContract)"
+
+  - name: OlympusAuthority
+    abi_file_path: ./abis/json/OlympusAuthority.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "GovernorPushed(address indexed from, address indexed to, bool _effectiveImmediately)"
+      - event: "GovernorPulled(address indexed from, address indexed to)"
+      - event: "GuardianPushed(address indexed from, address indexed to, bool _effectiveImmediately)"
+      - event: "GuardianPulled(address indexed from, address indexed to)"
+      - event: "PolicyPushed(address indexed from, address indexed to, bool _effectiveImmediately)"
+      - event: "PolicyPulled(address indexed from, address indexed to)"
+      - event: "VaultPushed(address indexed from, address indexed to, bool _effectiveImmediately)"
+      - event: "VaultPulled(address indexed from, address indexed to)"
+
+  - name: GovernanceOHM
+    abi_file_path: ./abis/json/GovernanceOHM.json
+    handler: ./src/EventHandlers.ts
+    events: []
+
+  - name: ChainlinkOwned
+    abi_file_path: ./abis/json/ChainlinkOwned.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "OwnershipTransferRequested(address indexed from, address indexed to)"
+      - event: "OwnershipTransferred(address indexed from, address indexed to)"
+
+  - name: TokenAdminRegistry
+    abi_file_path: ./abis/json/TokenAdminRegistry.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "AdministratorTransferRequested(address indexed token, address indexed currentAdmin, address indexed newAdmin)"
+      - event: "AdministratorTransferred(address indexed token, address indexed newAdmin)"
+      - event: "PoolSet(address indexed token, address indexed previousPool, address indexed newPool)"
+
+  - name: CCIPTokenPool
+    abi_file_path: ./abis/json/CCIPTokenPool.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "ChainAdded(uint64 remoteChainSelector, bytes remoteToken, (bool isEnabled, uint128 capacity, uint128 rate) outboundRateLimiterConfig, (bool isEnabled, uint128 capacity, uint128 rate) inboundRateLimiterConfig)"
+      - event: "ChainConfigured(uint64 remoteChainSelector, (bool isEnabled, uint128 capacity, uint128 rate) outboundRateLimiterConfig, (bool isEnabled, uint128 capacity, uint128 rate) inboundRateLimiterConfig)"
+      - event: "ChainRemoved(uint64 remoteChainSelector)"
+      - event: "RemotePoolAdded(uint64 indexed remoteChainSelector, bytes remotePoolAddress)"
+      - event: "RemotePoolRemoved(uint64 indexed remoteChainSelector, bytes remotePoolAddress)"
+      - event: "AllowListAdd(address sender)"
+      - event: "AllowListRemove(address sender)"
+      - event: "RouterUpdated(address oldRouter, address newRouter)"
+
+  - name: CCIPBridge
+    abi_file_path: ./abis/json/CCIPBridge.json
+    handler: ./src/EventHandlers.ts
+    events:
+      - event: "TrustedRemoteEVMSet(uint64 indexed dstChainSelector, address indexed to)"
+      - event: "TrustedRemoteEVMUnset(uint64 indexed dstChainSelector)"
+      - event: "TrustedRemoteSVMSet(uint64 indexed dstChainSelector, bytes32 indexed to)"
+      - event: "TrustedRemoteSVMUnset(uint64 indexed dstChainSelector)"
+
 chains:
-  - id: 1
-    start_block: 15998125
+  - id: 84532
+    start_block: 21445237
     rpc:
-      - url: ${ENVIO_RPC_URL_1:-https://eth.llamarpc.com}
+      - url: ${ENVIO_RPC_URL_84532}
         for: ${ENVIO_RPC_MODE:-sync}
     contracts:
+      - name: Kernel
+        address:
+          - "0x623164a9ee2556d524b08f34f1d2389d7b4e1a1c"
+        start_block: 21445241
+      - name: OlympusRoles
+        address:
+          - "0x22ae99d07584a2ae1af748de573c83f1b9cdb4c0"
+        start_block: 21445245
+      - name: RolesAdmin
+        address:
+          - "0xe37d9a2791707bbb858012d219960d5fbd190794"
+        start_block: 21445251
+      - name: IEnabler
+        address:
+          - "0x6577cfd3b625a6bd0b708da1f066855c19ac8360"
+          - "0xd28d3910191900699558c9d8066080df644d9db3"
+        start_block: 26633650
+      - name: Owned
+        address:
+          - "0xd28d3910191900699558c9d8066080df644d9db3"
+        start_block: 26633652
+      - name: OlympusAccessControlled
+        address:
+          - "0x18878df23e2a36f81e820e4b47b4a40576d3159c"
+        start_block: 21445239
+      - name: OlympusAuthority
+        address:
+          - "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0"
+        start_block: 21445237
+      - name: ChainlinkOwned
+        address:
+          - "0x6577cfd3b625a6bd0b708da1f066855c19ac8360"
+        start_block: 26633650
+      - name: CCIPTokenPool
+        address:
+          - "0x6577cfd3b625a6bd0b708da1f066855c19ac8360"
+        start_block: 26633650
+      - name: CCIPBridge
+        address:
+          - "0xd28d3910191900699558c9d8066080df644d9db3"
+        start_block: 26633652
+
+  - id: 421614
+    start_block: 273448345
+    rpc:
+      - url: ${ENVIO_RPC_URL_421614}
+        for: ${ENVIO_RPC_MODE:-sync}
+    contracts:
+      - name: Kernel
+        address:
+          - "0x18878df23e2a36f81e820e4b47b4a40576d3159c"
+        start_block: 273448353
+      - name: OlympusRoles
+        address:
+          - "0xbc9ee0d911739cbc72cd094ada26f56e0c49eeae"
+        start_block: 273448359
+      - name: RolesAdmin
+        address:
+          - "0x22ae99d07584a2ae1af748de573c83f1b9cdb4c0"
+        start_block: 273448362
+      - name: IEnablerV2
+        address:
+          - "0x0d33c811d0fcc711bcb388dfb3a152de445be66f"
+          - "0x0f953d861347414698f34b75dbfd6e7df1a73493"
+          - "0x1d316c489bab10b755cb0562759a6cf285f89814"
+        start_block: 273448382
+      - name: Owned
+        address:
+          - "0xc8431feb345b46c30a4576c1b5faf080fdc54e2f"
+        start_block: 273448390
+      - name: OlympusAccessControlled
+        address:
+          - "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0"
+        start_block: 273448349
+      - name: OlympusAuthority
+        address:
+          - "0x13dfeff85779118136bb9826dcad8f3bd25153a3"
+        start_block: 273448345
+
+  - id: 4663
+    start_block: 4758
+    rpc:
+      - url: ${ENVIO_RPC_URL_4663}
+        for: ${ENVIO_RPC_MODE:-sync}
+    contracts:
+      - name: Kernel
+        address:
+          - "0x02331a4c97a4841084df54d7c0ec04dd3f1a9f1c"
+        start_block: 94168504
+      - name: OlympusRoles
+        address:
+          - "0xcb4e21eb404d80f3e1db781aad9ad6a1217fbbf2"
+        start_block: 94168602
+      - name: RolesAdmin
+        address:
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+        start_block: 94168691
+      - name: IEnabler
+        address:
+          - "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb"
+          - "0x5261fba7b50aa22b19b9edf939b771d109de991f"
+        start_block: 94169097
+      - name: IEnablerV2
+        address:
+          - "0x6d94b3745b0ecf908b3b467907b947b43fba5f15"
+          - "0x9f08c2603e919a46d6d98289c9ada5250b310558"
+        start_block: 94169625
+      - name: Owned
+        address:
+          - "0x5261fba7b50aa22b19b9edf939b771d109de991f"
+        start_block: 94169198
+      - name: OlympusAccessControlled
+        address:
+          - "0x9c859dc91db65bd7375660341231227336daa134"
+        start_block: 94168423
+      - name: OlympusAuthority
+        address:
+          - "0xca6cd4f0a0033f8c20cf68d6df277e7001a386f9"
+        start_block: 94168343
+      - name: ChainlinkOwned
+        address:
+          - "0x1912c3cfafe8a76a32a92861d815ac2837f237ca"
+          - "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb"
+        start_block: 4758
+      - name: TokenAdminRegistry
+        address:
+          - "0x1912c3cfafe8a76a32a92861d815ac2837f237ca"
+        start_block: 4758
+      - name: CCIPTokenPool
+        address:
+          - "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb"
+        start_block: 94169097
+      - name: CCIPBridge
+        address:
+          - "0x5261fba7b50aa22b19b9edf939b771d109de991f"
+        start_block: 94169198
+
+  - id: 1
+    start_block: 13674068
+    rpc:
+      - url: ${ENVIO_RPC_URL_1}
+        for: ${ENVIO_RPC_MODE:-sync}
+    contracts:
+      - name: LegacyPeriodicTask
+        address:
+          - "0x271e35a8555a62f6ba76508e85dfd76d580b0692"
+          - "0x986b99579bec7b990331474b66ccdb94fa2419f5"
+        start_block: 21216652
+      - name: PeriodicTaskManager
+        address:
+          - "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb"
+        start_block: 23748093
+      - name: MonoCoolerReferences
+        address:
+          - "0xdb591ea2e5db886da872654d58f6cc584b68e7cc"
       - name: Kernel
         address:
           - "0x2286d7f9639e8158FaD1169e76d1FbC38247f54b"
@@ -45,11 +305,78 @@ chains:
         address:
           - "0xb216d714d91eeC4F7120a732c11428857C659eC8"
         start_block: 15998137
+      - name: IEnabler
+        address:
+          - "0x5131654efcd63f7b797e00118792e0d0dd90b8b0"
+          - "0x5c69f61d384e41b55699c3b10523ed81c5ef9cbd"
+          - "0xd58d7406e9ce34c90cf849fc3eed3764eb3779b0"
+          - "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a"
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+          - "0xcb4e21eb404d80f3e1db781aad9ad6a1217fbbf2"
+          - "0x20a3d8510f2e1176e8db4cea9883a8287a9029db"
+          - "0xa61b846d5d8b757e3d541e0e4f80390e28f0b6ff"
+          - "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb"
+          - "0xca6cd4f0a0033f8c20cf68d6df277e7001a386f9"
+          - "0x9f08c2603e919a46d6d98289c9ada5250b310558"
+          - "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50"
+          - "0x6593768febf9c95ac857fb7ef244d5738d1c57fd"
+          - "0xe045bd0a0d85e980aa152064c06eae6b6ae358d2"
+          - "0xfbf6383dc3f6010d403ecdf12ddc1311701d143d"
+          - "0x7d8f82a0d5b67d5fdd1b77a899ff517818fafc2e"
+        start_block: 22423120
+      - name: IEnablerV2
+        address:
+          - "0x2cea7b722dbd6b03f0e857d11e53ecb698cc2b4e"
+          - "0xf489f38bf8d98a5c10a030f8c16624f6764cd27a"
+        start_block: 26232434
+      - name: Owned
+        address:
+          - "0x62633b567ed4fc4078db75a5cb4b896b3d44a5d4"
+          - "0x6593768febf9c95ac857fb7ef244d5738d1c57fd"
+          - "0x7d8f82a0d5b67d5fdd1b77a899ff517818fafc2e"
+          - "0xa0ca0f496b6295f949edda2df5fcd3877d5a253e"
+          - "0xe045bd0a0d85e980aa152064c06eae6b6ae358d2"
+          - "0xfbf6383dc3f6010d403ecdf12ddc1311701d143d"
+        start_block: 22515497
+      - name: OlympusAccessControlled
+        address:
+          - "0x64aa3364f17a4d01c6f1751fd97c2bd3d7e7f1d5"
+          - "0xb63cac384247597756545b500253ff8e607a8020"
+        start_block: 13782589
+      - name: StakedOHM
+        address:
+          - "0x04906695d6d12cf5459975d7c3c03356e4ccd460"
+        start_block: 13803969
+      - name: OlympusAuthority
+        address:
+          - "0x1c21f8ea7e39e2ba00bc12d2968d63f4acb38b7a"
+        start_block: 13674068
+      - name: GovernanceOHM
+        address:
+          - "0x0ab87046fbb341d058f17cbc4c1133f25a20a52f"
+        start_block: 13674957
+      - name: ChainlinkOwned
+        address:
+          - "0xa5588e518ce5ee0e4628c005e4edabd5e87de3ad"
+          - "0xb22764f98dd05c789929716d677382df22c05cb6"
+        start_block: 20735575
+      - name: TokenAdminRegistry
+        address:
+          - "0xb22764f98dd05c789929716d677382df22c05cb6"
+        start_block: 20735575
+      - name: CCIPTokenPool
+        address:
+          - "0xa5588e518ce5ee0e4628c005e4edabd5e87de3ad"
+        start_block: 22696743
+      - name: CCIPBridge
+        address:
+          - "0xfbf6383dc3f6010d403ecdf12ddc1311701d143d"
+        start_block: 22696744
 
   - id: 42161
-    start_block: 85886527
+    start_block: 85886461
     rpc:
-      - url: ${ENVIO_RPC_URL_42161:-https://arb1.arbitrum.io/rpc}
+      - url: ${ENVIO_RPC_URL_42161}
         for: ${ENVIO_RPC_MODE:-sync}
     contracts:
       - name: Kernel
@@ -64,11 +391,50 @@ chains:
         address:
           - "0x69168c08AcF66f002fd02E1B169f38C022c93b70"
         start_block: 85886660
+      - name: IEnabler
+        address:
+          - "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a"
+          - "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50"
+        start_block: 516537665
+      - name: IEnablerV2
+        address:
+          - "0x5261fba7b50aa22b19b9edf939b771d109de991f"
+          - "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb"
+        start_block: 516537728
+      - name: Owned
+        address:
+          - "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50"
+        start_block: 516537697
+      - name: OlympusAccessControlled
+        address:
+          - "0xf0cb2dc0db5e6c66b9a70ac27b06b878da017028"
+        start_block: 85886493
+      - name: OlympusAuthority
+        address:
+          - "0x78f84998c73655ac2da0aa1e1270f6cb985a343e"
+        start_block: 85886461
+      - name: ChainlinkOwned
+        address:
+          - "0x39ae1032cf4b334a1ed41cdd0833bdd7c7e7751e"
+          - "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a"
+        start_block: 256834238
+      - name: TokenAdminRegistry
+        address:
+          - "0x39ae1032cf4b334a1ed41cdd0833bdd7c7e7751e"
+        start_block: 256834238
+      - name: CCIPTokenPool
+        address:
+          - "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a"
+        start_block: 516537665
+      - name: CCIPBridge
+        address:
+          - "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50"
+        start_block: 516537697
 
   - id: 8453
-    start_block: 13204831
+    start_block: 13204824
     rpc:
-      - url: ${ENVIO_RPC_URL_8453:-https://base.llamarpc.com}
+      - url: ${ENVIO_RPC_URL_8453}
         for: ${ENVIO_RPC_MODE:-sync}
     contracts:
       - name: Kernel
@@ -83,11 +449,50 @@ chains:
         address:
           - "0xb1fA0Ac44d399b778B14af0AAF4bCF8af3437ad1"
         start_block: 13204846
+      - name: IEnabler
+        address:
+          - "0x20a3d8510f2e1176e8db4cea9883a8287a9029db"
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+        start_block: 52847117
+      - name: IEnablerV2
+        address:
+          - "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50"
+          - "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a"
+        start_block: 52847128
+      - name: Owned
+        address:
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+        start_block: 52847123
+      - name: OlympusAccessControlled
+        address:
+          - "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0"
+        start_block: 13204827
+      - name: OlympusAuthority
+        address:
+          - "0x13dfeff85779118136bb9826dcad8f3bd25153a3"
+        start_block: 13204824
+      - name: ChainlinkOwned
+        address:
+          - "0x6f6c373d09c07425baae72317863d7f6bb731e37"
+          - "0x20a3d8510f2e1176e8db4cea9883a8287a9029db"
+        start_block: 20193207
+      - name: TokenAdminRegistry
+        address:
+          - "0x6f6c373d09c07425baae72317863d7f6bb731e37"
+        start_block: 20193207
+      - name: CCIPTokenPool
+        address:
+          - "0x20a3d8510f2e1176e8db4cea9883a8287a9029db"
+        start_block: 52847117
+      - name: CCIPBridge
+        address:
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+        start_block: 52847123
 
   - id: 80094
-    start_block: 780016
+    start_block: 780011
     rpc:
-      - url: ${ENVIO_RPC_URL_80094:-https://rpc.berachain.com}
+      - url: ${ENVIO_RPC_URL_80094}
         for: ${ENVIO_RPC_MODE:-sync}
     contracts:
       - name: Kernel
@@ -102,11 +507,50 @@ chains:
         address:
           - "0xe37D9a2791707BBB858012d219960D5FBD190794"
         start_block: 780026
+      - name: IEnabler
+        address:
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+          - "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a"
+        start_block: 27734756
+      - name: IEnablerV2
+        address:
+          - "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb"
+          - "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50"
+        start_block: 27734765
+      - name: Owned
+        address:
+          - "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a"
+        start_block: 27734760
+      - name: OlympusAccessControlled
+        address:
+          - "0x18878df23e2a36f81e820e4b47b4a40576d3159c"
+        start_block: 780014
+      - name: OlympusAuthority
+        address:
+          - "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0"
+        start_block: 780011
+      - name: ChainlinkOwned
+        address:
+          - "0x0944c3fb1db7d165336569221995b31cbe6c8a55"
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+        start_block: 1023691
+      - name: TokenAdminRegistry
+        address:
+          - "0x0944c3fb1db7d165336569221995b31cbe6c8a55"
+        start_block: 1023691
+      - name: CCIPTokenPool
+        address:
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+        start_block: 27734756
+      - name: CCIPBridge
+        address:
+          - "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a"
+        start_block: 27734760
 
   - id: 10
-    start_block: 98531655
+    start_block: 98531613
     rpc:
-      - url: ${ENVIO_RPC_URL_10:-https://optimism.llamarpc.com}
+      - url: ${ENVIO_RPC_URL_10}
         for: ${ENVIO_RPC_MODE:-sync}
     contracts:
       - name: Kernel
@@ -121,13 +565,62 @@ chains:
         address:
           - "0xb1fA0Ac44d399b778B14af0AAF4bCF8af3437ad1"
         start_block: 98531717
+      - name: IEnabler
+        address:
+          - "0xd98b5b2e4d5d6cd554115de19efb7a9084beddd1"
+          - "0xcb4e21eb404d80f3e1db781aad9ad6a1217fbbf2"
+        start_block: 158442667
+      - name: IEnablerV2
+        address:
+          - "0x20a3d8510f2e1176e8db4cea9883a8287a9029db"
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+        start_block: 158442676
+      - name: Owned
+        address:
+          - "0xcb4e21eb404d80f3e1db781aad9ad6a1217fbbf2"
+        start_block: 158442672
+      - name: OlympusAccessControlled
+        address:
+          - "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0"
+        start_block: 98531633
+      - name: OlympusAuthority
+        address:
+          - "0x13dfeff85779118136bb9826dcad8f3bd25153a3"
+        start_block: 98531613
+      - name: ChainlinkOwned
+        address:
+          - "0x657c42abe4cd8aa731aec322f871b5b90cf6274f"
+          - "0xd98b5b2e4d5d6cd554115de19efb7a9084beddd1"
+        start_block: 125790041
+      - name: TokenAdminRegistry
+        address:
+          - "0x657c42abe4cd8aa731aec322f871b5b90cf6274f"
+        start_block: 125790041
+      - name: CCIPTokenPool
+        address:
+          - "0xd98b5b2e4d5d6cd554115de19efb7a9084beddd1"
+        start_block: 158442667
+      - name: CCIPBridge
+        address:
+          - "0xcb4e21eb404d80f3e1db781aad9ad6a1217fbbf2"
+        start_block: 158442672
 
   - id: 11155111
-    start_block: 8226369
+    start_block: 6577288
     rpc:
-      - url: ${ENVIO_RPC_URL_11155111:-https://ethereum-sepolia-rpc.publicnode.com}
+      - url: ${ENVIO_RPC_URL_11155111}
         for: ${ENVIO_RPC_MODE:-sync}
     contracts:
+      - name: LegacyPeriodicTask
+        address:
+          - "0x8b92a1dea210b7b7516443b52fdf5dae677e93b0"
+        start_block: 9180008
+      - name: PeriodicTaskManager
+        address:
+          - "0x1dc2c4e15189a7aa61eff2b3dd3d5eae8fa03377"
+          - "0xa61b846d5d8b757e3d541e0e4f80390e28f0b6ff"
+          - "0xad381c116f27f56f8c0853431f4fcd9e9b142aff"
+        start_block: 9060200
       - name: Kernel
         address:
           - "0x4b0BBa51cE44175a9766f7e55e3d122a9F4BE78E"
@@ -140,3 +633,77 @@ chains:
         address:
           - "0xf33133E5356B9534e794468dAcD424D11007f1cF"
         start_block: 8226374
+      - name: IEnabler
+        address:
+          - "0x79cf5d3824cabd3c7617f8470b94033eb10b28ca"
+          - "0x3024ceabec7e120647ad585bd5836eb13d247de7"
+          - "0x74feaede88962139f4d36a2f1998bcf56088d519"
+          - "0x9dc1920981fcf74786c838bf6f6c3683a8713576"
+          - "0xad381c116f27f56f8c0853431f4fcd9e9b142aff"
+          - "0x46a01ae30571855fbb5988eed9d116aa2a3f2377"
+          - "0xf8abe1d9502bbcad4576433490d851d03c22a6b4"
+          - "0x2c9658b32e59cc4eb5ac90e2a3795c9e7fcaa644"
+          - "0x93acada86ad23c85e96869d46945fa6ffb7a4036"
+          - "0x247f1989adc0f63d07b91bf645de879b9de06fbb"
+          - "0x0be69702e83f06a027e6841b614f6946d1265441"
+          - "0x1dc2c4e15189a7aa61eff2b3dd3d5eae8fa03377"
+          - "0x84785e392bfd02f97a9b84f85d86dec11933ef81"
+          - "0x2364bf0a9aa544039bc12130d3ae167dffbb93a5"
+          - "0x5261fba7b50aa22b19b9edf939b771d109de991f"
+          - "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb"
+          - "0x69b2be653bab628116b360818be75a2d97b45c4a"
+          - "0x87568265eb6ea27f37613d242d4192b6f6771269"
+          - "0xa386b4f750f493a6c9f33fbbf8702718b785969a"
+          - "0xa61b846d5d8b757e3d541e0e4f80390e28f0b6ff"
+          - "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50"
+          - "0xc14156af3bf6c11b1c40c8f51f64ba5496870126"
+          - "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678"
+          - "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a"
+          - "0x70233d8f47042d3a5813026e2157b5181c608cd0"
+          - "0x992ea219636777de4b99b63bbb0b08b90a3d57da"
+          - "0xcfe75cca2b7a9354f7c25e889b1216f977dec6a5"
+        start_block: 8226491
+      - name: Owned
+        address:
+          - "0x70233d8f47042d3a5813026e2157b5181c608cd0"
+          - "0x7e655891ce813887613ee4eef0b9610f7a243144"
+          - "0x992ea219636777de4b99b63bbb0b08b90a3d57da"
+          - "0xcfe75cca2b7a9354f7c25e889b1216f977dec6a5"
+          - "0xef64bab08c3431bbc527b063354b95d1c5b549b0"
+        start_block: 8226526
+      - name: OlympusAccessControlled
+        address:
+          - "0x784ca0c006b8651bab183829a99fa46bece50dbc"
+          - "0xbc2778f2f24864d35d806aa968a1db445988a5e9"
+        start_block: 8226232
+      - name: StakedOHM
+        address:
+          - "0x7aee38dbb5465a05ee809d00d1c34db76f8c5b72"
+        start_block: 10279154
+      - name: OlympusAuthority
+        address:
+          - "0x81057bef097462957b9388d8dcb7d4ab0699cadb"
+        start_block: 8226228
+      - name: GovernanceOHM
+        address:
+          - "0x0f7f33f915b29476ca2b2606c8a3e06a5fc7e896"
+        start_block: 10279155
+      - name: ChainlinkOwned
+        address:
+          - "0x95f29fee11c5c55d26cccf1db6772de953b37b82"
+          - "0xf166375e8ee42565f93e244c606b8c09b9f67dbc"
+          - "0x3024ceabec7e120647ad585bd5836eb13d247de7"
+        start_block: 6577288
+      - name: TokenAdminRegistry
+        address:
+          - "0x95f29fee11c5c55d26cccf1db6772de953b37b82"
+        start_block: 6577288
+      - name: CCIPTokenPool
+        address:
+          - "0xf166375e8ee42565f93e244c606b8c09b9f67dbc"
+          - "0x3024ceabec7e120647ad585bd5836eb13d247de7"
+        start_block: 8375032
+      - name: CCIPBridge
+        address:
+          - "0xcfe75cca2b7a9354f7c25e889b1216f977dec6a5"
+        start_block: 8474774

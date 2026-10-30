@@ -8,6 +8,12 @@ export const PROTOCOL_VISUALIZER_QUERIES: ProtocolVisualizerQuery[] = [
     name: "graphql-default",
     query: `
       query ProtocolVisualizerData($chainId: Int!) {
+        KnownContract: contract(where: { chainId: { _eq: $chainId } }, orderBy: { name: asc }) { address name version contractType isEnabled kernelHistory }
+        BridgeConfiguration: bridgeConfiguration(where: { chainId: { _eq: $chainId } }) { id chainId address kind configuration selectors observedAt lastChange verification }
+        HeartTasks: heartTasks(where: { chainId: { _eq: $chainId } }) { id chainId address tasks seed lastChange indexedThrough verification }
+        ContractState: contractState(where: { chainId: { _eq: $chainId } }) { id chainId address enablerCapability enabled seed lastChange indexedThrough verification enablementGetter enablementCoverage }
+        ContractRelationship: contractRelationship(where: { chainId: { _eq: $chainId } }) { id chainId kind source target status scope provenance subject getter value seed lastChange indexedThrough verification coverage functionContext targetCode callSignature callSelector }
+        ChainObservation: chainObservation(where: { chainId: { _eq: $chainId } }) { chainId indexedThrough }
         Contract: contract(
           where: { chainId: { _eq: $chainId }, isEnabled: { _eq: true } }
           orderBy: { name: asc }
@@ -21,6 +27,7 @@ export const PROTOCOL_VISUALIZER_QUERIES: ProtocolVisualizerQuery[] = [
           version
           contractType
           isEnabled
+          kernelHistory
           policyPermissions
           policyFunctions
         }
@@ -49,6 +56,12 @@ export const PROTOCOL_VISUALIZER_QUERIES: ProtocolVisualizerQuery[] = [
     name: "hasura-default",
     query: `
       query ProtocolVisualizerData($chainId: Int!) {
+        KnownContract: Contract(where: { chainId: { _eq: $chainId } }, order_by: { name: asc }) { address name version contractType isEnabled kernelHistory }
+        BridgeConfiguration: BridgeConfiguration(where: { chainId: { _eq: $chainId } }) { id chainId address kind configuration selectors observedAt lastChange verification }
+        HeartTasks: HeartTasks(where: { chainId: { _eq: $chainId } }) { id chainId address tasks seed lastChange indexedThrough verification }
+        ContractState: ContractState(where: { chainId: { _eq: $chainId } }) { id chainId address enablerCapability enabled seed lastChange indexedThrough verification enablementGetter enablementCoverage }
+        ContractRelationship: ContractRelationship(where: { chainId: { _eq: $chainId } }) { id chainId kind source target status scope provenance subject getter value seed lastChange indexedThrough verification coverage functionContext targetCode callSignature callSelector }
+        ChainObservation: ChainObservation(where: { chainId: { _eq: $chainId } }) { chainId indexedThrough }
         Contract(
           where: { chainId: { _eq: $chainId }, isEnabled: { _eq: true } }
           order_by: { name: asc }
@@ -62,6 +75,7 @@ export const PROTOCOL_VISUALIZER_QUERIES: ProtocolVisualizerQuery[] = [
           version
           contractType
           isEnabled
+          kernelHistory
           policyPermissions
           policyFunctions
         }

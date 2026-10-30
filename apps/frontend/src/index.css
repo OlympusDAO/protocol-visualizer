@@ -3,36 +3,63 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-ui-border: var(--ui-border);
+  --color-muted: var(--muted);
+  --color-link: var(--link);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-role: var(--role);
+  --color-policy: var(--policy);
+  --color-assignee: var(--assignee);
+  --color-selection: var(--selection);
 }
 
-/*
-  Tailwind 4 changed some defaults of Tailwind 3. These rules restore two
-  of them: gray-200 borders, and the pointer cursor on buttons.
-*/
+:root {
+  color-scheme: light dark;
+  --background: light-dark(#f9fafb, #0b1120);
+  --foreground: light-dark(#111827, #e5e7eb);
+  --surface: light-dark(#ffffff, #111827);
+  --surface-muted: light-dark(#f1f5f9, #1f2937);
+  --ui-border: light-dark(#cbd5e1, #475569);
+  --muted: light-dark(#4b5563, #cbd5e1);
+  --link: light-dark(#1d4ed8, #93c5fd);
+  --warning: light-dark(#92400e, #fcd34d);
+  --success: light-dark(#047857, #6ee7b7);
+  --danger: light-dark(#be123c, #fda4af);
+  --role: light-dark(#7e22ce, #d8b4fe);
+  --policy: light-dark(#15803d, #86efac);
+  --assignee: light-dark(#be185d, #f9a8d4);
+  --selection: light-dark(#eff6ff, #1e3a5f);
+  --edge: light-dark(#475569, #cbd5e1);
+  --periodic: light-dark(#0f766e, #5eead4);
+  --graph-dot: light-dark(#cbd5e1, #334155);
+  --group-background: light-dark(
+    rgba(241, 245, 249, 0.5),
+    rgba(30, 41, 59, 0.55)
+  );
+  --minimap-mask: light-dark(rgba(226, 232, 240, 0.6), rgba(11, 17, 32, 0.7));
+}
+
 @layer base {
   *,
   ::after,
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+    border-color: var(--ui-border);
   }
 
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
-}
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 2px;
   }
 }
 
@@ -40,4 +67,40 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.react-flow .react-flow__node-default {
+  color: var(--foreground);
+  background: var(--surface);
+}
+
+.react-flow .react-flow__edge-textbg {
+  fill: var(--surface);
+}
+
+.react-flow .react-flow__edge-text {
+  fill: var(--foreground);
+}
+
+.react-flow .react-flow__controls-button {
+  color: var(--foreground);
+  background: var(--surface);
+  border-color: var(--ui-border);
+}
+
+.react-flow .react-flow__controls-button:hover {
+  background: var(--surface-muted);
+}
+
+.react-flow .react-flow__controls-button svg {
+  fill: currentColor;
+}
+
+.react-flow .react-flow__minimap,
+.react-flow .react-flow__attribution {
+  background: var(--surface);
+}
+
+.react-flow .react-flow__attribution a {
+  color: var(--muted);
 }

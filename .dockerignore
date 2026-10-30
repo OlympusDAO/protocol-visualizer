@@ -22,3 +22,4 @@ coverage
 .github
 .vscode
 apps/indexer/scripts/*.test.mjs
+apps/indexer/scripts/fixtures

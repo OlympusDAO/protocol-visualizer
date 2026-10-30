@@ -23,6 +23,7 @@ type Contract {
   version: String
   contractType: ContractType! @index
   isEnabled: Boolean! @index
+  kernelHistory: String
   policyPermissions: Json
   policyFunctions: Json
 }
@@ -123,4 +124,95 @@ type CurrentRoleAssignee {
   assigneeName: String!
   lastUpdatedTimestamp: BigInt!
   lastUpdatedBlockNumber: BigInt! @index
+}
+
+# Current control state is independent from Contract.isEnabled (Kernel membership).
+# Json provenance uses {number,hash,timestamp}, all numeric values encoded as strings.
+type ContractState {
+  id: ID!
+  chainId: Int! @index
+  address: String! @index
+  enablerCapability: String!
+  enabled: Boolean
+  seed: Json
+  lastChange: Json
+  indexedThrough: Json
+  verification: Json!
+  enablementGetter: String
+  enablementCoverage: String
+}
+
+type ContractStateSeed {
+  id: ID!
+  chainId: Int! @index
+  address: String! @index
+  boundary: Json!
+  getter: String!
+  value: String!
+}
+
+type ControlTransition {
+  id: ID!
+  chainId: Int! @index
+  address: String! @index
+  kind: String! @index
+  previousValue: Json
+  value: Json!
+  blockNumber: BigInt! @index
+  blockHash: String! @index
+  timestamp: BigInt!
+  transactionHash: String! @index
+  logIndex: Int!
+}
+
+type ContractRelationship {
+  callSelector: String
+  callSignature: String
+  id: ID!
+  chainId: Int! @index
+  kind: String! @index
+  source: String! @index
+  target: String @index
+  status: String!
+  scope: Json
+  provenance: Json!
+  subject: String @index
+  getter: String
+  value: String
+  seed: Json
+  lastChange: Json
+  indexedThrough: Json
+  verification: Json
+  coverage: String
+  functionContext: Json
+  targetCode: String
+}
+
+type ChainObservation {
+  id: ID!
+  chainId: Int! @index
+  indexedThrough: Json!
+}
+
+type HeartTasks {
+  id: ID!
+  chainId: Int! @index
+  address: String! @index
+  tasks: Json
+  seed: Json
+  lastChange: Json
+  indexedThrough: Json
+  verification: Json!
+}
+
+type BridgeConfiguration {
+  id: ID!
+  chainId: Int! @index
+  address: String! @index
+  kind: String!
+  configuration: Json
+  selectors: [String!]!
+  observedAt: Json
+  lastChange: Json
+  verification: Json!
 }

@@ -2,6 +2,8 @@
 
 Use Docker Compose to run the Railway-like topology locally:
 
+- `rpc-cache` forwards JSON-RPC and persists finalized history in its separate
+  `rpc-cache-postgres` database. See [rpc-cache.md](rpc-cache.md).
 - `postgres` stores Hasura metadata and indexed Envio data.
 - `hasura` is private to the Compose network for the publisher, monitor, and
   indexer.
@@ -27,7 +29,7 @@ Use Docker Compose to run the Railway-like topology locally:
 
 Defaults are defined in `docker-compose.yml`. Copy `.env.compose.sample` to
 `.env` and set `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY`, plus the enabled-chain
-`ENVIO_RPC_URL_*` variables before starting the indexer. Required values in the
+`UPSTREAM_RPC_URL_*` variables before starting the indexer. Required values in the
 sample are uncommented; optional overrides are commented. The compose stack
 fails early without the token, Etherscan key, and RPC URLs because HyperSync
 with RPC fallback is the expected local ingestion path, and the indexer needs
@@ -79,11 +81,10 @@ pnpm run stack:monitor
 ```bash
 pnpm run stack:logs
 pnpm run stack:down
-docker compose down --volumes
 ```
 
-`stack:down` keeps named volumes. The direct Docker command removes local
-Postgres and MinIO data.
+`stack:down` keeps named volumes. Do not use `down --volumes`: it would delete Envio,
+MinIO, and the independent persistent RPC cache.
 
 ## Validation
 
@@ -96,6 +97,6 @@ pnpm run validate:local
 to complete a full backfill.
 
 `stack:config` and `stack:up` require `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY`,
-`ENVIO_RPC_URL_1`, `ENVIO_RPC_URL_10`, `ENVIO_RPC_URL_42161`,
-`ENVIO_RPC_URL_8453`, `ENVIO_RPC_URL_80094`, and `ENVIO_RPC_URL_11155111` to be
+`UPSTREAM_RPC_URL_1`, `UPSTREAM_RPC_URL_10`, `UPSTREAM_RPC_URL_42161`,
+`UPSTREAM_RPC_URL_421614`, `UPSTREAM_RPC_URL_84532`, `UPSTREAM_RPC_URL_4663`, `UPSTREAM_RPC_URL_8453`, `UPSTREAM_RPC_URL_80094`, and `UPSTREAM_RPC_URL_11155111` to be
 present in `.env` or the shell environment.

@@ -1,8 +1,8 @@
 # Build stage
-FROM node:24-alpine@sha256:01743339035a5c3c11a373cd7c83aeab6ed1457b55da6a69e014a95ac4e4700b AS builder
+FROM node:24.22.1-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS builder
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@11.28.6 --activate
+RUN corepack enable && corepack prepare pnpm@11.28.7 --activate
 
 # Set working directory
 WORKDIR /app
@@ -17,6 +17,7 @@ RUN pnpm install --frozen-lockfile
 # Copy source code
 COPY apps/frontend/ ./apps/frontend/
 COPY packages/protocol-config/ ./packages/protocol-config/
+COPY packages/snapshot-artifacts/src/ ./packages/snapshot-artifacts/src/
 
 WORKDIR /app/apps/frontend
 
@@ -32,7 +33,7 @@ FROM nginxinc/nginx-unprivileged:alpine@sha256:b5047b9b76845eac124358373c6852377
 
 # Apply Alpine security updates
 USER root
-RUN apk upgrade --no-cache c-ares curl libcurl libexpat musl musl-utils zlib libssl3 libcrypto3 libuuid libpng libxpm libxml2 nghttp2-libs xz-libs
+RUN apk upgrade --no-cache brotli-libs c-ares curl libcurl libexpat musl musl-utils zlib libssl3 libcrypto3 libuuid libpng libxpm libxml2 nghttp2-libs xz-libs
 
 # Copy the built static files to Nginx's serve directory
 COPY --from=builder /app/apps/frontend/dist /usr/share/nginx/html

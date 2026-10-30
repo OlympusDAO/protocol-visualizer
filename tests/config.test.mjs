@@ -1,65 +1,108 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { test } from "node:test";
+import { spawnSync } from "node:child_process";
+import { resolve } from "node:path";
+
+import { createRailwayContext } from "railway/iac";
+import defineInfrastructure from "../.railway/railway.ts";
+
+const railwayServices = defineInfrastructure(
+  createRailwayContext({ environment: "production" })
+).resources.flat(Infinity);
 
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 
 const dockerfileContent = (path) => readFileSync(path, "utf8");
 
-test("Railway configs use root-anchored watch patterns and expected restart policies", () => {
-  const configs = [
-    ["railway-hasura.json", "Dockerfile-hasura", "ON_FAILURE"],
-    ["railway-indexer.json", "Dockerfile-indexer", "ON_FAILURE"],
-    ["railway-frontend.json", "Dockerfile-frontend", "ON_FAILURE"],
-    [
-      "railway-snapshot-gateway.json",
-      "Dockerfile-snapshot-gateway",
-      "ON_FAILURE",
-    ],
-    [
-      "railway-snapshot-publisher.json",
-      "Dockerfile-snapshot-publisher",
-      "NEVER",
-    ],
-    ["railway-snapshot-monitor.json", "Dockerfile-snapshot-monitor", "NEVER"],
-  ];
+test("chain catalog and indexer agree on indexed networks", () => {
+  const chains = readJson("packages/protocol-config/protocol-chains.json");
+  assert.equal(
+    new Set(chains.map((chain) => chain.chainId)).size,
+    chains.length
+  );
+  const indexedIds = chains
+    .filter((chain) => chain.availability === "indexed")
+    .map((chain) => chain.chainId)
+    .sort((a, b) => a - b);
+  const configuredIds = [
+    ...readFileSync("apps/indexer/config.yaml", "utf8").matchAll(
+      /^ {2}- id: (\d+)$/gm
+    ),
+  ]
+    .map((match) => Number(match[1]))
+    .sort((a, b) => a - b);
+  assert.deepEqual(configuredIds, indexedIds);
+});
 
-  for (const [configPath, dockerfilePath, restartPolicy] of configs) {
-    const config = readJson(configPath);
-    assert.equal(config.build.dockerfilePath, dockerfilePath);
-    assert(
-      config.build.watchPatterns.every((pattern) => pattern.startsWith("/"))
-    );
-    assert(config.build.watchPatterns.includes(`/${dockerfilePath}`));
-    assert(config.build.watchPatterns.includes(`/${configPath}`));
-    assert(existsSync(dockerfilePath));
-    assert.equal(config.deploy.restartPolicyType, restartPolicy);
-    if (restartPolicy === "ON_FAILURE") {
-      assert.equal(config.deploy.restartPolicyMaxRetries, 1);
-    }
+test("other contracts are valid, unique chain-scoped identities", () => {
+  const contracts = readJson("packages/protocol-config/other-contracts.json");
+  const identities = new Set();
+  for (const contract of contracts) {
+    assert.match(contract.address, /^0x[0-9a-f]{40}$/);
+    assert.notEqual(contract.address, `0x${"0".repeat(40)}`);
+    const identity = `${contract.chainId}:${contract.address}`;
+    assert(!identities.has(identity), identity);
+    identities.add(identity);
   }
+});
 
-  assert.equal(
-    readJson("railway-indexer.json").deploy.healthcheckPath,
-    "/healthz"
-  );
-  assert.equal(
-    readJson("railway-snapshot-gateway.json").deploy.healthcheckPath,
-    "/ready"
-  );
-  assert.equal(
-    readJson("railway-snapshot-publisher.json").deploy.cronSchedule,
-    "0 * * * *"
-  );
-  assert(
-    readJson("railway-snapshot-publisher.json").build.watchPatterns.includes(
-      "/apps/indexer/**"
+test("snapshot pre-deploy commands fail on missing RPC settings and validate without running jobs", () => {
+  const chains = readJson(
+    "packages/protocol-config/protocol-chains.json"
+  ).filter((chain) => chain.availability !== "historical");
+  const environment = Object.fromEntries(
+    Object.entries(process.env).filter(
+      ([name]) => !name.startsWith("RPC_URL_") && name !== "DISCORD_WEBHOOK_URL"
     )
   );
-  assert.equal(
-    readJson("railway-snapshot-monitor.json").deploy.cronSchedule,
-    "5 0 * * *"
+  environment.PROTOCOL_CHAINS_CONFIG_PATH = resolve(
+    "packages/protocol-config/protocol-chains.json"
   );
+  environment.SNAPSHOT_CHAIN_IDS = "1";
+  const configured = Object.fromEntries(
+    chains.map(({ chainId }) => [
+      `RPC_URL_${chainId}`,
+      "https://rpc.example/configured",
+    ])
+  );
+  for (const [service, entry] of [
+    ["snapshot-publisher", "publish.js"],
+    ["snapshot-monitor", "index.js"],
+  ]) {
+    const command = railwayServices.find((node) => node.name === service).deploy
+      .preDeployCommand;
+    assert.deepEqual(command, [`node dist/src/${entry} --check-config`]);
+    const run = (variables) =>
+      spawnSync(process.execPath, [`dist/src/${entry}`, "--check-config"], {
+        cwd: resolve(`apps/${service}`),
+        env: { ...environment, ...variables },
+        encoding: "utf8",
+        timeout: 5000,
+      });
+    const missing = run({
+      RPC_URL_1: "  ",
+    });
+    assert.equal(missing.status, 1);
+    assert.match(missing.stderr, /Missing required RPC variables: RPC_URL_1/);
+    if (service === "snapshot-monitor") {
+      const missingWebhook = run(configured);
+      assert.equal(missingWebhook.status, 1);
+      assert.match(missingWebhook.stderr, /DISCORD_WEBHOOK_URL is required/);
+    }
+    const valid = run({
+      ...configured,
+      DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+    });
+    assert.equal(valid.status, 0, valid.stderr);
+    assert.equal(valid.stdout, "");
+    const subset = run({ RPC_URL_1: configured.RPC_URL_1 });
+    assert.equal(
+      subset.status,
+      service === "snapshot-publisher" ? 0 : 1,
+      subset.stderr
+    );
+  }
 });
 
 test("CI scans every Dockerfile and local image", () => {
@@ -72,6 +115,7 @@ test("CI scans every Dockerfile and local image", () => {
     "snapshot-gateway",
     "snapshot-publisher",
     "snapshot-monitor",
+    "rpc-cache",
   ]) {
     assert(packageJson.includes(`"docker:build:${name}"`));
     assert(packageJson.includes(`"docker:tag:scan:${name}"`));
@@ -84,6 +128,7 @@ test("CI scans every Dockerfile and local image", () => {
     "Dockerfile-snapshot-gateway",
     "Dockerfile-snapshot-publisher",
     "Dockerfile-snapshot-monitor",
+    "Dockerfile-rpc-cache",
   ]) {
     assert(existsSync(dockerfile));
   }
@@ -128,6 +173,8 @@ test("Compose includes the Railway-like snapshot services", () => {
   const compose = readFileSync("docker-compose.yml", "utf8");
   for (const service of [
     "postgres:",
+    "rpc-cache:",
+    "rpc-cache-postgres:",
     "hasura:",
     "indexer:",
     "minio:",
@@ -153,11 +200,25 @@ test("Compose requires Envio API token, Etherscan key, and RPC URLs for local in
   const railwayDocs = readFileSync("docs/railway-self-hosting.md", "utf8");
 
   assert(compose.includes("ENVIO_API_TOKEN: ${ENVIO_API_TOKEN:?"));
-  for (const chainId of ["1", "10", "42161", "8453", "80094", "11155111"]) {
-    assert(compose.includes(`ENVIO_RPC_URL_${chainId}: $`));
-    assert(compose.includes(`Set ENVIO_RPC_URL_${chainId} in .env`));
-    assert(sampleEnv.includes(`ENVIO_RPC_URL_${chainId}=`));
-    assert(localDocs.includes(`ENVIO_RPC_URL_${chainId}`));
+  for (const chainId of [
+    "1",
+    "10",
+    "42161",
+    "421614",
+    "84532",
+    "4663",
+    "8453",
+    "80094",
+    "11155111",
+  ]) {
+    assert(
+      compose.includes(
+        `ENVIO_RPC_URL_${chainId}: http://rpc-cache:4000/pv/evm/${chainId}`
+      )
+    );
+    assert(compose.includes(`Set UPSTREAM_RPC_URL_${chainId} in .env`));
+    assert(sampleEnv.includes(`UPSTREAM_RPC_URL_${chainId}=`));
+    assert(localDocs.includes(`UPSTREAM_RPC_URL_${chainId}`));
   }
   assert(compose.includes("ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY:?"));
   assert(compose.includes("Set ETHERSCAN_API_KEY in .env"));
@@ -218,7 +279,11 @@ test("Env samples and docs keep optional variables commented", () => {
   assert(monitorDocs.includes("indexer.PORT=9898"));
   assert(monitorDocs.includes("# MONITOR_STALE_CHAIN_HOURS=24"));
   assert(railwayDocs.includes("# ENVIO_RPC_MODE="));
-  assert(railwayDocs.includes("# DISCORD_WEBHOOK_URL=<discord webhook url>"));
+  assert(
+    railwayDocs.includes(
+      "# DISCORD_WEBHOOK_URL=${{shared.DISCORD_WEBHOOK_URL}}"
+    )
+  );
 });
 
 test("Compose third-party images are pinned by digest", () => {

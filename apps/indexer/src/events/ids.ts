@@ -1,4 +1,4 @@
-import type { ActionType } from "./types";
+import type { ActionType, ControlEvent } from "./types";
 
 export function normalizeAddress(address: string): string {
   return address.toLowerCase();
@@ -72,4 +72,8 @@ export function currentModuleId(chainId: number, keycode: string): string {
 
 export function currentRoleAssigneeId(chainId: number, role: string): string {
   return `${chainId}:${role}`;
+}
+
+export function controlTransitionId(event: ControlEvent, kind: string): string {
+  return `${contractId(event.chainId, event.srcAddress)}:${event.block.hash.toLowerCase()}:${event.block.number}:${event.block.timestamp}:${event.transaction.hash.toLowerCase()}:${event.logIndex}:${kind}`;
 }

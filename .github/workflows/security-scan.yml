@@ -30,8 +30,17 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
+      - name: Build RPC cache Docker image
+        run: pnpm run docker:build:rpc-cache
+
+      - name: Tag RPC cache image for scan
+        run: pnpm run docker:tag:scan:rpc-cache
+
       - name: Build indexer Docker image
         run: pnpm run docker:build:indexer
+
+      - name: Run RPC cache integration checks
+        run: pnpm run test:rpc-cache
 
       - name: Tag indexer image for scan
         run: pnpm run docker:tag:scan:indexer
@@ -129,6 +138,15 @@ jobs:
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
           image-ref: protocol-visualizer/snapshot-monitor:scan
+          format: table
+          severity: MEDIUM,HIGH,CRITICAL
+          trivyignores: .trivyignore
+          exit-code: "1"
+
+      - name: Scan RPC cache image for vulnerabilities
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: protocol-visualizer/rpc-cache:scan
           format: table
           severity: MEDIUM,HIGH,CRITICAL
           trivyignores: .trivyignore

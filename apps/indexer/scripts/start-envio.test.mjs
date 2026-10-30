@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
 
 const validEnv = {
   DATABASE_URL:
@@ -8,7 +10,10 @@ const validEnv = {
   HASURA_GRAPHQL_ADMIN_SECRET: "secret",
   ENVIO_RPC_URL_1: "https://example.com/1",
   ENVIO_RPC_URL_10: "https://example.com/10",
+  ENVIO_RPC_URL_421614: "https://example.com/421614",
+  ENVIO_RPC_URL_84532: "https://example.com/84532",
   ENVIO_RPC_URL_42161: "https://example.com/42161",
+  ENVIO_RPC_URL_4663: "https://example.com/4663",
   ENVIO_RPC_URL_8453: "https://example.com/8453",
   ENVIO_RPC_URL_80094: "https://example.com/80094",
   ENVIO_RPC_URL_11155111: "https://example.com/11155111",
@@ -21,11 +26,10 @@ async function loadModule() {
   return import(`./start-envio.mjs?test=${Date.now()}-${Math.random()}`);
 }
 
-test("adds reset flag for Railway start commands", async () => {
+test("resumes on Railway by default and resets only when explicitly requested", async () => {
   const { resolveEnvioArgs } = await loadModule();
   assert.deepEqual(resolveEnvioArgs([], { RAILWAY_SERVICE_ID: "svc" }), [
     "start",
-    "-r",
   ]);
   assert.deepEqual(
     resolveEnvioArgs(["start", "-r"], { RAILWAY_SERVICE_ID: "svc" }),
@@ -35,6 +39,15 @@ test("adds reset flag for Railway start commands", async () => {
     "dev",
   ]);
   assert.deepEqual(resolveEnvioArgs(["start"], {}), ["start"]);
+  assert.deepEqual(
+    resolveEnvioArgs(["start", "--restart"], { RAILWAY_SERVICE_ID: "svc" }),
+    ["start", "--restart"]
+  );
+  assert.deepEqual(resolveEnvioArgs(["local", "db-migrate", "setup"], {}), [
+    "local",
+    "db-migrate",
+    "setup",
+  ]);
 });
 
 test("rejects Railway schema configuration and port mismatches", async () => {
@@ -110,4 +123,18 @@ test("spawns Envio through node instead of the pnpm shell shim", async () => {
     "/app/apps/indexer/node_modules/envio/bin.mjs",
     "start",
   ]);
+});
+
+test("resolves the Envio entrypoint independently of the SSH working directory", async () => {
+  const { resolveEnvioCommand } = await loadModule();
+  const previous = process.cwd();
+  try {
+    process.chdir(tmpdir());
+    assert.equal(
+      resolveEnvioCommand().args[0],
+      fileURLToPath(new URL("../node_modules/envio/bin.mjs", import.meta.url))
+    );
+  } finally {
+    process.chdir(previous);
+  }
 });

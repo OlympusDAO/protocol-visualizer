@@ -137,7 +137,8 @@ export async function parsePolicyFunctions(
     context,
     chainId,
     policyAddress,
-    policyName
+    policyName,
+    blockNumber
   );
 
   return Object.values(policyFunctions.functionSelectors);
@@ -234,7 +235,8 @@ export async function parsePolicyPermissions(
           context,
           chainId,
           moduleAddress,
-          currentResult.moduleKeycode
+          currentResult.moduleKeycode,
+          blockNumber
         );
         const functionDetails =
           moduleProcessedData.functionSelectors[currentResult.funcSelector];
@@ -248,7 +250,11 @@ export async function parsePolicyPermissions(
 
         return {
           keycode: currentResult.moduleKeycode,
-          function: functionDetails.signature,
+          function:
+            functionDetails.canonicalSignature ?? functionDetails.signature,
+          ...(functionDetails.documentation
+            ? { functionContext: functionDetails.documentation }
+            : {}),
         };
       }
     )

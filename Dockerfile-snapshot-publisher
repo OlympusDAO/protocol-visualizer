@@ -1,10 +1,10 @@
 # Dependency stage
-# Pinned image: node:24-alpine (Node v24.14.1)
-FROM node:24-alpine@sha256:01743339035a5c3c11a373cd7c83aeab6ed1457b55da6a69e014a95ac4e4700b AS deps
+# Pinned image: node:24.22.1-alpine (Node v24.22.1)
+FROM node:24.22.1-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS deps
 
 RUN apk upgrade --no-cache musl musl-utils zlib libssl3 libcrypto3 nghttp2-libs xz-libs
 
-RUN corepack enable && corepack prepare pnpm@11.28.6 --activate
+RUN corepack enable && corepack prepare pnpm@11.28.7 --activate
 
 WORKDIR /app
 
@@ -12,6 +12,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/snapshot-publisher/package.json ./apps/snapshot-publisher/
 COPY packages/snapshot-artifacts/package.json ./packages/snapshot-artifacts/
 COPY packages/protocol-config/protocol-chains.json ./config/protocol-chains.json
+COPY packages/protocol-config/other-contracts.json ./config/other-contracts.json
 
 RUN pnpm install --frozen-lockfile --filter snapshot-publisher...
 
@@ -27,7 +28,7 @@ RUN pnpm --filter @protocol-visualizer/snapshot-artifacts run build \
     && find /deploy/snapshot-publisher -type f -name "*.d.ts" -delete
 
 # Runtime stage
-FROM node:24-alpine@sha256:01743339035a5c3c11a373cd7c83aeab6ed1457b55da6a69e014a95ac4e4700b AS runtime
+FROM node:24.22.1-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS runtime
 
 RUN apk upgrade --no-cache musl musl-utils zlib libssl3 libcrypto3 nghttp2-libs xz-libs
 
@@ -35,6 +36,7 @@ WORKDIR /app
 
 COPY --from=deps /deploy/snapshot-publisher ./apps/snapshot-publisher
 COPY --from=deps /app/config/protocol-chains.json ./config/protocol-chains.json
+COPY --from=deps /app/config/other-contracts.json ./config/other-contracts.json
 
 RUN rm -rf \
     /root/.cache/node/corepack \
@@ -48,6 +50,7 @@ RUN rm -rf \
 
 ENV NODE_ENV=production
 ENV PROTOCOL_CHAINS_CONFIG_PATH=/app/config/protocol-chains.json
+ENV OTHER_CONTRACTS_CONFIG_PATH=/app/config/other-contracts.json
 
 RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
 

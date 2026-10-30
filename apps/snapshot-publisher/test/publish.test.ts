@@ -14,10 +14,12 @@ import {
 import {
   PUBLISHER_NOTIFICATION_STATE_KEY,
   runPublisher,
+  sendDiscordMessage,
   type SnapshotS3Client,
   uploadSnapshotFiles,
 } from "../src/publish.js";
 import type { SnapshotFile } from "../src/types.js";
+import { loadSupportedChains } from "../src/chains.js";
 
 const snapshotFile = (key: string, publishLast = false): SnapshotFile => ({
   publicPath: `/${key}`,
@@ -234,6 +236,30 @@ test("destroys the S3 client when upload verification fails", async () => {
   assert.equal(destroyed, true);
 });
 
+test("publisher rejects missing RPC variables before metrics or storage access", async (t) => {
+  const originalEnv = { ...process.env };
+  process.env = {
+    ...originalEnv,
+    SNAPSHOT_SOURCE: "hasura",
+    SNAPSHOT_CHAIN_IDS: "1",
+    INDEXER_DEPLOYMENT_ID: "deployment-a",
+    RAILWAY_ENVIRONMENT_NAME: "preview",
+  };
+  delete process.env.RPC_URL_1;
+  const fetchMock = t.mock.method(globalThis, "fetch", async () => {
+    throw new Error("unexpected network request");
+  });
+  try {
+    await assert.rejects(
+      () => runPublisher(),
+      /Missing required RPC variables: RPC_URL_1/
+    );
+    assert.equal(fetchMock.mock.calls.length, 0);
+  } finally {
+    process.env = originalEnv;
+  }
+});
+
 test("publisher skips before Hasura reads when indexer metrics are not ready", async () => {
   const originalEnv = { ...process.env };
   const originalFetch = globalThis.fetch;
@@ -245,6 +271,8 @@ test("publisher skips before Hasura reads when indexer metrics are not ready", a
   process.env = {
     ...originalEnv,
     SNAPSHOT_SOURCE: "hasura",
+    RPC_URL_10: "https://rpc.example/optimism",
+    RPC_URL_1: "https://rpc.example/mainnet",
     SNAPSHOT_CHAIN_IDS: "1,10",
     INDEXER_DEPLOYMENT_ID: "deployment-a",
     RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
@@ -260,8 +288,10 @@ test("publisher skips before Hasura reads when indexer metrics are not ready", a
         hyperindex_synced_to_head 0
         envio_progress_ready{chainId="1"} 1
         envio_progress_block{chainId="1"} 25272069
+        envio_progress_block_time_seconds{chainId="1"} 1780876800
         envio_progress_ready{chainId="10"} 0
         envio_progress_block{chainId="10"} 152657692
+        envio_progress_block_time_seconds{chainId="10"} 1780876800
       `,
       { status: 200 }
     );
@@ -321,6 +351,7 @@ test("publisher logs continuing indexing for a previously observed deployment", 
   process.env = {
     ...originalEnv,
     SNAPSHOT_SOURCE: "hasura",
+    RPC_URL_1: "https://rpc.example/mainnet",
     SNAPSHOT_CHAIN_IDS: "1",
     INDEXER_DEPLOYMENT_ID: "deployment-a",
     RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
@@ -335,6 +366,7 @@ test("publisher logs continuing indexing for a previously observed deployment", 
         hyperindex_synced_to_head 0
         envio_progress_ready{chainId="1"} 0
         envio_progress_block{chainId="1"} 25272069
+        envio_progress_block_time_seconds{chainId="1"} 1780876800
       `,
       { status: 200 }
     );
@@ -361,7 +393,7 @@ test("publisher logs continuing indexing for a previously observed deployment", 
   assert(decision.reasons.includes("chains_not_ready"));
 });
 
-test("publisher sends handover-in-progress Discord embed for an unready new deployment", async () => {
+test("publisher reports the RPC block date during backfill in its result and Discord embed", async () => {
   const originalEnv = { ...process.env };
   const originalFetch = globalThis.fetch;
   const consoleCapture = captureConsole();
@@ -377,6 +409,7 @@ test("publisher sends handover-in-progress Discord embed for an unready new depl
     INDEXER_DEPLOYMENT_ID: "deployment-a",
     RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
     INDEXER_METRICS_URL: "http://indexer:9898/metrics",
+    RPC_URL_1: "https://rpc.example/envio",
     DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
     BUCKET: "bucket",
   };
@@ -389,14 +422,22 @@ test("publisher sends handover-in-progress Discord embed for an unready new depl
           hyperindex_synced_to_head 0
           envio_progress_ready{chainId="1"} 0
           envio_progress_block{chainId="1"} 25272069
-          envio_progress_timestamp{chainId="1"} 1780491216
         `,
         { status: 200 }
       );
     }
+    if (String(url) === "https://rpc.example/envio") {
+      assert.deepEqual(JSON.parse(String(init?.body)).params, [
+        "0x1819f05",
+        false,
+      ]);
+      return Response.json({
+        result: { number: "0x1819f05", timestamp: "0x6a2023d0" },
+      });
+    }
     assert.equal(String(url), "https://discord.example/webhook");
     discordBodies.push(JSON.parse(String(init?.body)));
-    return new Response("", { status: 204 });
+    return new Response(null, { status: 204 });
   };
 
   try {
@@ -410,6 +451,9 @@ test("publisher sends handover-in-progress Discord embed for an unready new depl
   }
 
   assert.equal(discordBodies.length, 1);
+  const result = publisherResultFrom(consoleCapture.logs);
+  assert.equal(result.published, false);
+  assert.equal(result.indexingProgress.chains.Mainnet.date, "2026-06-03");
   const body = discordBodies[0] as {
     content: string;
     embeds: Array<{
@@ -417,10 +461,21 @@ test("publisher sends handover-in-progress Discord embed for an unready new depl
       fields: Array<{ name: string; value: string }>;
     }>;
   };
-  assert.equal(body.content, "Protocol visualizer new deployment indexing");
+  assert.equal(
+    body.content,
+    "Protocol visualizer new deployment indexing — Production chains"
+  );
+  assert.ok(
+    body.embeds[0]?.fields.some(
+      (field) =>
+        field.name === "🟠 Ethereum Mainnet" &&
+        field.value ===
+          "Status: Indexing\nBlock: 25272069\nTime: <t:1780491216:F>"
+    )
+  );
   assert.equal(
     body.embeds[0]?.title,
-    "Protocol Visualizer New Deployment Indexing"
+    "Protocol Visualizer New Deployment Indexing — Production chains"
   );
   assert(
     body.embeds[0]?.fields.some(
@@ -434,11 +489,6 @@ test("publisher sends handover-in-progress Discord embed for an unready new depl
         field.name === "Published deployment" && field.value === "deployment-a"
     )
   );
-  assert(
-    body.embeds[0]?.fields.some(
-      (field) => field.name === "Chain" && field.value === "Mainnet"
-    )
-  );
 });
 
 test("publisher reports indexer metrics network failures with safe context", async () => {
@@ -448,6 +498,7 @@ test("publisher reports indexer metrics network failures with safe context", asy
   process.env = {
     ...originalEnv,
     SNAPSHOT_SOURCE: "hasura",
+    RPC_URL_1: "https://rpc.example/mainnet",
     SNAPSHOT_CHAIN_IDS: "1",
     INDEXER_DEPLOYMENT_ID: "deployment-a",
     RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
@@ -487,6 +538,7 @@ test("publisher requires Railway environment name for live Hasura runs", async (
   process.env = {
     ...originalEnv,
     SNAPSHOT_SOURCE: "hasura",
+    RPC_URL_1: "https://rpc.example/mainnet",
     SNAPSHOT_CHAIN_IDS: "1",
     INDEXER_DEPLOYMENT_ID: "deployment-a",
     INDEXER_METRICS_URL: "http://indexer:9898/metrics",
@@ -635,7 +687,7 @@ test("publisher logs when Discord handover is skipped because webhook is missing
   );
 });
 
-test("publisher sends compact handover Discord embed with chain progress rows", async () => {
+test("publisher sends all nine chains in a handover embed within Discord's field limit", async () => {
   const originalFetch = globalThis.fetch;
   const consoleCapture = captureConsole();
   const client = new MemoryS3Client();
@@ -644,14 +696,14 @@ test("publisher sends compact handover Discord embed with chain progress rows", 
   globalThis.fetch = async (url, init) => {
     assert.equal(String(url), "https://discord.example/webhook");
     discordBodies.push(JSON.parse(String(init?.body)));
-    return new Response("", { status: 204 });
+    return new Response(null, { status: 204 });
   };
 
   try {
     await withPublisherEnv(
       {
         SNAPSHOT_SOURCE: "sample",
-        SNAPSHOT_CHAIN_IDS: "1",
+        SNAPSHOT_CHAIN_IDS: undefined,
         INDEXER_DEPLOYMENT_ID: "deployment-a",
         RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
         DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
@@ -667,29 +719,276 @@ test("publisher sends compact handover Discord embed with chain progress rows", 
     consoleCapture.restore();
   }
 
-  assert.equal(discordBodies.length, 1);
-  const body = discordBodies[0] as {
+  assert.equal(discordBodies.length, 2);
+  const bodies = discordBodies as Array<{
     content: string;
     embeds: Array<{
+      color: number;
       fields: Array<{ name: string; value: string; inline?: boolean }>;
     }>;
-  };
-  const fields = body.embeds[0]?.fields ?? [];
-  assert.equal(body.content, "Protocol visualizer snapshot handover completed");
-  assert.deepEqual(
-    fields.slice(0, 4).map((field) => field.name),
-    ["Deployment ID", "Chain", "Block", "Time"]
+  }>;
+  const active = JSON.parse(client.objects[ACTIVE_MANIFEST_KEY] ?? "{}");
+  assert.equal(active.chains.length, 9);
+  const fields = bodies.flatMap((body, index) => {
+    assert.equal(
+      body.content,
+      `Protocol visualizer snapshot handover completed — ${index === 0 ? "Production chains" : "Testnets"}`
+    );
+    assert.equal(body.embeds[0]?.color, 0x2ecc71);
+    const fields = body.embeds[0]?.fields ?? [];
+    assert.equal(fields.length, index === 0 ? 7 : 4);
+    assert(fields.every((field) => field.inline === false));
+    assert.equal(fields[0]?.name, "Deployment ID");
+    assert.equal(fields[0]?.value, "deployment-a");
+    assert(
+      fields
+        .slice(1)
+        .every((field) =>
+          /^Status: Published\nBlock: \d+\nTime: <t:\d+:F>$/.test(field.value)
+        )
+    );
+    return fields.slice(1);
+  });
+  const chains = await loadSupportedChains();
+  for (const [index, environment] of ["production", "testnet"].entries()) {
+    assert.deepEqual(
+      bodies[index]?.embeds[0]?.fields.slice(1).map((field) => field.name),
+      chains
+        .filter((chain) => chain.environment === environment)
+        .map((chain) => `🟢 ${chain.name}`)
+    );
+  }
+  for (const chain of active.chains)
+    assert.equal(
+      fields.filter((field) => field.name === `🟢 ${chain.name}`).length,
+      1
+    );
+  assert(
+    consoleCapture.logs.some(
+      (line) =>
+        line.includes('"event":"snapshot_publisher_discord_result"') &&
+        line.includes('"delivered":true')
+    )
   );
-  assert.equal(fields[0]?.value, "deployment-a");
-  assert.equal(fields[0]?.inline, false);
-  assert.equal(fields[1]?.value, "Ethereum Mainnet");
-  assert.equal(fields[1]?.inline, true);
-  assert.equal(fields[2]?.inline, true);
-  assert.equal(fields[3]?.inline, true);
-  assert(fields[3]?.value.startsWith("<t:"));
-  assert(!fields.some((field) => field.name === "Generated at"));
-  assert(!fields.some((field) => field.name === "Contracts"));
-  assert(!fields.some((field) => field.name === "Roles"));
+});
+
+test("publisher groups new and continuing deployment notifications, including unavailable chains", async (t) => {
+  const chains = await loadSupportedChains();
+  assert.equal(chains.length, 9);
+  const bodies: Array<{
+    content: string;
+    embeds: Array<{
+      title: string;
+      color: number;
+      fields: Array<{ name: string; value: string; inline?: boolean }>;
+    }>;
+  }> = [];
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async (...[url, init]: Parameters<typeof fetch>) => {
+      if (String(url) === "http://indexer:9898/metrics") {
+        return new Response(
+          `hyperindex_synced_to_head 0\n${chains
+            .filter((chain) => chain.chainId !== 84532)
+            .map(
+              (chain) =>
+                `envio_progress_ready{chainId="${chain.chainId}"} ${chain.chainId === 1 ? 0 : 1}\nenvio_progress_block{chainId="${chain.chainId}"} 123\nenvio_progress_block_time_seconds{chainId="${chain.chainId}"} 1780491216`
+            )
+            .join("\n")}`
+        );
+      }
+      assert.equal(String(url), "https://discord.example/webhook");
+      bodies.push(JSON.parse(String(init?.body)));
+      return new Response(null, { status: 204 });
+    }
+  );
+  const capture = captureConsole();
+  try {
+    for (const seenBefore of [false, true]) {
+      const client = new MemoryS3Client({
+        [ACTIVE_MANIFEST_KEY]: manifestBody("deployment-active"),
+        ...(seenBefore
+          ? {
+              [PUBLISHER_NOTIFICATION_STATE_KEY]: JSON.stringify({
+                lastObservedDeploymentId: "deployment-a",
+              }),
+            }
+          : {}),
+      });
+      bodies.length = 0;
+      await withPublisherEnv(
+        {
+          SNAPSHOT_SOURCE: "hasura",
+          SNAPSHOT_CHAIN_IDS: undefined,
+          INDEXER_DEPLOYMENT_ID: "deployment-a",
+          RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
+          INDEXER_METRICS_URL: "http://indexer:9898/metrics",
+          DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+          BUCKET: "bucket",
+          ...Object.fromEntries(
+            chains.map((chain) => [
+              `RPC_URL_${chain.chainId}`,
+              "https://rpc.example/envio",
+            ])
+          ),
+        },
+        () => runPublisher({ createS3Client: () => client })
+      );
+      assert.equal(bodies.length, 2);
+      for (const [index, environment] of ["production", "testnet"].entries()) {
+        const body = bodies[index];
+        assert.equal(
+          body?.content,
+          `Protocol visualizer ${seenBefore ? "indexing continues" : "new deployment indexing"} — ${index === 0 ? "Production chains" : "Testnets"}`
+        );
+        const embed = body?.embeds[0];
+        assert.match(
+          embed?.title ?? "",
+          seenBefore ? /Indexing Continues/ : /New Deployment Indexing/
+        );
+        assert.equal(embed?.color, index === 0 ? 0xf39c12 : 0x95a5a6);
+        assert.equal(embed?.fields.length, index === 0 ? 10 : 7);
+        const fields = embed?.fields.slice(4) ?? [];
+        assert(fields.every((field) => field.inline === false));
+        const group = chains.filter(
+          (chain) => chain.environment === environment
+        );
+        assert.deepEqual(
+          fields.map((field) => field.name),
+          group.map(
+            (chain) =>
+              `${chain.chainId === 1 ? "🟠" : chain.chainId === 84532 ? "⚪" : "🟢"} ${chain.name}`
+          )
+        );
+        for (const [i, chain] of group.entries())
+          assert.match(
+            fields[i]?.value ?? "",
+            chain.chainId === 1
+              ? /Status: Indexing/
+              : chain.chainId === 84532
+                ? /Status: Progress unavailable\nBlock: Unavailable/
+                : /Status: Ready for publication/
+          );
+      }
+    }
+  } finally {
+    capture.restore();
+  }
+});
+
+test("publisher attempts both groups after a delivery failure and continues its normal result", async (t) => {
+  const chains = await loadSupportedChains();
+  const bodies: Array<{ content: string }> = [];
+  let failedIndex = 0;
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async (...[url, init]: Parameters<typeof fetch>) => {
+      if (String(url) === "http://indexer:9898/metrics") {
+        return new Response(
+          `hyperindex_synced_to_head 0\n${chains
+            .map(
+              (chain) =>
+                `envio_progress_ready{chainId="${chain.chainId}"} 0\nenvio_progress_block{chainId="${chain.chainId}"} 123\nenvio_progress_block_time_seconds{chainId="${chain.chainId}"} 1780491216`
+            )
+            .join("\n")}`
+        );
+      }
+      assert.equal(String(url), "https://discord.example/webhook");
+      const index = bodies.length;
+      bodies.push(JSON.parse(String(init?.body)));
+      if (index === failedIndex) throw new Error("private-webhook-token");
+      return new Response(null, { status: 204 });
+    }
+  );
+  const capture = captureConsole();
+  try {
+    for (const source of ["hasura", "sample"]) {
+      for (failedIndex of [0, 1]) {
+        bodies.length = 0;
+        capture.logs.length = 0;
+        capture.errors.length = 0;
+        const client = new MemoryS3Client({
+          [ACTIVE_MANIFEST_KEY]: manifestBody("deployment-active"),
+        });
+        await withPublisherEnv(
+          {
+            SNAPSHOT_SOURCE: source,
+            SNAPSHOT_CHAIN_IDS: undefined,
+            INDEXER_DEPLOYMENT_ID: "deployment-a",
+            RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
+            INDEXER_METRICS_URL: "http://indexer:9898/metrics",
+            DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+            BUCKET: "bucket",
+            ...Object.fromEntries(
+              chains.map((chain) => [
+                `RPC_URL_${chain.chainId}`,
+                "https://rpc.example/envio",
+              ])
+            ),
+          },
+          () => runPublisher({ createS3Client: () => client })
+        );
+        assert.equal(bodies.length, 2);
+        assert.match(bodies[0]?.content ?? "", /Production chains$/);
+        assert.match(bodies[1]?.content ?? "", /Testnets$/);
+        const result = publisherResultFrom(capture.logs);
+        assert.equal(result.published, source === "sample");
+        if (source === "hasura")
+          assert.equal(result.skipReason, "not_data_ready");
+        else
+          assert.equal(
+            JSON.parse(client.objects[ACTIVE_MANIFEST_KEY] ?? "{}")
+              .indexerDeploymentId,
+            "deployment-a"
+          );
+        assert.equal(capture.errors.length, 1);
+        assert.match(
+          capture.errors[0] ?? "",
+          new RegExp(
+            `Discord notifications failed for: ${failedIndex === 0 ? "Production chains" : "Testnets"}`
+          )
+        );
+        assert.doesNotMatch(
+          capture.errors.join("\n"),
+          /private-webhook-token|https:\/\/discord/
+        );
+        assert(client.destroyed);
+      }
+    }
+  } finally {
+    capture.restore();
+  }
+});
+
+test("publisher rejects over 25 fields per embed before sending, allowing 25 in each embed", async (t) => {
+  const fetchMock = t.mock.method(
+    globalThis,
+    "fetch",
+    async () => new Response(null, { status: 204 })
+  );
+  const embed = (count: number) => ({
+    title: "Indexing",
+    fields: Array.from({ length: count }, () => ({
+      name: "Chain",
+      value: "Block: 123",
+    })),
+  });
+  await sendDiscordMessage("http://discord.local/webhook", {
+    content: "Progress",
+    embeds: [embed(25), embed(25)],
+  });
+  assert.equal(fetchMock.mock.calls.length, 1);
+  await assert.rejects(
+    () =>
+      sendDiscordMessage("http://discord.local/webhook", {
+        content: "Progress",
+        embeds: [embed(1), embed(26)],
+      }),
+    /Discord embeds must have at most 25 fields/
+  );
+  assert.equal(fetchMock.mock.calls.length, 1);
 });
 
 test("publisher takes over a stale lock with conditional replacement", async () => {

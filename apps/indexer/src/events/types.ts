@@ -1,12 +1,21 @@
 import type { EvmOnEventContext } from "envio";
 import type { Address, Hex } from "viem";
+import type { FunctionContext } from "../../../../packages/snapshot-artifacts/src/index";
 
 export type EntityStore = {
   get: <T>(id: string) => Promise<T | undefined>;
   set: (entity: Record<string, unknown>) => void;
+  getWhere: <T>(filter: Record<string, unknown>) => Promise<T[]>;
 };
 
 export type EnvioContext = EvmOnEventContext & {
+  BridgeConfiguration: EntityStore;
+  HeartTasks: EntityStore;
+  ContractState: EntityStore;
+  ContractStateSeed: EntityStore;
+  ControlTransition: EntityStore;
+  ContractRelationship: EntityStore;
+  ChainObservation: EntityStore;
   ActionExecutedEvent: EntityStore;
   Contract: EntityStore;
   ContractEvent: EntityStore;
@@ -32,14 +41,19 @@ export type RequestedPolicyPermissionsResult = {
 export type PolicyPermission = {
   keycode: string;
   function: string;
+  functionContext?: FunctionContext;
 };
 
 export type BaseEvent = {
   chainId: number;
-  block: { number: number; timestamp: number };
+  block: { number: number; timestamp: number; hash?: string };
   transaction: { hash: string };
   logIndex: number;
   srcAddress: Address;
+};
+
+export type ControlEvent = BaseEvent & {
+  block: { number: number; timestamp: number; hash: string };
 };
 
 export type KernelActionExecutedEvent = BaseEvent & {
@@ -78,6 +92,7 @@ export type ContractEntity = {
   version?: string;
   contractType: ContractType;
   isEnabled: boolean;
+  kernelHistory?: "installed" | "never-installed" | "unknown";
   policyPermissions?: unknown;
   policyFunctions?: unknown;
 };

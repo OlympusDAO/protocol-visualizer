@@ -1,0 +1,194 @@
+[
+  {
+    "type": "event",
+    "name": "ChainAdded",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "remoteChainSelector",
+        "type": "uint64",
+        "indexed": false
+      },
+      {
+        "name": "remoteToken",
+        "type": "bytes",
+        "indexed": false
+      },
+      {
+        "name": "outboundRateLimiterConfig",
+        "type": "tuple",
+        "indexed": false,
+        "components": [
+          {
+            "name": "isEnabled",
+            "type": "bool"
+          },
+          {
+            "name": "capacity",
+            "type": "uint128"
+          },
+          {
+            "name": "rate",
+            "type": "uint128"
+          }
+        ]
+      },
+      {
+        "name": "inboundRateLimiterConfig",
+        "type": "tuple",
+        "indexed": false,
+        "components": [
+          {
+            "name": "isEnabled",
+            "type": "bool"
+          },
+          {
+            "name": "capacity",
+            "type": "uint128"
+          },
+          {
+            "name": "rate",
+            "type": "uint128"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "ChainConfigured",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "remoteChainSelector",
+        "type": "uint64",
+        "indexed": false
+      },
+      {
+        "name": "outboundRateLimiterConfig",
+        "type": "tuple",
+        "indexed": false,
+        "components": [
+          {
+            "name": "isEnabled",
+            "type": "bool"
+          },
+          {
+            "name": "capacity",
+            "type": "uint128"
+          },
+          {
+            "name": "rate",
+            "type": "uint128"
+          }
+        ]
+      },
+      {
+        "name": "inboundRateLimiterConfig",
+        "type": "tuple",
+        "indexed": false,
+        "components": [
+          {
+            "name": "isEnabled",
+            "type": "bool"
+          },
+          {
+            "name": "capacity",
+            "type": "uint128"
+          },
+          {
+            "name": "rate",
+            "type": "uint128"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "ChainRemoved",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "remoteChainSelector",
+        "type": "uint64",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "RemotePoolAdded",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "remoteChainSelector",
+        "type": "uint64",
+        "indexed": true
+      },
+      {
+        "name": "remotePoolAddress",
+        "type": "bytes",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "RemotePoolRemoved",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "remoteChainSelector",
+        "type": "uint64",
+        "indexed": true
+      },
+      {
+        "name": "remotePoolAddress",
+        "type": "bytes",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "AllowListAdd",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "sender",
+        "type": "address",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "AllowListRemove",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "sender",
+        "type": "address",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "RouterUpdated",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "oldRouter",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "newRouter",
+        "type": "address",
+        "indexed": false
+      }
+    ]
+  }
+]

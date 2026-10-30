@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Protocol Visualizer Snapshot API",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "paths": {
     "/healthz": {
@@ -216,10 +216,10 @@
                           "type": "integer"
                         },
                         "date": {
-                          "type": "string"
+                          "type": ["string", "null"]
                         },
                         "timestamp": {
-                          "type": "integer"
+                          "type": ["integer", "null"]
                         },
                         "block": {
                           "type": "integer"
@@ -239,7 +239,7 @@
         "additionalProperties": false,
         "properties": {
           "schemaVersion": {
-            "const": "1.0.0"
+            "enum": ["1.0.0", "1.1.0"]
           },
           "generatedAt": {
             "type": "string",
@@ -305,10 +305,10 @@
                       "type": "integer"
                     },
                     "date": {
-                      "type": "string"
+                      "type": ["string", "null"]
                     },
                     "timestamp": {
-                      "type": "integer"
+                      "type": ["integer", "null"]
                     },
                     "block": {
                       "type": "integer"
@@ -336,6 +336,14 @@
                 "name": {
                   "type": "string"
                 },
+                "environment": {
+                  "type": "string",
+                  "enum": ["production", "testnet"]
+                },
+                "availability": {
+                  "type": "string",
+                  "enum": ["indexed", "historical"]
+                },
                 "path": {
                   "type": "string"
                 },
@@ -352,65 +360,837 @@
         }
       },
       "ProtocolSnapshot": {
-        "type": "object",
-        "required": [
-          "schemaVersion",
-          "generatedAt",
-          "chainId",
-          "recordCounts",
-          "data"
-        ],
-        "additionalProperties": true,
-        "properties": {
-          "schemaVersion": {
-            "const": "1.0.0"
-          },
-          "generatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "chainId": {
-            "type": "integer"
-          },
-          "recordCounts": {
+        "title": "Protocol Visualizer Protocol Snapshot",
+        "oneOf": [
+          {
             "type": "object",
-            "required": ["contracts", "roles", "roleAssignments"],
+            "required": [
+              "schemaVersion",
+              "generatedAt",
+              "chainId",
+              "recordCounts",
+              "data"
+            ],
+            "additionalProperties": true,
             "properties": {
-              "contracts": {
-                "type": "integer",
-                "minimum": 0
+              "schemaVersion": {
+                "const": "1.0.0"
               },
-              "roles": {
-                "type": "integer",
-                "minimum": 0
+              "generatedAt": {
+                "type": "string",
+                "format": "date-time"
               },
-              "roleAssignments": {
-                "type": "integer",
-                "minimum": 0
+              "chainId": {
+                "type": "integer"
+              },
+              "recordCounts": {
+                "type": "object",
+                "required": ["contracts", "roles", "roleAssignments"],
+                "properties": {
+                  "contracts": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "roles": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "roleAssignments": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              },
+              "data": {
+                "type": "object",
+                "required": ["contracts", "roles", "roleAssignments"],
+                "properties": {
+                  "contracts": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "roles": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "roleAssignments": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                }
               }
             }
           },
-          "data": {
+          {
             "type": "object",
-            "required": ["contracts", "roles", "roleAssignments"],
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "generatedAt",
+              "chainId",
+              "recordCounts",
+              "data"
+            ],
             "properties": {
-              "contracts": {
-                "type": "array",
-                "items": {
-                  "type": "object"
+              "schemaVersion": {
+                "const": "1.1.0"
+              },
+              "generatedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "chainId": {
+                "type": "integer"
+              },
+              "recordCounts": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["contracts", "roles", "roleAssignments"],
+                "properties": {
+                  "contracts": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "roles": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "roleAssignments": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
                 }
               },
-              "roles": {
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["contracts", "roles", "roleAssignments"],
+                "properties": {
+                  "bridgeConfigurations": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ProtocolSnapshot/$defs/bridgeConfiguration"
+                    }
+                  },
+                  "periodicTasks": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ProtocolSnapshot/$defs/heartTasks"
+                    }
+                  },
+                  "additionalContracts": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ProtocolSnapshot/$defs/additionalContract"
+                    }
+                  },
+                  "contractStates": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ProtocolSnapshot/$defs/contractState"
+                    }
+                  },
+                  "relationships": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ProtocolSnapshot/$defs/relationship"
+                    }
+                  },
+                  "observation": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/ProtocolSnapshot/$defs/observation"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "contracts": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ProtocolSnapshot/$defs/contract"
+                    }
+                  },
+                  "roles": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ProtocolSnapshot/$defs/role"
+                    }
+                  },
+                  "roleAssignments": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ProtocolSnapshot/$defs/roleAssignment"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "$defs": {
+          "bridgeRateLimit": {
+            "type": "object",
+            "required": ["isEnabled", "capacity", "rate"],
+            "additionalProperties": false,
+            "properties": {
+              "isEnabled": {
+                "type": "boolean"
+              },
+              "capacity": {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              "rate": {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              }
+            }
+          },
+          "bridgeRoute": {
+            "type": "object",
+            "required": ["selector", "routerSupported"],
+            "additionalProperties": false,
+            "properties": {
+              "selector": {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              "routerSupported": {
+                "type": ["boolean", "null"]
+              },
+              "remoteToken": {
+                "type": "string"
+              },
+              "remotePools": {
                 "type": "array",
                 "items": {
-                  "type": "object"
+                  "type": "string"
                 }
               },
-              "roleAssignments": {
+              "outbound": {
+                "$ref": "#/components/schemas/ProtocolSnapshot/$defs/bridgeRateLimit"
+              },
+              "inbound": {
+                "$ref": "#/components/schemas/ProtocolSnapshot/$defs/bridgeRateLimit"
+              },
+              "trustedRemote": {
+                "type": ["string", "null"]
+              }
+            }
+          },
+          "bridgeConfiguration": {
+            "type": "object",
+            "required": [
+              "id",
+              "chainId",
+              "address",
+              "kind",
+              "configuration",
+              "selectors",
+              "observedAt",
+              "lastChange",
+              "verification"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "chainId": {
+                "type": "integer"
+              },
+              "address": {
+                "type": "string",
+                "pattern": "^0x[0-9a-f]{40}$"
+              },
+              "kind": {
+                "enum": ["pool", "bridge"]
+              },
+              "configuration": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "token",
+                      "router",
+                      "codeHash",
+                      "routes",
+                      "allowList"
+                    ],
+                    "properties": {
+                      "token": {
+                        "type": "string",
+                        "pattern": "^0x[0-9a-f]{40}$"
+                      },
+                      "router": {
+                        "type": "string",
+                        "pattern": "^0x[0-9a-f]{40}$"
+                      },
+                      "codeHash": {
+                        "type": "string",
+                        "pattern": "^0x[0-9a-f]{64}$"
+                      },
+                      "routes": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/ProtocolSnapshot/$defs/bridgeRoute"
+                        }
+                      },
+                      "allowList": {
+                        "anyOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              "selectors": {
                 "type": "array",
                 "items": {
-                  "type": "object"
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
                 }
+              },
+              "observedAt": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "lastChange": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "verification": {
+                "$ref": "#/components/schemas/ProtocolSnapshot/$defs/contractState/properties/verification"
+              }
+            }
+          },
+          "heartTasks": {
+            "type": "object",
+            "required": ["id", "chainId", "address", "tasks", "verification"],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "chainId": {
+                "type": "integer"
+              },
+              "address": {
+                "type": "string"
+              },
+              "tasks": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["address", "selector"],
+                      "properties": {
+                        "address": {
+                          "type": "string"
+                        },
+                        "selector": {
+                          "type": "string"
+                        },
+                        "signature": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              "seed": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "lastChange": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "indexedThrough": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "verification": {
+                "$ref": "#/components/schemas/ProtocolSnapshot/$defs/contractState/properties/verification"
+              }
+            }
+          },
+          "block": {
+            "type": "object",
+            "required": ["number", "hash", "timestamp"],
+            "properties": {
+              "number": {
+                "type": "string"
+              },
+              "hash": {
+                "type": "string"
+              },
+              "timestamp": {
+                "type": "string"
+              },
+              "transactionHash": {
+                "type": "string"
+              },
+              "logIndex": {
+                "type": "integer"
+              },
+              "caller": {
+                "type": "string"
+              },
+              "data": {
+                "type": "string"
+              },
+              "lastTransitionAt": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalContract": {
+            "type": "object",
+            "required": [
+              "id",
+              "chainId",
+              "address",
+              "name",
+              "category",
+              "provenance"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "chainId": {
+                "type": "integer"
+              },
+              "address": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "category": {
+                "enum": ["external", "inactive-core"]
+              },
+              "kernelHistory": {
+                "enum": ["installed", "never-installed", "unknown"]
+              },
+              "contractType": {
+                "enum": ["KERNEL", "MODULE", "POLICY"]
+              },
+              "version": {
+                "type": ["string", "null"]
+              },
+              "provenance": {
+                "type": "object",
+                "required": ["source"],
+                "properties": {
+                  "source": {
+                    "enum": ["inventory", "indexer"]
+                  },
+                  "startBlock": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          "contractState": {
+            "type": "object",
+            "required": [
+              "id",
+              "chainId",
+              "address",
+              "kernelMembership",
+              "enablerCapability",
+              "enabled",
+              "verification"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "chainId": {
+                "type": "integer"
+              },
+              "address": {
+                "type": "string"
+              },
+              "kernelMembership": {
+                "enum": ["active", "inactive", "unknown"]
+              },
+              "enablerCapability": {
+                "enum": ["unknown", "supported", "unsupported"]
+              },
+              "enablementGetter": {
+                "type": "string"
+              },
+              "enablementCoverage": {
+                "type": "string"
+              },
+              "enabled": {
+                "type": ["boolean", "null"]
+              },
+              "seed": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "lastChange": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "indexedThrough": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "verification": {
+                "type": "object",
+                "required": ["outcome"],
+                "properties": {
+                  "outcome": {
+                    "enum": ["unperformed", "match", "mismatch", "unavailable"]
+                  },
+                  "block": {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  "getterValue": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "relationship": {
+            "type": "object",
+            "required": [
+              "id",
+              "chainId",
+              "kind",
+              "source",
+              "target",
+              "status",
+              "provenance"
+            ],
+            "properties": {
+              "callSignature": {
+                "type": "string"
+              },
+              "callSelector": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "chainId": {
+                "type": "integer"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "target": {
+                "type": ["string", "null"]
+              },
+              "status": {
+                "enum": ["current", "pending", "reference", "unset"]
+              },
+              "scope": {
+                "type": ["object", "null"]
+              },
+              "provenance": {
+                "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+              },
+              "subject": {
+                "type": "string"
+              },
+              "getter": {
+                "type": "string"
+              },
+              "value": {
+                "type": ["string", "null"]
+              },
+              "seed": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "lastChange": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "indexedThrough": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "verification": {
+                "$ref": "#/components/schemas/ProtocolSnapshot/$defs/contractState/properties/verification"
+              },
+              "coverage": {
+                "type": "string"
+              },
+              "targetCode": {
+                "enum": ["present", "absent"]
+              },
+              "functionContext": {
+                "type": "object",
+                "required": ["signature"],
+                "properties": {
+                  "signature": {
+                    "type": "string"
+                  },
+                  "notice": {
+                    "type": "string"
+                  },
+                  "details": {
+                    "type": "string"
+                  },
+                  "params": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "returns": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "source": {
+                    "type": "object",
+                    "required": ["url", "codeHash"],
+                    "properties": {
+                      "url": {
+                        "type": "string"
+                      },
+                      "codeHash": {
+                        "type": "string"
+                      },
+                      "match": {
+                        "enum": ["exact", "code"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "observation": {
+            "type": "object",
+            "required": ["chainId", "indexedThrough"],
+            "properties": {
+              "chainId": {
+                "type": "integer"
+              },
+              "indexedThrough": {
+                "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+              }
+            }
+          },
+          "jsonValue": true,
+          "contract": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "chainId",
+              "address",
+              "lastUpdatedTimestamp",
+              "lastUpdatedBlockNumber",
+              "name",
+              "contractType",
+              "type",
+              "isEnabled"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "chainId": {
+                "type": "integer"
+              },
+              "address": {
+                "type": "string"
+              },
+              "lastUpdatedTimestamp": {
+                "type": "string"
+              },
+              "lastUpdatedBlockNumber": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "type": ["string", "null"]
+              },
+              "contractType": {
+                "enum": ["KERNEL", "MODULE", "POLICY"]
+              },
+              "type": {
+                "enum": ["kernel", "module", "policy"]
+              },
+              "isEnabled": {
+                "type": "boolean"
+              },
+              "kernelHistory": {
+                "enum": ["installed", "never-installed", "unknown"]
+              },
+              "policyPermissions": {
+                "$ref": "#/components/schemas/ProtocolSnapshot/$defs/jsonValue"
+              },
+              "policyFunctions": {
+                "$ref": "#/components/schemas/ProtocolSnapshot/$defs/jsonValue"
+              }
+            }
+          },
+          "role": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "chainId", "role"],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "chainId": {
+                "type": "integer"
+              },
+              "role": {
+                "type": "string"
+              }
+            }
+          },
+          "roleAssignment": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "chainId",
+              "role",
+              "assignee",
+              "assigneeName",
+              "lastUpdatedTimestamp",
+              "lastUpdatedBlockNumber",
+              "isGranted"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "chainId": {
+                "type": "integer"
+              },
+              "role": {
+                "type": "string"
+              },
+              "assignee": {
+                "type": "string"
+              },
+              "assigneeName": {
+                "type": "string"
+              },
+              "lastUpdatedTimestamp": {
+                "type": "string"
+              },
+              "lastUpdatedBlockNumber": {
+                "type": "string"
+              },
+              "isGranted": {
+                "type": "boolean"
               }
             }
           }

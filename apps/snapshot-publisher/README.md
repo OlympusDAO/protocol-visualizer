@@ -20,6 +20,17 @@ private Hasura for the public frontend. On each run it:
 If any fetch, validation, upload, or verification fails, the process exits
 non-zero so Railway records a failed cron run.
 
+Snapshots use schema `1.1.0`. Readers also accept schema `1.0.0`.
+The legacy `contracts` array still contains active Kernel contracts.
+The optional `additionalContracts` array contains inactive indexed contracts and curated external deployments from `packages/protocol-config/other-contracts.json`.
+The optional `contractStates`, `relationships`, and `observation` fields carry indexed control data and provenance.
+Missing fields in older snapshots mean unknown state, with empty additional arrays.
+The shared `snapshot-artifacts` package owns both schemas.
+
+Publication readiness uses completed chain observations or indexer metrics.
+Inventory records, state-change timestamps, and publication time cannot establish indexing progress.
+Sample mode uses fixed observations and performs no RPC reads.
+
 ## Bucket Files
 
 The generated object keys are internal. The public REST API is served by
@@ -77,10 +88,26 @@ documented setup, set `indexer.PORT=9898` and keep
 `INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics`.
 `RAILWAY_ENVIRONMENT_NAME` is provided automatically by Railway and is required;
 the publisher fails before metrics reads or bucket writes if it is missing.
-The `indexingProgress` values in the published manifest come from this metrics
-endpoint: `date` and `timestamp` are the metrics scrape time, and `block` is the
-latest Envio progress block for that chain. They are not derived from the newest
-protocol record timestamp.
+The `indexingProgress.block` value is the latest Envio progress block for that
+chain. Its `date` and `timestamp` come from `envio_progress_block_time_seconds`
+when available. During backfill, the publisher and monitor look up that exact
+block through the configured `RPC_URL_<chainId>`. Set that variable
+for every chain selected by `SNAPSHOT_CHAIN_IDS` (all indexed chains by default).
+The monitor requires it for every indexed chain. No built-in
+RPC endpoints are used.
+RPC configuration stays in the server-only timestamp resolver; it is not part
+of the public chain catalog or the frontend bundle. Keep API keys in server
+environment variables.
+Railway runs `node dist/src/publish.js --check-config` before deployment.
+Missing or blank required RPC variables fail that check and stop deployment.
+Live publisher runs also check before metrics reads or storage access.
+Sample snapshot generation does not require RPC variables. Docker image builds do not require or embed RPC credentials.
+Local Compose explicitly supplies these variables to both snapshot jobs, using
+the local indexer's RPC settings unless a `RPC_URL_<chainId>` override is set.
+Each RPC request has a five-second timeout. If no block timestamp is available,
+both values are `null` and Discord shows `Timestamp unavailable`. Timestamp
+availability does not affect readiness. Scrape time and protocol record dates
+are never used as substitutes for the progress block's timestamp.
 `INDEXER_DEPLOYMENT_ID` is optional when Railway provides `RAILWAY_GIT_COMMIT_SHA`,
 but one of those values must be present in production. The deployment id is
 validated before any Hasura read or bucket write.
@@ -94,13 +121,23 @@ Optional variables:
 # SNAPSHOT_CHAIN_IDS=1,10,42161,8453,80094,11155111
 # PROTOCOL_CHAINS_CONFIG_PATH=/app/config/protocol-chains.json
 # PUBLISHER_LOCK_TTL_MS=3300000
-# DISCORD_WEBHOOK_URL=
+# DISCORD_WEBHOOK_URL=${{shared.DISCORD_WEBHOOK_URL}}
 ```
 
 `SNAPSHOT_PUBLIC_BASE_PATH` defaults to `/v1`. `SNAPSHOT_PUBLIC_ORIGIN` is used
 for generated REST paths. `PROTOCOL_CHAINS_CONFIG_PATH` is set by the Docker
 image and usually does not need to be configured manually. `DISCORD_WEBHOOK_URL`
-enables immediate handover messages when a new manifest is published.
+enables indexing progress and handover notifications. IaC supplies the shared
+reference. Add its value once per environment in Railway Project Settings → Shared Variables.
+
+Deployment progress and handover notifications are split into production chains
+and testnets. Each configured chain has one full-width row with a status indicator,
+block, and timestamp. Missing progress remains visible. Deployment progress uses
+Envio readiness: orange means indexing, green means ready for publication, and
+neutral means unavailable. Handover rows use the status `Published`.
+
+See [Discord notification examples](../../docs/discord-notifications.md) for
+message formats, delivery behavior, and field limits.
 
 Local-only variables:
 
@@ -116,7 +153,7 @@ live Hasura data to a local output directory.
 
 ## Railway Cron
 
-The Railway service uses `/railway-snapshot-publisher.json`, which configures:
+The Railway service is defined in [`.railway/railway.ts`](../../.railway/railway.ts), which configures:
 
 ```text
 cronSchedule: 0 * * * *

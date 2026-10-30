@@ -1,10 +1,10 @@
 {
   "name": "indexer",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node --test scripts/*.test.mjs",
+    "build": "node --import ./scripts/register-typescript.mjs --test scripts/*.test.mjs",
     "dev": "envio dev",
     "start": "envio start",
     "codegen": "envio codegen",
@@ -13,14 +13,14 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "envio": "3.14.0",
+    "envio": "3.14.1",
     "viem": "^2.57.7"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   },
   "engines": {
-    "node": ">=24"
+    "node": ">=24.22.1"
   }
 }

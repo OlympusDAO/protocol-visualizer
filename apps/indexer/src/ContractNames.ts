@@ -1,4 +1,5 @@
 import { ChainId } from "./constants";
+import otherContracts from "../../../packages/protocol-config/other-contracts.json";
 
 type ContractDetails = {
   name: string;
@@ -20,6 +21,23 @@ type MultiChainContracts = {
 
 const contractNames: MultiChainContracts = {
   [ChainId.Mainnet]: {
+    "0x2cea7b722dbd6b03f0e857d11e53ecb698cc2b4e": {
+      name: "CCIPTokenPoolConfig",
+      type: "policy",
+      startBlock: 26232434,
+    },
+    "0x465ccc69d285415bce199f855d3a68ea3537f8fe": {
+      name: "PRICE",
+      type: "module",
+    },
+    "0xf489f38bf8d98a5c10a030f8c16624f6764cd27a": {
+      name: "CCIPTokenPoolConfigTimelock",
+      type: "policy",
+      startBlock: 26232436,
+    },
+    "0x2075e3b46470cfce124daaf52b46dcf965727dd1": {
+      name: "Treasury Working Group MS",
+    },
     "0x0374c001204eF5e7E4F5362A5A2430CB6c219326": {
       name: "Operator",
       version: "1.3",
@@ -38,9 +56,6 @@ const contractNames: MultiChainContracts = {
       name: "Operator",
       version: "1.4",
       type: "policy",
-    },
-    "0x0cf30dc0d48604a301df8010cdc028c055336b2e": {
-      name: "Policy MS",
     },
     "0x1652b503e0f1cf38b6246ed3b91cb3786bb11656": {
       name: "Heart",
@@ -70,6 +85,7 @@ const contractNames: MultiChainContracts = {
       name: "YieldRepurchaseFacility",
       version: "1.2",
       type: "policy",
+      startBlock: 21814037,
     },
     "0x27e606fdb5C922F8213dC588A434BF7583697866": {
       name: "Distributor",
@@ -117,11 +133,13 @@ const contractNames: MultiChainContracts = {
       name: "V1Migrator",
       type: "policy",
       version: "1.0",
+      startBlock: 24440536,
     },
     "0x6417F206a0a6628Da136C0Faa39026d0134D2b52": {
       name: "Operator",
       version: "1.5",
       type: "policy",
+      startBlock: 21216655,
     },
     "0x64aa3364F17a4D01c6f1751Fd97C2BD3D7e7f1D5": {
       name: "LegacyOHM",
@@ -150,6 +168,7 @@ const contractNames: MultiChainContracts = {
     },
     "0x784cA0C006b8651BAB183829A99fA46BeCe50dBc": {
       name: "LoanConsolidator",
+      type: "policy",
     },
     "0x7fdD4e808ee9608f1b2f05157A2A8098e3D432cD": {
       name: "BLVaultLido",
@@ -170,6 +189,7 @@ const contractNames: MultiChainContracts = {
       name: "ReserveMigrator",
       version: "1.0",
       type: "policy",
+      startBlock: 21216652,
     },
     "0x9C6220fE829d6FC889cde9b4966D2033C4EfFD48": {
       name: "Heart",
@@ -298,6 +318,7 @@ const contractNames: MultiChainContracts = {
       name: "PriceConfig",
       version: "2.0",
       type: "policy",
+      startBlock: 25330340,
     },
     "0xf7602C0421c283A2fc113172EBDf64C30F21654D": {
       name: "Heart",
@@ -329,14 +350,17 @@ const contractNames: MultiChainContracts = {
       name: "CoolerV2TreasuryBorrower",
       version: "1.0",
       type: "policy",
+      startBlock: 22423120,
     },
     "0x6593768feBF9C95aC857Fb7Ef244D5738D1C57Fd": {
       name: "CoolerV2Composites",
       version: "1.0",
+      startBlock: 22515498,
     },
     "0xE045BD0A0d85E980AA152064C06EAe6B6aE358D2": {
       name: "CoolerV2Migrator",
       version: "1.0",
+      startBlock: 22515497,
     },
     "0xC84157C2306238C9330fEa14774a82A53a127A59": {
       name: "DelegateEscrowFactory",
@@ -350,6 +374,7 @@ const contractNames: MultiChainContracts = {
     "0xFbf6383dC3F6010d403Ecdf12DDC1311701D143D": {
       name: "CCIPCrossChainBridge",
       version: "1.0",
+      startBlock: 22696744,
     },
     "0xa5588e518CE5ee0e4628C005E4edAbD5e87de3aD": {
       name: "CCIPLockReleaseTokenPool",
@@ -375,49 +400,73 @@ const contractNames: MultiChainContracts = {
       name: "ConvertibleDepositAuctioneer",
       version: "1.0",
       type: "policy",
+      startBlock: 23747616,
     },
     "0xEBDe552D851DD6Dfd3D360C596D3F4aF6e5F9678": {
       name: "ConvertibleDepositFacility",
       version: "1.0",
       type: "policy",
+      startBlock: 23747533,
     },
     "0xcb4E21Eb404d80F3e1dB781aAd9AD6A1217fbbf2": {
       name: "DepositManager",
       version: "1.0",
       type: "policy",
+      startBlock: 23747530,
     },
     "0x20a3d8510f2e1176E8Db4CeA9883a8287a9029Db": {
       name: "DepositRedemptionVault",
       version: "1.0",
       type: "policy",
+      startBlock: 23747531,
     },
     "0xA61b846D5D8b757e3d541E0e4F80390E28f0B6Ff": {
       name: "EmissionManager",
       version: "1.2",
       type: "policy",
+      startBlock: 23824875,
     },
     "0x5824850D8A6E46a473445a5AF214C7EbD46c5ECB": {
       name: "Heart",
       version: "1.7",
       type: "policy",
+      startBlock: 23748093,
     },
     "0xcA6cd4F0a0033f8C20cF68d6dF277E7001a386f9": {
       name: "ReserveWrapper",
       version: "1.0",
       type: "policy",
+      startBlock: 23747510,
     },
     "0x9f08c2603e919a46d6d98289c9ada5250b310558": {
       name: "Burner",
       version: "1.0",
       type: "policy",
+      startBlock: 24440531,
     },
     "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50": {
       name: "EmissionManager",
       version: "1.2",
       type: "policy",
+      startBlock: 23748075,
     },
   },
   [ChainId.Arbitrum]: {
+    "0x5261fba7b50aa22b19b9edf939b771d109de991f": {
+      name: "CCIPTokenPoolConfigTimelock",
+      type: "policy",
+      startBlock: 516537754,
+    },
+    "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb": {
+      name: "CCIPTokenPoolConfig",
+      type: "policy",
+      startBlock: 516537728,
+    },
+    "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a": {
+      name: "CCIPBurnMintTokenPool",
+      type: "policy",
+      startBlock: 516537665,
+    },
     // tx: https://arbiscan.io/tx/0x3f55f2ce3af9f803343c6b3361ccde1cf4853c931c9410ad935586cc3c21519d
     "0xeac3eC0CC130f4826715187805d1B50e861F2DaC": {
       name: "Kernel",
@@ -471,6 +520,21 @@ const contractNames: MultiChainContracts = {
     },
   },
   [ChainId.Base]: {
+    "0x20a3d8510f2e1176e8db4cea9883a8287a9029db": {
+      name: "CCIPBurnMintTokenPool",
+      type: "policy",
+      startBlock: 52847117,
+    },
+    "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50": {
+      name: "CCIPTokenPoolConfigTimelock",
+      type: "policy",
+      startBlock: 52847137,
+    },
+    "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a": {
+      name: "CCIPTokenPoolConfig",
+      type: "policy",
+      startBlock: 52847128,
+    },
     // tx: https://basescan.org/tx/0x005ee16349882fa0b7a31470b2c8049d40bb387c2aeef045b6baa75566d8a39c
     "0x18878Df23e2a36f81e820e4b47b4A40576D3159C": {
       name: "Kernel",
@@ -517,6 +581,21 @@ const contractNames: MultiChainContracts = {
     },
   },
   [ChainId.Berachain]: {
+    "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb": {
+      name: "CCIPTokenPoolConfigTimelock",
+      type: "policy",
+      startBlock: 27734771,
+    },
+    "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50": {
+      name: "CCIPTokenPoolConfig",
+      type: "policy",
+      startBlock: 27734765,
+    },
+    "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678": {
+      name: "CCIPBurnMintTokenPool",
+      type: "policy",
+      startBlock: 27734756,
+    },
     "0x623164A9Ee2556D524b08f34F1d2389d7B4e1A1C": {
       name: "Kernel",
       type: "kernel",
@@ -572,6 +651,21 @@ const contractNames: MultiChainContracts = {
     },
   },
   [ChainId.Optimism]: {
+    "0x20a3d8510f2e1176e8db4cea9883a8287a9029db": {
+      name: "CCIPTokenPoolConfig",
+      type: "policy",
+      startBlock: 158442676,
+    },
+    "0xd98b5b2e4d5d6cd554115de19efb7a9084beddd1": {
+      name: "CCIPBurnMintTokenPool",
+      type: "policy",
+      startBlock: 158442667,
+    },
+    "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678": {
+      name: "CCIPTokenPoolConfigTimelock",
+      type: "policy",
+      startBlock: 158442680,
+    },
     // tx: https://optimistic.etherscan.io/tx/0x5a22cf89858ce51ee163fe3491129499cf692695d71d8f31a5a5b3c7bc52942c
     "0x18878Df23e2a36f81e820e4b47b4A40576D3159C": {
       name: "Kernel",
@@ -612,6 +706,70 @@ const contractNames: MultiChainContracts = {
     },
   },
   [ChainId.Sepolia]: {
+    "0x1edceffc669e965593e25446023b9c1f4c714ef9": {
+      name: "CoolerV2LtvOracle",
+      type: "policy",
+    },
+    "0x203c46cbb4fcc18977f521a9f7fde007e1a564f6": {
+      name: "MINTR",
+      type: "module",
+      startBlock: 8226370,
+    },
+    "0x38038bdd78602e5aa2accd0ce07557369e21a6c1": {
+      name: "CHREG",
+      type: "module",
+      startBlock: 8226404,
+    },
+    "0x3bd25e292dc36b674bbf1eeecaab4565bf2ef241": {
+      name: "PRICE",
+      type: "module",
+      startBlock: 9068225,
+    },
+    "0x4b0bba51ce44175a9766f7e55e3d122a9f4be78e": {
+      name: "Kernel",
+      type: "kernel",
+      startBlock: 8226369,
+    },
+    "0x79cf5d3824cabd3c7617f8470b94033eb10b28ca": {
+      name: "EmissionManager",
+      type: "policy",
+      startBlock: 10279234,
+    },
+    "0x8beb701ebaf8cd68b7e8f04bfa4fc7387cf711e0": {
+      name: "CoolerV2",
+      type: "policy",
+    },
+    "0xb4309cf4f876a2d18561b3fd8eec54899dfeb962": {
+      name: "RANGE",
+      type: "module",
+      startBlock: 9180082,
+    },
+    "0xc3fc2a67087d7f72e6255cb2fe6511ee927d3aba": {
+      name: "DLGTE",
+      type: "module",
+    },
+    "0xc48abd1431f17212379557397dd603912174131e": {
+      name: "TRSRY",
+      type: "module",
+      startBlock: 8226372,
+    },
+    "0xd4aff9b757d918cb8a31a518f10cdaf914e57e3f": {
+      name: "Clearinghouse",
+      type: "policy",
+    },
+    "0xedd6ebffed7d29947957d096dd55e82f523ceb86": {
+      name: "ROLES",
+      type: "module",
+      startBlock: 8226371,
+    },
+    "0xef928e9ed1083636e34230543d4ad3b6270fa986": {
+      name: "DEPOS",
+      type: "module",
+      startBlock: 9578176,
+    },
+    "0x81e6e5ba12a11ceed3e8bfe825b56ae9b7260691": {
+      name: "Emergency MS",
+    },
     "0x1A5309F208f161a393E8b5A253de8Ab894A67188": {
       name: "Deployer",
     },
@@ -630,6 +788,7 @@ const contractNames: MultiChainContracts = {
     "0x3024ceabec7e120647ad585bd5836eb13d247de7": {
       name: "CCIPBurnMintTokenPool",
       type: "policy",
+      startBlock: 8375032,
     },
     "0x71b8f7c55C799182CC4351a20851A0214baE0ff7": {
       name: "Clearinghouse",
@@ -646,6 +805,7 @@ const contractNames: MultiChainContracts = {
     "0x74FeAEde88962139f4d36A2f1998BcF56088d519": {
       name: "CoolerV2TreasuryBorrower",
       type: "policy",
+      startBlock: 8226491,
     },
     "0x79A0D5eB7ceC7994A74a3Cc050945AA53B9Fc19A": {
       name: "CrossChainBridge",
@@ -658,6 +818,7 @@ const contractNames: MultiChainContracts = {
     "0x9dC1920981Fcf74786C838Bf6f6c3683a8713576": {
       name: "EmissionManager",
       type: "policy",
+      startBlock: 9179737,
     },
     "0x556B5fA9f8aa6E38e5E8FB0AD9Cb978bcAf33913": {
       name: "Minter",
@@ -666,6 +827,7 @@ const contractNames: MultiChainContracts = {
     "0xad381c116f27f56F8c0853431F4fCD9E9b142aff": {
       name: "Heart",
       type: "policy",
+      startBlock: 9179738,
     },
     "0x68009f5e809C5A3438438312F8EEFB9F5C73d534": {
       name: "PriceConfig",
@@ -674,15 +836,18 @@ const contractNames: MultiChainContracts = {
     "0xd5405C517631b15C5814fdb7E612ba4c86fC2f75": {
       name: "Operator",
       type: "policy",
+      startBlock: 9180055,
     },
     "0x8B92A1dea210B7b7516443b52fdf5Dae677e93b0": {
       name: "ReserveMigrator",
       type: "policy",
+      startBlock: 9180008,
     },
     "0x46a01AE30571855FBB5988eEd9D116aa2A3f2377": {
       name: "ReserveWrapper",
       version: "1.0",
       type: "policy",
+      startBlock: 9578143,
     },
     // tx: https://sepolia.etherscan.io/tx/0xa9c9f06211b1d471edcd4a0c3ccf621a2396ecc948b5577e854fa0d80cba3327
     "0xf33133E5356B9534e794468dAcD424D11007f1cF": {
@@ -697,6 +862,7 @@ const contractNames: MultiChainContracts = {
     "0xf8ABE1D9502BbcaD4576433490D851D03c22A6B4": {
       name: "YieldRepurchaseFacility",
       type: "policy",
+      startBlock: 9179948,
     },
     "0x0db48Fa20894273cF6bB559644d63713E98FE67b": {
       name: "ZeroDistributor",
@@ -705,89 +871,249 @@ const contractNames: MultiChainContracts = {
       name: "DepositManager",
       version: "1.0",
       type: "policy",
+      startBlock: 9578178,
     },
     "0x93AcaDa86ad23C85e96869D46945fA6FFb7a4036": {
       name: "DepositRedemptionVault",
       version: "1.0",
       type: "policy",
+      startBlock: 9578179,
     },
     "0x247f1989aDc0F63D07b91Bf645De879b9de06fbB": {
       name: "ConvertibleDepositAuctioneer",
       version: "1.0",
       type: "policy",
+      startBlock: 9578181,
     },
     "0x0bE69702E83f06A027E6841B614f6946d1265441": {
       name: "ConvertibleDepositFacility",
       version: "1.0",
       type: "policy",
+      startBlock: 9578180,
     },
     "0x1dc2c4E15189a7aa61Eff2b3DD3D5EAe8fA03377": {
       name: "Heart",
       version: "1.7",
       type: "policy",
+      startBlock: 9578183,
     },
     "0x84785E392BfD02F97A9b84F85d86DEc11933ef81": {
       name: "EmissionManager",
       version: "1.2",
       type: "policy",
+      startBlock: 9578182,
     },
     "0x2364bf0a9aa544039bc12130d3ae167dffbb93a5": {
       name: "DepositManager",
       version: "1.0",
       type: "policy",
+      startBlock: 9179733,
     },
     "0x5261fba7b50aa22b19b9edf939b771d109de991f": {
       name: "EmissionManager",
       version: "1.2",
       type: "policy",
+      startBlock: 9060199,
     },
     "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb": {
       name: "ConvertibleDepositAuctioneer",
       version: "1.0",
       type: "policy",
+      startBlock: 9060198,
     },
     "0x69b2be653bab628116b360818be75a2d97b45c4a": {
       name: "DepositRedemptionVault",
       version: "1.0",
       type: "policy",
+      startBlock: 9179734,
     },
     "0x87568265eb6ea27f37613d242d4192b6f6771269": {
       name: "ConvertibleDepositFacility",
       version: "1.0",
       type: "policy",
+      startBlock: 9179735,
     },
     "0xa386b4f750f493a6c9f33fbbf8702718b785969a": {
       name: "ReserveWrapper",
       version: "1.0",
       type: "policy",
+      startBlock: 9074320,
     },
     "0xa61b846d5d8b757e3d541e0e4f80390e28f0b6ff": {
       name: "Heart",
       version: "1.7",
       type: "policy",
+      startBlock: 9060200,
     },
     "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50": {
       name: "ConvertibleDepositFacility",
       version: "1.0",
       type: "policy",
+      startBlock: 9060195,
     },
     "0xc14156af3bf6c11b1c40c8f51f64ba5496870126": {
       name: "ConvertibleDepositAuctioneer",
       version: "1.0",
       type: "policy",
+      startBlock: 9179736,
     },
     "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678": {
       name: "DepositManager",
       version: "1.0",
       type: "policy",
+      startBlock: 9060193,
     },
     "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a": {
       name: "DepositRedemptionVault",
       version: "1.0",
       type: "policy",
+      startBlock: 9060194,
     },
     "0xf6d5d06a4e8e6904e4360108749c177692f59e90": {
       name: "PriceConfig",
+      type: "policy",
+    },
+  },
+  [ChainId.Robinhood]: {
+    "0x02331a4c97a4841084df54d7c0ec04dd3f1a9f1c": {
+      name: "Kernel",
+      type: "kernel",
+      startBlock: 94168504,
+    },
+    "0x20a3d8510f2e1176e8db4cea9883a8287a9029db": {
+      name: "TRSRY",
+      type: "module",
+      startBlock: 94168648,
+    },
+    "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb": {
+      name: "CCIPBurnMintTokenPool",
+      type: "policy",
+      startBlock: 94169097,
+    },
+    "0x6d94b3745b0ecf908b3b467907b947b43fba5f15": {
+      name: "CCIPTokenPoolConfig",
+      type: "policy",
+      startBlock: 94169625,
+    },
+    "0x9f08c2603e919a46d6d98289c9ada5250b310558": {
+      name: "CCIPTokenPoolConfigTimelock",
+      type: "policy",
+      startBlock: 94169693,
+    },
+    "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50": {
+      name: "TreasuryCustodian",
+      type: "policy",
+      startBlock: 94168987,
+    },
+    "0xcb4e21eb404d80f3e1db781aad9ad6a1217fbbf2": {
+      name: "ROLES",
+      type: "module",
+      startBlock: 94168602,
+    },
+    "0xd98b5b2e4d5d6cd554115de19efb7a9084beddd1": {
+      name: "MINTR",
+      type: "module",
+      startBlock: 94168555,
+    },
+    "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678": {
+      name: "RolesAdmin",
+      type: "policy",
+      startBlock: 94168691,
+    },
+    "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a": {
+      name: "Emergency",
+      type: "policy",
+      startBlock: 94168742,
+    },
+    "0x317e0f5ef883db95f8ffb5b995b8457903873608": {
+      name: "DAO MS",
+    },
+    "0xa8a6ff2606b24f61afa986381d8991dfcccd2d55": {
+      name: "Emergency MS",
+    },
+  },
+  [ChainId.ArbitrumSepolia]: {
+    "0x0d33c811d0fcc711bcb388dfb3a152de445be66f": {
+      name: "LZBridgeGateway",
+      type: "policy",
+      startBlock: 273448382,
+    },
+    "0x0f953d861347414698f34b75dbfd6e7df1a73493": {
+      name: "LZEndpointDelegate",
+      type: "policy",
+      startBlock: 273448386,
+    },
+    "0x1d316c489bab10b755cb0562759a6cf285f89814": {
+      name: "LZBridgeAndDelegateConfig",
+      type: "policy",
+      startBlock: 273448393,
+    },
+    "0x18878df23e2a36f81e820e4b47b4a40576d3159c": {
+      name: "Kernel",
+      type: "kernel",
+      startBlock: 273448353,
+    },
+    "0x623164a9ee2556d524b08f34f1d2389d7b4e1a1c": {
+      name: "MINTR",
+      type: "module",
+    },
+    "0xbc9ee0d911739cbc72cd094ada26f56e0c49eeae": {
+      name: "ROLES",
+      type: "module",
+      startBlock: 273448359,
+    },
+    "0x22ae99d07584a2ae1af748de573c83f1b9cdb4c0": {
+      name: "RolesAdmin",
+      type: "policy",
+      startBlock: 273448362,
+    },
+  },
+  [ChainId.BaseSepolia]: {
+    "0x623164a9ee2556d524b08f34f1d2389d7b4e1a1c": {
+      name: "Kernel",
+      type: "kernel",
+      startBlock: 21445241,
+    },
+    "0xbc9ee0d911739cbc72cd094ada26f56e0c49eeae": {
+      name: "MINTR",
+      type: "module",
+    },
+    "0x22ae99d07584a2ae1af748de573c83f1b9cdb4c0": {
+      name: "ROLES",
+      type: "module",
+      startBlock: 21445245,
+    },
+    "0xb1fa0ac44d399b778b14af0aaf4bcf8af3437ad1": {
+      name: "TRSRY",
+      type: "module",
+    },
+    "0x1a5309f208f161a393e8b5a253de8ab894a67188": {
+      name: "DAO / Emergency address",
+    },
+    "0x6577cfd3b625a6bd0b708da1f066855c19ac8360": {
+      name: "CCIPBurnMintTokenPool",
+      type: "policy",
+      startBlock: 26633650,
+    },
+    "0xba42be149e5260eba4b82418a6306f55d532ea47": {
+      name: "CrossChainBridge",
+      type: "policy",
+    },
+    "0xca7240a7b439c9d458b47831d38c3d69c1287469": {
+      name: "Emergency",
+      type: "policy",
+    },
+    "0x0f953d861347414698f34b75dbfd6e7df1a73493": {
+      name: "Minter",
+      type: "policy",
+    },
+    "0xe37d9a2791707bbb858012d219960d5fbd190794": {
+      name: "RolesAdmin",
+      type: "policy",
+      startBlock: 21445251,
+    },
+    "0x0d33c811d0fcc711bcb388dfb3a152de445be66f": {
+      name: "TreasuryCustodian",
       type: "policy",
     },
   },
@@ -801,16 +1127,18 @@ const getContractDetails = (
   const normalizedAddress = address.toLowerCase() as `0x${string}`;
   const chainContracts = contractNames[chainId];
 
-  if (!chainContracts) {
-    return null;
-  }
-
   // Find matching contract name by comparing normalized addresses
-  const match = Object.entries(chainContracts).find(
+  const match = Object.entries(chainContracts ?? {}).find(
     ([addr]) => addr.toLowerCase() === normalizedAddress
   );
 
-  return match ? match[1] : null;
+  if (match) return match[1];
+  return (
+    otherContracts.find(
+      (entry) =>
+        entry.chainId === chainId && entry.address === normalizedAddress
+    ) ?? null
+  );
 };
 
 const isLikelyModuleName = (name: string): boolean => {
@@ -859,5 +1187,11 @@ export const getContractStartBlock = (
   chainId: number
 ): number | undefined => {
   const details = getContractDetails(address, chainId);
-  return details?.startBlock;
+  return (
+    details?.startBlock ??
+    otherContracts.find(
+      (entry) =>
+        entry.chainId === chainId && entry.address === address.toLowerCase()
+    )?.startBlock
+  );
 };

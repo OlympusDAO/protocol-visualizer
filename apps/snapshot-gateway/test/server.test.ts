@@ -123,6 +123,14 @@ const createTestConfig = (
       name: "Mainnet",
       explorerBaseUrl: "https://etherscan.io",
     },
+    {
+      key: "Goerli",
+      chainId: 5,
+      name: "Goerli",
+      explorerBaseUrl: "https://goerli.etherscan.io",
+      environment: "testnet",
+      availability: "historical",
+    },
   ],
 });
 
@@ -145,6 +153,57 @@ test("fatal error details include configuration messages", () => {
     message: "BUCKET is required",
   });
   assert.deepEqual(fatalErrorDetails("unknown failure"), {});
+});
+
+test("gateway carries old and new snapshot payloads and rejects unsupported versions", async () => {
+  for (const version of ["1.0.0", "1.1.0"]) {
+    const payload = {
+      schemaVersion: version,
+      chainId: 1,
+      data: {
+        contracts: [],
+        roles: [],
+        roleAssignments: [],
+        ...(version === "1.1.0"
+          ? {
+              additionalContracts: [
+                {
+                  id: "1:0xabc",
+                  chainId: 1,
+                  address: "0xabc",
+                  name: "External",
+                  category: "external",
+                  provenance: { source: "inventory" },
+                },
+              ],
+              contractStates: [],
+              relationships: [],
+              observation: null,
+            }
+          : {}),
+      },
+    };
+    const reader = new FakeReader({
+      [ACTIVE_MANIFEST_KEY]: JSON.stringify({
+        ...manifest,
+        schemaVersion: version,
+      }),
+      "v1/deployments/deployment-a/chain/1/protocol.json":
+        JSON.stringify(payload),
+    });
+    const result = await request("/v1/chains/1/protocol", { reader });
+    assert.equal(result.response.status, 200);
+    assert.deepEqual(JSON.parse(result.text), payload);
+  }
+  const reader = new FakeReader({
+    [ACTIVE_MANIFEST_KEY]: JSON.stringify(manifest),
+    "v1/deployments/deployment-a/chain/1/protocol.json": JSON.stringify({
+      schemaVersion: "2.0.0",
+    }),
+  });
+  const result = await request("/v1/chains/1/protocol", { reader });
+  assert.equal(result.response.status, 502);
+  assert.match(result.text, /Unsupported snapshot schema version: 2.0.0/);
 });
 
 async function request(
@@ -239,6 +298,16 @@ test("serves REST protocol snapshots through active manifest artifact keys", asy
     reader.keys.includes("v1/deployments/deployment-a/chain/1/protocol.json")
   );
   assert.equal(JSON.parse(text).chainId, 1);
+});
+
+test("catalog-only historical networks do not become published snapshots or readiness requirements", async () => {
+  const { response, text } = await request("/v1/chains");
+  assert.equal(response.status, 200);
+  assert.deepEqual(
+    JSON.parse(text).data.map((chain: { chainId: number }) => chain.chainId),
+    [1]
+  );
+  assert.equal((await request("/ready")).response.status, 200);
 });
 
 test("rejects old static routes and unsupported query params", async () => {

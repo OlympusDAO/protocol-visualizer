@@ -10,6 +10,7 @@ const WORKFLOW_FILES = [
   ".github/workflows/ci.yml",
   ".github/workflows/audit.yml",
   ".github/workflows/security-scan.yml",
+  ".github/workflows/railway-config.yml",
 ];
 
 const BOOTSTRAP_ACTION = ".github/actions/bootstrap/action.yml";

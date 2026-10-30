@@ -141,7 +141,6 @@ If both files are absent, create the key. Enter a passphrase when prompted:
 
 ```bash
 ssh-keygen -t ed25519 -f "$HOME/.ssh/id_ed25519_railway" -C railway
-ssh-add "$HOME/.ssh/id_ed25519_railway"
 ```
 
 Register only the public key with Railway:
@@ -158,6 +157,8 @@ Project tokens in `RAILWAY_TOKEN` do not support SSH key management. Use `railwa
 See [Railway SSH](https://docs.railway.com/cli/ssh) for key removal and workspace access.
 
 For private eRPC metrics, use [the browser script](rpc-cache.md#open-private-metrics-from-your-computer).
+The script can use the key without an SSH agent. Set `RAILWAY_SSH_IDENTITY_FILE` as shown in those instructions.
+OpenSSH prompts for the private key passphrase.
 The script does not register keys automatically.
 
 ## Automatic plan and apply

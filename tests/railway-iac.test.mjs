@@ -71,7 +71,7 @@ test("whole-project IaC retains storage and wires services without embedding sec
     }
     assert.equal(get("indexer").deploy.healthcheckPath, "/healthz");
     assert.equal(get("hasura").deploy.healthcheckTimeout, 300);
-    assert.equal(get("snapshot-gateway").deploy.healthcheckPath, "/ready");
+    assert.equal(get("snapshot-gateway").deploy.healthcheckPath, "/healthz");
     assert.equal(get("snapshot-publisher").deploy.cronSchedule, "0 * * * *");
     assert.equal(get("snapshot-monitor").deploy.cronSchedule, "5 0 * * *");
     assert.equal(get("rpc-cache").deploy.healthcheckPath, "/healthcheck");

@@ -121,7 +121,7 @@ export default defineRailway((ctx) => {
       buildEnvironment: "V3",
     },
     deploy: {
-      healthcheckPath: "/ready",
+      healthcheckPath: "/healthz",
       healthcheckTimeout: 30,
       restartPolicyType: "ON_FAILURE",
       restartPolicyMaxRetries: 1,

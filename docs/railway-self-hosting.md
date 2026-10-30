@@ -118,6 +118,48 @@ variables through the authenticated CLI. It did not print or commit their values
 This bootstrap does not supply credentials to production or future environments.
 Before any consumer switch, retain the previous provider values for rollback.
 
+## SSH key registration
+
+Use Railway CLI 5.71.0 or newer.
+To use your personal login, unset local `RAILWAY_TOKEN` and `RAILWAY_API_TOKEN` values first.
+Then sign in:
+
+```bash
+railway login
+railway whoami
+railway ssh keys list
+```
+
+If a suitable key already exists on your computer, register its public `.pub` file.
+For a dedicated key, first make sure that these filenames do not already exist:
+
+```bash
+ls "$HOME/.ssh/id_ed25519_railway" "$HOME/.ssh/id_ed25519_railway.pub"
+```
+
+If both files are absent, create the key. Enter a passphrase when prompted:
+
+```bash
+ssh-keygen -t ed25519 -f "$HOME/.ssh/id_ed25519_railway" -C railway
+ssh-add "$HOME/.ssh/id_ed25519_railway"
+```
+
+Register only the public key with Railway:
+
+```bash
+railway ssh keys add --key "$HOME/.ssh/id_ed25519_railway.pub" --name railway-local
+railway ssh keys list
+```
+
+Keep the private key on your computer. Do not put either key in repository files or Railway service variables.
+Registration grants account-level SSH access. It does not deploy or restart services.
+With a workspace API token, Railway manages workspace keys instead. Workspace key registration requires Admin access.
+Project tokens in `RAILWAY_TOKEN` do not support SSH key management. Use `railway login` or workspace API authentication.
+See [Railway SSH](https://docs.railway.com/cli/ssh) for key removal and workspace access.
+
+For private eRPC metrics, use [the browser script](rpc-cache.md#open-private-metrics-from-your-computer).
+The script does not register keys automatically.
+
 ## Automatic plan and apply
 
 [`.github/workflows/railway-config.yml`](../.github/workflows/railway-config.yml)
@@ -444,7 +486,11 @@ ENDPOINT=${{storage.ENDPOINT}}
 # MONITOR_STALE_CHAIN_HOURS=24
 ```
 
-`snapshot-monitor` also fails fast if `RAILWAY_ENVIRONMENT_NAME` is missing.
+`snapshot-monitor` requires `DISCORD_WEBHOOK_URL` to send indexing alerts and daily summaries.
+Set the webhook in Railway on this service before deployment. IaC preserves its value.
+Use a separate Discord webhook for PR environments to keep test alerts out of production channels.
+The pre-deploy check rejects a missing webhook without sending a notification.
+The monitor also fails fast if `RAILWAY_ENVIRONMENT_NAME` is missing.
 
 Set on `snapshot-gateway`:
 
@@ -479,14 +525,15 @@ Healthchecks:
 
 - `hasura`: `/healthz`
 - `indexer`: `/healthz`
-- `snapshot-gateway`: `/ready`
+- `snapshot-gateway`: `/healthz`
 - `frontend`: `/`
 
-The snapshot gateway also exposes `/healthz` as a storage-independent liveness
-check. Railway intentionally uses `/ready` so a deployment is promoted only
-after the active manifest and every referenced chain artifact are accessible.
-Readiness failures emit sanitized, state-change-aware logs with provider error
-codes, affected chain ids when available, and check duration.
+The snapshot gateway uses `/healthz` for storage-independent deployment health.
+This keeps the gateway running while the indexer rebuilds and the publisher waits to create the first manifest.
+`/ready` returns 503 until the active manifest and its referenced artifacts are accessible.
+After publication, the next readiness request succeeds without a gateway restart.
+Use `/ready` for data-availability monitoring. A successful deployment does not prove that snapshots are available.
+Readiness failures emit sanitized logs with provider error codes, affected chain ids, and check duration.
 
 ## Deployment checks
 

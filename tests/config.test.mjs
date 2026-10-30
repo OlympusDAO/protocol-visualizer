@@ -52,7 +52,9 @@ test("snapshot pre-deploy commands fail on missing RPC settings and validate wit
     "packages/protocol-config/protocol-chains.json"
   ).filter((chain) => chain.availability !== "historical");
   const environment = Object.fromEntries(
-    Object.entries(process.env).filter(([name]) => !name.startsWith("RPC_URL_"))
+    Object.entries(process.env).filter(
+      ([name]) => !name.startsWith("RPC_URL_") && name !== "DISCORD_WEBHOOK_URL"
+    )
   );
   environment.PROTOCOL_CHAINS_CONFIG_PATH = resolve(
     "packages/protocol-config/protocol-chains.json"
@@ -83,7 +85,15 @@ test("snapshot pre-deploy commands fail on missing RPC settings and validate wit
     });
     assert.equal(missing.status, 1);
     assert.match(missing.stderr, /Missing required RPC variables: RPC_URL_1/);
-    const valid = run(configured);
+    if (service === "snapshot-monitor") {
+      const missingWebhook = run(configured);
+      assert.equal(missingWebhook.status, 1);
+      assert.match(missingWebhook.stderr, /DISCORD_WEBHOOK_URL is required/);
+    }
+    const valid = run({
+      ...configured,
+      DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+    });
     assert.equal(valid.status, 0, valid.stderr);
     assert.equal(valid.stdout, "");
     const subset = run({ RPC_URL_1: configured.RPC_URL_1 });

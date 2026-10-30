@@ -220,6 +220,11 @@ export async function loadConfiguredChains(): Promise<ChainConfig[]> {
   return chains;
 }
 
+export async function checkConfiguration(): Promise<void> {
+  await loadConfiguredChains();
+  requiredEnv("DISCORD_WEBHOOK_URL");
+}
+
 export async function fetchIndexerMetricsReadiness(input: {
   metricsUrl: string;
   chains: ChainConfig[];

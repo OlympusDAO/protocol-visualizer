@@ -162,6 +162,35 @@ Verify a real miss and repeat hit after readiness, plus database health.
 Metrics are private on port 4001. No Docker shell, curl, or Node is available in
 the eRPC image; Railway supplies the HTTP health probe.
 
+### Open private metrics from your computer
+
+Register an SSH key with Railway first. Follow [SSH key registration](railway-self-hosting.md#ssh-key-registration).
+Then run this command from the linked repository:
+
+```bash
+RAILWAY_ENVIRONMENT=protocol-visualizer-pr-82 pnpm run rpc-cache:metrics
+```
+
+The script opens an SSH tunnel and your browser at `http://127.0.0.1:14001/metrics`.
+Keep the terminal open. Press Ctrl+C to close the tunnel and remove its temporary SSH configuration.
+The script does not change `~/.ssh/config`, register keys, or deploy services.
+It uses port forwarding without a container shell, so the distroless image needs no changes.
+The local port is 14001. Stop another tunnel on that port before you run the script.
+The script requires Railway CLI, OpenSSH, curl, and `open` on macOS or `xdg-open` on Linux.
+
+If your key uses a custom filename, select its private key file:
+
+```bash
+RAILWAY_ENVIRONMENT=protocol-visualizer-pr-82 \
+  RAILWAY_SSH_IDENTITY_FILE="$HOME/.ssh/id_ed25519_railway" \
+  pnpm run rpc-cache:metrics
+```
+
+The browser shows Prometheus text, not a dashboard.
+Compare `erpc_cache_get_success_hit_total` and `erpc_cache_get_success_miss_total` to measure eligible cache lookups.
+Use `erpc_upstream_request_errors_total` to inspect upstream errors.
+Metrics counters restart with eRPC. Cached responses remain in PostgreSQL.
+
 The Docker build needs no secrets. Runtime config rejects missing database or
 any of the nine upstream settings with the variable name only. Keep upstream
 URLs exclusively on eRPC; they must never appear in `VITE_*`, public chain

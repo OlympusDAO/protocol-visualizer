@@ -1,0 +1,1864 @@
+{
+  "base_commit": "9eb4755be2904f6751a72890ecce134c4c701fef",
+  "deployed_indexer_commit": "b0c7832",
+  "environment": "protocol-visualizer-pr-82",
+  "live_baseline": {
+    "started_at": "2026-10-30T10:02:03.471Z",
+    "ended_at": "2026-10-30T10:17:34.763Z",
+    "elapsed_seconds": 931.292,
+    "summary": [
+      {
+        "chain_id": 1,
+        "start_block": 17238767,
+        "end_block": 17238767,
+        "committed_blocks": 0,
+        "blocks_per_second": 0.0,
+        "processed_items": 0
+      },
+      {
+        "chain_id": 10,
+        "start_block": 114866112,
+        "end_block": 115361212,
+        "committed_blocks": 495100,
+        "blocks_per_second": 531.6270299755608,
+        "processed_items": 5000
+      },
+      {
+        "chain_id": 4663,
+        "start_block": 26729457,
+        "end_block": 27719557,
+        "committed_blocks": 990100,
+        "blocks_per_second": 1063.1466822435927,
+        "processed_items": 10000
+      },
+      {
+        "chain_id": 8453,
+        "start_block": 24078923,
+        "end_block": 24078923,
+        "committed_blocks": 0,
+        "blocks_per_second": 0.0,
+        "processed_items": 0
+      },
+      {
+        "chain_id": 42161,
+        "start_block": 199745460,
+        "end_block": 203705860,
+        "committed_blocks": 3960400,
+        "blocks_per_second": 4252.586728974371,
+        "processed_items": 40000
+      },
+      {
+        "chain_id": 80094,
+        "start_block": 8195510,
+        "end_block": 8688910,
+        "committed_blocks": 493400,
+        "blocks_per_second": 529.8016089475695,
+        "processed_items": 5000
+      },
+      {
+        "chain_id": 84532,
+        "start_block": 29857136,
+        "end_block": 29857136,
+        "committed_blocks": 0,
+        "blocks_per_second": 0.0,
+        "processed_items": 0
+      },
+      {
+        "chain_id": 421614,
+        "start_block": 286811944,
+        "end_block": 287307044,
+        "committed_blocks": 495100,
+        "blocks_per_second": 531.6270299755608,
+        "processed_items": 5000
+      },
+      {
+        "chain_id": 11155111,
+        "start_block": 8055887,
+        "end_block": 8055887,
+        "committed_blocks": 0,
+        "blocks_per_second": 0.0,
+        "processed_items": 0
+      }
+    ],
+    "samples": [
+      {
+        "at": "2026-10-30T10:02:03.471Z",
+        "schema": "public",
+        "chains": [
+          {
+            "chain_id": 1,
+            "start_block": 13674068,
+            "processed_block": 17238767,
+            "processed_at": null,
+            "fetched_block": 18232868,
+            "source_head": 26304011,
+            "events_processed": 36103,
+            "ready": false
+          },
+          {
+            "chain_id": 10,
+            "start_block": 98531613,
+            "processed_block": 114866112,
+            "processed_at": null,
+            "fetched_block": 116351813,
+            "source_head": 158872832,
+            "events_processed": 165000,
+            "ready": false
+          },
+          {
+            "chain_id": 4663,
+            "start_block": 4758,
+            "processed_block": 26729457,
+            "processed_at": null,
+            "fetched_block": 28215558,
+            "source_head": 101547361,
+            "events_processed": 270001,
+            "ready": false
+          },
+          {
+            "chain_id": 8453,
+            "start_block": 13204824,
+            "processed_block": 24078923,
+            "processed_at": null,
+            "fetched_block": 25083424,
+            "source_head": 53277552,
+            "events_processed": 110000,
+            "ready": false
+          },
+          {
+            "chain_id": 42161,
+            "start_block": 85886461,
+            "processed_block": 199745460,
+            "processed_at": null,
+            "fetched_block": 201233561,
+            "source_head": 519608167,
+            "events_processed": 1150002,
+            "ready": false
+          },
+          {
+            "chain_id": 80094,
+            "start_block": 780011,
+            "processed_block": 8195510,
+            "processed_at": null,
+            "fetched_block": 9186611,
+            "source_head": 28164891,
+            "events_processed": 75000,
+            "ready": false
+          },
+          {
+            "chain_id": 84532,
+            "start_block": 21445237,
+            "processed_block": 29857136,
+            "processed_at": null,
+            "fetched_block": 30847437,
+            "source_head": 52113181,
+            "events_processed": 85000,
+            "ready": false
+          },
+          {
+            "chain_id": 421614,
+            "start_block": 273448345,
+            "processed_block": 286811944,
+            "processed_at": null,
+            "fetched_block": 287802345,
+            "source_head": 324269039,
+            "events_processed": 135000,
+            "ready": false
+          },
+          {
+            "chain_id": 11155111,
+            "start_block": 6577288,
+            "processed_block": 8055887,
+            "processed_at": null,
+            "fetched_block": 9060199,
+            "source_head": 12025116,
+            "events_processed": 25002,
+            "ready": false
+          }
+        ]
+      },
+      {
+        "at": "2026-10-30T10:03:05.552Z",
+        "schema": "public",
+        "chains": [
+          {
+            "chain_id": 1,
+            "start_block": 13674068,
+            "processed_block": 17238767,
+            "processed_at": null,
+            "fetched_block": 18232868,
+            "source_head": 26304011,
+            "events_processed": 36103,
+            "ready": false
+          },
+          {
+            "chain_id": 10,
+            "start_block": 98531613,
+            "processed_block": 114866112,
+            "processed_at": null,
+            "fetched_block": 116351813,
+            "source_head": 158872832,
+            "events_processed": 165000,
+            "ready": false
+          },
+          {
+            "chain_id": 4663,
+            "start_block": 4758,
+            "processed_block": 26729457,
+            "processed_at": null,
+            "fetched_block": 28215558,
+            "source_head": 101547361,
+            "events_processed": 270001,
+            "ready": false
+          },
+          {
+            "chain_id": 8453,
+            "start_block": 13204824,
+            "processed_block": 24078923,
+            "processed_at": null,
+            "fetched_block": 25083424,
+            "source_head": 53277552,
+            "events_processed": 110000,
+            "ready": false
+          },
+          {
+            "chain_id": 42161,
+            "start_block": 85886461,
+            "processed_block": 199745460,
+            "processed_at": null,
+            "fetched_block": 201233561,
+            "source_head": 519608167,
+            "events_processed": 1150002,
+            "ready": false
+          },
+          {
+            "chain_id": 80094,
+            "start_block": 780011,
+            "processed_block": 8195510,
+            "processed_at": null,
+            "fetched_block": 9186611,
+            "source_head": 28164891,
+            "events_processed": 75000,
+            "ready": false
+          },
+          {
+            "chain_id": 84532,
+            "start_block": 21445237,
+            "processed_block": 29857136,
+            "processed_at": null,
+            "fetched_block": 30847437,
+            "source_head": 52113181,
+            "events_processed": 85000,
+            "ready": false
+          },
+          {
+            "chain_id": 421614,
+            "start_block": 273448345,
+            "processed_block": 286811944,
+            "processed_at": null,
+            "fetched_block": 287802345,
+            "source_head": 324269039,
+            "events_processed": 135000,
+            "ready": false
+          },
+          {
+            "chain_id": 11155111,
+            "start_block": 6577288,
+            "processed_block": 8055887,
+            "processed_at": null,
+            "fetched_block": 9060199,
+            "source_head": 12025116,
+            "events_processed": 25002,
+            "ready": false
+          }
+        ]
+      },
+      {
+        "at": "2026-10-30T10:04:07.607Z",
+        "schema": "public",
+        "chains": [
+          {
+            "chain_id": 1,
+            "start_block": 13674068,
+            "processed_block": 17238767,
+            "processed_at": null,
+            "fetched_block": 18232868,
+            "source_head": 26304011,
+            "events_processed": 36103,
+            "ready": false
+          },
+          {
+            "chain_id": 10,
+            "start_block": 98531613,
+            "processed_block": 114866112,
+            "processed_at": null,
+            "fetched_block": 116351813,
+            "source_head": 158872832,
+            "events_processed": 165000,
+            "ready": false
+          },
+          {
+            "chain_id": 4663,
+            "start_block": 4758,
+            "processed_block": 26729457,
+            "processed_at": null,
+            "fetched_block": 28215558,
+            "source_head": 101547361,
+            "events_processed": 270001,
+            "ready": false
+          },
+          {
+            "chain_id": 8453,
+            "start_block": 13204824,
+            "processed_block": 24078923,
+            "processed_at": null,
+            "fetched_block": 25083424,
+            "source_head": 53277552,
+            "events_processed": 110000,
+            "ready": false
+          },
+          {
+            "chain_id": 42161,
+            "start_block": 85886461,
+            "processed_block": 200240460,
+            "processed_at": null,
+            "fetched_block": 201233561,
+            "source_head": 519608167,
+            "events_processed": 1155002,
+            "ready": false
+          },
+          {
+            "chain_id": 80094,
+            "start_block": 780011,
+            "processed_block": 8195510,
+            "processed_at": null,
+            "fetched_block": 9186611,
+            "source_head": 28164891,
+            "events_processed": 75000,
+            "ready": false
+          },
+          {
+            "chain_id": 84532,
+            "start_block": 21445237,
+            "processed_block": 29857136,
+            "processed_at": null,
+            "fetched_block": 30847437,
+            "source_head": 52113181,
+            "events_processed": 85000,
+            "ready": false
+          },
+          {
+            "chain_id": 421614,
+            "start_block": 273448345,
+            "processed_block": 286811944,
+            "processed_at": null,
+            "fetched_block": 287802345,
+            "source_head": 324269039,
+            "events_processed": 135000,
+            "ready": false
+          },
+          {
+            "chain_id": 11155111,
+            "start_block": 6577288,
+            "processed_block": 8055887,
+            "processed_at": null,
+            "fetched_block": 9060199,
+            "source_head": 12025116,
+            "events_processed": 25002,
+            "ready": false
+          }
+        ]
+      },
+      {
+        "at": "2026-10-30T10:05:09.654Z",
+        "schema": "public",
+        "chains": [
+          {
+            "chain_id": 1,
+            "start_block": 13674068,
+            "processed_block": 17238767,
+            "processed_at": null,
+            "fetched_block": 18232868,
+            "source_head": 26304011,
+            "events_processed": 36103,
+            "ready": false
+          },
+          {
+            "chain_id": 10,
+            "start_block": 98531613,
+            "processed_block": 114866112,
+            "processed_at": null,
+            "fetched_block": 116351813,
+            "source_head": 158872832,
+            "events_processed": 165000,
+            "ready": false
+          },
+          {
+            "chain_id": 4663,
+            "start_block": 4758,
+            "processed_block": 27224557,
+            "processed_at": null,
+            "fetched_block": 28215558,
+            "source_head": 101547361,
+            "events_processed": 275001,
+            "ready": false
+          },
+          {
+            "chain_id": 8453,
+            "start_block": 13204824,
+            "processed_block": 24078923,
+            "processed_at": null,
+            "fetched_block": 25083424,
+            "source_head": 53277552,
+            "events_processed": 110000,
+            "ready": false
+          },
+          {
+            "chain_id": 42161,
+            "start_block": 85886461,
+            "processed_block": 200240460,
+            "processed_at": null,
+            "fetched_block": 201233561,
+            "source_head": 519608167,
+            "events_processed": 1155002,
+            "ready": false
+          },
+          {
+            "chain_id": 80094,
+            "start_block": 780011,
+            "processed_block": 8195510,
+            "processed_at": null,
+            "fetched_block": 9186611,
+            "source_head": 28164891,
+            "events_processed": 75000,
+            "ready": false
+          },
+          {
+            "chain_id": 84532,
+            "start_block": 21445237,
+            "processed_block": 29857136,
+            "processed_at": null,
+            "fetched_block": 30847437,
+            "source_head": 52113181,
+            "events_processed": 85000,
+            "ready": false
+          },
+          {
+            "chain_id": 421614,
+            "start_block": 273448345,
+            "processed_block": 287307044,
+            "processed_at": null,
+            "fetched_block": 288792545,
+            "source_head": 324269039,
+            "events_processed": 140000,
+            "ready": false
+          },
+          {
+            "chain_id": 11155111,
+            "start_block": 6577288,
+            "processed_block": 8055887,
+            "processed_at": null,
+            "fetched_block": 9060199,
+            "source_head": 12025116,
+            "events_processed": 25002,
+            "ready": false
+          }
+        ]
+      },
+      {
+        "at": "2026-10-30T10:06:11.771Z",
+        "schema": "public",
+        "chains": [
+          {
+            "chain_id": 1,
+            "start_block": 13674068,
+            "processed_block": 17238767,
+            "processed_at": null,
+            "fetched_block": 18232868,
+            "source_head": 26304011,
+            "events_processed": 36103,
+            "ready": false
+          },
+          {
+            "chain_id": 10,
+            "start_block": 98531613,
+            "processed_block": 114866112,
+            "processed_at": null,
+            "fetched_block": 116351813,
+            "source_head": 158872832,
+            "events_processed": 165000,
+            "ready": false
+          },
+          {
+            "chain_id": 4663,
+            "start_block": 4758,
+            "processed_block": 27224557,
+            "processed_at": null,
+            "fetched_block": 28215558,
+            "source_head": 101547361,
+            "events_processed": 275001,
+            "ready": false
+          },
+          {
+            "chain_id": 8453,
+            "start_block": 13204824,
+            "processed_block": 24078923,
+            "processed_at": null,
+            "fetched_block": 25083424,
+            "source_head": 53277552,
+            "events_processed": 110000,
+            "ready": false
+          },
+          {
+            "chain_id": 42161,
+            "start_block": 85886461,
+            "processed_block": 200735560,
+            "processed_at": null,
+            "fetched_block": 202223761,
+            "source_head": 519608167,
+            "events_processed": 1160002,
+            "ready": false
+          },
+          {
+            "chain_id": 80094,
+            "start_block": 780011,
+            "processed_block": 8195510,
+            "processed_at": null,
+            "fetched_block": 9186611,
+            "source_head": 28164891,
+            "events_processed": 75000,
+            "ready": false
+          },
+          {
+            "chain_id": 84532,
+            "start_block": 21445237,
+            "processed_block": 29857136,
+            "processed_at": null,
+            "fetched_block": 30847437,
+            "source_head": 52113181,
+            "events_processed": 85000,
+            "ready": false
+          },
+          {
+            "chain_id": 421614,
+            "start_block": 273448345,
+            "processed_block": 287307044,
+            "processed_at": null,
+            "fetched_block": 288792545,
+            "source_head": 324269039,
+            "events_processed": 140000,
+            "ready": false
+          },
+          {
+            "chain_id": 11155111,
+            "start_block": 6577288,
+            "processed_block": 8055887,
+            "processed_at": null,
+            "fetched_block": 9060199,
+            "source_head": 12025116,
+            "events_processed": 25002,
+            "ready": false
+          }
+        ]
+      },
+      {
+        "at": "2026-10-30T10:07:14.077Z",
+        "schema": "public",
+        "chains": [
+          {
+            "chain_id": 1,
+            "start_block": 13674068,
+            "processed_block": 17238767,
+            "processed_at": null,
+            "fetched_block": 18232868,
+            "source_head": 26304011,
+            "events_processed": 36103,
+            "ready": false
+          },
+          {
+            "chain_id": 10,
+            "start_block": 98531613,
+            "processed_block": 114866112,
+            "processed_at": null,
+            "fetched_block": 116351813,
+            "source_head": 158872832,
+            "events_processed": 165000,
+            "ready": false
+          },
+          {
+            "chain_id": 4663,
+            "start_block": 4758,
+            "processed_block": 27224557,
+            "processed_at": null,
+            "fetched_block": 28215558,
+            "source_head": 101547361,
+            "events_processed": 275001,
+            "ready": false
+          },
+          {
+            "chain_id": 8453,
+            "start_block": 13204824,
+            "processed_block": 24078923,
+            "processed_at": null,
+            "fetched_block": 25083424,
+            "source_head": 53277552,
+            "events_processed": 110000,
+            "ready": false
+          },
+          {
+            "chain_id": 42161,
+            "start_block": 85886461,
+            "processed_block": 200735560,
+            "processed_at": null,
+            "fetched_block": 202223761,
+            "source_head": 519608167,
+            "events_processed": 1160002,
+            "ready": false
+          },
+          {
+            "chain_id": 80094,
+            "start_block": 780011,
+            "processed_block": 8195510,
+            "processed_at": null,
+            "fetched_block": 9186611,
+            "source_head": 28164891,
+            "events_processed": 75000,
+            "ready": false
+          },
+          {
+            "chain_id": 84532,
+            "start_block": 21445237,
+            "processed_block": 29857136,
+            "processed_at": null,
+            "fetched_block": 30847437,
+            "source_head": 52113181,
+            "events_processed": 85000,
+            "ready": false
+          },
+          {
+            "chain_id": 421614,
+            "start_block": 273448345,
+            "processed_block": 287307044,
+            "processed_at": null,
+            "fetched_block": 288792545,
+            "source_head": 324269039,
+            "events_processed": 140000,
+            "ready": false
+          },
+          {
+            "chain_id": 11155111,
+            "start_block": 6577288,
+            "processed_block": 8055887,
+            "processed_at": null,
+            "fetched_block": 9060199,
+            "source_head": 12025116,
+            "events_processed": 25002,
+            "ready": false
+          }
+        ]
+      },
+      {
+        "at": "2026-10-30T10:08:16.200Z",
+        "schema": "public",
+        "chains": [
+          {
+            "chain_id": 1,
+            "start_block": 13674068,
+            "processed_block": 17238767,
+            "processed_at": null,
+            "fetched_block": 18232868,
+            "source_head": 26304011,
+            "events_processed": 36103,
+            "ready": false
+          },
+          {
+            "chain_id": 10,
+            "start_block": 98531613,
+            "processed_block": 114866112,
+            "processed_at": null,
+            "fetched_block": 116351813,
+            "source_head": 158872832,
+            "events_processed": 165000,
+            "ready": false
+          },
+          {
+            "chain_id": 4663,
+            "start_block": 4758,
+            "processed_block": 27224557,
+            "processed_at": null,
+            "fetched_block": 28215558,
+            "source_head": 101547361,
+            "events_processed": 275001,
+            "ready": false
+          },
+          {
+            "chain_id": 8453,
+            "start_block": 13204824,
+            "processed_block": 24078923,
+            "processed_at": null,
+            "fetched_block": 25083424,
+            "source_head": 53277552,
+            "events_processed": 110000,
+            "ready": false
+          },
+          {
+            "chain_id": 42161,
+            "start_block": 85886461,
+            "processed_block": 201230560,
+            "processed_at": null,
+            "fetched_block": 202223761,
+            "source_head": 519608167,
+            "events_processed": 1165002,
+            "ready": false
+          },
+          {
+            "chain_id": 80094,
+            "start_block": 780011,
+            "processed_block": 8195510,
+            "processed_at": null,
+            "fetched_block": 9186611,
+            "source_head": 28164891,
+            "events_processed": 75000,
+            "ready": false
+          },
+          {
+            "chain_id": 84532,
+            "start_block": 21445237,
+            "processed_block": 29857136,
+            "processed_at": null,
+            "fetched_block": 30847437,
+            "source_head": 52113181,
+            "events_processed": 85000,
+            "ready": false
+          },
+          {
+            "chain_id": 421614,
+            "start_block": 273448345,
+            "processed_block": 287307044,
+            "processed_at": null,
+            "fetched_block": 288792545,
+            "source_head": 324269039,
+            "events_processed": 140000,
+            "ready": false
+          },
+          {
+            "chain_id": 11155111,
+            "start_block": 6577288,
+            "processed_block": 8055887,
+            "processed_at": null,
+            "fetched_block": 9060199,
+            "source_head": 12025116,
+            "events_processed": 25002,
+            "ready": false
+          }
+        ]
+      },
+      {
+        "at": "2026-10-30T10:09:18.089Z",
+        "schema": "public",
+        "chains": [
+          {
+            "chain_id": 1,
+            "start_block": 13674068,
+            "processed_block": 17238767,
+            "processed_at": null,
+            "fetched_block": 18232868,
+            "source_head": 26304011,
+            "events_processed": 36103,
+            "ready": false
+          },
+          {
+            "chain_id": 10,
+            "start_block": 98531613,
+            "processed_block": 114866112,
+            "processed_at": null,
+            "fetched_block": 116351813,
+            "source_head": 158872832,
+            "events_processed": 165000,
+            "ready": false
+          },
+          {
+            "chain_id": 4663,
+            "start_block": 4758,
+            "processed_block": 27224557,
+            "processed_at": null,
+            "fetched_block": 28215558,
+            "source_head": 101547361,
+            "events_processed": 275001,
+            "ready": false
+          },
+          {
+            "chain_id": 8453,
+            "start_block": 13204824,
+            "processed_block": 24078923,
+            "processed_at": null,
+            "fetched_block": 25083424,
+            "source_head": 53277552,
+            "events_processed": 110000,
+            "ready": false
+          },
+          {
+            "chain_id": 42161,
+            "start_block": 85886461,
+            "processed_block": 201725660,
+            "processed_at": null,
+            "fetched_block": 203213961,
+            "source_head": 519608167,
+            "events_processed": 1170002,
+            "ready": false
+          },
+          {
+            "chain_id": 80094,
+            "start_block": 780011,
+            "processed_block": 8195510,
+            "processed_at": null,
+            "fetched_block": 9186611,
+            "source_head": 28164891,
+            "events_processed": 75000,
+            "ready": false
+          },
+          {
+            "chain_id": 84532,
+            "start_block": 21445237,
+            "processed_block": 29857136,
+            "processed_at": null,
+            "fetched_block": 30847437,
+            "source_head": 52113181,
+            "events_processed": 85000,
+            "ready": false
+          },
+          {
+            "chain_id": 421614,
+            "start_block": 273448345,
+            "processed_block": 287307044,
+            "processed_at": null,
+            "fetched_block": 288792545,
+            "source_head": 324269039,
+            "events_processed": 140000,
+            "ready": false
+          },
+          {
+            "chain_id": 11155111,
+            "start_block": 6577288,
+            "processed_block": 8055887,
+            "processed_at": null,
+            "fetched_block": 9060199,
+            "source_head": 12025116,
+            "events_processed": 25002,
+            "ready": false
+          }
+        ]
+      },
+      {
+        "at": "2026-10-30T10:10:20.120Z",
+        "schema": "public",
+        "chains": [
+          {
+            "chain_id": 1,
+            "start_block": 13674068,
+            "processed_block": 17238767,
+            "processed_at": null,
+            "fetched_block": 18232868,
+            "source_head": 26304011,
+            "events_processed": 36103,
+            "ready": false
+          },
+          {
+            "chain_id": 10,
+            "start_block": 98531613,
+            "processed_block": 114866112,
+            "processed_at": null,
+            "fetched_block": 116351813,
+            "source_head": 158872832,
+            "events_processed": 165000,
+            "ready": false
+          },
+          {
+            "chain_id": 4663,
+            "start_block": 4758,
+            "processed_block": 27224557,
+            "processed_at": null,
+            "fetched_block": 28215558,
+            "source_head": 101547361,
+            "events_processed": 275001,
+            "ready": false
+          },
+          {
+            "chain_id": 8453,
+            "start_block": 13204824,
+            "processed_block": 24078923,
+            "processed_at": null,
+            "fetched_block": 25083424,
+            "source_head": 53277552,
+            "events_processed": 110000,
+            "ready": false
+          },
+          {
+            "chain_id": 42161,
+            "start_block": 85886461,
+            "processed_block": 201725660,
+            "processed_at": null,
+            "fetched_block": 203213961,
+            "source_head": 519608167,
+            "events_processed": 1170002,
+            "ready": false
+          },
+          {
+            "chain_id": 80094,
+            "start_block": 780011,
+            "processed_block": 8195510,
+            "processed_at": null,
+            "fetched_block": 9186611,
+            "source_head": 28164891,
+            "events_processed": 75000,
+            "ready": false
+          },
+          {
+            "chain_id": 84532,
+            "start_block": 21445237,
+            "processed_block": 29857136,
+            "processed_at": null,
+            "fetched_block": 30847437,
+            "source_head": 52113181,
+            "events_processed": 85000,
+            "ready": false
+          },
+          {
+            "chain_id": 421614,
+            "start_block": 273448345,
+            "processed_block": 287307044,
+            "processed_at": null,
+            "fetched_block": 288792545,
+            "source_head": 324269039,
+            "events_processed": 140000,
+            "ready": false
+          },
+          {
+            "chain_id": 11155111,
+            "start_block": 6577288,
+            "processed_block": 8055887,
+            "processed_at": null,
+            "fetched_block": 9060199,
+            "source_head": 12025116,
+            "events_processed": 25002,
+            "ready": false
+          }
+        ]
+      },
+      {
+        "at": "2026-10-30T10:11:22.181Z",
+        "schema": "public",
+        "chains": [
+          {
+            "chain_id": 1,
+            "start_block": 13674068,
+            "processed_block": 17238767,
+            "processed_at": null,
+            "fetched_block": 18232868,
+            "source_head": 26304011,
+            "events_processed": 36103,
+            "ready": false
+          },
+          {
+            "chain_id": 10,
+            "start_block": 98531613,
+            "processed_block": 114866112,
+            "processed_at": null,
+            "fetched_block": 116351813,
+            "source_head": 158872832,
+            "events_processed": 165000,
+            "ready": false
+          },
+          {
+            "chain_id": 4663,
+            "start_block": 4758,
+            "processed_block": 27719557,
+            "processed_at": null,
+            "fetched_block": 29205758,
+            "source_head": 101547361,
+            "events_processed": 280001,
+            "ready": false
+          },
+          {
+            "chain_id": 8453,
+            "start_block": 13204824,
+            "processed_block": 24078923,
+            "processed_at": null,
+            "fetched_block": 25083424,
+            "source_head": 53277552,
+            "events_processed": 110000,
+            "ready": false
+          },
+          {
+            "chain_id": 42161,
+            "start_block": 85886461,
+            "processed_block": 202220660,
+            "processed_at": null,
+            "fetched_block": 203213961,
+            "source_head": 519608167,
+            "events_processed": 1175002,
+            "ready": false
+          },
+          {
+            "chain_id": 80094,
+            "start_block": 780011,
+            "processed_block": 8195510,
+            "processed_at": null,
+            "fetched_block": 9186611,
+            "source_head": 28164891,
+            "events_processed": 75000,
+            "ready": false
+          },
+          {
+            "chain_id": 84532,
+            "start_block": 21445237,
+            "processed_block": 29857136,
+            "processed_at": null,
+            "fetched_block": 30847437,
+            "source_head": 52113181,
+            "events_processed": 85000,
+            "ready": false
+          },
+          {
+            "chain_id": 421614,
+            "start_block": 273448345,
+            "processed_block": 287307044,
+            "processed_at": null,
+            "fetched_block": 288792545,
+            "source_head": 324269039,
+            "events_processed": 140000,
+            "ready": false
+          },
+          {
+            "chain_id": 11155111,
+            "start_block": 6577288,
+            "processed_block": 8055887,
+            "processed_at": null,
+            "fetched_block": 9060199,
+            "source_head": 12025116,
+            "events_processed": 25002,
+            "ready": false
+          }
+        ]
+      },
+      {
+        "at": "2026-10-30T10:12:24.232Z",
+        "schema": "public",
+        "chains": [
+          {
+            "chain_id": 1,
+            "start_block": 13674068,
+            "processed_block": 17238767,
+            "processed_at": null,
+            "fetched_block": 18232868,
+            "source_head": 26304011,
+            "events_processed": 36103,
+            "ready": false
+          },
+          {
+            "chain_id": 10,
+            "start_block": 98531613,
+            "processed_block": 114866112,
+            "processed_at": null,
+            "fetched_block": 116351813,
+            "source_head": 158872832,
+            "events_processed": 165000,
+            "ready": false
+          },
+          {
+            "chain_id": 4663,
+            "start_block": 4758,
+            "processed_block": 27719557,
+            "processed_at": null,
+            "fetched_block": 29205758,
+            "source_head": 101547361,
+            "events_processed": 280001,
+            "ready": false
+          },
+          {
+            "chain_id": 8453,
+            "start_block": 13204824,
+            "processed_block": 24078923,
+            "processed_at": null,
+            "fetched_block": 25083424,
+            "source_head": 53277552,
+            "events_processed": 110000,
+            "ready": false
+          },
+          {
+            "chain_id": 42161,
+            "start_block": 85886461,
+            "processed_block": 202220660,
+            "processed_at": null,
+            "fetched_block": 203213961,
+            "source_head": 519608167,
+            "events_processed": 1175002,
+            "ready": false
+          },
+          {
+            "chain_id": 80094,
+            "start_block": 780011,
+            "processed_block": 8195510,
+            "processed_at": null,
+            "fetched_block": 9186611,
+            "source_head": 28164891,
+            "events_processed": 75000,
+            "ready": false
+          },
+          {
+            "chain_id": 84532,
+            "start_block": 21445237,
+            "processed_block": 29857136,
+            "processed_at": null,
+            "fetched_block": 30847437,
+            "source_head": 52113181,
+            "events_processed": 85000,
+            "ready": false
+          },
+          {
+            "chain_id": 421614,
+            "start_block": 273448345,
+            "processed_block": 287307044,
+            "processed_at": null,
+            "fetched_block": 288792545,
+            "source_head": 324269039,
+            "events_processed": 140000,
+            "ready": false
+          },
+          {
+            "chain_id": 11155111,
+            "start_block": 6577288,
+            "processed_block": 8055887,
+            "processed_at": null,
+            "fetched_block": 9060199,
+            "source_head": 12025116,
+            "events_processed": 25002,
+            "ready": false
+          }
+        ]
+      },
+      {
+        "at": "2026-10-30T10:13:26.268Z",
+        "schema": "public",
+        "chains": [
+          {
+            "chain_id": 1,
+            "start_block": 13674068,
+            "processed_block": 17238767,
+            "processed_at": null,
+            "fetched_block": 18232868,
+            "source_head": 26304011,
+            "events_processed": 36103,
+            "ready": false
+          },
+          {
+            "chain_id": 10,
+            "start_block": 98531613,
+            "processed_block": 114866112,
+            "processed_at": null,
+            "fetched_block": 116351813,
+            "source_head": 158872832,
+            "events_processed": 165000,
+            "ready": false
+          },
+          {
+            "chain_id": 4663,
+            "start_block": 4758,
+            "processed_block": 27719557,
+            "processed_at": null,
+            "fetched_block": 29205758,
+            "source_head": 101547361,
+            "events_processed": 280001,
+            "ready": false
+          },
+          {
+            "chain_id": 8453,
+            "start_block": 13204824,
+            "processed_block": 24078923,
+            "processed_at": null,
+            "fetched_block": 25083424,
+            "source_head": 53277552,
+            "events_processed": 110000,
+            "ready": false
+          },
+          {
+            "chain_id": 42161,
+            "start_block": 85886461,
+            "processed_block": 202715760,
+            "processed_at": null,
+            "fetched_block": 204204161,
+            "source_head": 519608167,
+            "events_processed": 1180002,
+            "ready": false
+          },
+          {
+            "chain_id": 80094,
+            "start_block": 780011,
+            "processed_block": 8195510,
+            "processed_at": null,
+            "fetched_block": 9186611,
+            "source_head": 28164891,
+            "events_processed": 75000,
+            "ready": false
+          },
+          {
+            "chain_id": 84532,
+            "start_block": 21445237,
+            "processed_block": 29857136,
+            "processed_at": null,
+            "fetched_block": 30847437,
+            "source_head": 52113181,
+            "events_processed": 85000,
+            "ready": false
+          },
+          {
+            "chain_id": 421614,
+            "start_block": 273448345,
+            "processed_block": 287307044,
+            "processed_at": null,
+            "fetched_block": 288792545,
+            "source_head": 324269039,
+            "events_processed": 140000,
+            "ready": false
+          },
+          {
+            "chain_id": 11155111,
+            "start_block": 6577288,
+            "processed_block": 8055887,
+            "processed_at": null,
+            "fetched_block": 9060199,
+            "source_head": 12025116,
+            "events_processed": 25002,
+            "ready": false
+          }
+        ]
+      },
+      {
+        "at": "2026-10-30T10:14:28.402Z",
+        "schema": "public",
+        "chains": [
+          {
+            "chain_id": 1,
+            "start_block": 13674068,
+            "processed_block": 17238767,
+            "processed_at": null,
+            "fetched_block": 18232868,
+            "source_head": 26304011,
+            "events_processed": 36103,
+            "ready": false
+          },
+          {
+            "chain_id": 10,
+            "start_block": 98531613,
+            "processed_block": 114866112,
+            "processed_at": null,
+            "fetched_block": 116351813,
+            "source_head": 158872832,
+            "events_processed": 165000,
+            "ready": false
+          },
+          {
+            "chain_id": 4663,
+            "start_block": 4758,
+            "processed_block": 27719557,
+            "processed_at": null,
+            "fetched_block": 29205758,
+            "source_head": 101547361,
+            "events_processed": 280001,
+            "ready": false
+          },
+          {
+            "chain_id": 8453,
+            "start_block": 13204824,
+            "processed_block": 24078923,
+            "processed_at": null,
+            "fetched_block": 25083424,
+            "source_head": 53277552,
+            "events_processed": 110000,
+            "ready": false
+          },
+          {
+            "chain_id": 42161,
+            "start_block": 85886461,
+            "processed_block": 203210760,
+            "processed_at": null,
+            "fetched_block": 204204161,
+            "source_head": 519608167,
+            "events_processed": 1185002,
+            "ready": false
+          },
+          {
+            "chain_id": 80094,
+            "start_block": 780011,
+            "processed_block": 8195510,
+            "processed_at": null,
+            "fetched_block": 9186611,
+            "source_head": 28164891,
+            "events_processed": 75000,
+            "ready": false
+          },
+          {
+            "chain_id": 84532,
+            "start_block": 21445237,
+            "processed_block": 29857136,
+            "processed_at": null,
+            "fetched_block": 30847437,
+            "source_head": 52113181,
+            "events_processed": 85000,
+            "ready": false
+          },
+          {
+            "chain_id": 421614,
+            "start_block": 273448345,
+            "processed_block": 287307044,
+            "processed_at": null,
+            "fetched_block": 288792545,
+            "source_head": 324269039,
+            "events_processed": 140000,
+            "ready": false
+          },
+          {
+            "chain_id": 11155111,
+            "start_block": 6577288,
+            "processed_block": 8055887,
+            "processed_at": null,
+            "fetched_block": 9060199,
+            "source_head": 12025116,
+            "events_processed": 25002,
+            "ready": false
+          }
+        ]
+      },
+      {
+        "at": "2026-10-30T10:15:30.566Z",
+        "schema": "public",
+        "chains": [
+          {
+            "chain_id": 1,
+            "start_block": 13674068,
+            "processed_block": 17238767,
+            "processed_at": null,
+            "fetched_block": 18232868,
+            "source_head": 26304011,
+            "events_processed": 36103,
+            "ready": false
+          },
+          {
+            "chain_id": 10,
+            "start_block": 98531613,
+            "processed_block": 114866112,
+            "processed_at": null,
+            "fetched_block": 116351813,
+            "source_head": 158872832,
+            "events_processed": 165000,
+            "ready": false
+          },
+          {
+            "chain_id": 4663,
+            "start_block": 4758,
+            "processed_block": 27719557,
+            "processed_at": null,
+            "fetched_block": 29205758,
+            "source_head": 101547361,
+            "events_processed": 280001,
+            "ready": false
+          },
+          {
+            "chain_id": 8453,
+            "start_block": 13204824,
+            "processed_block": 24078923,
+            "processed_at": null,
+            "fetched_block": 25083424,
+            "source_head": 53277552,
+            "events_processed": 110000,
+            "ready": false
+          },
+          {
+            "chain_id": 42161,
+            "start_block": 85886461,
+            "processed_block": 203210760,
+            "processed_at": null,
+            "fetched_block": 204204161,
+            "source_head": 519608167,
+            "events_processed": 1185002,
+            "ready": false
+          },
+          {
+            "chain_id": 80094,
+            "start_block": 780011,
+            "processed_block": 8195510,
+            "processed_at": null,
+            "fetched_block": 9186611,
+            "source_head": 28164891,
+            "events_processed": 75000,
+            "ready": false
+          },
+          {
+            "chain_id": 84532,
+            "start_block": 21445237,
+            "processed_block": 29857136,
+            "processed_at": null,
+            "fetched_block": 30847437,
+            "source_head": 52113181,
+            "events_processed": 85000,
+            "ready": false
+          },
+          {
+            "chain_id": 421614,
+            "start_block": 273448345,
+            "processed_block": 287307044,
+            "processed_at": null,
+            "fetched_block": 288792545,
+            "source_head": 324269039,
+            "events_processed": 140000,
+            "ready": false
+          },
+          {
+            "chain_id": 11155111,
+            "start_block": 6577288,
+            "processed_block": 8055887,
+            "processed_at": null,
+            "fetched_block": 9060199,
+            "source_head": 12025116,
+            "events_processed": 25002,
+            "ready": false
+          }
+        ]
+      },
+      {
+        "at": "2026-10-30T10:16:32.725Z",
+        "schema": "public",
+        "chains": [
+          {
+            "chain_id": 1,
+            "start_block": 13674068,
+            "processed_block": 17238767,
+            "processed_at": null,
+            "fetched_block": 18232868,
+            "source_head": 26304011,
+            "events_processed": 36103,
+            "ready": false
+          },
+          {
+            "chain_id": 10,
+            "start_block": 98531613,
+            "processed_block": 114866112,
+            "processed_at": null,
+            "fetched_block": 116351813,
+            "source_head": 158872832,
+            "events_processed": 165000,
+            "ready": false
+          },
+          {
+            "chain_id": 4663,
+            "start_block": 4758,
+            "processed_block": 27719557,
+            "processed_at": null,
+            "fetched_block": 29205758,
+            "source_head": 101547361,
+            "events_processed": 280001,
+            "ready": false
+          },
+          {
+            "chain_id": 8453,
+            "start_block": 13204824,
+            "processed_block": 24078923,
+            "processed_at": null,
+            "fetched_block": 25083424,
+            "source_head": 53277552,
+            "events_processed": 110000,
+            "ready": false
+          },
+          {
+            "chain_id": 42161,
+            "start_block": 85886461,
+            "processed_block": 203705860,
+            "processed_at": null,
+            "fetched_block": 205194361,
+            "source_head": 519608167,
+            "events_processed": 1190002,
+            "ready": false
+          },
+          {
+            "chain_id": 80094,
+            "start_block": 780011,
+            "processed_block": 8195510,
+            "processed_at": null,
+            "fetched_block": 9186611,
+            "source_head": 28164891,
+            "events_processed": 75000,
+            "ready": false
+          },
+          {
+            "chain_id": 84532,
+            "start_block": 21445237,
+            "processed_block": 29857136,
+            "processed_at": null,
+            "fetched_block": 30847437,
+            "source_head": 52113181,
+            "events_processed": 85000,
+            "ready": false
+          },
+          {
+            "chain_id": 421614,
+            "start_block": 273448345,
+            "processed_block": 287307044,
+            "processed_at": null,
+            "fetched_block": 288792545,
+            "source_head": 324269039,
+            "events_processed": 140000,
+            "ready": false
+          },
+          {
+            "chain_id": 11155111,
+            "start_block": 6577288,
+            "processed_block": 8055887,
+            "processed_at": null,
+            "fetched_block": 9060199,
+            "source_head": 12025116,
+            "events_processed": 25002,
+            "ready": false
+          }
+        ]
+      },
+      {
+        "at": "2026-10-30T10:17:34.763Z",
+        "schema": "public",
+        "chains": [
+          {
+            "chain_id": 1,
+            "start_block": 13674068,
+            "processed_block": 17238767,
+            "processed_at": null,
+            "fetched_block": 18232868,
+            "source_head": 26304011,
+            "events_processed": 36103,
+            "ready": false
+          },
+          {
+            "chain_id": 10,
+            "start_block": 98531613,
+            "processed_block": 115361212,
+            "processed_at": null,
+            "fetched_block": 116351813,
+            "source_head": 158872832,
+            "events_processed": 170000,
+            "ready": false
+          },
+          {
+            "chain_id": 4663,
+            "start_block": 4758,
+            "processed_block": 27719557,
+            "processed_at": null,
+            "fetched_block": 29205758,
+            "source_head": 101547361,
+            "events_processed": 280001,
+            "ready": false
+          },
+          {
+            "chain_id": 8453,
+            "start_block": 13204824,
+            "processed_block": 24078923,
+            "processed_at": null,
+            "fetched_block": 25083424,
+            "source_head": 53277552,
+            "events_processed": 110000,
+            "ready": false
+          },
+          {
+            "chain_id": 42161,
+            "start_block": 85886461,
+            "processed_block": 203705860,
+            "processed_at": null,
+            "fetched_block": 205194361,
+            "source_head": 519608167,
+            "events_processed": 1190002,
+            "ready": false
+          },
+          {
+            "chain_id": 80094,
+            "start_block": 780011,
+            "processed_block": 8688910,
+            "processed_at": null,
+            "fetched_block": 10176811,
+            "source_head": 28164891,
+            "events_processed": 80000,
+            "ready": false
+          },
+          {
+            "chain_id": 84532,
+            "start_block": 21445237,
+            "processed_block": 29857136,
+            "processed_at": null,
+            "fetched_block": 30847437,
+            "source_head": 52113181,
+            "events_processed": 85000,
+            "ready": false
+          },
+          {
+            "chain_id": 421614,
+            "start_block": 273448345,
+            "processed_block": 287307044,
+            "processed_at": null,
+            "fetched_block": 288792545,
+            "source_head": 324269039,
+            "events_processed": 140000,
+            "ready": false
+          },
+          {
+            "chain_id": 11155111,
+            "start_block": 6577288,
+            "processed_block": 8055887,
+            "processed_at": null,
+            "fetched_block": 9060199,
+            "source_head": 12025116,
+            "events_processed": 25002,
+            "ready": false
+          }
+        ]
+      }
+    ]
+  },
+  "earlier_profile": {
+    "at": "2026-10-30T09:49:29Z",
+    "elapsed_seconds": 9359.669,
+    "preload_seconds": 7934.816,
+    "processing_seconds": 1345.278,
+    "stalled_on_fetch_seconds": 31.87,
+    "stalled_on_storage_write_seconds": 0.063,
+    "indexer_cpu_vcpu": 0.0511174,
+    "indexer_memory_mb": 420.780965888,
+    "resource_sample_window": "2026-10-30T09:29:43Z/2026-10-30T09:44:46Z"
+  },
+  "fixture_description": "Actual Envio 3.14.1 effect loader and limits, viem HTTP and PostgreSQL temporary-table adapter. 10 ms delay per RPC; all getters return one shared fixture target. eRPC and a full indexer replay are not part of the fixture.",
+  "fixture_baseline": {
+    "fixture": true,
+    "storage": "postgres-adapter",
+    "envio": "3.14.1",
+    "blockNumber": 17238767,
+    "getters": 324,
+    "subjects": 64,
+    "latencyMs": 10,
+    "medianElapsedMs": 31660.134708,
+    "runs": [
+      {
+        "elapsedMs": 31660.134708,
+        "requests": {
+          "eth_getBlockByNumber": 972,
+          "eth_getCode": 648,
+          "eth_call": 324
+        },
+        "resultDigest": "1d510548e5619cd78f2587d5681949cf6d9d0ee194266279e713adc58f103e4c",
+        "restartRequests": 0,
+        "effects": {
+          "readControlGetter": {
+            "calls": 324,
+            "queueWaitSeconds": 0
+          }
+        }
+      },
+      {
+        "elapsedMs": 31746.827749999997,
+        "requests": {
+          "eth_getBlockByNumber": 972,
+          "eth_getCode": 648,
+          "eth_call": 324
+        },
+        "resultDigest": "1d510548e5619cd78f2587d5681949cf6d9d0ee194266279e713adc58f103e4c",
+        "restartRequests": 0,
+        "effects": {
+          "readControlGetter": {
+            "calls": 324,
+            "queueWaitSeconds": 0
+          }
+        }
+      },
+      {
+        "elapsedMs": 30749.140583,
+        "requests": {
+          "eth_getBlockByNumber": 972,
+          "eth_getCode": 648,
+          "eth_call": 324
+        },
+        "resultDigest": "1d510548e5619cd78f2587d5681949cf6d9d0ee194266279e713adc58f103e4c",
+        "restartRequests": 0,
+        "effects": {
+          "readControlGetter": {
+            "calls": 324,
+            "queueWaitSeconds": 0
+          }
+        }
+      }
+    ]
+  },
+  "fixture_optimized": {
+    "fixture": true,
+    "storage": "postgres-adapter",
+    "envio": "3.14.1",
+    "blockNumber": 17238767,
+    "getters": 324,
+    "subjects": 64,
+    "latencyMs": 10,
+    "medianElapsedMs": 22371.848041999998,
+    "runs": [
+      {
+        "elapsedMs": 23261.342625,
+        "requests": {
+          "eth_getBlockByNumber": 972,
+          "eth_getCode": 65,
+          "eth_call": 324
+        },
+        "resultDigest": "1d510548e5619cd78f2587d5681949cf6d9d0ee194266279e713adc58f103e4c",
+        "restartRequests": 0,
+        "effects": {
+          "readControlGetter": {
+            "calls": 324,
+            "queueWaitSeconds": 0
+          },
+          "readPinnedBytecodeHash": {
+            "calls": 65,
+            "queueWaitSeconds": 0
+          }
+        }
+      },
+      {
+        "elapsedMs": 22371.848041999998,
+        "requests": {
+          "eth_getBlockByNumber": 972,
+          "eth_getCode": 65,
+          "eth_call": 324
+        },
+        "resultDigest": "1d510548e5619cd78f2587d5681949cf6d9d0ee194266279e713adc58f103e4c",
+        "restartRequests": 0,
+        "effects": {
+          "readControlGetter": {
+            "calls": 324,
+            "queueWaitSeconds": 0
+          },
+          "readPinnedBytecodeHash": {
+            "calls": 65,
+            "queueWaitSeconds": 0
+          }
+        }
+      },
+      {
+        "elapsedMs": 21759.657917000004,
+        "requests": {
+          "eth_getBlockByNumber": 972,
+          "eth_getCode": 65,
+          "eth_call": 324
+        },
+        "resultDigest": "1d510548e5619cd78f2587d5681949cf6d9d0ee194266279e713adc58f103e4c",
+        "restartRequests": 0,
+        "effects": {
+          "readControlGetter": {
+            "calls": 324,
+            "queueWaitSeconds": 0
+          },
+          "readPinnedBytecodeHash": {
+            "calls": 65,
+            "queueWaitSeconds": 0
+          }
+        }
+      }
+    ]
+  },
+  "fixture_verification": {
+    "fixture": true,
+    "storage": "postgres-adapter",
+    "envio": "3.14.1",
+    "blockNumber": 17238767,
+    "getters": 324,
+    "subjects": 64,
+    "latencyMs": 10,
+    "sharedReturnedTarget": true,
+    "medianElapsedMs": 21795.888959,
+    "runs": [
+      {
+        "elapsedMs": 21795.888959,
+        "requests": {
+          "eth_getBlockByNumber": 972,
+          "eth_getCode": 65,
+          "eth_call": 324
+        },
+        "resultDigest": "1d510548e5619cd78f2587d5681949cf6d9d0ee194266279e713adc58f103e4c",
+        "restartRequests": 0,
+        "bytecodeRestartVerified": true,
+        "effects": {
+          "readControlGetter": {
+            "calls": 324,
+            "queueWaitSeconds": 0
+          },
+          "readPinnedBytecodeHash": {
+            "calls": 65,
+            "queueWaitSeconds": 0
+          }
+        }
+      }
+    ]
+  },
+  "validation": {
+    "required_sequence": [
+      {
+        "step": 1,
+        "command": "pnpm run check:runtime-versions",
+        "exit": 0,
+        "seconds": 2.541
+      },
+      {
+        "step": 2,
+        "command": "pnpm install --frozen-lockfile",
+        "exit": 0,
+        "seconds": 0.812
+      },
+      {
+        "step": 3,
+        "command": "pnpm run lint:check",
+        "exit": 0,
+        "seconds": 2.458
+      },
+      {
+        "step": 4,
+        "command": "pnpm run build",
+        "exit": 0,
+        "seconds": 9.916
+      },
+      {
+        "step": 5,
+        "command": "pnpm run snapshots:generate:local",
+        "exit": 0,
+        "seconds": 2.813
+      },
+      {
+        "step": 6,
+        "command": "pnpm run docker:build:indexer",
+        "exit": 0,
+        "seconds": 5.256
+      },
+      {
+        "step": 7,
+        "command": "pnpm run docker:build:frontend",
+        "exit": 0,
+        "seconds": 3.678
+      },
+      {
+        "step": 8,
+        "command": "pnpm run docker:build:snapshot-gateway",
+        "exit": 0,
+        "seconds": 1.036
+      },
+      {
+        "step": 9,
+        "command": "pnpm run docker:build:snapshot-publisher",
+        "exit": 0,
+        "seconds": 1.03
+      }
+    ],
+    "initial_failure": "lint:check required import type syntax; corrected before restarting from step1",
+    "indexer_tests_passed": 67,
+    "typecheck": "passed after offline code generation with localhost placeholders",
+    "independent_review": "no actionable correctness findings",
+    "live_candidate_indexing": "not run",
+    "railway_mutations": "none"
+  }
+}

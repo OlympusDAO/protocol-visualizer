@@ -5,7 +5,8 @@ import {
   type ControlGetterResult,
 } from "./control-reads";
 import { createEffect, S } from "envio";
-import { keccak256, type Address, type Hex } from "viem";
+import type { Address, Hex } from "viem";
+import { emptyCodeHash, getBytecodeHash } from "./code-cache";
 
 import { KernelAbi } from "../../abis/Kernel";
 import { ModuleAbi } from "../../abis/Module";
@@ -353,19 +354,19 @@ export const readCodeHashEffect = createEffect(
     try {
       const client = getPublicClient(input.chainId);
       const before = await client.getBlock({ blockNumber: input.blockNumber });
-      const code = await client.getCode({
+      const codeHash = await getBytecodeHash(context, input.chainId, {
         address: input.address,
         blockHash: input.blockHash as Hex,
         requireCanonical: true,
       });
       const after = await client.getBlock({ blockNumber: input.blockNumber });
       if (
-        code &&
-        code !== "0x" &&
+        codeHash &&
+        codeHash !== emptyCodeHash &&
         before.hash === input.blockHash &&
         after.hash === input.blockHash
       )
-        return keccak256(code);
+        return codeHash;
     } catch {
       /* Documentation stays unavailable when the pinned code cannot be verified. */
     }
@@ -501,7 +502,9 @@ export const readControlGetterEffect = createEffect(
   async ({ input, context }) => {
     const result = await readPinnedControlGetter(
       getPublicClient(input.chainId),
-      input
+      input,
+      undefined,
+      (pin) => getBytecodeHash(context, input.chainId, pin)
     );
     if (result.status === "unavailable") context.cache = false;
     return result;
@@ -585,7 +588,8 @@ const readBridgeConfigurationEffect = createEffect(
   async ({ input, context }) => {
     const result = await readPinnedBridgeConfiguration(
       getPublicClient(input.chainId),
-      input
+      input,
+      (pin) => getBytecodeHash(context, input.chainId, pin)
     );
     if (result.status === "unavailable") context.cache = false;
     return result;

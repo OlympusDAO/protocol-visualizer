@@ -2,6 +2,7 @@ import { keccak256, type Abi, type Address, type Hex } from "viem";
 import metadata from "../generated/contract-metadata.json";
 import type { ProcessedContractData } from "../services/contracts/types";
 import type { FunctionContext } from "../../../../packages/snapshot-artifacts/src/index";
+import { emptyCodeHash, type BytecodePin } from "./code-cache";
 
 export type ControlGetterInput = {
   chainId: number;
@@ -75,7 +76,9 @@ export async function readPinnedControlGetter(
   input: ControlGetterInput,
   contract: ProcessedContractData | undefined = (
     metadata as Record<string, Record<string, ProcessedContractData>>
-  )[String(input.chainId)]?.[input.address.toLowerCase()]
+  )[String(input.chainId)]?.[input.address.toLowerCase()],
+  readCodeHash: (pin: BytecodePin) => Promise<Hex | undefined> = async (pin) =>
+    client.getCode ? keccak256((await client.getCode(pin)) ?? "0x") : undefined
 ): Promise<ControlGetterResult> {
   try {
     const [getter = "", token] = input.getter.split(":");
@@ -127,12 +130,12 @@ export async function readPinnedControlGetter(
         reason: "canonical block hash changed before getter read",
       };
     if (functionContext?.source) {
-      const code = await client.getCode?.({
+      const codeHash = await readCodeHash({
         address: input.address,
         blockHash: input.blockHash as Hex,
         requireCanonical: true,
       });
-      if (!code || keccak256(code) !== functionContext.source.codeHash)
+      if (!codeHash || codeHash !== functionContext.source.codeHash)
         return {
           status: "unavailable",
           reason:
@@ -227,13 +230,18 @@ export async function readPinnedControlGetter(
         reason: "getter returned an unexpected value",
       };
     let targetCode: "present" | "absent" | undefined;
-    if (generic && client.getCode && typeof value === "string") {
-      const code = await client.getCode({
+    if (generic && typeof value === "string") {
+      const codeHash = await readCodeHash({
         address: value as Address,
         blockHash: input.blockHash as Hex,
         requireCanonical: true,
       });
-      targetCode = code && code !== "0x" ? "present" : "absent";
+      if (!codeHash)
+        return {
+          status: "unavailable",
+          reason: "historical code read unavailable",
+        };
+      targetCode = codeHash === emptyCodeHash ? "absent" : "present";
       const confirmed = await client.getBlock({
         blockNumber: input.blockNumber,
       });

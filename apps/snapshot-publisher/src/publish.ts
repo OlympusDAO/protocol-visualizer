@@ -31,7 +31,12 @@ import {
 } from "./snapshot.js";
 import { describeFetchError, safeUrlForLog } from "./network-errors.js";
 import { getSampleProtocolData } from "./sample-data.js";
-import type { Manifest, SnapshotBatch, SnapshotFile } from "./types.js";
+import type {
+  ChainConfig,
+  Manifest,
+  SnapshotBatch,
+  SnapshotFile,
+} from "./types.js";
 
 type SnapshotSource = "hasura" | "sample";
 type SkipReason = "lock_held" | "not_data_ready";
@@ -61,7 +66,8 @@ type PublisherDependencies = {
   createS3Client?: () => SnapshotS3Client;
   notifyHandover?: (
     manifest: Manifest,
-    environmentName: string
+    environmentName: string,
+    chains: ChainConfig[]
   ) => Promise<DiscordNotificationResult | undefined>;
 };
 
@@ -80,6 +86,7 @@ type DiscordEmbedField = {
 
 type DiscordEmbed = {
   title: string;
+  color?: number;
   description?: string;
   fields?: DiscordEmbedField[];
   footer?: {
@@ -606,38 +613,102 @@ export const sendDiscordMessage = async (
 const shortId = (value: string | undefined): string =>
   value && value.length > 12 ? value.slice(0, 12) : (value ?? "<none>");
 
-const indexingProgressFields = (
-  progress: IndexingProgress | undefined,
-  chainNamesById: Map<number, string> = new Map()
-): DiscordEmbedField[] => {
-  const entries = Object.entries(progress?.chains ?? {});
-  if (entries.length === 0) {
-    return [
-      {
-        name: "Progress",
-        value: "No per-chain progress available.",
-        inline: false,
-      },
-    ];
+const sendChainNotifications = async (input: {
+  content: string;
+  embed: DiscordEmbed;
+  chains: ChainConfig[];
+  progress?: IndexingProgress;
+  readiness?: EnvioMetricsReadiness;
+}): Promise<DiscordNotificationResult> => {
+  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+  if (!webhookUrl?.trim()) return sendDiscordMessage(webhookUrl, input.content);
+  if (
+    input.chains.some(
+      (chain) => !["production", "testnet"].includes(chain.environment ?? "")
+    )
+  ) {
+    throw new Error(
+      "Chain notifications require production or testnet environment metadata"
+    );
   }
-  return entries.map(([name, chain]) => ({
-    name: chainNamesById.get(chain.chainId) ?? name,
-    value: `Block: ${chain.block}\nTime: ${
-      chain.timestamp === null
-        ? "Timestamp unavailable"
-        : `<t:${chain.timestamp}:F>`
-    }`,
-    inline: true,
-  }));
+  const progressByChainId = new Map(
+    Object.values(input.progress?.chains ?? {}).map((chain) => [
+      chain.chainId,
+      chain,
+    ])
+  );
+  let result: DiscordNotificationResult = {
+    configured: true,
+    attempted: false,
+    delivered: false,
+  };
+  for (const environment of ["production", "testnet"] as const) {
+    const chains = input.chains.filter(
+      (chain) =>
+        chain.availability !== "historical" && chain.environment === environment
+    );
+    if (chains.length === 0) continue;
+    const group =
+      environment === "production" ? "Production chains" : "Testnets";
+    const rows = chains.map((chain) => {
+      const current = progressByChainId.get(chain.chainId);
+      const unavailable =
+        !current || input.readiness?.missingChainIds.includes(chain.chainId);
+      const ready =
+        !unavailable &&
+        (!input.readiness ||
+          input.readiness.readyChainIds.includes(chain.chainId));
+      const status = unavailable
+        ? "Progress unavailable"
+        : !input.readiness
+          ? "Published"
+          : ready
+            ? "Ready for publication"
+            : "Indexing";
+      return {
+        ready,
+        unavailable,
+        field: {
+          name: `${unavailable ? "⚪" : ready ? "🟢" : "🟠"} ${chain.name}`,
+          value: `Status: ${status}\nBlock: ${unavailable ? "Unavailable" : current.block}\nTime: ${
+            unavailable || current.timestamp === null
+              ? "Timestamp unavailable"
+              : `<t:${current.timestamp}:F>`
+          }`,
+          inline: false,
+        },
+      };
+    });
+    result = await sendDiscordMessage(webhookUrl, {
+      content: `${input.content} — ${group}`,
+      embeds: [
+        {
+          ...input.embed,
+          title: `${input.embed.title} — ${group}`,
+          color: rows.some((row) => !row.ready && !row.unavailable)
+            ? 0xf39c12
+            : rows.every((row) => row.ready)
+              ? 0x2ecc71
+              : 0x95a5a6,
+          fields: [
+            ...(input.embed.fields ?? []),
+            ...rows.map((row) => row.field),
+          ],
+        },
+      ],
+    });
+  }
+  return result;
 };
 
 const reasonsField = (reasons: string[]) =>
   reasons.length > 0 ? reasons.join(", ") : "No blocking reason recorded.";
 
-const notifyHandover = async (manifest: Manifest, environmentName: string) => {
-  const chainNamesById = new Map(
-    manifest.chains.map((chain) => [chain.chainId, chain.name])
-  );
+const notifyHandover = async (
+  manifest: Manifest,
+  environmentName: string,
+  chains: ChainConfig[]
+) => {
   const webhookConfigured = Boolean(process.env.DISCORD_WEBHOOK_URL?.trim());
   console.log(
     JSON.stringify({
@@ -653,23 +724,22 @@ const notifyHandover = async (manifest: Manifest, environmentName: string) => {
       "Discord handover notification skipped: DISCORD_WEBHOOK_URL is blank"
     );
   }
-  const result = await sendDiscordMessage(process.env.DISCORD_WEBHOOK_URL, {
+  const result = await sendChainNotifications({
+    chains,
+    progress: manifest.indexingProgress,
     content: "Protocol visualizer snapshot handover completed",
-    embeds: [
-      {
-        title: "Protocol Visualizer Snapshot Handover",
-        description: `Environment ${environmentName}`,
-        fields: [
-          {
-            name: "Deployment ID",
-            value: shortId(manifest.indexerDeploymentId),
-            inline: false,
-          },
-          ...indexingProgressFields(manifest.indexingProgress, chainNamesById),
-        ],
-        timestamp: manifest.generatedAt,
-      },
-    ],
+    embed: {
+      title: "Protocol Visualizer Snapshot Handover",
+      description: `Environment ${environmentName}`,
+      fields: [
+        {
+          name: "Deployment ID",
+          value: shortId(manifest.indexerDeploymentId),
+          inline: false,
+        },
+      ],
+      timestamp: manifest.generatedAt,
+    },
   });
   console.log(
     JSON.stringify({
@@ -684,6 +754,7 @@ const notifyHandover = async (manifest: Manifest, environmentName: string) => {
 };
 
 const notifyIndexingProgress = async (input: {
+  chains: ChainConfig[];
   decision: "handover_in_progress" | "indexing_continues";
   deploymentId: string;
   environmentName: string;
@@ -709,47 +780,47 @@ const notifyIndexingProgress = async (input: {
       `Discord ${notification} notification skipped: DISCORD_WEBHOOK_URL is blank`
     );
   }
-  const result = await sendDiscordMessage(process.env.DISCORD_WEBHOOK_URL, {
+  const result = await sendChainNotifications({
+    chains: input.chains,
+    progress: input.readiness.indexingProgress,
+    readiness: input.readiness,
     content:
       input.decision === "handover_in_progress"
         ? "Protocol visualizer new deployment indexing"
         : "Protocol visualizer indexing continues",
-    embeds: [
-      {
-        title:
-          input.decision === "handover_in_progress"
-            ? "Protocol Visualizer New Deployment Indexing"
-            : "Protocol Visualizer Indexing Continues",
-        description: `Environment ${input.environmentName}`,
-        fields: [
-          {
-            name: "Indexing deployment",
-            value: shortId(input.deploymentId),
-            inline: true,
-          },
-          {
-            name: "Published deployment",
-            value: shortId(input.activeManifest?.indexerDeploymentId),
-            inline: true,
-          },
-          {
-            name: "Synced to head",
-            value: input.readiness.syncedToHead ? "yes" : "no",
-            inline: true,
-          },
-          {
-            name: "Decision reasons",
-            value: reasonsField(input.reasons),
-            inline: false,
-          },
-          ...indexingProgressFields(input.readiness.indexingProgress),
-        ],
-        footer: input.activeManifest
-          ? { text: `Active manifest: ${input.activeManifest.generatedAt}` }
-          : undefined,
-        timestamp: new Date().toISOString(),
-      },
-    ],
+    embed: {
+      title:
+        input.decision === "handover_in_progress"
+          ? "Protocol Visualizer New Deployment Indexing"
+          : "Protocol Visualizer Indexing Continues",
+      description: `Environment ${input.environmentName}`,
+      fields: [
+        {
+          name: "Indexing deployment",
+          value: shortId(input.deploymentId),
+          inline: true,
+        },
+        {
+          name: "Published deployment",
+          value: shortId(input.activeManifest?.indexerDeploymentId),
+          inline: true,
+        },
+        {
+          name: "Synced to head",
+          value: input.readiness.syncedToHead ? "yes" : "no",
+          inline: true,
+        },
+        {
+          name: "Decision reasons",
+          value: reasonsField(input.reasons),
+          inline: false,
+        },
+      ],
+      footer: input.activeManifest
+        ? { text: `Active manifest: ${input.activeManifest.generatedAt}` }
+        : undefined,
+      timestamp: new Date().toISOString(),
+    },
   });
   console.log(
     JSON.stringify({
@@ -953,6 +1024,7 @@ export async function runPublisher(deps: PublisherDependencies = {}) {
       });
       try {
         await notifyIndexingProgress({
+          chains,
           decision: decision.decision,
           deploymentId,
           environmentName: environmentName ?? getRailwayEnvironmentName(),
@@ -1022,7 +1094,8 @@ export async function runPublisher(deps: PublisherDependencies = {}) {
       try {
         await (deps.notifyHandover ?? notifyHandover)(
           batch.manifest,
-          environmentName ?? getRailwayEnvironmentName()
+          environmentName ?? getRailwayEnvironmentName(),
+          chains
         );
       } catch (error) {
         console.error(

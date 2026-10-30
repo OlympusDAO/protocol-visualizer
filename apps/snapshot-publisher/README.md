@@ -129,6 +129,13 @@ for generated REST paths. `PROTOCOL_CHAINS_CONFIG_PATH` is set by the Docker
 image and usually does not need to be configured manually. `DISCORD_WEBHOOK_URL`
 enables indexing progress and handover notifications. IaC supplies the shared
 reference. Add its value once per environment in Railway Project Settings → Shared Variables.
+
+Deployment progress and handover notifications are split into production chains
+and testnets. Each configured chain has one full-width row with a status indicator,
+block, and timestamp. Missing progress remains visible. Deployment progress uses
+Envio readiness: orange means indexing, green means ready for publication, and
+neutral means unavailable. Handover rows use the status `Published`.
+
 See [Discord notification examples](../../docs/discord-notifications.md) for
 message formats, delivery behavior, and field limits.
 

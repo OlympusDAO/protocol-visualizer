@@ -279,7 +279,11 @@ test("Env samples and docs keep optional variables commented", () => {
   assert(monitorDocs.includes("indexer.PORT=9898"));
   assert(monitorDocs.includes("# MONITOR_STALE_CHAIN_HOURS=24"));
   assert(railwayDocs.includes("# ENVIO_RPC_MODE="));
-  assert(railwayDocs.includes("# DISCORD_WEBHOOK_URL=<discord webhook url>"));
+  assert(
+    railwayDocs.includes(
+      "# DISCORD_WEBHOOK_URL=${{shared.DISCORD_WEBHOOK_URL}}"
+    )
+  );
 });
 
 test("Compose third-party images are pinned by digest", () => {

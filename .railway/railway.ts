@@ -75,7 +75,7 @@ export default defineRailway((ctx) => {
         "http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql",
       INDEXER_METRICS_URL:
         "http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:${{indexer.PORT}}/metrics",
-      DISCORD_WEBHOOK_URL: preserve(),
+      DISCORD_WEBHOOK_URL: ctx.shared.DISCORD_WEBHOOK_URL,
     },
     build: {
       builder: "DOCKERFILE",
@@ -233,7 +233,7 @@ export default defineRailway((ctx) => {
       ...rpcUrls("RPC_URL_"),
       INDEXER_METRICS_URL:
         "http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:${{indexer.PORT}}/metrics",
-      DISCORD_WEBHOOK_URL: preserve(),
+      DISCORD_WEBHOOK_URL: ctx.shared.DISCORD_WEBHOOK_URL,
     },
     build: {
       builder: "DOCKERFILE",

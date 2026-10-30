@@ -5,6 +5,9 @@ It is the project definition; there is no named partial. Removing a resource
 can delete it on apply. IaC supplies connection references. Provider URLs and
 operator secrets stay in Railway through `preserve()`; optional overrides remain
 outside IaC ownership. Configure and verify the cache before routing consumers.
+Publisher and monitor reference the environment's shared `DISCORD_WEBHOOK_URL`.
+Add its value manually in Project Settings → Shared Variables before applying the plan.
+Use a separate webhook for preview alerts. Do not commit the webhook URL.
 
 Use the repository-pinned SDK and Railway CLI 5.71.0 or newer:
 

@@ -1,40 +1,40 @@
-import type { FunctionContext } from "../../../../packages/snapshot-artifacts/src/index";
-import {
-  readPinnedControlGetter,
-  type ControlGetterInput,
-  type ControlGetterResult,
-} from "./control-reads";
 import { createEffect, S } from "envio";
 import type { Address, Hex } from "viem";
-import { emptyCodeHash, getBytecodeHash } from "./code-cache";
-import { getEffectClient } from "./call-cache";
-import { reuseKernelRead, kernelReadProof } from "./kernel-reuse";
-import { getKernelConstants } from "../constants";
-
+import type { FunctionContext } from "../../../../packages/snapshot-artifacts/src/index";
 import { KernelAbi } from "../../abis/Kernel";
 import { ModuleAbi } from "../../abis/Module";
 import { PolicyAbi } from "../../abis/Policy";
 import { RolesAdminAbi } from "../../abis/RolesAdmin";
+import { getKernelConstants } from "../constants";
 import { ContractProcessor } from "../services/contracts/processor";
 import type { ProcessedContractData } from "../services/contracts/types";
-import type {
-  EnvioContext,
-  RequestedPolicyPermission,
-  RequestedPolicyPermissionsResult,
-} from "./types";
+import type { BridgeReadResult } from "./bridge-config";
+import { readPinnedBridgeConfiguration } from "./bridge-reads";
+import { getEffectClient } from "./call-cache";
+import { emptyCodeHash, getBytecodeHash } from "./code-cache";
+import {
+  type ControlGetterInput,
+  type ControlGetterResult,
+  readPinnedControlGetter,
+} from "./control-reads";
+import type { ControlBlock } from "./control-state";
+import { readDeploymentGetter } from "./deployment-getters";
 import { normalizeAddress } from "./ids";
+import { kernelReadProof, reuseKernelRead } from "./kernel-reuse";
+import {
+  type DependencyReadResult,
+  readPinnedModuleDependencies,
+} from "./module-dependencies";
 import {
   getPublicClient,
   isHistoricalStateUnavailable,
   rethrowTransientRpc,
 } from "./rpc";
-import type { ControlBlock } from "./control-state";
-import { readPinnedBridgeConfiguration } from "./bridge-reads";
-import type { BridgeReadResult } from "./bridge-config";
-import {
-  readPinnedModuleDependencies,
-  type DependencyReadResult,
-} from "./module-dependencies";
+import type {
+  EnvioContext,
+  RequestedPolicyPermission,
+  RequestedPolicyPermissionsResult,
+} from "./types";
 
 const contractProcessors = new Map<number, ContractProcessor>();
 const processedContracts = new Map<string, Promise<ProcessedContractData>>();
@@ -534,6 +534,8 @@ export async function getControlGetter(
       readControlGetterEffect,
       normalized
     )) as ControlGetterResult;
+  const deployment = await readDeploymentGetter(context, normalized);
+  if (deployment) return deployment;
   if (!kernelReadProof(normalized)) return read();
   const block =
     observationBlock ??

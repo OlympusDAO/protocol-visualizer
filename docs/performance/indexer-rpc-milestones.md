@@ -39,10 +39,25 @@ This is 44.9% fewer requests and 65.0% shorter in the selected repeatable worklo
 
 Regression checks cover active/inactive state, every action, migration, backward reads, runtime/address mismatch, empty dependency scans, restart, canonical fork rejection and retained verification provenance. Indexer tests and TypeScript checking pass; offline code generation succeeds using localhost-only RPC placeholders. This milestone adds two schema entities; no existing database was migrated or reset. Worker isolation remains disabled.
 
+## Verified deployment lifetime facts
+
+The first deployment manifest covers only Ethereum CoolerV2Migrator at 0xe045bd0a0d85e980aa152064c06eae6b6ae358d2, creation block 22515497. Seven public immutable address getters are proven from verified compiler source: CHREG, FLASH, COOLERV2, MIGRATOR, USDS, GOHM and DAI. The source/runtime-bound manifest contains the runtime artifact and proof description. Mutable owner/isEnabled and unknown getters are excluded.
+
+A persisted deployment proof requires empty code at the parent block and the exact audited runtime at creation. This reviewed executable has no CALLCODE, DELEGATECALL or SELFDESTRUCT (PUSH data and CBOR metadata excluded). Imported factory child creation bytecode is not this contract's executable. No proxy-slot heuristic is used. Ordinary nonempty runtime cannot turn into an EIP-7702 delegation account. An earlier incarnation or runtime mismatch rejects the lifetime proof; predeployment reads never reuse it. Forks re-key the proof by creation hash; deployment and descendant headers are read fresh. Absent code and target-contract code remain block-hash-specific. Legitimate unavailable historical state falls through; transient failures still propagate.
+
+Immutable raw calls execute at creation and persist against deployment identity plus full allowlisted zero-argument calldata, with no caller/options. Relationship verification retains that actual creation-block RPC provenance. Referenced target code is read at each requested block and followed by a canonical recheck.
+
+| Seven-getter, ten-checkpoint fixture | Requests | Median |
+| --- | ---: | ---: |
+| Block-specific readers | 300 | 5.052 s |
+| Verified deployment reuse | 229 | 3.684 s |
+
+This is 23.7% fewer requests and 27.1% shorter in this fixture. It includes cold proof overhead, three repetitions, 10 ms/RPC and a fresh Envio loader every checkpoint with PostgreSQL-persisted effects. The runtime is the manifest's real bytecode, but headers and getter values are controlled fixtures. Warm nine-checkpoint eth_call count falls from 63 to zero. Raw counts: [milestone 3](indexer-rpc-milestone-3.json). This workload starts after deployment and is distinct from the older 324-operation baseline; its savings must not be added arithmetically to earlier fixture percentages.
+
+Verification: all 74 indexer tests and TypeScript checking pass. Regression coverage includes the production getter integration, source hash/runtime binding, history boundaries, an earlier incarnation, persistence, unknown/mutable selector fallback and fork changes. The final ordered repository validation remains pending.
+
 ## Remaining milestones
 
-- Event-invalidated active Kernel/module pointer and dependency reuse, retaining original RPC provenance and inactive-policy fallback.
-- Narrow source/runtime-proven deployment lifetime and immutable getter facts.
 - Last: aggregate eRPC budget, private revert compatibility and actual proxy/PostgreSQL integration. Keep finite defaults and provider protection.
 
 Worker isolation is not an environment-only toggle in Envio 3.14.1: all current entities use shared cross-chain storage. Enabling per-chain processing changes storage keys and checkpoint sequencing and requires a migration/replay plan. This task does not reset databases or activate workers. HyperSync rate limits already wait/retry their source query; custom RPC effects need the separate recovery boundary implemented above.

@@ -119,6 +119,7 @@ Use a separate webhook for preview environments. Keep the URL out of source and 
 Add the shared value before generating the plan, then review and apply that plan to deploy the references.
 Variable changes require a deployment to reach the jobs. Apply the staged changes to deploy the affected services together.
 The publisher skips optional notifications without a webhook; the monitor requires it for alerts.
+See [Discord notification examples](discord-notifications.md) for summaries, warnings, and deployment lifecycle messages.
 
 The PR 82 bootstrap copied existing indexer provider URLs into the cache's upstream
 variables through the authenticated CLI. It did not print or commit their values.

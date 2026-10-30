@@ -21,6 +21,9 @@ across monitor runs.
 Deployment lifecycle messages, including new deployment detection, hourly
 pre-handover progress, and completed handovers, belong in `snapshot-publisher`.
 
+See [Discord notification examples](../../docs/discord-notifications.md) for
+daily summaries, warnings, publisher messages, and field limits.
+
 ## Configuration
 
 Required production variables are uncommented; optional variables are commented.
@@ -28,7 +31,7 @@ Required production variables are uncommented; optional variables are commented.
 Required production variables:
 
 ```bash
-DISCORD_WEBHOOK_URL=<discord webhook url>
+DISCORD_WEBHOOK_URL=${{shared.DISCORD_WEBHOOK_URL}}
 RAILWAY_ENVIRONMENT_NAME=<provided by Railway>
 INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
 BUCKET=${{<bucket-service>.BUCKET}}
@@ -37,6 +40,9 @@ SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
 REGION=${{<bucket-service>.REGION}}
 ENDPOINT=${{<bucket-service>.ENDPOINT}}
 ```
+
+IaC supplies the shared webhook reference. Add its value once per environment
+in Railway Project Settings → Shared Variables.
 
 The indexer Railway service must expose the same port used in
 `INDEXER_METRICS_URL`. With the documented setup, set `indexer.PORT=9898` so the

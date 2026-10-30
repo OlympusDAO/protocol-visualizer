@@ -121,13 +121,16 @@ Optional variables:
 # SNAPSHOT_CHAIN_IDS=1,10,42161,8453,80094,11155111
 # PROTOCOL_CHAINS_CONFIG_PATH=/app/config/protocol-chains.json
 # PUBLISHER_LOCK_TTL_MS=3300000
-# DISCORD_WEBHOOK_URL=
+# DISCORD_WEBHOOK_URL=${{shared.DISCORD_WEBHOOK_URL}}
 ```
 
 `SNAPSHOT_PUBLIC_BASE_PATH` defaults to `/v1`. `SNAPSHOT_PUBLIC_ORIGIN` is used
 for generated REST paths. `PROTOCOL_CHAINS_CONFIG_PATH` is set by the Docker
 image and usually does not need to be configured manually. `DISCORD_WEBHOOK_URL`
-enables immediate handover messages when a new manifest is published.
+enables indexing progress and handover notifications. IaC supplies the shared
+reference. Add its value once per environment in Railway Project Settings → Shared Variables.
+See [Discord notification examples](../../docs/discord-notifications.md) for
+message formats, delivery behavior, and field limits.
 
 Local-only variables:
 

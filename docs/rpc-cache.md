@@ -168,9 +168,13 @@ Register an SSH key with Railway first. Follow [SSH key registration](railway-se
 Then run this command from the linked repository:
 
 ```bash
-RAILWAY_ENVIRONMENT=protocol-visualizer-pr-82 pnpm run rpc-cache:metrics
+pnpm run rpc-cache:metrics
 ```
 
+The script uses the currently linked Railway environment.
+It prints the project and environment names and IDs before it opens the tunnel.
+To select another environment, use `pnpm run rpc-cache:metrics --environment protocol-visualizer-pr-82`.
+`RAILWAY_ENVIRONMENT` also selects an environment. A command-line selector takes precedence.
 The script opens an SSH tunnel and your browser at `http://127.0.0.1:14001/metrics`.
 Keep the terminal open. Press Ctrl+C to close the tunnel and remove its temporary SSH configuration.
 The script does not change `~/.ssh/config`, register keys, or deploy services.
@@ -181,8 +185,7 @@ The script requires Railway CLI, OpenSSH, curl, and `open` on macOS or `xdg-open
 If your key uses a custom filename, select its private key file:
 
 ```bash
-RAILWAY_ENVIRONMENT=protocol-visualizer-pr-82 \
-  RAILWAY_SSH_IDENTITY_FILE="$HOME/.ssh/id_ed25519_railway" \
+RAILWAY_SSH_IDENTITY_FILE="$HOME/.ssh/id_ed25519_railway" \
   pnpm run rpc-cache:metrics
 ```
 

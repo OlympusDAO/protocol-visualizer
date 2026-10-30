@@ -21,6 +21,9 @@ The commands use the linked project and environment. Railway selects the PR
 branch from its environment metadata; production always uses `master`. Changing
 Git branches does not change the Railway link. Verify the plan target before apply.
 For production, pass `--environment production` to both commands.
+Metrics, plan, apply, and reset print the selected project and environment names and IDs before proceeding.
+Command-line `--environment` takes precedence over `RAILWAY_ENVIRONMENT`, then the current link.
+Apply rejects a saved plan for a different target. Reset requires an explicit environment.
 
 After reviewing the saved whole-project plan, apply those exact changes:
 

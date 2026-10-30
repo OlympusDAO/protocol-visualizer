@@ -236,6 +236,9 @@ railway status
 
 Select `protocol-visualizer` if prompted. Verify the project and environment names.
 The plan and apply scripts use this linked context without repeated environment exports.
+Metrics, plan, apply, and reset print the project and environment names and IDs before their operation.
+The selector order is `--environment`, then `RAILWAY_ENVIRONMENT`, then the linked environment.
+Reset still requires an explicit selector because it removes indexer data.
 Railway gets the source branch from its PR environment metadata when creating services.
 Existing preview services retain their configured branch. Production sources always use `master`.
 No PR number or source branch export is required by the scripts.
@@ -308,6 +311,7 @@ pnpm run railway:apply
 
 For an explicit production plan, use `pnpm run railway:apply --environment production`.
 Keep the target environment unchanged between plan and apply.
+The apply script rejects a saved plan for another environment or project before it calls Railway apply.
 The command applies the saved changes without re-evaluating the authoring file.
 If Railway rejects a stale plan, generate a fresh plan and review it again.
 Do not add `--confirm-destructive` to bypass an unexpected destructive change.

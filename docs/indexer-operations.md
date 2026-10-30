@@ -42,7 +42,8 @@ From the repository root on your local machine:
 RAILWAY_ENVIRONMENT=production pnpm run indexer:reset:railway
 ```
 
-`RAILWAY_ENVIRONMENT` is required. Use the exact environment name or ID.
+An explicit environment is required. Use `RAILWAY_ENVIRONMENT` or pass `--environment <name|id>`.
+The script prints the project and environment names and IDs before it starts the reset.
 The command always targets the `indexer` service in the linked project.
 
 The remote script connects to a private Unix socket owned by the indexer user.

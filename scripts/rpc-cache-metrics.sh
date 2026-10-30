@@ -50,7 +50,7 @@ case "$(uname -s)" in
   Linux) xdg-open "$metrics_url" ;;
   *) echo "Open $metrics_url in your browser" ;;
 esac
-echo "Metrics for $RAILWAY_ENVIRONMENT: $metrics_url"
+echo "Metrics for ${RAILWAY_ENVIRONMENT_NAME:-$RAILWAY_ENVIRONMENT}: $metrics_url"
 echo "Keep this terminal open. Press Ctrl+C to close the SSH tunnel."
 while ssh -F "$metrics_tmp/config" -S "$metrics_tmp/socket" -O check "$metrics_alias" >/dev/null 2>&1; do
   sleep 2

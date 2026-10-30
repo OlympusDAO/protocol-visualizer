@@ -167,14 +167,22 @@ test("Railway package command requires an explicit environment and forwards it b
     readFileSync(new URL("../../../package.json", import.meta.url))
   ).scripts["indexer:reset:railway"];
   const root = mkdtempSync(join(tmpdir(), "railway reset 'quoted' $path;-"));
-  writeFileSync(join(root, "railway"), '#!/bin/sh\nprintf "%s\\n" "$@"\n', {
-    mode: 0o700,
-  });
+  writeFileSync(
+    join(root, "railway"),
+    `#!/usr/bin/env node
+const args = process.argv.slice(2);
+if (args[0] === "status") console.log(JSON.stringify({id:"project-id",name:"fixture"}));
+else if (args[0] === "environment") console.log(JSON.stringify({environments:[{id:"staging-id",name:process.env.RAILWAY_ENVIRONMENT,isLinked:false}]}));
+else console.log(JSON.stringify(args));
+`,
+    { mode: 0o700 }
+  );
   const env = { ...process.env, PATH: `${root}:${process.env.PATH}` };
   delete env.RAILWAY_ENVIRONMENT;
   try {
     const missing = await command(
       spawn("/bin/sh", ["-c", script], {
+        cwd: new URL("../../../", import.meta.url),
         env,
         stdio: ["ignore", "pipe", "pipe"],
         shell: false,
@@ -184,22 +192,30 @@ test("Railway package command requires an explicit environment and forwards it b
     assert.match(missing.output, /Set RAILWAY_ENVIRONMENT/);
     const valid = await command(
       spawn("/bin/sh", ["-c", script], {
+        cwd: new URL("../../../", import.meta.url),
         env: { ...env, RAILWAY_ENVIRONMENT: "staging 'quoted'; $branch" },
         stdio: ["ignore", "pipe", "pipe"],
         shell: false,
       })
     ).done;
     assert.equal(valid.code, 0, valid.output);
-    assert.deepEqual(valid.output.trim().split("\n"), [
-      "ssh",
-      "--service",
-      "indexer",
-      "--environment",
-      "staging 'quoted'; $branch",
-      "--",
-      "/nodejs/bin/node",
-      "/app/apps/indexer/scripts/reset-envio.mjs",
-    ]);
+    assert.match(
+      valid.output,
+      /Environment: staging 'quoted'; \$branch \(staging-id\)/
+    );
+    assert.deepEqual(
+      JSON.parse(valid.output.split("\n").find((line) => line.startsWith("["))),
+      [
+        "ssh",
+        "--service",
+        "indexer",
+        "--environment",
+        "staging-id",
+        "--",
+        "/nodejs/bin/node",
+        "/app/apps/indexer/scripts/reset-envio.mjs",
+      ]
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

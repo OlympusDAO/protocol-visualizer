@@ -22,7 +22,7 @@
     "indexer:dev:reset": "env ENVIO_TUI=false pnpm --dir apps/indexer exec node scripts/start-envio.mjs dev -r",
     "indexer:metadata": "node scripts/generate-indexer-contract-metadata.mjs",
     "indexer:metrics": "sh -c 'curl -s \"http://localhost:${ENVIO_INDEXER_PORT:-9898}/metrics\" | rg \"envio_progress_|hyperindex_synced_to_head|envio_effect_\"'",
-    "rpc-cache:metrics": "bash scripts/rpc-cache-metrics.sh",
+    "rpc-cache:metrics": "node scripts/railway-ops.mjs metrics",
     "lint:check": "turbo run lint:check && biome format .",
     "lint": "turbo run lint && biome format --write .",
     "openapi:check": "pnpm --filter snapshot-gateway run openapi:check",
@@ -40,10 +40,10 @@
     "docker:build:rpc-cache": "docker build -f Dockerfile-rpc-cache -t protocol-visualizer/rpc-cache:local .",
     "docker:tag:scan:rpc-cache": "docker tag protocol-visualizer/rpc-cache:local protocol-visualizer/rpc-cache:scan",
     "test:rpc-cache": "node --test services/rpc-cache/integration.test.mjs",
-    "indexer:reset:railway": "railway ssh --service indexer --environment \"${RAILWAY_ENVIRONMENT:?Set RAILWAY_ENVIRONMENT to the target Railway environment}\" -- /nodejs/bin/node /app/apps/indexer/scripts/reset-envio.mjs",
+    "indexer:reset:railway": "node scripts/railway-ops.mjs reset",
     "railway:check": "tsc -p .railway/tsconfig.json",
-    "railway:plan": "railway config plan --out railway-plan.json",
-    "railway:apply": "railway config apply --plan railway-plan.json"
+    "railway:plan": "node scripts/railway-ops.mjs plan",
+    "railway:apply": "node scripts/railway-ops.mjs apply"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

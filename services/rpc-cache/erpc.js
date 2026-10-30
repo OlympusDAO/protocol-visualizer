@@ -98,7 +98,12 @@ export default {
     budgets: [
       {
         id: "archive",
-        rules: [{ method: "*", maxCount: maxRps, period: "1s" }],
+        // Request counting partitions wildcard rules by concrete RPC method.
+        // Unit credits share one aggregate pool across methods and networks.
+        creditUnits: { "*": 1 },
+        rules: [
+          { method: "*", maxCount: maxRps, period: "1s", countMode: "credit" },
+        ],
       },
     ],
   },

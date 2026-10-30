@@ -1,6 +1,8 @@
 # Local indexer RPC milestones
 
-All work stays on the performance branch. Checkpoint frequency and HyperSync remain unchanged. No live variables, databases, deployments or PRs are changed.
+All work stays on the performance branch. Checkpoint frequency and HyperSync remain unchanged. No live variables, existing databases, deployments or PRs are changed.
+
+Milestone verification statements record the status at each commit; the final validation section gives the closeout status.
 
 ## Comparable baseline
 
@@ -60,8 +62,30 @@ Verification: all 74 indexer tests and TypeScript checking pass. Regression cove
 
 Review found and fixed two canonical races: target code must refresh before the final reused-fact header checks, and a fresh successful observation must recheck canonicality even when its reusable runtime proof fails. Production RPC fixtures reproduce fork rejection; separate tests prove wrong Kernel runtime/pointer bindings cannot seed reuse. A held-response fixture fills eight active requests plus 256 waiters, rejects the next logical RPC, drains, and recovers on another chain. Raw requests are used because viem's getBlockNumber action coalesces in-flight calls even with cacheTime zero. The current event-reuse timing above was rerun after the fixes, with the same 430 requests.
 
-## Remaining milestones
+## Aggregate eRPC budget and private errors
 
-- Last: aggregate eRPC budget, private revert compatibility and actual proxy/PostgreSQL integration. Keep finite defaults and provider protection.
+The pinned eRPC wildcard request-mode rule counted each method separately. It now uses unit credits and credit count mode, sharing a finite default 50-request/second pool across all methods and chains. Upstream maxAttempts remains one, no hedging is added, and network retries reacquire permits. Cache hits precede upstream admission. The limiter rejects rather than queues; the indexer queue/backoff provides client-side recovery. Existing effect limits, checkpoint frequency, HyperSync and Etherscan limits stay unchanged. No live RPS setting was lifted.
+
+The private-error patch preserves a normalized bare execution-revert signal and safe ABI bytes. It does not equate arbitrary code-3 failures, reasoned reverts or generic RPC failures with empty array bounds. The actual patched image, central client, viem and production dependency reader passed nine cases covering empty bounds, encoded Panic(0x32), other panics, custom/reasoned reverts, generic errors and transport exhaustion. Capacity recovery also passed. Failed observations cannot be accepted as an empty dependency list.
+
+A fresh controlled eRPC/PostgreSQL integration passed in 39.08 s. Seventeen persisted rows survived an eRPC restart. A 20-credit/second mixed-method, mixed-chain burst sent 160 requests, admitted 20 actual upstream requests and returned 140 capacity errors. Counting includes actual retry/poller admissions. A persisted HIT worked during saturation; a later-window request recovered. Credential markers stayed out of responses and logs. The legacy Envio reset checks were explicitly skipped; only new disposable fixtures were created and removed. The initial persistence assertion was a test-readiness race: the corrected test observes the PostgreSQL row after one cold request instead of repeatedly issuing requests during asynchronous cache writes, then requires a HIT without another upstream read.
+
+This milestone corrects protection and recovery. It makes no additional indexing-speed claim. An aggregate cap can admit less traffic than the old independent per-method caps. The original 324-getter comparison remains 1944 -> 1361 requests and 31.660 -> 22.362 s; the cross-block fixture results above describe their own workloads. None is an optimized live replay or a provider billing result.
+
+Run the controlled transport integration with no resets:
+
+```sh
+RPC_CACHE_TEST_SKIP_RESET=1 node --test services/rpc-cache/integration.test.mjs
+```
+
+Use the repository-pinned Node 24.22.1 and pnpm 11.28.7, and build the local rpc-cache image first. All endpoints and database credentials in these fixtures are disposable test values. Raw integration counters, security results and ordered command statuses are in [milestone 4](indexer-rpc-milestone-4.json).
+
+## Final validation and release boundary
+
+The final nine required commands passed in order after review fixes: runtime check, frozen install, lint, build, local sample snapshots, then indexer/frontend/gateway/publisher image builds. The indexer suite passed 78 tests. Offline code generation and indexer TypeScript checking also passed. Sample snapshots are fixtures, not live indexer output. Nine review lenses completed with the concrete review findings fixed. The original worktree and dependency/frontend source files were unchanged. No push, PR update, deployment, existing database reset or live variable change occurred.
+
+The eRPC image Trivy scan passed the existing ignore policy at MEDIUM/HIGH/CRITICAL. The indexer image scan returned exit 1 with 23 MEDIUM OS advisories in the unchanged Debian base, no HIGH/CRITICAL findings and no Node-package findings. Installed package/CVE details are retained in milestone 4. No ignores or dependency/base versions were changed for this performance work.
+
+The new KernelReadEpoch and KernelReadCache entities are a release compatibility boundary. Envio 3.14.1 preserves entity configuration in envio_info, compares it during resume, and refuses an incompatible configuration. It does not automatically add these tables. A pre-change indexer database therefore cannot resume this code without a separately reviewed migration and retention plan. No such migration or full Envio database rollback was executed here. PostgreSQL-backed fixture adapters demonstrate cache persistence, not an existing-database upgrade. Worker isolation likewise stays disabled because per-chain storage changes require migration/replay planning. A full optimized replay and live before/after rates remain unverified.
 
 Worker isolation is not an environment-only toggle in Envio 3.14.1: all current entities use shared cross-chain storage. Enabling per-chain processing changes storage keys and checkpoint sequencing and requires a migration/replay plan. This task does not reset databases or activate workers. HyperSync rate limits already wait/retry their source query; custom RPC effects need the separate recovery boundary implemented above.

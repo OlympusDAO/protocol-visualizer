@@ -1,5 +1,7 @@
 # Indexer RPC performance
 
+This report records the first bytecode-cache optimization. See [local follow-on milestones](performance/indexer-rpc-milestones.md) for exact-call reuse, event/deployment facts, eRPC recovery, measurements and current validation/release boundaries.
+
 ## Scope
 
 The performance branch starts from commit `9eb4755be2904f6751a72890ecce134c4c701fef`.

@@ -33,9 +33,9 @@ A separate controlled fixture exercises 13 pointers and three dependency scans (
 | Ten-checkpoint fixture | Requests | Median |
 | --- | ---: | ---: |
 | Same readers without event reuse | 780 | 13.883 s |
-| Event reuse | 107 | 1.996 s |
+| Event reuse | 430 | 4.865 s |
 
-This is 86.3% fewer requests and 85.6% shorter in the selected repeatable workload. Cold setup costs are included; raw per-method cold/warm counts are in [milestone 2](indexer-rpc-milestone-2.json). The original single-checkpoint fixture has no cross-block reuse opportunity and its previously measured 1361-request result remains the comparison reference, not a claim of additional savings.
+This is 44.9% fewer requests and 65.0% shorter in the selected repeatable workload. Canonical rechecks bypass the Envio effect loader, which can memoize even nonpersisted effects within a batch. An initial measurement accidentally benefited from that memoization; these corrected measurements issue fresh header RPCs for each recheck. Cold setup costs are included; raw per-method cold/warm counts are in [milestone 2](indexer-rpc-milestone-2.json). The original single-checkpoint fixture has no cross-block reuse opportunity and its previously measured 1361-request result remains the comparison reference, not a claim of additional savings.
 
 Regression checks cover active/inactive state, every action, migration, backward reads, runtime/address mismatch, empty dependency scans, restart, canonical fork rejection and retained verification provenance. Indexer tests and TypeScript checking pass; offline code generation succeeds using localhost-only RPC placeholders. This milestone adds two schema entities; no existing database was migrated or reset. Worker isolation remains disabled.
 

@@ -60,41 +60,41 @@
     "checkpoints": 10,
     "latencyMs": 10,
     "restartAfterCheckpoint": 5,
-    "medianElapsedMs": 1995.7796669999998,
+    "medianElapsedMs": 4864.905624999999,
     "runs": [
       {
-        "elapsedMs": 1759.7329579999998,
+        "elapsedMs": 5121.832125,
         "coldRequests": {
-          "eth_getBlockByNumber": 46,
+          "eth_getBlockByNumber": 64,
           "eth_getCode": 8,
           "eth_call": 25
         },
         "warmNineCheckpoints": {
-          "eth_getBlockByNumber": 10,
+          "eth_getBlockByNumber": 315,
           "eth_getCode": 18
         }
       },
       {
-        "elapsedMs": 2028.6332920000004,
+        "elapsedMs": 4864.905624999999,
         "coldRequests": {
-          "eth_getBlockByNumber": 46,
+          "eth_getBlockByNumber": 64,
           "eth_getCode": 8,
           "eth_call": 25
         },
         "warmNineCheckpoints": {
-          "eth_getBlockByNumber": 10,
+          "eth_getBlockByNumber": 315,
           "eth_getCode": 18
         }
       },
       {
-        "elapsedMs": 1995.7796669999998,
+        "elapsedMs": 4779.091584,
         "coldRequests": {
-          "eth_getBlockByNumber": 46,
+          "eth_getBlockByNumber": 64,
           "eth_getCode": 8,
           "eth_call": 25
         },
         "warmNineCheckpoints": {
-          "eth_getBlockByNumber": 10,
+          "eth_getBlockByNumber": 315,
           "eth_getCode": 18
         }
       }

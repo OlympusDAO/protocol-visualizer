@@ -574,7 +574,7 @@ export async function getControlGetter(
         ? code
         : undefined;
     },
-    (number) => getControlBlock(context, input.chainId, Number(number))
+    (number) => readCanonicalControlBlock(input.chainId, BigInt(number))
   );
   if (result.status === "success" && result.verifiedAt && result.targetCode) {
     const hash = await getBytecodeHash(context, input.chainId, {
@@ -633,10 +633,9 @@ export async function getModuleDependencies(
     blockHash: string;
   }
 ): Promise<DependencyReadResult> {
-  const block = await getControlBlock(
-    context,
+  const block = await readCanonicalControlBlock(
     input.chainId,
-    Number(input.blockNumber)
+    input.blockNumber
   );
   if (!block || block.hash !== input.blockHash.toLowerCase())
     return { status: "unavailable", reason: "Canonical block changed" };
@@ -659,7 +658,7 @@ export async function getModuleDependencies(
         blockHash: input.blockHash as Hex,
         requireCanonical: true,
       }),
-    (number) => getControlBlock(context, input.chainId, Number(number))
+    (number) => readCanonicalControlBlock(input.chainId, BigInt(number))
   );
 }
 
@@ -721,23 +720,28 @@ const readControlBlockEffect = createEffect(
     ),
     cache: false,
   },
-  async ({ input }) => {
-    try {
-      const block = await getPublicClient(input.chainId).getBlock({
-        blockNumber: input.blockNumber,
-      });
-      if (!block.hash) return undefined;
-      return {
-        number: input.blockNumber.toString(),
-        hash: block.hash.toLowerCase(),
-        timestamp: block.timestamp.toString(),
-      };
-    } catch (error) {
-      rethrowTransientRpc(error);
-      return undefined;
-    }
-  }
+  async ({ input }) =>
+    readCanonicalControlBlock(input.chainId, input.blockNumber)
 );
+
+// Bypass the effect loader's per-batch memoization for canonical rechecks.
+async function readCanonicalControlBlock(
+  chainId: number,
+  blockNumber: bigint
+): Promise<ControlBlock | undefined> {
+  try {
+    const block = await getPublicClient(chainId).getBlock({ blockNumber });
+    if (!block.hash) return undefined;
+    return {
+      number: blockNumber.toString(),
+      hash: block.hash.toLowerCase(),
+      timestamp: block.timestamp.toString(),
+    };
+  } catch (error) {
+    rethrowTransientRpc(error);
+    return undefined;
+  }
+}
 
 export async function getControlBlock(
   context: EnvioContext,

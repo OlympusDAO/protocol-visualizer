@@ -1,3 +1,4 @@
+import { rethrowTransientRpc } from "./rpc";
 import { keccak256, type Abi, type Address, type Hex } from "viem";
 import type {
   BridgeConfiguration,
@@ -152,7 +153,8 @@ export async function readPinnedBridgeConfiguration(
           selector
         );
         if (typeof supported === "boolean") routerSupported = supported;
-      } catch {
+      } catch (error) {
+        rethrowTransientRpc(error);
         /* Router coverage stays unknown. */
       }
       if (input.kind === "pool") {
@@ -230,7 +232,8 @@ export async function readPinnedBridgeConfiguration(
       allowList,
     };
     return { status: "success", value: JSON.stringify(configuration) };
-  } catch {
+  } catch (error) {
+    rethrowTransientRpc(error);
     return {
       status: "unavailable",
       reason: "Bridge configuration could not be read at the canonical block.",

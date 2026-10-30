@@ -1,6 +1,6 @@
 import { createEffect, S, type EffectContext } from "envio";
 import { keccak256, type Address, type Hex } from "viem";
-import { getPublicClient } from "./rpc";
+import { getPublicClient, rethrowTransientRpc } from "./rpc";
 
 export type BytecodePin = {
   address: Address;
@@ -32,7 +32,8 @@ export const readBytecodeHashEffect = createEffect(
         throw new Error("Invalid bytecode response");
       // viem represents a successful eth_getCode "0x" response as undefined.
       return keccak256(code ?? "0x");
-    } catch {
+    } catch (error) {
+      rethrowTransientRpc(error);
       context.cache = false;
       return undefined;
     }

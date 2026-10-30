@@ -1,3 +1,4 @@
+import { rethrowTransientRpc } from "./rpc";
 import {
   BaseError,
   ContractFunctionRevertedError,
@@ -100,7 +101,8 @@ export async function readPinnedModuleDependencies(
       }
     }
     throw new Error("Dependency scan limit reached");
-  } catch {
+  } catch (error) {
+    rethrowTransientRpc(error);
     return {
       status: "unavailable",
       reason: "Canonical Kernel dependency registry unavailable or incomplete",

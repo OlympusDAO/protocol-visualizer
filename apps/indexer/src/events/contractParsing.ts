@@ -1,3 +1,4 @@
+import { rethrowTransientRpc } from "./rpc";
 import { fromHex, type Address, type Hex } from "viem";
 
 import {
@@ -106,6 +107,7 @@ export async function parseContractName(
 
     return keycode;
   } catch (error) {
+    rethrowTransientRpc(error);
     console.error(`Failed to read KEYCODE from module at ${target}:`, error);
     return "UNKNOWN";
   }

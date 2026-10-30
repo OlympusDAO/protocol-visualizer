@@ -1,3 +1,4 @@
+import { rethrowTransientRpc } from "./rpc";
 import { keccak256, type Abi, type Address, type Hex } from "viem";
 import metadata from "../generated/contract-metadata.json";
 import type { ProcessedContractData } from "../services/contracts/types";
@@ -257,7 +258,8 @@ export async function readPinnedControlGetter(
       ...(functionContext ? { functionContext } : {}),
       ...(targetCode ? { targetCode } : {}),
     };
-  } catch {
+  } catch (error) {
+    rethrowTransientRpc(error);
     return {
       status: "unavailable",
       reason: "historical getter read unavailable",

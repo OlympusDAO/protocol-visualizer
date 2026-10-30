@@ -7,6 +7,7 @@ import {
 import { createEffect, S } from "envio";
 import type { Address, Hex } from "viem";
 import { emptyCodeHash, getBytecodeHash } from "./code-cache";
+import { getEffectClient } from "./call-cache";
 
 import { KernelAbi } from "../../abis/Kernel";
 import { ModuleAbi } from "../../abis/Module";
@@ -20,7 +21,11 @@ import type {
   RequestedPolicyPermissionsResult,
 } from "./types";
 import { normalizeAddress } from "./ids";
-import { getPublicClient, isHistoricalStateUnavailable } from "./rpc";
+import {
+  getPublicClient,
+  isHistoricalStateUnavailable,
+  rethrowTransientRpc,
+} from "./rpc";
 import type { ControlBlock } from "./control-state";
 import { readPinnedBridgeConfiguration } from "./bridge-reads";
 import type { BridgeReadResult } from "./bridge-config";
@@ -367,7 +372,8 @@ export const readCodeHashEffect = createEffect(
         after.hash === input.blockHash
       )
         return codeHash;
-    } catch {
+    } catch (error) {
+      rethrowTransientRpc(error);
       /* Documentation stays unavailable when the pinned code cannot be verified. */
     }
     context.cache = false;
@@ -501,7 +507,7 @@ export const readControlGetterEffect = createEffect(
   },
   async ({ input, context }) => {
     const result = await readPinnedControlGetter(
-      getPublicClient(input.chainId),
+      getEffectClient(context, input.chainId),
       input,
       undefined,
       (pin) => getBytecodeHash(context, input.chainId, pin)
@@ -543,7 +549,7 @@ const readModuleDependenciesEffect = createEffect(
   },
   async ({ input, context }) => {
     const result = await readPinnedModuleDependencies(
-      getPublicClient(input.chainId),
+      getEffectClient(context, input.chainId),
       input
     );
     if (result.status === "unavailable") context.cache = false;
@@ -587,7 +593,7 @@ const readBridgeConfigurationEffect = createEffect(
   },
   async ({ input, context }) => {
     const result = await readPinnedBridgeConfiguration(
-      getPublicClient(input.chainId),
+      getEffectClient(context, input.chainId),
       input,
       (pin) => getBytecodeHash(context, input.chainId, pin)
     );
@@ -635,7 +641,8 @@ const readControlBlockEffect = createEffect(
         hash: block.hash.toLowerCase(),
         timestamp: block.timestamp.toString(),
       };
-    } catch {
+    } catch (error) {
+      rethrowTransientRpc(error);
       return undefined;
     }
   }

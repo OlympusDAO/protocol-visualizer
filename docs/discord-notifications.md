@@ -5,7 +5,7 @@ The monitor sends daily summaries and warnings about indexing or snapshot state.
 Both services use the environment's shared `DISCORD_WEBHOOK_URL` in Railway.
 The publisher treats notifications as optional. The monitor requires the webhook.
 
-These examples use fictional values and show two chains for brevity.
+These examples use fictional values and show all nine currently indexed chains.
 Actual notifications include every chain with available progress.
 Discord can arrange the chain fields in columns. The text blocks show their content, not the exact Discord layout.
 Deployment IDs use at most 12 characters in notifications.
@@ -32,8 +32,36 @@ Mainnet
 Block: 16000000
 Time: <t:1700000000:F>
 
+Optimism
+Block: 100000000
+Time: <t:1700000000:F>
+
 Arbitrum
 Block: 150000000
+Time: <t:1700000000:F>
+
+Base
+Block: 10000000
+Time: <t:1700000000:F>
+
+Berachain
+Block: 5000000
+Time: <t:1700000000:F>
+
+Robinhood
+Block: 12000000
+Time: <t:1700000000:F>
+
+Sepolia
+Block: 7000000
+Time: <t:1700000000:F>
+
+ArbitrumSepolia
+Block: 280000000
+Time: <t:1700000000:F>
+
+BaseSepolia
+Block: 25000000
 Time: <t:1700000000:F>
 
 Active manifest: 2026-10-30T00:00:00.000Z
@@ -102,8 +130,36 @@ Mainnet
 Block: 16000000
 Time: <t:1700000000:F>
 
+Optimism
+Block: 100000000
+Time: <t:1700000000:F>
+
 Arbitrum
 Block: 150000000
+Time: <t:1700000000:F>
+
+Base
+Block: 10000000
+Time: <t:1700000000:F>
+
+Berachain
+Block: 5000000
+Time: <t:1700000000:F>
+
+Robinhood
+Block: 12000000
+Time: <t:1700000000:F>
+
+Sepolia
+Block: 7000000
+Time: <t:1700000000:F>
+
+ArbitrumSepolia
+Block: 280000000
+Time: <t:1700000000:F>
+
+BaseSepolia
+Block: 25000000
 Time: <t:1700000000:F>
 
 Active manifest: 2026-10-30T00:00:00.000Z
@@ -145,8 +201,36 @@ Ethereum Mainnet
 Block: 16000000
 Time: <t:1700000000:F>
 
+Optimism
+Block: 100000000
+Time: <t:1700000000:F>
+
 Arbitrum
 Block: 150000000
+Time: <t:1700000000:F>
+
+Base
+Block: 10000000
+Time: <t:1700000000:F>
+
+Berachain
+Block: 5000000
+Time: <t:1700000000:F>
+
+Robinhood Chain
+Block: 12000000
+Time: <t:1700000000:F>
+
+Sepolia
+Block: 7000000
+Time: <t:1700000000:F>
+
+Arbitrum Sepolia
+Block: 280000000
+Time: <t:1700000000:F>
+
+Base Sepolia
+Block: 25000000
 Time: <t:1700000000:F>
 ```
 

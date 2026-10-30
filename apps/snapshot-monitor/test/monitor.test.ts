@@ -74,22 +74,39 @@ test("sends one daily indexing summary", () => {
       inline: false,
     },
     {
-      name: "Chain",
-      value: "Mainnet",
-      inline: true,
-    },
-    {
-      name: "Block",
-      value: "123",
-      inline: true,
-    },
-    {
-      name: "Time",
-      value: "<t:1780272000:F>",
+      name: "Mainnet",
+      value: "Block: 123\nTime: <t:1780272000:F>",
       inline: true,
     },
   ]);
   assert.equal(result.state.lastDailySummaryAt, "2026-06-05");
+});
+
+test("nine-chain daily summary retains every chain within Discord's field limit", () => {
+  const chains = Object.fromEntries(
+    Array.from({ length: 9 }, (_, index) => [
+      `Chain ${index + 1}`,
+      { chainId: index + 1, block: 123 + index, timestamp: null, date: null },
+    ])
+  );
+  const result = evaluateMonitor({
+    deploymentId: "deployment-a",
+    manifest: manifest("2026-06-05T00:00:00.000Z", {
+      indexingProgress: { chains },
+    }),
+    state: {},
+    now: new Date("2026-06-05T01:00:00.000Z"),
+  });
+  const fields = result.discordMessages[0]?.embeds?.[0]?.fields ?? [];
+  assert.equal(fields.length, 10);
+  for (const [name, chain] of Object.entries(chains)) {
+    assert(
+      fields.some(
+        (field) =>
+          field.name === name && field.value.includes(`Block: ${chain.block}`)
+      )
+    );
+  }
 });
 
 test("records active manifest changes without sending handover messages", () => {
@@ -257,7 +274,8 @@ test("monitor displays unavailable timestamps without epoch dates or Discord epo
   assert.ok(
     result.discordMessages[0]?.embeds?.[0]?.fields?.some(
       (field) =>
-        field.name === "Time" && field.value === "Timestamp unavailable"
+        field.name === "Mainnet" &&
+        field.value === "Block: 123\nTime: Timestamp unavailable"
     )
   );
   assert.doesNotMatch(JSON.stringify(result), /1970-01-01|<t:0:F>/);
@@ -442,6 +460,35 @@ test("logs missing storage configuration during configuration loading", async ()
   assert.equal(errors.length, 1);
   assert.equal(errors[0]?.details.stage, "load_configuration");
   assert.equal(errors[0]?.details.message, "BUCKET is required");
+});
+
+test("rejects over 25 fields per embed before sending, allowing 25 in each embed", async (t) => {
+  const fetchMock = t.mock.method(
+    globalThis,
+    "fetch",
+    async () => new Response(null, { status: 204 })
+  );
+  const embed = (count: number) => ({
+    title: "Indexing",
+    fields: Array.from({ length: count }, () => ({
+      name: "Chain",
+      value: "Block: 123",
+    })),
+  });
+  await sendDiscordMessage("http://discord.local/webhook", {
+    content: "Progress",
+    embeds: [embed(25), embed(25)],
+  });
+  assert.equal(fetchMock.mock.calls.length, 1);
+  await assert.rejects(
+    () =>
+      sendDiscordMessage("http://discord.local/webhook", {
+        content: "Progress",
+        embeds: [embed(1), embed(26)],
+      }),
+    /Discord embeds must have at most 25 fields/
+  );
+  assert.equal(fetchMock.mock.calls.length, 1);
 });
 
 test("sends Discord embed payloads", async () => {

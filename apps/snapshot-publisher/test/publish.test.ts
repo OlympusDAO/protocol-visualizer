@@ -14,6 +14,7 @@ import {
 import {
   PUBLISHER_NOTIFICATION_STATE_KEY,
   runPublisher,
+  sendDiscordMessage,
   type SnapshotS3Client,
   uploadSnapshotFiles,
 } from "../src/publish.js";
@@ -462,7 +463,9 @@ test("publisher reports the RPC block date during backfill in its result and Dis
   assert.equal(body.content, "Protocol visualizer new deployment indexing");
   assert.ok(
     body.embeds[0]?.fields.some(
-      (field) => field.name === "Time" && field.value === "<t:1780491216:F>"
+      (field) =>
+        field.name === "Mainnet" &&
+        field.value === "Block: 25272069\nTime: <t:1780491216:F>"
     )
   );
   assert.equal(
@@ -479,11 +482,6 @@ test("publisher reports the RPC block date during backfill in its result and Dis
     body.embeds[0]?.fields.some(
       (field) =>
         field.name === "Published deployment" && field.value === "deployment-a"
-    )
-  );
-  assert(
-    body.embeds[0]?.fields.some(
-      (field) => field.name === "Chain" && field.value === "Mainnet"
     )
   );
 });
@@ -684,7 +682,7 @@ test("publisher logs when Discord handover is skipped because webhook is missing
   );
 });
 
-test("publisher sends compact handover Discord embed with chain progress rows", async () => {
+test("publisher sends all nine chains in a handover embed within Discord's field limit", async () => {
   const originalFetch = globalThis.fetch;
   const consoleCapture = captureConsole();
   const client = new MemoryS3Client();
@@ -700,7 +698,7 @@ test("publisher sends compact handover Discord embed with chain progress rows", 
     await withPublisherEnv(
       {
         SNAPSHOT_SOURCE: "sample",
-        SNAPSHOT_CHAIN_IDS: "1",
+        SNAPSHOT_CHAIN_IDS: undefined,
         INDEXER_DEPLOYMENT_ID: "deployment-a",
         RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
         DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
@@ -725,20 +723,50 @@ test("publisher sends compact handover Discord embed with chain progress rows", 
   };
   const fields = body.embeds[0]?.fields ?? [];
   assert.equal(body.content, "Protocol visualizer snapshot handover completed");
-  assert.deepEqual(
-    fields.slice(0, 4).map((field) => field.name),
-    ["Deployment ID", "Chain", "Block", "Time"]
-  );
+  assert.equal(fields.length, 10);
+  assert.equal(fields[0]?.name, "Deployment ID");
   assert.equal(fields[0]?.value, "deployment-a");
   assert.equal(fields[0]?.inline, false);
-  assert.equal(fields[1]?.value, "Ethereum Mainnet");
+  assert.equal(fields[1]?.name, "Ethereum Mainnet");
   assert.equal(fields[1]?.inline, true);
-  assert.equal(fields[2]?.inline, true);
-  assert.equal(fields[3]?.inline, true);
-  assert(fields[3]?.value.startsWith("<t:"));
+  assert.match(fields[1]?.value ?? "", /^Block: \d+\nTime: <t:\d+:F>$/);
+  const active = JSON.parse(client.objects[ACTIVE_MANIFEST_KEY] ?? "{}");
+  assert.equal(active.chains.length, 9);
+  for (const chain of active.chains) {
+    assert(fields.some((field) => field.name === chain.name));
+  }
   assert(!fields.some((field) => field.name === "Generated at"));
   assert(!fields.some((field) => field.name === "Contracts"));
   assert(!fields.some((field) => field.name === "Roles"));
+});
+
+test("publisher rejects over 25 fields per embed before sending, allowing 25 in each embed", async (t) => {
+  const fetchMock = t.mock.method(
+    globalThis,
+    "fetch",
+    async () => new Response(null, { status: 204 })
+  );
+  const embed = (count: number) => ({
+    title: "Indexing",
+    fields: Array.from({ length: count }, () => ({
+      name: "Chain",
+      value: "Block: 123",
+    })),
+  });
+  await sendDiscordMessage("http://discord.local/webhook", {
+    content: "Progress",
+    embeds: [embed(25), embed(25)],
+  });
+  assert.equal(fetchMock.mock.calls.length, 1);
+  await assert.rejects(
+    () =>
+      sendDiscordMessage("http://discord.local/webhook", {
+        content: "Progress",
+        embeds: [embed(1), embed(26)],
+      }),
+    /Discord embeds must have at most 25 fields/
+  );
+  assert.equal(fetchMock.mock.calls.length, 1);
 });
 
 test("publisher takes over a stale lock with conditional replacement", async () => {

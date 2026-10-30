@@ -326,26 +326,15 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
                     value: shortId(input.deploymentId),
                     inline: false,
                   },
-                  ...chainEntries.flatMap(([name, chain]) => [
-                    {
-                      name: "Chain",
-                      value: name,
-                      inline: true,
-                    },
-                    {
-                      name: "Block",
-                      value: String(chain.block),
-                      inline: true,
-                    },
-                    {
-                      name: "Time",
-                      value:
-                        chain.timestamp === null
-                          ? "Timestamp unavailable"
-                          : `<t:${chain.timestamp}:F>`,
-                      inline: true,
-                    },
-                  ]),
+                  ...chainEntries.map(([name, chain]) => ({
+                    name,
+                    value: `Block: ${chain.block}\nTime: ${
+                      chain.timestamp === null
+                        ? "Timestamp unavailable"
+                        : `<t:${chain.timestamp}:F>`
+                    }`,
+                    inline: true,
+                  })),
                 ]
               : [
                   {
@@ -403,6 +392,9 @@ export async function sendDiscordMessage(
   message: string | DiscordWebhookPayload
 ) {
   const payload = typeof message === "string" ? { content: message } : message;
+  if (payload.embeds?.some((embed) => (embed.fields?.length ?? 0) > 25)) {
+    throw new Error("Discord embeds must have at most 25 fields");
+  }
   const response = await fetch(webhookUrl, {
     method: "POST",
     headers: { "content-type": "application/json" },

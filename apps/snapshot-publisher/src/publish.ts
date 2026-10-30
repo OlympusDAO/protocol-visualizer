@@ -585,6 +585,9 @@ export const sendDiscordMessage = async (
     };
   }
   const payload = typeof message === "string" ? { content: message } : message;
+  if (payload.embeds?.some((embed) => (embed.fields?.length ?? 0) > 25)) {
+    throw new Error("Discord embeds must have at most 25 fields");
+  }
   const response = await fetch(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -617,26 +620,15 @@ const indexingProgressFields = (
       },
     ];
   }
-  return entries.flatMap(([name, chain]) => [
-    {
-      name: "Chain",
-      value: chainNamesById.get(chain.chainId) ?? name,
-      inline: true,
-    },
-    {
-      name: "Block",
-      value: String(chain.block),
-      inline: true,
-    },
-    {
-      name: "Time",
-      value:
-        chain.timestamp === null
-          ? "Timestamp unavailable"
-          : `<t:${chain.timestamp}:F>`,
-      inline: true,
-    },
-  ]);
+  return entries.map(([name, chain]) => ({
+    name: chainNamesById.get(chain.chainId) ?? name,
+    value: `Block: ${chain.block}\nTime: ${
+      chain.timestamp === null
+        ? "Timestamp unavailable"
+        : `<t:${chain.timestamp}:F>`
+    }`,
+    inline: true,
+  }));
 };
 
 const reasonsField = (reasons: string[]) =>

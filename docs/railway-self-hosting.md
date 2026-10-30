@@ -527,9 +527,13 @@ Use `BUCKET` for S3 API calls, not `RAILWAY_BUCKET_NAME`.
 
 ## Railway Policies
 
-Long-running services use `restartPolicyType: ON_FAILURE` and
-`restartPolicyMaxRetries: 1`: `hasura`, `indexer`, `snapshot-gateway`, and
-`frontend`.
+Long-running services use Railway's default `ON_FAILURE` policy and an explicit
+`restartPolicyMaxRetries: 1`: `rpc-cache`, `hasura`, `indexer`, `snapshot-gateway`, and `frontend`.
+IaC omits the default policy type. Railway omits it from configuration snapshots,
+but CLI 5.71.0 does not normalize an explicit `ON_FAILURE` declaration to that omission.
+Declaring it explicitly therefore produces a false change on every plan and can trigger unnecessary redeployments.
+This omission does not disable restarts. The service API and deployment manifests report the effective `ON_FAILURE` policy.
+See [Railway's documented restart default](https://docs.railway.com/guides/multi-region-api-failover#what-failover-you-get).
 
 Cron services use `restartPolicyType: NEVER`:
 

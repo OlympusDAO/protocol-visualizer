@@ -66,7 +66,7 @@ test("whole-project IaC retains storage and wires services without embedding sec
       assert.equal(node.configFile, undefined);
       const job =
         node.name === "snapshot-publisher" || node.name === "snapshot-monitor";
-      assert.equal(node.deploy.restartPolicyType, job ? "NEVER" : "ON_FAILURE");
+      assert.equal(node.deploy.restartPolicyType, job ? "NEVER" : undefined);
       if (!job) assert.equal(node.deploy.restartPolicyMaxRetries, 1);
     }
     assert.equal(get("indexer").deploy.healthcheckPath, "/healthz");

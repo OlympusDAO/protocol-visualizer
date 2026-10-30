@@ -12,6 +12,8 @@ import {
 } from "railway/iac";
 
 // Secret values remain in Railway; IaC owns connections, not provider credentials.
+// Long-running services inherit Railway's ON_FAILURE default. CLI 5.71 treats
+// explicitly declaring that omitted platform default as perpetual deploy drift.
 export default defineRailway((ctx) => {
   const production = ctx.isEnvironment("production");
   const source = github("OlympusDAO/protocol-visualizer", {
@@ -123,7 +125,6 @@ export default defineRailway((ctx) => {
     deploy: {
       healthcheckPath: "/healthz",
       healthcheckTimeout: 30,
-      restartPolicyType: "ON_FAILURE",
       restartPolicyMaxRetries: 1,
       limitOverride: { containers: { cpu: 1, memoryBytes: 1000000000 } },
     },
@@ -150,7 +151,6 @@ export default defineRailway((ctx) => {
     deploy: {
       healthcheckPath: "/healthz",
       healthcheckTimeout: 300,
-      restartPolicyType: "ON_FAILURE",
       restartPolicyMaxRetries: 1,
       limitOverride: { containers: { cpu: 1, memoryBytes: 2000000000 } },
     },
@@ -186,7 +186,6 @@ export default defineRailway((ctx) => {
     deploy: {
       healthcheckPath: "/healthz",
       healthcheckTimeout: 30,
-      restartPolicyType: "ON_FAILURE",
       restartPolicyMaxRetries: 1,
       limitOverride: { containers: { cpu: 1, memoryBytes: 2000000000 } },
     },
@@ -216,7 +215,6 @@ export default defineRailway((ctx) => {
     deploy: {
       healthcheckPath: "/",
       healthcheckTimeout: 10,
-      restartPolicyType: "ON_FAILURE",
       restartPolicyMaxRetries: 1,
       limitOverride: { containers: { cpu: 0.5, memoryBytes: 1000000000 } },
     },
@@ -280,7 +278,7 @@ export default defineRailway((ctx) => {
     healthcheck: "/healthcheck",
     healthcheckTimeout: 30,
     replicas: { "us-west2": 1 },
-    deploy: { restartPolicyType: "ON_FAILURE", restartPolicyMaxRetries: 1 },
+    deploy: { restartPolicyMaxRetries: 1 },
   });
 
   const privateIndexing = group("Private Indexing", [hasura, indexer]);

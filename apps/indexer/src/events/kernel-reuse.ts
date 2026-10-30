@@ -52,8 +52,9 @@ export async function reuseKernelRead<T extends Result>(
   input: KernelReadInput,
   read: () => Promise<T>,
   verifyRuntime: () => Promise<string | undefined>,
-  readBlock: (number: string) => Promise<ControlBlock | undefined>
-): Promise<T> {
+  readBlock: (number: string) => Promise<ControlBlock | undefined>,
+  refresh?: (result: T) => Promise<T>
+): Promise<T | { status: "unavailable"; reason: string }> {
   const proof = kernelReadProof(input);
   if (!proof) return read();
   const epoch = await context.KernelReadEpoch.get<Epoch>(String(input.chainId));
@@ -76,23 +77,29 @@ export async function reuseKernelRead<T extends Result>(
     cached?.epoch === generation &&
     BigInt(cached.verifiedAt.number) <= BigInt(input.block.number)
   ) {
+    const result = refresh ? await refresh(cached.result) : cached.result;
     const [anchor, current] = await Promise.all([
       readBlock(cached.verifiedAt.number),
       readBlock(input.block.number),
     ]);
-    if (
-      anchor?.hash === cached.verifiedAt.hash &&
-      current?.hash === input.block.hash
-    )
-      return { ...cached.result, verifiedAt: cached.verifiedAt };
+    if (current?.hash !== input.block.hash)
+      return {
+        status: "unavailable",
+        reason: "Canonical block changed during Kernel reuse",
+      };
+    if (anchor?.hash === cached.verifiedAt.hash)
+      return { ...result, verifiedAt: cached.verifiedAt };
   }
   const result = await read();
-  if (
-    result.status === "success" &&
-    (await verifyRuntime()) === proof.codeHash
-  ) {
+  if (result.status === "success") {
+    const runtimeHash = await verifyRuntime();
     const current = await readBlock(input.block.number);
-    if (current?.hash === input.block.hash)
+    if (current?.hash !== input.block.hash)
+      return {
+        status: "unavailable",
+        reason: "Canonical block changed during Kernel verification",
+      };
+    if (runtimeHash === proof.codeHash)
       context.KernelReadCache.set({
         id,
         chainId: input.chainId,

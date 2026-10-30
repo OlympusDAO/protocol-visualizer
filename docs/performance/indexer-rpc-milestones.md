@@ -33,9 +33,9 @@ A separate controlled fixture exercises 13 pointers and three dependency scans (
 | Ten-checkpoint fixture | Requests | Median |
 | --- | ---: | ---: |
 | Same readers without event reuse | 780 | 13.883 s |
-| Event reuse | 430 | 4.865 s |
+| Event reuse | 430 | 4.439 s |
 
-This is 44.9% fewer requests and 65.0% shorter in the selected repeatable workload. Canonical rechecks bypass the Envio effect loader, which can memoize even nonpersisted effects within a batch. An initial measurement accidentally benefited from that memoization; these corrected measurements issue fresh header RPCs for each recheck. Cold setup costs are included; raw per-method cold/warm counts are in [milestone 2](indexer-rpc-milestone-2.json). The original single-checkpoint fixture has no cross-block reuse opportunity and its previously measured 1361-request result remains the comparison reference, not a claim of additional savings.
+This is 44.9% fewer requests and 68.0% shorter in the selected repeatable workload. Canonical rechecks bypass the Envio effect loader, which can memoize even nonpersisted effects within a batch. An initial measurement accidentally benefited from that memoization; these corrected measurements issue fresh header RPCs for each recheck. Cold setup costs are included; raw per-method cold/warm counts are in [milestone 2](indexer-rpc-milestone-2.json). The original single-checkpoint fixture has no cross-block reuse opportunity and its previously measured 1361-request result remains the comparison reference, not a claim of additional savings.
 
 Regression checks cover active/inactive state, every action, migration, backward reads, runtime/address mismatch, empty dependency scans, restart, canonical fork rejection and retained verification provenance. Indexer tests and TypeScript checking pass; offline code generation succeeds using localhost-only RPC placeholders. This milestone adds two schema entities; no existing database was migrated or reset. Worker isolation remains disabled.
 
@@ -55,6 +55,10 @@ Immutable raw calls execute at creation and persist against deployment identity 
 This is 23.7% fewer requests and 27.1% shorter in this fixture. It includes cold proof overhead, three repetitions, 10 ms/RPC and a fresh Envio loader every checkpoint with PostgreSQL-persisted effects. The runtime is the manifest's real bytecode, but headers and getter values are controlled fixtures. Warm nine-checkpoint eth_call count falls from 63 to zero. Raw counts: [milestone 3](indexer-rpc-milestone-3.json). This workload starts after deployment and is distinct from the older 324-operation baseline; its savings must not be added arithmetically to earlier fixture percentages.
 
 Verification: all 74 indexer tests and TypeScript checking pass. Regression coverage includes the production getter integration, source hash/runtime binding, history boundaries, an earlier incarnation, persistence, unknown/mutable selector fallback and fork changes. The final ordered repository validation remains pending.
+
+## Review closeout
+
+Review found and fixed two canonical races: target code must refresh before the final reused-fact header checks, and a fresh successful observation must recheck canonicality even when its reusable runtime proof fails. Production RPC fixtures reproduce fork rejection; separate tests prove wrong Kernel runtime/pointer bindings cannot seed reuse. A held-response fixture fills eight active requests plus 256 waiters, rejects the next logical RPC, drains, and recovers on another chain. Raw requests are used because viem's getBlockNumber action coalesces in-flight calls even with cacheTime zero. The current event-reuse timing above was rerun after the fixes, with the same 430 requests.
 
 ## Remaining milestones
 

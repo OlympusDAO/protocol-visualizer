@@ -576,24 +576,25 @@ export async function getControlGetter(
         ? code
         : undefined;
     },
-    (number) => readCanonicalControlBlock(input.chainId, BigInt(number))
-  );
-  if (result.status === "success" && result.verifiedAt && result.targetCode) {
-    const hash = await getBytecodeHash(context, input.chainId, {
-      address: result.value as Address,
-      blockHash: normalized.blockHash as Hex,
-      requireCanonical: true,
-    });
-    if (!hash)
+    (number) => readCanonicalControlBlock(input.chainId, BigInt(number)),
+    async (result): Promise<ControlGetterResult> => {
+      if (result.status !== "success" || !result.targetCode) return result;
+      const hash = await getBytecodeHash(context, input.chainId, {
+        address: result.value as Address,
+        blockHash: normalized.blockHash as Hex,
+        requireCanonical: true,
+      });
+      if (!hash)
+        return {
+          status: "unavailable",
+          reason: "historical target code unavailable",
+        };
       return {
-        status: "unavailable",
-        reason: "historical target code unavailable",
+        ...result,
+        targetCode: hash === emptyCodeHash ? "absent" : "present",
       };
-    return {
-      ...result,
-      targetCode: hash === emptyCodeHash ? "absent" : "present",
-    };
-  }
+    }
+  );
   return result;
 }
 

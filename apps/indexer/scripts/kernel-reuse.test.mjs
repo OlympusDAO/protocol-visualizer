@@ -86,11 +86,17 @@ test("active source-proven reads reuse original provenance across restart, inval
     isEnabled: true,
     kernelHistory: "installed",
   });
-  await read({ ...args, block: block(32) }, ctx, "0xwrong", async () => ({
-    ...block(10),
-    hash: "0xfork",
-  }));
-  assert.equal(reads, 9);
+  const forked = await read(
+    { ...args, block: block(32) },
+    ctx,
+    "0xwrong",
+    async () => ({
+      ...block(10),
+      hash: "0xfork",
+    })
+  );
+  assert.equal(forked.status, "unavailable");
+  assert.equal(reads, 8);
   await invalidateKernelReads(ctx, {
     chainId: 1,
     block: { number: 40, hash: block(40).hash },
@@ -102,7 +108,7 @@ test("active source-proven reads reuse original provenance across restart, inval
   await read({ ...args, block: block(42) });
   assert.equal(
     reads,
-    11,
+    10,
     "old Kernel retains active records after migration; reuse stays disabled"
   );
   // A rollback restores both epochs and facts, then canonical checks reject orphan facts.
@@ -113,9 +119,9 @@ test("active source-proven reads reuse original provenance across restart, inval
     proof.codeHash,
     async (number) => ({ ...block(Number(number)), hash: "0xfork" })
   );
-  assert.equal(reads, 12);
+  assert.equal(reads, 10);
   await read({ ...args, address: `0x${"77".repeat(20)}`, block: block(50) });
-  assert.equal(reads, 13, "unknown runtime/address is never reusable");
+  assert.equal(reads, 11, "unknown runtime/address is never reusable");
 });
 
 test("empty dependency scans persist, keep actual observation block, and never reuse backwards or across invalidation", async () => {
@@ -155,4 +161,49 @@ test("empty dependency scans persist, keep actual observation block, and never r
   });
   await run(14);
   assert.equal(reads, 3);
+});
+
+test("a fork during first runtime verification rejects the observation and does not seed reuse", async () => {
+  const proof = proofs.find((p) => p.name === "kernel");
+  const ctx = { KernelReadCache: store(), KernelReadEpoch: store() };
+  const result = await reuseKernelRead(
+    ctx,
+    {
+      chainId: 1,
+      address: proof.address,
+      getter: "moduleDependents:MINTR",
+      block: block(10),
+    },
+    async () => ({ status: "success", module: proof.address, policies: [] }),
+    async () => proof.codeHash,
+    async () => ({ ...block(10), hash: "0xfork" })
+  );
+  assert.equal(result.status, "unavailable");
+  assert.equal(ctx.KernelReadCache.rows.size, 0);
+});
+
+test("failed runtime proof still rechecks canonicality after a successful fresh read", async () => {
+  const proof = proofs.find((p) => p.name === "kernel");
+  const ctx = { KernelReadCache: store(), KernelReadEpoch: store() };
+  let headers = 0;
+  const run = (hash) =>
+    reuseKernelRead(
+      ctx,
+      {
+        chainId: 1,
+        address: proof.address,
+        getter: "moduleDependents:MINTR",
+        block: block(10),
+      },
+      async () => ({ status: "success", module: proof.address, policies: [] }),
+      async () => undefined,
+      async () => {
+        headers++;
+        return { ...block(10), hash };
+      }
+    );
+  assert.equal((await run("0xfork")).status, "unavailable");
+  assert.equal((await run(block(10).hash)).status, "success");
+  assert.equal(headers, 2);
+  assert.equal(ctx.KernelReadCache.rows.size, 0);
 });

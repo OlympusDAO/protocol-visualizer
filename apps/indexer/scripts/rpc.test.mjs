@@ -83,10 +83,15 @@ test("proxy recovery queues bounded cross-chain pressure and never retries EVM r
     assert.equal(calls, 2);
     const results = await Promise.all(
       Array.from({ length: 40 }, (_, i) =>
-        getPublicClient(999993 + (i % 2)).getBlockNumber({ cacheTime: 0 })
+        getPublicClient(999993 + (i % 2)).request({ method: "eth_blockNumber" })
       )
     );
-    assert(results.every((value) => value === 42n));
+    assert(results.every((value) => value === "0x2a"));
+    assert.equal(
+      calls,
+      42,
+      "all 40 distinct logical requests reached the proxy"
+    );
     assert(peak <= 8, `maximum logical in-flight RPCs: ${peak}`);
     const before = calls;
     await assert.rejects(
@@ -162,4 +167,74 @@ test("transient exhaustion crosses getter, bridge, optional router and dependenc
     ),
     RpcTransientFailure
   );
+});
+
+test("a saturated indexer queue rejects overflow, drains, and recovers across chains", async () => {
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  let admitted;
+  const firstBatch = new Promise((resolve) => {
+    admitted = resolve;
+  });
+  let count = 0;
+  const server = http.createServer(async (req, res) => {
+    let raw = "";
+    for await (const chunk of req) raw += chunk;
+    const payload = JSON.parse(raw),
+      batch = Array.isArray(payload) ? payload : [payload];
+    count += batch.length;
+    admitted();
+    await gate;
+    const reply = ({ id }) => ({ id, jsonrpc: "2.0", result: "0x2a" });
+    res.setHeader("content-type", "application/json");
+    res.end(
+      JSON.stringify(Array.isArray(payload) ? batch.map(reply) : reply(payload))
+    );
+  });
+  await new Promise((done) => server.listen(0, "127.0.0.1", done));
+  for (const chain of [999995, 999996])
+    process.env[`ENVIO_RPC_URL_${chain}`] =
+      `http://127.0.0.1:${server.address().port}/${chain}`;
+  try {
+    const calls = Array.from({ length: 265 }, (_, index) =>
+      getPublicClient(999995 + (index % 2)).request({
+        method: "eth_blockNumber",
+      })
+    );
+    const settled = Promise.allSettled(calls);
+    await firstBatch;
+    const overflow = await Promise.any(
+      calls.map((call) =>
+        call.then(
+          () => {
+            throw new Error("Proxy completed while gated");
+          },
+          (error) => error
+        )
+      )
+    );
+    assert.match(overflow.message, /Indexer RPC temporarily unavailable/);
+    assert(count <= 8, "only active permits reach the proxy before release");
+    release();
+    const results = await settled;
+    assert.equal(
+      results.filter((result) => result.status === "fulfilled").length,
+      264
+    );
+    assert.equal(count, 264);
+    assert.equal(
+      await getPublicClient(999996).getBlockNumber({ cacheTime: 0 }),
+      42n
+    );
+    assert.equal(
+      count,
+      265,
+      "overflow does not leak permits after queue drain"
+    );
+  } finally {
+    release();
+    await new Promise((done) => server.close(done));
+  }
 });

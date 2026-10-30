@@ -21,6 +21,15 @@ const config = (environment = env) =>
     )
   );
 
+const assertSnapshotRpcRouting = (compose) => {
+  for (const id of ids) {
+    assert.match(
+      compose,
+      new RegExp(`^ {2}RPC_URL_${id}: http://rpc-cache:4000/pv/evm/${id}$`, "m")
+    );
+  }
+};
+
 test("RPC cache covers precisely the indexer chains with private project paths", () => {
   const cfg = config();
   const indexerIds = [
@@ -46,10 +55,27 @@ test("RPC cache covers precisely the indexer chains with private project paths",
         `ENVIO_RPC_URL_${id}: http://rpc-cache:4000/pv/evm/${id}`
       )
     );
-    assert(
-      compose.includes(`RPC_URL_${id}: http://rpc-cache:4000/pv/evm/${id}`)
-    );
     assert(compose.includes(`UPSTREAM_RPC_URL_${id}: $`));
+  }
+  assertSnapshotRpcRouting(compose);
+});
+
+test("snapshot RPC routing checks reject missing entries even when indexer entries remain", () => {
+  const compose = readFileSync("docker-compose.yml", "utf8");
+  for (const mutated of [
+    compose.replace(/^ {2}RPC_URL_1:.*\n/m, ""),
+    compose.replace(/^x-snapshot-rpc-env:[\s\S]*?(?=^\S)/m, ""),
+  ]) {
+    for (const id of ids) {
+      assert(
+        mutated.includes(
+          `ENVIO_RPC_URL_${id}: http://rpc-cache:4000/pv/evm/${id}`
+        )
+      );
+    }
+    assert.throws(() => assertSnapshotRpcRouting(mutated), {
+      code: "ERR_ASSERTION",
+    });
   }
 });
 

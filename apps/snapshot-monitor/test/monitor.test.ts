@@ -1,13 +1,19 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 import {
+  ACTIVE_MANIFEST_KEY,
   SCHEMA_VERSION,
   type SnapshotManifest,
 } from "@protocol-visualizer/snapshot-artifacts";
 import {
   evaluateMonitor,
   fetchIndexerMetricsReadiness,
+  loadConfiguredChains,
+  runMonitor,
   runMonitorFromEnv,
   sendDiscordMessage,
   shortId,
@@ -53,6 +59,30 @@ const manifest = (
   },
   chains: [],
   ...overrides,
+});
+
+test("catalog validation identifies invalid chains without echoing invalid values", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "monitor-chains-"));
+  const configPath = join(directory, "chains.json");
+  const previous = process.env.PROTOCOL_CHAINS_CONFIG_PATH;
+  try {
+    await writeFile(
+      configPath,
+      JSON.stringify([
+        { ...mainnet, environment: "invalid-environment" },
+        { ...mainnet, key: "Optimism", chainId: 10, environment: null },
+      ])
+    );
+    process.env.PROTOCOL_CHAINS_CONFIG_PATH = configPath;
+    await assert.rejects(loadConfiguredChains, {
+      message:
+        "Each indexed chain must specify environment: production or testnet. Invalid chains: Mainnet (1), Optimism (10)",
+    });
+  } finally {
+    if (previous === undefined) delete process.env.PROTOCOL_CHAINS_CONFIG_PATH;
+    else process.env.PROTOCOL_CHAINS_CONFIG_PATH = previous;
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 
 test("shortens deployment ids for Discord output", () => {
@@ -386,6 +416,58 @@ test("monitor displays unavailable timestamps without epoch dates or Discord epo
     )
   );
   assert.doesNotMatch(JSON.stringify(result), /1970-01-01|<t:0:F>/);
+});
+
+test("monitor attempts both groups and saves summary state only after complete delivery", async (t) => {
+  const bodies: Array<{ content: string }> = [];
+  const savedStates: unknown[] = [];
+  let failedIndex = -1;
+  t.mock.method(console, "log", () => {});
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async (...[_url, init]: Parameters<typeof fetch>) => {
+      const index = bodies.length;
+      bodies.push(JSON.parse(String(init?.body)));
+      if (index === failedIndex) throw new Error("private-webhook-token");
+      return new Response(null, { status: 204 });
+    }
+  );
+  for (failedIndex of [0, 1, -1]) {
+    bodies.length = 0;
+    savedStates.length = 0;
+    const run = () =>
+      runMonitor({
+        chains: configuredChains,
+        store: {
+          getJson: async <T>(key: string) =>
+            (key === ACTIVE_MANIFEST_KEY
+              ? manifest("2026-06-05T00:00:00.000Z")
+              : undefined) as T | undefined,
+          putJson: async (_key, state) => {
+            savedStates.push(state);
+          },
+        },
+        webhookUrl: "http://discord.local/private-webhook-token",
+        stateKey: "monitor-state",
+        environmentName: "protocol-visualizer-pr-49",
+        deploymentId: "deployment-a",
+        now: new Date("2026-06-05T01:00:00.000Z"),
+        staleThresholdMs: Number.MAX_SAFE_INTEGER,
+      });
+    if (failedIndex === -1) {
+      await run();
+      assert.equal(savedStates.length, 1);
+    } else {
+      await assert.rejects(run, {
+        message: "Discord delivery failed for 1 of 2 messages",
+      });
+      assert.equal(savedStates.length, 0);
+    }
+    assert.equal(bodies.length, 2);
+    assert.match(bodies[0]?.content ?? "", /Production chains$/);
+    assert.match(bodies[1]?.content ?? "", /Testnets$/);
+  }
 });
 
 test("reports indexer metrics network failures with safe context", async () => {

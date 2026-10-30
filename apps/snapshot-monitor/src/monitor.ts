@@ -221,13 +221,14 @@ export async function loadConfiguredChains(): Promise<ChainConfig[]> {
   const chains = (await loadChains()).filter(
     (chain) => chain.availability !== "historical"
   );
-  if (
-    chains.some(
-      (chain) => !["production", "testnet"].includes(chain.environment)
-    )
-  ) {
+  const invalidChains = chains.filter(
+    (chain) => !["production", "testnet"].includes(chain.environment)
+  );
+  if (invalidChains.length > 0) {
     throw new Error(
-      "Each indexed chain must specify environment: production or testnet"
+      `Each indexed chain must specify environment: production or testnet. Invalid chains: ${invalidChains
+        .map((chain) => `${chain.key} (${chain.chainId})`)
+        .join(", ")}`
     );
   }
   assertRpcConfiguration(chains);
@@ -481,8 +482,18 @@ export async function runMonitor(input: {
     staleThresholdMs: input.staleThresholdMs,
   });
 
+  let failedMessages = 0;
   for (const message of result.discordMessages) {
-    await sendDiscordMessage(input.webhookUrl, message);
+    try {
+      await sendDiscordMessage(input.webhookUrl, message);
+    } catch {
+      failedMessages += 1;
+    }
+  }
+  if (failedMessages > 0) {
+    throw new Error(
+      `Discord delivery failed for ${failedMessages} of ${result.discordMessages.length} messages`
+    );
   }
   await input.store.putJson(input.stateKey, result.state);
   console.log(

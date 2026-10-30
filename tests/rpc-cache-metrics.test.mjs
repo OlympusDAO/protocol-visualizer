@@ -20,12 +20,20 @@ const command = require("node:path").basename(process.argv[1]);
 const args = process.argv.slice(2);
 fs.appendFileSync(process.env.METRICS_TEST_LOG, JSON.stringify({command,args}) + "\\n");
 if (command === "railway") console.log("Host pv-rpc-cache-metrics\\n  HostName railway.example\\n  User fixture");
-if (command === "uname") console.log("Darwin");
+if (command === "uname") console.log(process.env.METRICS_TEST_PLATFORM || "Darwin");
+if (["open", "xdg-open"].includes(command)) process.exit(Number(process.env.METRICS_TEST_BROWSER_STATUS || 0));
 if (command === "ssh" && args.includes("check")) process.exit(1);
 if (command === "ssh" && args.includes("-fN") && process.env.METRICS_TEST_SSH_FAIL) process.exit(1);
 `;
   try {
-    for (const command of ["railway", "ssh", "curl", "open", "uname"])
+    for (const command of [
+      "railway",
+      "ssh",
+      "curl",
+      "open",
+      "xdg-open",
+      "uname",
+    ])
       writeFileSync(join(directory, command), fixture, { mode: 0o755 });
     const environment = {
       ...process.env,
@@ -34,6 +42,8 @@ if (command === "ssh" && args.includes("-fN") && process.env.METRICS_TEST_SSH_FA
       RAILWAY_ENVIRONMENT: "preview environment",
     };
     delete environment.METRICS_TEST_SSH_FAIL;
+    delete environment.METRICS_TEST_PLATFORM;
+    delete environment.METRICS_TEST_BROWSER_STATUS;
     const run = (env) =>
       spawnSync("bash", [resolve("scripts/rpc-cache-metrics.sh")], {
         env,
@@ -62,6 +72,42 @@ if (command === "ssh" && args.includes("-fN") && process.env.METRICS_TEST_SSH_FA
         commands.indexOf(browser)
     );
     assert(!existsSync(tunnel.args[tunnel.args.indexOf("-F") + 1]));
+
+    for (const [platform, status, launcher] of [
+      ["Darwin", "1", "open"],
+      ["Linux", "127", "xdg-open"],
+    ]) {
+      writeFileSync(log, "");
+      const browserFailed = run({
+        ...environment,
+        METRICS_TEST_PLATFORM: platform,
+        METRICS_TEST_BROWSER_STATUS: status,
+      });
+      assert.equal(browserFailed.status, 1, browserFailed.stderr);
+      assert.match(browserFailed.stderr, /The SSH tunnel closed/);
+      assert.match(
+        browserFailed.stdout,
+        /Metrics for .*: http:\/\/127\.0\.0\.1:14001\/metrics/
+      );
+      assert.match(
+        browserFailed.stdout,
+        /Open http:\/\/127\.0\.0\.1:14001\/metrics in your browser/
+      );
+      const commands = calls();
+      const browserIndex = commands.findIndex(
+        (call) => call.command === launcher
+      );
+      const checkIndex = commands.findIndex((call) =>
+        call.args.includes("check")
+      );
+      assert(browserIndex >= 0);
+      assert(
+        checkIndex > browserIndex,
+        "browser failure must not close the verified tunnel"
+      );
+      const tunnel = commands.find((call) => call.args.includes("-fN"));
+      assert(!existsSync(tunnel.args[tunnel.args.indexOf("-F") + 1]));
+    }
 
     writeFileSync(log, "");
     const failed = run({ ...environment, METRICS_TEST_SSH_FAIL: "1" });

@@ -338,7 +338,8 @@ Each chain uses one field with its block and timestamp. No chain is removed to f
 Both senders reject an embed with more than 25 fields before any HTTP request.
 Exactly 25 fields per embed are allowed. An oversized embed raises `Discord embeds must have at most 25 fields`.
 
-The monitor fails its run on a delivery error.
+Both services attempt the remaining messages after a delivery error.
+The monitor fails its run if any message fails and saves summary state only after all messages succeed.
 The publisher logs notification errors and continues its normal publication or readiness-skip behavior.
 A missing webhook skips publisher notifications.
 

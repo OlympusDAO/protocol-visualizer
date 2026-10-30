@@ -637,11 +637,8 @@ const sendChainNotifications = async (input: {
       chain,
     ])
   );
-  let result: DiscordNotificationResult = {
-    configured: true,
-    attempted: false,
-    delivered: false,
-  };
+  const results: DiscordNotificationResult[] = [];
+  const failedGroups: string[] = [];
   for (const environment of ["production", "testnet"] as const) {
     const chains = input.chains.filter(
       (chain) =>
@@ -679,26 +676,42 @@ const sendChainNotifications = async (input: {
         },
       };
     });
-    result = await sendDiscordMessage(webhookUrl, {
-      content: `${input.content} — ${group}`,
-      embeds: [
-        {
-          ...input.embed,
-          title: `${input.embed.title} — ${group}`,
-          color: rows.some((row) => !row.ready && !row.unavailable)
-            ? 0xf39c12
-            : rows.every((row) => row.ready)
-              ? 0x2ecc71
-              : 0x95a5a6,
-          fields: [
-            ...(input.embed.fields ?? []),
-            ...rows.map((row) => row.field),
+    try {
+      results.push(
+        await sendDiscordMessage(webhookUrl, {
+          content: `${input.content} — ${group}`,
+          embeds: [
+            {
+              ...input.embed,
+              title: `${input.embed.title} — ${group}`,
+              color: rows.some((row) => !row.ready && !row.unavailable)
+                ? 0xf39c12
+                : rows.every((row) => row.ready)
+                  ? 0x2ecc71
+                  : 0x95a5a6,
+              fields: [
+                ...(input.embed.fields ?? []),
+                ...rows.map((row) => row.field),
+              ],
+            },
           ],
-        },
-      ],
-    });
+        })
+      );
+    } catch {
+      failedGroups.push(group);
+    }
   }
-  return result;
+  if (failedGroups.length > 0) {
+    throw new Error(
+      `Discord notifications failed for: ${failedGroups.join(", ")}`
+    );
+  }
+  return {
+    configured: true,
+    attempted: results.some((result) => result.attempted),
+    delivered:
+      results.length > 0 && results.every((result) => result.delivered),
+  };
 };
 
 const reasonsField = (reasons: string[]) =>

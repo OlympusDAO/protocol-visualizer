@@ -112,8 +112,13 @@ UPSTREAM_RPC_URL_84532=<Base Sepolia archive provider URL>
 
 Optional: `RPC_CACHE_MAX_RPS=50`. Configure backups and check the database
 connection before consumer cutover.
-This is one aggregate upstream request budget
-per second per eRPC instance, shared by all nine providers, including polling.
+This request limit applies **per RPC method**, shared by all nine providers on
+each eRPC instance, including polling. At the default value, all chains share
+50 `eth_getLogs` requests per second; `eth_call` has a separate 50-request allowance.
+It is not a combined 50-request cap across methods. A busy chain can consume
+the shared allowance for a method and throttle other chains using that method.
+Per-chain budgets would multiply the possible total usage; confirm the provider
+account's allowance before changing that policy.
 Start with **one replica**; multiple replicas multiply the provider budget.
 Tune it to the provider account's actual allowance. Cache hits do not spend this
 budget. eRPC polls state every 30 seconds, including idle chains. Finality may

@@ -877,6 +877,91 @@ test("publisher groups new and continuing deployment notifications, including un
   }
 });
 
+test("publisher attempts both groups after a delivery failure and continues its normal result", async (t) => {
+  const chains = await loadSupportedChains();
+  const bodies: Array<{ content: string }> = [];
+  let failedIndex = 0;
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async (...[url, init]: Parameters<typeof fetch>) => {
+      if (String(url) === "http://indexer:9898/metrics") {
+        return new Response(
+          `hyperindex_synced_to_head 0\n${chains
+            .map(
+              (chain) =>
+                `envio_progress_ready{chainId="${chain.chainId}"} 0\nenvio_progress_block{chainId="${chain.chainId}"} 123\nenvio_progress_block_time_seconds{chainId="${chain.chainId}"} 1780491216`
+            )
+            .join("\n")}`
+        );
+      }
+      assert.equal(String(url), "https://discord.example/webhook");
+      const index = bodies.length;
+      bodies.push(JSON.parse(String(init?.body)));
+      if (index === failedIndex) throw new Error("private-webhook-token");
+      return new Response(null, { status: 204 });
+    }
+  );
+  const capture = captureConsole();
+  try {
+    for (const source of ["hasura", "sample"]) {
+      for (failedIndex of [0, 1]) {
+        bodies.length = 0;
+        capture.logs.length = 0;
+        capture.errors.length = 0;
+        const client = new MemoryS3Client({
+          [ACTIVE_MANIFEST_KEY]: manifestBody("deployment-active"),
+        });
+        await withPublisherEnv(
+          {
+            SNAPSHOT_SOURCE: source,
+            SNAPSHOT_CHAIN_IDS: undefined,
+            INDEXER_DEPLOYMENT_ID: "deployment-a",
+            RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
+            INDEXER_METRICS_URL: "http://indexer:9898/metrics",
+            DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+            BUCKET: "bucket",
+            ...Object.fromEntries(
+              chains.map((chain) => [
+                `RPC_URL_${chain.chainId}`,
+                "https://rpc.example/envio",
+              ])
+            ),
+          },
+          () => runPublisher({ createS3Client: () => client })
+        );
+        assert.equal(bodies.length, 2);
+        assert.match(bodies[0]?.content ?? "", /Production chains$/);
+        assert.match(bodies[1]?.content ?? "", /Testnets$/);
+        const result = publisherResultFrom(capture.logs);
+        assert.equal(result.published, source === "sample");
+        if (source === "hasura")
+          assert.equal(result.skipReason, "not_data_ready");
+        else
+          assert.equal(
+            JSON.parse(client.objects[ACTIVE_MANIFEST_KEY] ?? "{}")
+              .indexerDeploymentId,
+            "deployment-a"
+          );
+        assert.equal(capture.errors.length, 1);
+        assert.match(
+          capture.errors[0] ?? "",
+          new RegExp(
+            `Discord notifications failed for: ${failedIndex === 0 ? "Production chains" : "Testnets"}`
+          )
+        );
+        assert.doesNotMatch(
+          capture.errors.join("\n"),
+          /private-webhook-token|https:\/\/discord/
+        );
+        assert(client.destroyed);
+      }
+    }
+  } finally {
+    capture.restore();
+  }
+});
+
 test("publisher rejects over 25 fields per embed before sending, allowing 25 in each embed", async (t) => {
   const fetchMock = t.mock.method(
     globalThis,

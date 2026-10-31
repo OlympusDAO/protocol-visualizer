@@ -4,6 +4,10 @@ All work stays on the performance branch. Checkpoint frequency and HyperSync rem
 
 Milestone verification statements record the status at each commit; the final validation section gives the closeout status.
 
+## Actual local HyperSync indexing sample
+
+A paired replay of 50,001 Ethereum blocks completed at 201.7 blocks/second on the baseline and 280.8 on the candidate: 39.2% faster, with 54.0% fewer upstream requests. Candidate recovered 81 unavailable getter verifications; the 496 relationships available in both runs matched. Two pending-owner gaps without public getters remained in both. This is one bounded local replay with actual events and RPCs, not a production multichain after-rate or an equal-output latency test. See [the sample report](indexer-rpc-indexing-sample-2026-10-31.md) for configuration, counters, completeness checks and limits.
+
 ## Current result after the cache-safety challenge
 
 This section supersedes the ordinary-getter timing and restart claims in the historical milestone entries below. A new production-entry regression demonstrated that a persisted successful getter observation could be accepted after a restart even when its block hash had become orphaned. The underlying fact was still bound to the old hash, but the successful observation had skipped a fresh canonical check.

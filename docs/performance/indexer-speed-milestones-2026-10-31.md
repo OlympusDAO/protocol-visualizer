@@ -124,3 +124,35 @@ The 35/second candidate completed in 144.302 seconds (346.5 blocks/second), vers
 The pre-completion Envio scrape localized getter waits at 26.511 seconds and raw-call waits at 4.396 seconds, versus 63.794 and 8.121 seconds in the earlier 25/second scrape. These overlapping counters are not additive wall-time slices or final totals. Recovered eRPC capacity rejections rose from 61 in that earlier candidate to 169, including service probes; no new unavailable relationships or exhausted indexing failure occurred.
 
 Astra recommended the already approved final two-line probe at 40/second, with diminishing returns expected. Ponytail retained the same constants and safeguards without adding settings. All nine ordered validation steps pass for this probe; performance acceptance still requires its completed replay. If it mainly adds rejection/retry traffic, retain a lower gate rather than claiming capacity gained from the setting alone.
+
+The direct fresh-cache comparison completed: 35/second took 141.071 seconds (354.4 blocks/second), and 40/second took 141.241 seconds (354.0 blocks/second). Both exited normally, reached ready state and committed the same 523 events. All 579 complete relationship rows match, including target-code evidence, documentation and verification provenance. All 19 shared entity types have identical row identities and contents, except ordering of 43 policy function objects in one Contract and its ContractEvent; sorting those objects by selector establishes exact equality. No function, role or documentation content differs. The baseline's source trace recorded one recovered transport failure; source ordering can vary with metadata fallback. [Direct comparison](indexer-speed-effect40-2026-10-31.json).
+
+Budget rejections rose from 122 at 35/second to 142 at 40/second, including probes, without new unavailable relationships. The setting returns to 35: there is no demonstrated gain from 40. The higher gates themselves receive no separate speed claim. The earlier original-baseline/cache-stage pair and the 35 experiment also match all shared entity contents exactly, not only relationship values.
+
+The 50–100% cold-replay target remains unmet. Astra identified serial getter scheduling as the next candidate; measured database loads do not justify another cache. The proposed local experiment permits at most two normalized contract subjects at once, preserves every field's order within each subject and drains in-flight work on any failure before the handler can finish. This introduces no indexing workers or higher provider cap. User approval for that additional stage is pending; it is not implemented here.
+
+## Separate warm-state sample
+
+The same fixed 50,001-block range was replayed with native `full_batch_size: 100` on both variants, using new disposable SQL/cache databases and real HyperSync/upstream reads. This allows later checkpoints to see facts committed by earlier batches. It is not a continuation of the cold database: the pinned framework refuses changing the configured end block on ordinary resume. Production batch size remains unchanged.
+
+| Smaller native batches on both variants | Baseline f193d3c | Retained 35/second code |
+| --- | ---: | ---: |
+| Full range time | 236.920 s | 148.085 s |
+| Full range blocks/second | 211.0 | 337.7 |
+| First 100-event commit observed | 60.842 s | 48.736 s |
+| Remaining 40,601 blocks/second | 230.6 | 408.7 |
+| Proxy RPC items | 20,145 | 5,673 |
+| Upstream requests including probes | 4,111 | 3,873 |
+| Code RPC items | 836 | 553 |
+
+Both runs exited normally, reached ready state and committed the same 523 events. All 19 shared entity types match exactly, including complete relationship verification, documentation and target-code fields. The candidate retains 97 verified deployment rows and ten Kernel facts. The full sample has 60.0% higher throughput; the portion after its first durable 100-event commit has 77.2% higher throughput. Upstream requests fall 5.8%, and code reads fall 33.9%. [Measurements](indexer-speed-warm-state-2026-10-31.json).
+
+Those percentages apply only to this smaller-batch sample. Its optimized full-range rate is below the normal-batch candidate's 346.5–354.4 blocks/second, so the batch setting is not adopted. The sample demonstrates persisted-fact reuse; it does not establish the normal-batch 50–100% target or a live production rate. Commit boundaries were polled about every two seconds, and counter samples can include work from the following batch. The exact samples correct the earlier coarse console estimate of about 65 seconds for each first batch.
+
+## Retained state and closeout
+
+The retained code uses the two finite 35/second gates and the original native batch size. HyperSync, 10,000-block observations, client bounds/retries and eRPC's 50-credit budget remain unchanged. The [bounded-subject proposal](indexer-speed-next-step-2026-10-31.md) is awaiting approval; no new scheduler is implemented.
+
+After retaining 35, final validation first stopped at step 3 on formatting a single-element array in the new comparison JSON. Formatting was corrected and the entire nine-step sequence passed, with 126 ordinary indexer tests and one explicit SQL-integration skip. The actual SQL integration and actual patched eRPC/PostgreSQL integration passed separately. The full production review receipt is complete (`20261031-151540-30a37b9a`, eight lenses); its populated SQL acceptance gap is covered by the subsequently reviewed fixture. Astra reviewed each implementation stage, including the schema correction, finite-limit experiments and SQL fixture fixes. Ponytail simplification and the applicable five-lens passes retained the safety checks.
+
+The final image findings exactly match the earlier scan: 23 Debian MEDIUM findings, no high/critical findings and no secrets; the MEDIUM threshold remains failed. The patched eRPC image passes the configured threshold. No ignore entries, dependencies or frontend code changed. The original feature worktree remains clean at its original commit. All milestone commits remain local and unsigned; no push, PR change, deployment, existing database reset or live-variable change occurred. Fixture databases are retained by their test runner until disposable task resources are cleaned up; committed measurement artifacts preserve the reported evidence.

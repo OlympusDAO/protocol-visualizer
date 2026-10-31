@@ -1,0 +1,592 @@
+{
+  "protocol": "protocol-visualizer-indexer-benchmark-v1",
+  "schemaVersion": 1,
+  "status": "success",
+  "generatedAt": "2026-10-31T16:20:05.342Z",
+  "requestedRuns": 3,
+  "source": {
+    "ref": "HEAD",
+    "commit": "5076eecf428a17a2027fe3cf0eee639ecfe877d5",
+    "indexerInputHash": "02e7efbb15e6f75573f5993b312ac9e1f5ed36f388f73eac42c01bad88f6a5f1",
+    "lockfileHash": "3ad3acd3125bd06c65f300904bb28cc7cad5dcef683350649d821eecf666eee2",
+    "nativeBatchSize": 5000,
+    "configHash": "00b1a7c2428594bae04c0b7692441579318dc52996fba2b141f3fae7d4f475e3",
+    "dependencies": "reused-matching-lockfile"
+  },
+  "inputs": {
+    "driverHash": "a389cc13e452ca680f6a3452aaecb928ab1cd0525f6da1adda4c205ad745ce96",
+    "probeHash": "efa9c01f550246c764cd96896374b113658de8a94f0b30f3506c5d0d0b8989c4",
+    "runtime": {
+      "node": "24.22.1",
+      "pnpm": "11.28.7",
+      "platform": "darwin",
+      "arch": "arm64",
+      "logicalCpus": 12
+    },
+    "workload": {
+      "chainId": 1,
+      "start": 26240000,
+      "end": 26290000,
+      "checkpointInterval": 10000,
+      "configHash": "00b1a7c2428594bae04c0b7692441579318dc52996fba2b141f3fae7d4f475e3",
+      "eventSource": "HyperSync",
+      "rpcMode": "fallback"
+    },
+    "fixture": {
+      "erpcImageId": "sha256:bda008e8ccf92d8c9a6d40030be61b9ca4d1c51ba8ff3f8fb46aacf25153507f",
+      "postgresImageId": "sha256:9355df27b2506973cfc421408623435f15298511c2cdadc502b7aa580efe611f",
+      "aggregateCreditsPerSecond": 50,
+      "proxyNetworks": [
+        1, 10, 42161, 8453, 80094, 4663, 11155111, 421614, 84532
+      ]
+    },
+    "providerProfile": "local-private"
+  },
+  "runs": [
+    {
+      "committedSeconds": 122.50323537499999,
+      "blocksPerSecond": 408.16064854891187,
+      "exitCode": 0,
+      "meta": {
+        "startBlock": 26240000,
+        "endBlock": 26290000,
+        "progressBlock": 26290000,
+        "eventsProcessed": 523,
+        "isReady": true
+      },
+      "source": { "hyperSyncGetLogs": 1, "rpcGetLogs": 0 },
+      "rpc": {
+        "proxyRequests": {
+          "eth_call": 3205,
+          "eth_getBlockByNumber": 1886,
+          "eth_getCode": 1078
+        },
+        "upstreamRequests": {
+          "eth_call": 3097,
+          "eth_getBlockByNumber": 163,
+          "eth_getCode": 1028,
+          "eth_chainId": 11,
+          "eth_syncing": 29
+        },
+        "capacityRejections": {
+          "eth_call": 108,
+          "eth_getBlockByNumber": 34,
+          "eth_getCode": 50,
+          "eth_syncing": 16
+        },
+        "failedProxyRequests": {
+          "eth_call": 128,
+          "eth_getBlockByNumber": 5,
+          "eth_getCode": 50
+        },
+        "cacheHits": { "eth_getBlockByNumber": 1778 },
+        "attemptOutcomes": { "success": 3790, "empty": 518, "exec_revert": 20 },
+        "unreportedOptionalCounters": []
+      },
+      "effectWindowWaitSeconds": {
+        "readPinnedBytecodeHash": 0.243,
+        "readControlGetter": 41.055,
+        "readPinnedRawCall": 3.743,
+        "readBridgeConfiguration": 0.086
+      },
+      "entities": {
+        "ActionExecutedEvent": {
+          "count": 3,
+          "exact": "23f8120245c3c5abc36a9d466d234ffbfe56ab204faf4197866b29c3260a962b",
+          "semantic": "23f8120245c3c5abc36a9d466d234ffbfe56ab204faf4197866b29c3260a962b"
+        },
+        "BridgeConfiguration": {
+          "count": 2,
+          "exact": "c0cfeb10e793060ca16fb2c5522cdbd5e8978c82afb77e34e9230d5119385d1a",
+          "semantic": "c0cfeb10e793060ca16fb2c5522cdbd5e8978c82afb77e34e9230d5119385d1a"
+        },
+        "ChainObservation": {
+          "count": 1,
+          "exact": "e571609c454a53b9cc67ad8ae3cfb08c5b81f09ecc3b2e3503cd50dc03c7fb7d",
+          "semantic": "e571609c454a53b9cc67ad8ae3cfb08c5b81f09ecc3b2e3503cd50dc03c7fb7d"
+        },
+        "Contract": {
+          "count": 69,
+          "exact": "ae1261da8568891a3214697e985899ee9ea70df0bffb0d6e0d332ffba9b2fd56",
+          "semantic": "57eb00c5dfbeba26657c28204e3c6b5667e9dad0c3934926a7f286a13a965217"
+        },
+        "ContractEvent": {
+          "count": 3,
+          "exact": "5b1a7e896bbf7e29e33351aa2e340511d3803f0660c0ce51c7dfa56a468e0d64",
+          "semantic": "1cc1ebc202482bc47e7eb045d0f3ca84235d1b5ba49f25a436da3de3413eee31"
+        },
+        "ContractRelationship": {
+          "count": 579,
+          "exact": "482fb4aaa2308660fc355b009eccdfd94797d071b6f6927bd26439ae227d777f",
+          "semantic": "482fb4aaa2308660fc355b009eccdfd94797d071b6f6927bd26439ae227d777f"
+        },
+        "ContractState": {
+          "count": 22,
+          "exact": "599b60d4be9ca3d9b2d1b64c52f51339cfa35dac5490116bb7041374f5a763c0",
+          "semantic": "599b60d4be9ca3d9b2d1b64c52f51339cfa35dac5490116bb7041374f5a763c0"
+        },
+        "ContractStateSeed": {
+          "count": 599,
+          "exact": "a5719382c9e8a978178dafd4d4ac5587647d6d065406f1de01bcfbf2b7d49568",
+          "semantic": "a5719382c9e8a978178dafd4d4ac5587647d6d065406f1de01bcfbf2b7d49568"
+        },
+        "ControlTransition": {
+          "count": 2,
+          "exact": "6aefa7fee9ed885561944be2101ae6cd90cf7ccfe7f36a8e90636d7a2e7412e8",
+          "semantic": "6aefa7fee9ed885561944be2101ae6cd90cf7ccfe7f36a8e90636d7a2e7412e8"
+        },
+        "CurrentModule": {
+          "count": 0,
+          "exact": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "semantic": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "CurrentRoleAssignee": {
+          "count": 0,
+          "exact": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "semantic": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "HeartTasks": {
+          "count": 1,
+          "exact": "bfd5b8ac694478dccd595f30fd7786cb2727d16404c2799d467f4658866da07c",
+          "semantic": "bfd5b8ac694478dccd595f30fd7786cb2727d16404c2799d467f4658866da07c"
+        },
+        "KernelExecutor": {
+          "count": 1,
+          "exact": "a22c3c08224a6b75dfeef20007f7aaa1fa2adc000223e960c2c19da990da5577",
+          "semantic": "a22c3c08224a6b75dfeef20007f7aaa1fa2adc000223e960c2c19da990da5577"
+        },
+        "KernelExecutorEvent": {
+          "count": 1,
+          "exact": "00559f2b12b97e55f7d588db976614f74955c7dbac779c78a906567a8a53faba",
+          "semantic": "00559f2b12b97e55f7d588db976614f74955c7dbac779c78a906567a8a53faba"
+        },
+        "KernelReadCache": {
+          "count": 10,
+          "exact": "68c69d2ea6743bcc75c7ff78a3781ab55485a3d4520a6e70bd92e386f613ddf5",
+          "semantic": "68c69d2ea6743bcc75c7ff78a3781ab55485a3d4520a6e70bd92e386f613ddf5"
+        },
+        "KernelReadEpoch": {
+          "count": 1,
+          "exact": "f8653891dc5a7ea2f2eecd546c918f7c7da8d74cffdd9a2d995fc60f0f64a3ab",
+          "semantic": "f8653891dc5a7ea2f2eecd546c918f7c7da8d74cffdd9a2d995fc60f0f64a3ab"
+        },
+        "Role": {
+          "count": 0,
+          "exact": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "semantic": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "RoleAssignment": {
+          "count": 0,
+          "exact": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "semantic": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "RoleEvent": {
+          "count": 0,
+          "exact": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "semantic": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "VerifiedDeployment": {
+          "count": 97,
+          "exact": "94cb16079c580bfad25d134aabb400d86d5a917295a2bd7b38b76054e24d8dd7",
+          "semantic": "94cb16079c580bfad25d134aabb400d86d5a917295a2bd7b38b76054e24d8dd7"
+        }
+      },
+      "profile": {
+        "rpcEnvelopes": 2086,
+        "rpcItems": 6169,
+        "rpcMethods": {
+          "eth_getBlockByNumber": 1886,
+          "eth_call": 3205,
+          "eth_getCode": 1078
+        },
+        "batchSizes": {
+          "1": 866,
+          "2": 446,
+          "3": 22,
+          "4": 296,
+          "5": 19,
+          "6": 263,
+          "7": 50,
+          "8": 46,
+          "9": 10,
+          "10": 68
+        },
+        "rpcPeakEnvelopes": 5,
+        "rpcFetchMilliseconds": 95691.0038050004,
+        "sourceRequests": 129,
+        "sourceStatuses": { "200": 128, "404": 1 },
+        "sourceFetchMilliseconds": 4127.312915999997,
+        "elapsedMilliseconds": 122480.854,
+        "cpuMicroseconds": { "user": 14949233, "system": 1634991 },
+        "maxRssKilobytes": 288864
+      }
+    },
+    {
+      "committedSeconds": 124.853430583,
+      "blocksPerSecond": 400.4775821258701,
+      "exitCode": 0,
+      "meta": {
+        "startBlock": 26240000,
+        "endBlock": 26290000,
+        "progressBlock": 26290000,
+        "eventsProcessed": 523,
+        "isReady": true
+      },
+      "source": { "hyperSyncGetLogs": 1, "rpcGetLogs": 0 },
+      "rpc": {
+        "proxyRequests": {
+          "eth_call": 3196,
+          "eth_getBlockByNumber": 1902,
+          "eth_getCode": 1096
+        },
+        "upstreamRequests": {
+          "eth_call": 3097,
+          "eth_getBlockByNumber": 177,
+          "eth_getCode": 1028,
+          "eth_chainId": 11,
+          "eth_syncing": 36
+        },
+        "capacityRejections": {
+          "eth_call": 99,
+          "eth_getBlockByNumber": 19,
+          "eth_getCode": 68,
+          "eth_syncing": 8
+        },
+        "failedProxyRequests": {
+          "eth_call": 119,
+          "eth_getBlockByNumber": 5,
+          "eth_getCode": 68
+        },
+        "cacheHits": { "eth_getBlockByNumber": 1794 },
+        "attemptOutcomes": { "success": 3811, "empty": 518, "exec_revert": 20 },
+        "unreportedOptionalCounters": []
+      },
+      "effectWindowWaitSeconds": {
+        "readPinnedBytecodeHash": 0.654,
+        "readControlGetter": 39.161,
+        "readPinnedRawCall": 3.791,
+        "readBridgeConfiguration": 0.126
+      },
+      "entities": {
+        "ActionExecutedEvent": {
+          "count": 3,
+          "exact": "23f8120245c3c5abc36a9d466d234ffbfe56ab204faf4197866b29c3260a962b",
+          "semantic": "23f8120245c3c5abc36a9d466d234ffbfe56ab204faf4197866b29c3260a962b"
+        },
+        "BridgeConfiguration": {
+          "count": 2,
+          "exact": "c0cfeb10e793060ca16fb2c5522cdbd5e8978c82afb77e34e9230d5119385d1a",
+          "semantic": "c0cfeb10e793060ca16fb2c5522cdbd5e8978c82afb77e34e9230d5119385d1a"
+        },
+        "ChainObservation": {
+          "count": 1,
+          "exact": "e571609c454a53b9cc67ad8ae3cfb08c5b81f09ecc3b2e3503cd50dc03c7fb7d",
+          "semantic": "e571609c454a53b9cc67ad8ae3cfb08c5b81f09ecc3b2e3503cd50dc03c7fb7d"
+        },
+        "Contract": {
+          "count": 69,
+          "exact": "ae1261da8568891a3214697e985899ee9ea70df0bffb0d6e0d332ffba9b2fd56",
+          "semantic": "57eb00c5dfbeba26657c28204e3c6b5667e9dad0c3934926a7f286a13a965217"
+        },
+        "ContractEvent": {
+          "count": 3,
+          "exact": "5b1a7e896bbf7e29e33351aa2e340511d3803f0660c0ce51c7dfa56a468e0d64",
+          "semantic": "1cc1ebc202482bc47e7eb045d0f3ca84235d1b5ba49f25a436da3de3413eee31"
+        },
+        "ContractRelationship": {
+          "count": 579,
+          "exact": "482fb4aaa2308660fc355b009eccdfd94797d071b6f6927bd26439ae227d777f",
+          "semantic": "482fb4aaa2308660fc355b009eccdfd94797d071b6f6927bd26439ae227d777f"
+        },
+        "ContractState": {
+          "count": 22,
+          "exact": "599b60d4be9ca3d9b2d1b64c52f51339cfa35dac5490116bb7041374f5a763c0",
+          "semantic": "599b60d4be9ca3d9b2d1b64c52f51339cfa35dac5490116bb7041374f5a763c0"
+        },
+        "ContractStateSeed": {
+          "count": 599,
+          "exact": "a5719382c9e8a978178dafd4d4ac5587647d6d065406f1de01bcfbf2b7d49568",
+          "semantic": "a5719382c9e8a978178dafd4d4ac5587647d6d065406f1de01bcfbf2b7d49568"
+        },
+        "ControlTransition": {
+          "count": 2,
+          "exact": "6aefa7fee9ed885561944be2101ae6cd90cf7ccfe7f36a8e90636d7a2e7412e8",
+          "semantic": "6aefa7fee9ed885561944be2101ae6cd90cf7ccfe7f36a8e90636d7a2e7412e8"
+        },
+        "CurrentModule": {
+          "count": 0,
+          "exact": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "semantic": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "CurrentRoleAssignee": {
+          "count": 0,
+          "exact": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "semantic": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "HeartTasks": {
+          "count": 1,
+          "exact": "bfd5b8ac694478dccd595f30fd7786cb2727d16404c2799d467f4658866da07c",
+          "semantic": "bfd5b8ac694478dccd595f30fd7786cb2727d16404c2799d467f4658866da07c"
+        },
+        "KernelExecutor": {
+          "count": 1,
+          "exact": "a22c3c08224a6b75dfeef20007f7aaa1fa2adc000223e960c2c19da990da5577",
+          "semantic": "a22c3c08224a6b75dfeef20007f7aaa1fa2adc000223e960c2c19da990da5577"
+        },
+        "KernelExecutorEvent": {
+          "count": 1,
+          "exact": "00559f2b12b97e55f7d588db976614f74955c7dbac779c78a906567a8a53faba",
+          "semantic": "00559f2b12b97e55f7d588db976614f74955c7dbac779c78a906567a8a53faba"
+        },
+        "KernelReadCache": {
+          "count": 10,
+          "exact": "68c69d2ea6743bcc75c7ff78a3781ab55485a3d4520a6e70bd92e386f613ddf5",
+          "semantic": "68c69d2ea6743bcc75c7ff78a3781ab55485a3d4520a6e70bd92e386f613ddf5"
+        },
+        "KernelReadEpoch": {
+          "count": 1,
+          "exact": "f8653891dc5a7ea2f2eecd546c918f7c7da8d74cffdd9a2d995fc60f0f64a3ab",
+          "semantic": "f8653891dc5a7ea2f2eecd546c918f7c7da8d74cffdd9a2d995fc60f0f64a3ab"
+        },
+        "Role": {
+          "count": 0,
+          "exact": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "semantic": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "RoleAssignment": {
+          "count": 0,
+          "exact": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "semantic": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "RoleEvent": {
+          "count": 0,
+          "exact": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "semantic": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "VerifiedDeployment": {
+          "count": 97,
+          "exact": "94cb16079c580bfad25d134aabb400d86d5a917295a2bd7b38b76054e24d8dd7",
+          "semantic": "94cb16079c580bfad25d134aabb400d86d5a917295a2bd7b38b76054e24d8dd7"
+        }
+      },
+      "profile": {
+        "rpcEnvelopes": 2119,
+        "rpcItems": 6194,
+        "rpcMethods": {
+          "eth_getBlockByNumber": 1902,
+          "eth_call": 3196,
+          "eth_getCode": 1096
+        },
+        "batchSizes": {
+          "1": 909,
+          "2": 447,
+          "3": 16,
+          "4": 298,
+          "5": 32,
+          "6": 229,
+          "7": 47,
+          "8": 51,
+          "9": 20,
+          "10": 70
+        },
+        "rpcPeakEnvelopes": 6,
+        "rpcFetchMilliseconds": 99957.83858199981,
+        "sourceRequests": 129,
+        "sourceStatuses": { "200": 128, "404": 1 },
+        "sourceFetchMilliseconds": 5669.6787489999815,
+        "elapsedMilliseconds": 124926.50958299999,
+        "cpuMicroseconds": { "user": 15404371, "system": 1639263 },
+        "maxRssKilobytes": 287680
+      }
+    },
+    {
+      "committedSeconds": 123.54029841600003,
+      "blocksPerSecond": 404.7343307495544,
+      "exitCode": 0,
+      "meta": {
+        "startBlock": 26240000,
+        "endBlock": 26290000,
+        "progressBlock": 26290000,
+        "eventsProcessed": 523,
+        "isReady": true
+      },
+      "source": { "hyperSyncGetLogs": 1, "rpcGetLogs": 0 },
+      "rpc": {
+        "proxyRequests": {
+          "eth_call": 3173,
+          "eth_getBlockByNumber": 1884,
+          "eth_getCode": 1094
+        },
+        "upstreamRequests": {
+          "eth_call": 3097,
+          "eth_getBlockByNumber": 155,
+          "eth_getCode": 1028,
+          "eth_chainId": 9,
+          "eth_syncing": 26
+        },
+        "capacityRejections": {
+          "eth_call": 76,
+          "eth_getBlockByNumber": 44,
+          "eth_getCode": 66,
+          "eth_syncing": 19
+        },
+        "failedProxyRequests": {
+          "eth_call": 96,
+          "eth_getBlockByNumber": 6,
+          "eth_getCode": 66
+        },
+        "cacheHits": { "eth_getBlockByNumber": 1775 },
+        "attemptOutcomes": { "success": 3777, "empty": 518, "exec_revert": 20 },
+        "unreportedOptionalCounters": []
+      },
+      "effectWindowWaitSeconds": {
+        "readPinnedBytecodeHash": 1.203,
+        "readControlGetter": 39.837,
+        "readPinnedRawCall": 3.649,
+        "readBridgeConfiguration": 0.075
+      },
+      "entities": {
+        "ActionExecutedEvent": {
+          "count": 3,
+          "exact": "23f8120245c3c5abc36a9d466d234ffbfe56ab204faf4197866b29c3260a962b",
+          "semantic": "23f8120245c3c5abc36a9d466d234ffbfe56ab204faf4197866b29c3260a962b"
+        },
+        "BridgeConfiguration": {
+          "count": 2,
+          "exact": "c0cfeb10e793060ca16fb2c5522cdbd5e8978c82afb77e34e9230d5119385d1a",
+          "semantic": "c0cfeb10e793060ca16fb2c5522cdbd5e8978c82afb77e34e9230d5119385d1a"
+        },
+        "ChainObservation": {
+          "count": 1,
+          "exact": "e571609c454a53b9cc67ad8ae3cfb08c5b81f09ecc3b2e3503cd50dc03c7fb7d",
+          "semantic": "e571609c454a53b9cc67ad8ae3cfb08c5b81f09ecc3b2e3503cd50dc03c7fb7d"
+        },
+        "Contract": {
+          "count": 69,
+          "exact": "ae1261da8568891a3214697e985899ee9ea70df0bffb0d6e0d332ffba9b2fd56",
+          "semantic": "57eb00c5dfbeba26657c28204e3c6b5667e9dad0c3934926a7f286a13a965217"
+        },
+        "ContractEvent": {
+          "count": 3,
+          "exact": "5b1a7e896bbf7e29e33351aa2e340511d3803f0660c0ce51c7dfa56a468e0d64",
+          "semantic": "1cc1ebc202482bc47e7eb045d0f3ca84235d1b5ba49f25a436da3de3413eee31"
+        },
+        "ContractRelationship": {
+          "count": 579,
+          "exact": "482fb4aaa2308660fc355b009eccdfd94797d071b6f6927bd26439ae227d777f",
+          "semantic": "482fb4aaa2308660fc355b009eccdfd94797d071b6f6927bd26439ae227d777f"
+        },
+        "ContractState": {
+          "count": 22,
+          "exact": "599b60d4be9ca3d9b2d1b64c52f51339cfa35dac5490116bb7041374f5a763c0",
+          "semantic": "599b60d4be9ca3d9b2d1b64c52f51339cfa35dac5490116bb7041374f5a763c0"
+        },
+        "ContractStateSeed": {
+          "count": 599,
+          "exact": "a5719382c9e8a978178dafd4d4ac5587647d6d065406f1de01bcfbf2b7d49568",
+          "semantic": "a5719382c9e8a978178dafd4d4ac5587647d6d065406f1de01bcfbf2b7d49568"
+        },
+        "ControlTransition": {
+          "count": 2,
+          "exact": "6aefa7fee9ed885561944be2101ae6cd90cf7ccfe7f36a8e90636d7a2e7412e8",
+          "semantic": "6aefa7fee9ed885561944be2101ae6cd90cf7ccfe7f36a8e90636d7a2e7412e8"
+        },
+        "CurrentModule": {
+          "count": 0,
+          "exact": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "semantic": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "CurrentRoleAssignee": {
+          "count": 0,
+          "exact": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "semantic": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "HeartTasks": {
+          "count": 1,
+          "exact": "bfd5b8ac694478dccd595f30fd7786cb2727d16404c2799d467f4658866da07c",
+          "semantic": "bfd5b8ac694478dccd595f30fd7786cb2727d16404c2799d467f4658866da07c"
+        },
+        "KernelExecutor": {
+          "count": 1,
+          "exact": "a22c3c08224a6b75dfeef20007f7aaa1fa2adc000223e960c2c19da990da5577",
+          "semantic": "a22c3c08224a6b75dfeef20007f7aaa1fa2adc000223e960c2c19da990da5577"
+        },
+        "KernelExecutorEvent": {
+          "count": 1,
+          "exact": "00559f2b12b97e55f7d588db976614f74955c7dbac779c78a906567a8a53faba",
+          "semantic": "00559f2b12b97e55f7d588db976614f74955c7dbac779c78a906567a8a53faba"
+        },
+        "KernelReadCache": {
+          "count": 10,
+          "exact": "68c69d2ea6743bcc75c7ff78a3781ab55485a3d4520a6e70bd92e386f613ddf5",
+          "semantic": "68c69d2ea6743bcc75c7ff78a3781ab55485a3d4520a6e70bd92e386f613ddf5"
+        },
+        "KernelReadEpoch": {
+          "count": 1,
+          "exact": "f8653891dc5a7ea2f2eecd546c918f7c7da8d74cffdd9a2d995fc60f0f64a3ab",
+          "semantic": "f8653891dc5a7ea2f2eecd546c918f7c7da8d74cffdd9a2d995fc60f0f64a3ab"
+        },
+        "Role": {
+          "count": 0,
+          "exact": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "semantic": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "RoleAssignment": {
+          "count": 0,
+          "exact": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "semantic": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "RoleEvent": {
+          "count": 0,
+          "exact": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "semantic": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "VerifiedDeployment": {
+          "count": 97,
+          "exact": "94cb16079c580bfad25d134aabb400d86d5a917295a2bd7b38b76054e24d8dd7",
+          "semantic": "94cb16079c580bfad25d134aabb400d86d5a917295a2bd7b38b76054e24d8dd7"
+        }
+      },
+      "profile": {
+        "rpcEnvelopes": 2072,
+        "rpcItems": 6151,
+        "rpcMethods": {
+          "eth_getBlockByNumber": 1884,
+          "eth_call": 3173,
+          "eth_getCode": 1094
+        },
+        "batchSizes": {
+          "1": 853,
+          "2": 438,
+          "3": 24,
+          "4": 295,
+          "5": 17,
+          "6": 286,
+          "7": 40,
+          "8": 46,
+          "9": 9,
+          "10": 64
+        },
+        "rpcPeakEnvelopes": 4,
+        "rpcFetchMilliseconds": 99661.22227800006,
+        "sourceRequests": 129,
+        "sourceStatuses": { "200": 128, "404": 1 },
+        "sourceFetchMilliseconds": 5866.415245000046,
+        "elapsedMilliseconds": 123492.43250000001,
+        "cpuMicroseconds": { "user": 13319903, "system": 1275516 },
+        "maxRssKilobytes": 299968
+      }
+    }
+  ],
+  "diagnosticId": "indexer-58018c68-205f-4566-9f56-39fcfe12a690",
+  "inputFingerprint": "b0c3717e671084d18f7bda0ca6842c00b836a0f392f01a22694973d9def8b6fb",
+  "summary": {
+    "runCount": 3,
+    "medianCommittedSeconds": 123.54029841600003,
+    "medianBlocksPerSecond": 404.7343307495544,
+    "medianProxyRequests": 6169,
+    "medianUpstreamRequests": 4328,
+    "stateConsistent": true
+  },
+  "cleanupComplete": true
+}

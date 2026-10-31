@@ -57,4 +57,6 @@ When PR publication or updating is authorized, include an **Indexer benchmark** 
 
 Preserve the rest of the PR description. Update the existing benchmark section rather than accumulating duplicate reports. Use a structured API body or `gh pr edit --body-file` with the complete intended body; do not interpolate multiline reports into shell commands.
 
+Use repository-relative artifact links and portable commands in PR text. Omit personal filesystem paths, private environment-file locations and diagnostic paths.
+
 If the task forbids PR writes, prepare the comparison locally and report its location. This skill does not authorize a push, PR creation/update or deployment beyond the user's current instructions. If no valid baseline can be produced, state that limitation in the proposed PR text instead of inventing a gain.

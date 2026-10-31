@@ -95,3 +95,24 @@ The next experiment changes only the getter and raw-call effect gates from 25 to
 The 35-operation experiment passed all nine ordered validation steps (126 indexer tests, with the opt-in SQL fixture skipped by the ordinary build). Docker required the same approved buildx access. The patched eRPC/PostgreSQL integration separately passed nine dependency-reader proxy/viem cases, capacity recovery, persistence and a mixed-method/mixed-chain aggregate budget: 20 credits admitted and 140 capacity errors from a 160-request burst. Reset checks were explicitly skipped; no database reset occurred.
 
 The full static code review completed eight lenses with no actionable defect. It identified populated PostgreSQL rollback/restart as a remaining acceptance check. Adding VerifiedDeployment also makes the stored schema incompatible with ordinary resume from the old baseline: future rollout requires a separate preservation/migration strategy. No existing database migration, reset or deployment is part of this work.
+
+## Populated PostgreSQL facts: rollback and restart
+
+The opt-in `deployment-postgres.test.mjs` creates a uniquely named database on a local disposable PostgreSQL server. Three separate Node processes seed state, roll it back and verify the persisted result. Production deployment discovery writes a verified ordinary deployment from controlled source/runtime responses; production Kernel reuse seeds its entity using a trusted fixture runtime-hash callback. Native UserContext writes then update both entities and create additional rows at a later checkpoint.
+
+The test invokes Envio's native rollback/history selection, queues a replacement checkpoint and waits for the native durable write. The third process confirms earlier values and original verification provenance were restored, later-created rows disappeared, and progress/frontier match the replacement checkpoint. Production readers reuse valid restored SQL facts and reject orphaned stored anchors even while the requested block remains canonical. Production raw-call effects survive both rollback and process restart; a different block hash causes a distinct RPC call.
+
+The strengthened integration passed in 1.61 seconds. Astra found two fixture gaps: historical-anchor tests had also changed the current pin, and direct child-stage invocation bypassed the parent database guards. Separate historical-only cases and loopback/fresh-namespace/query-option/stage guards now cover those conditions. A fresh Astra follow-up found no actionable issue. Ponytail and five simplification lenses retained the required native plumbing and sequential process boundaries, with no extra abstraction.
+
+This is controlled integration evidence, not a live reorg: checkpoints and source responses are synthetic, full history retention is forced, and direct rollback bypasses source fork detection. Earlier phase tests separately exercise late canonical rejection through native Envio processing with memory storage. No existing database is reset or dropped. The fixture retains its new database for inspection.
+
+With the pinned runtime active, set `PV_CACHE_POSTGRES_URL` to a disposable local PostgreSQL administrative database, then run:
+
+```sh
+cd apps/indexer
+node --import ./scripts/register-typescript.mjs --test scripts/deployment-postgres.test.mjs
+```
+
+The ordinary build skips this integration unless the variable is set. The parent creates a new UUID-named database; child stages only accept the local fixture namespace.
+
+The first ordered validation stopped at step 3 on formatting of one added assertion. After formatting, all nine steps passed with 126 ordinary indexer tests and one explicit opt-in skip. The opt-in SQL test passed separately. Existing strict typechecks and project-wide lint passed; no dependencies, frontend code or ignore rules changed. Trivy found no high/critical findings or secrets in the indexer image, but its MEDIUM threshold remains failed by the same 23 Debian findings recorded before this milestone. The patched eRPC image passes the configured threshold with the existing ignore file.

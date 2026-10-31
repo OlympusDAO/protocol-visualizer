@@ -3,6 +3,11 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
+validation_node_bin="${NVM_DIR:-$HOME/.nvm}/versions/node/v$(< .node-version)/bin"
+if [[ -x "$validation_node_bin/node" ]]; then
+  export PATH="$validation_node_bin:$PATH"
+fi
+
 step=0
 run() {
   step=$((step + 1))

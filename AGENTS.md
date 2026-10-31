@@ -16,6 +16,10 @@ When asked to validate this repository, run `./scripts/validate.sh`. It executes
 
 If a command fails, stop and report the first failure with actionable context.
 
+## Indexer Benchmark
+
+For indexing or RPC performance changes, use the [Protocol Visualizer benchmark skill](skills/protocol-visualizer-benchmark/SKILL.md). `pnpm benchmark:indexer` writes the standard branch result to `docs/performance/indexer-benchmark.json`; `pnpm benchmark:indexer:compare BASE_REF` compares current results. Follow the skill's criteria for when to run and include comparisons in an authorized branch PR. Local-only tasks prepare evidence without publishing it.
+
 ## Runtime Version Rules
 
 - Node version must align across `package.json` (`engines.node`), `.nvmrc`, `.node-version`, GitHub Actions setup, and Dockerfiles.

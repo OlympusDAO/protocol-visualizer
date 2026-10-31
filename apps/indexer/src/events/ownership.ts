@@ -537,135 +537,171 @@ export async function completeRelationshipBlock(
     ))
   )
     return false;
-  for (const field of fields.filter(
-    (field) => field.startBlock <= Number(block.number)
-  )) {
-    const id = relationshipId(chainId, field.address, field.getter);
-    let state = await context.ContractRelationship.get<RelationshipState>(id);
-    const policy = field.eventPolicy;
-    const replay = state?.verification?.eventReplay;
-    let canReplay = Boolean(
-      policy &&
-        policyCoversGetter(policy, field.getter) &&
-        !field.coverage?.startsWith("getter-only") &&
-        state?.value != null &&
-        replay?.profile === policy.profile &&
-        replay.codeHash === policy.codeHash &&
-        replay.version === policy.version &&
-        BigInt(replay.block.number) <= BigInt(block.number) &&
-        BigInt(state.provenance.number) <= BigInt(block.number) &&
-        (!state.indexedThrough ||
-          BigInt(state.indexedThrough.number) <= BigInt(block.number)) &&
-        (state.targetCode === undefined || refreshTargetCode)
-    );
-    let targetCode: "present" | "absent" | undefined;
-    if (canReplay && state?.value && refreshTargetCode) {
-      targetCode = await refreshTargetCode(state.value, block);
-      canReplay = targetCode !== undefined;
-    }
-    if (canReplay && state && replay) {
-      // These callbacks must read fresh headers outside Envio's effect memoization.
-      const [anchor, current] = await Promise.all([
-        readCanonicalBlock(replay.block.number),
-        readCanonicalBlock(block.number),
-      ]);
-      if (anchor?.hash !== replay.block.hash || current?.hash !== block.hash) {
-        context.ContractRelationship.set({
-          ...state,
-          verification: {
-            ...state.verification,
-            outcome: "unavailable",
-            reason:
-              "Ownership replay anchor is not on the observed canonical chain.",
-          },
-        });
-        return false;
-      }
-      context.ContractRelationship.set({
-        ...(await present(context, state)),
-        indexedThrough: block,
-        ...(targetCode ? { targetCode } : {}),
-      });
-      continue;
-    }
-    const result = await read(field.address, field.getter);
-    if (
-      result.status === "success" &&
-      (state?.value == null || field.coverage?.startsWith("getter-only"))
-    ) {
-      await writeField(
-        context,
-        chainId,
-        field,
-        result.value,
-        result.verifiedAt ?? block
-      );
-      state = await context.ContractRelationship.get<RelationshipState>(id);
-    }
-    if (!state) {
-      state = {
-        id,
-        chainId,
-        subject: field.address.toLowerCase(),
-        getter: field.getter,
-        kind: field.kind,
-        value: null,
-        source: field.address.toLowerCase(),
-        target: null,
-        status: "unset",
-        provenance: block,
-        seed: null,
-        lastChange: null,
-        indexedThrough: null,
-        verification: { outcome: "unperformed" },
-        ...(field.coverage ? { coverage: field.coverage } : {}),
-        ...(field.scope ? { scope: field.scope } : {}),
-      };
-    }
-    const eventReplay =
-      policy &&
-      policyCoversGetter(policy, field.getter) &&
-      !field.coverage?.startsWith("getter-only") &&
-      result.status === "success" &&
-      result.functionContext?.source?.codeHash === policy.codeHash &&
-      state.value === result.value.toLowerCase()
-        ? { ...policy, block: result.verifiedAt ?? block }
-        : undefined;
-    context.ContractRelationship.set({
-      ...(await present(context, state)),
-      ...(field.callSignature ? { callSignature: field.callSignature } : {}),
-      ...(field.callSelector ? { callSelector: field.callSelector } : {}),
-      indexedThrough: block,
-      ...(result.status === "success"
-        ? {
-            functionContext: result.functionContext ?? state.functionContext,
-            targetCode:
-              state.value === result.value.toLowerCase()
-                ? (result.targetCode ?? state.targetCode)
-                : state.targetCode,
-          }
-        : {}),
-      ...(field.inventoryPools?.length
-        ? {
-            coverage: poolDiscrepancy(field, state.value) ?? field.coverage,
-          }
-        : {}),
-      verification:
-        result.status === "unavailable"
-          ? { outcome: "unavailable", block, reason: result.reason }
-          : {
-              outcome:
-                state.value === null
-                  ? "unperformed"
-                  : state.value === result.value.toLowerCase()
-                    ? "match"
-                    : "mismatch",
-              block: result.verifiedAt ?? block,
-              getterValue: result.value.toLowerCase(),
-              ...(eventReplay ? { eventReplay } : {}),
-            },
-    });
+  const byAddress = new Map<string, RelationshipField[]>();
+  for (const field of fields) {
+    if (!(field.startBlock <= Number(block.number))) continue;
+    const address = field.address.toLowerCase();
+    const group = byAddress.get(address);
+    if (group) group.push(field);
+    else byAddress.set(address, [field]);
   }
+  const groups = byAddress.values();
+  let stopped = false;
+  const completeGroup = async (group: RelationshipField[]) => {
+    try {
+      for (const field of group) {
+        if (stopped) return;
+        const id = relationshipId(chainId, field.address, field.getter);
+        let state =
+          await context.ContractRelationship.get<RelationshipState>(id);
+        const policy = field.eventPolicy;
+        const replay = state?.verification?.eventReplay;
+        let canReplay = Boolean(
+          policy &&
+            policyCoversGetter(policy, field.getter) &&
+            !field.coverage?.startsWith("getter-only") &&
+            state?.value != null &&
+            replay?.profile === policy.profile &&
+            replay.codeHash === policy.codeHash &&
+            replay.version === policy.version &&
+            BigInt(replay.block.number) <= BigInt(block.number) &&
+            BigInt(state.provenance.number) <= BigInt(block.number) &&
+            (!state.indexedThrough ||
+              BigInt(state.indexedThrough.number) <= BigInt(block.number)) &&
+            (state.targetCode === undefined || refreshTargetCode)
+        );
+        let targetCode: "present" | "absent" | undefined;
+        if (canReplay && state?.value && refreshTargetCode) {
+          targetCode = await refreshTargetCode(state.value, block);
+          canReplay = targetCode !== undefined;
+        }
+        if (canReplay && state && replay) {
+          // These callbacks must read fresh headers outside Envio's effect memoization.
+          const [anchor, current] = await Promise.all([
+            readCanonicalBlock(replay.block.number),
+            readCanonicalBlock(block.number),
+          ]);
+          if (
+            anchor?.hash !== replay.block.hash ||
+            current?.hash !== block.hash
+          ) {
+            context.ContractRelationship.set({
+              ...state,
+              verification: {
+                ...state.verification,
+                outcome: "unavailable",
+                reason:
+                  "Ownership replay anchor is not on the observed canonical chain.",
+              },
+            });
+            stopped = true;
+            return;
+          }
+          context.ContractRelationship.set({
+            ...(await present(context, state)),
+            indexedThrough: block,
+            ...(targetCode ? { targetCode } : {}),
+          });
+          continue;
+        }
+        const result = await read(field.address, field.getter);
+        if (
+          result.status === "success" &&
+          (state?.value == null || field.coverage?.startsWith("getter-only"))
+        ) {
+          await writeField(
+            context,
+            chainId,
+            field,
+            result.value,
+            result.verifiedAt ?? block
+          );
+          state = await context.ContractRelationship.get<RelationshipState>(id);
+        }
+        if (!state) {
+          state = {
+            id,
+            chainId,
+            subject: field.address.toLowerCase(),
+            getter: field.getter,
+            kind: field.kind,
+            value: null,
+            source: field.address.toLowerCase(),
+            target: null,
+            status: "unset",
+            provenance: block,
+            seed: null,
+            lastChange: null,
+            indexedThrough: null,
+            verification: { outcome: "unperformed" },
+            ...(field.coverage ? { coverage: field.coverage } : {}),
+            ...(field.scope ? { scope: field.scope } : {}),
+          };
+        }
+        const eventReplay =
+          policy &&
+          policyCoversGetter(policy, field.getter) &&
+          !field.coverage?.startsWith("getter-only") &&
+          result.status === "success" &&
+          result.functionContext?.source?.codeHash === policy.codeHash &&
+          state.value === result.value.toLowerCase()
+            ? { ...policy, block: result.verifiedAt ?? block }
+            : undefined;
+        context.ContractRelationship.set({
+          ...(await present(context, state)),
+          ...(field.callSignature
+            ? { callSignature: field.callSignature }
+            : {}),
+          ...(field.callSelector ? { callSelector: field.callSelector } : {}),
+          indexedThrough: block,
+          ...(result.status === "success"
+            ? {
+                functionContext:
+                  result.functionContext ?? state.functionContext,
+                targetCode:
+                  state.value === result.value.toLowerCase()
+                    ? (result.targetCode ?? state.targetCode)
+                    : state.targetCode,
+              }
+            : {}),
+          ...(field.inventoryPools?.length
+            ? {
+                coverage: poolDiscrepancy(field, state.value) ?? field.coverage,
+              }
+            : {}),
+          verification:
+            result.status === "unavailable"
+              ? { outcome: "unavailable", block, reason: result.reason }
+              : {
+                  outcome:
+                    state.value === null
+                      ? "unperformed"
+                      : state.value === result.value.toLowerCase()
+                        ? "match"
+                        : "mismatch",
+                  block: result.verifiedAt ?? block,
+                  getterValue: result.value.toLowerCase(),
+                  ...(eventReplay ? { eventReplay } : {}),
+                },
+        });
+      }
+    } catch (error) {
+      stopped = true;
+      throw error;
+    }
+  };
+  const work = async () => {
+    while (!stopped) {
+      const group = groups.next();
+      if (group.done) return;
+      await completeGroup(group.value);
+    }
+  };
+  // Drain siblings before Envio leaves preload or the canonical phase closes.
+  const results = await Promise.allSettled([work(), work()]);
+  for (const result of results)
+    if (result.status === "rejected") throw result.reason;
+  if (stopped) return false;
   context.ChainObservation.set({
     id: String(chainId),
     chainId,

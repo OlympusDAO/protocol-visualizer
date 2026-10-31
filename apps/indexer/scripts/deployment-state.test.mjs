@@ -150,6 +150,37 @@ async function fixture(run) {
   }
 }
 
+test("independent readers of one cold deployment write equivalent creation facts", async () => {
+  await fixture(async ({ chainId, runtime, pin, entities }) => {
+    const contexts = await Promise.all([
+      runtime(new Map()),
+      runtime(new Map()),
+    ]);
+    const writes = [];
+    for (const context of contexts) {
+      const store = context.VerifiedDeployment;
+      context.VerifiedDeployment = {
+        get: store.get,
+        set: (row) => {
+          writes.push(structuredClone(row));
+          store.set(row);
+        },
+      };
+    }
+    assert.deepEqual(
+      await Promise.all(
+        contexts.map((context) => getBytecodeHash(context, chainId, pin))
+      ),
+      [keccak256(code), keccak256(code)]
+    );
+    assert.equal(writes.length, 2);
+    assert.deepEqual(writes[0], writes[1]);
+    assert.equal(writes[0].creationHash, creationHash);
+    assert.equal(writes[0].verifiedAt.number, "10");
+    assert.deepEqual([...entities.values()], [writes[0]]);
+  });
+});
+
 test("ordinary deployment code survives restart and entity hits bypass effects; rollback discards lifetime facts", async () => {
   await fixture(
     async ({

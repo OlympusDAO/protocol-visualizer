@@ -619,7 +619,7 @@ export async function getControlGetter(
         },
         readCanonicalBlock
       );
-      const [kernelCode, kernelPointer] = await Promise.all([
+      const [kernelCode, kernelPointer] = await Promise.allSettled([
         getBytecodeHash(
           context,
           input.chainId,
@@ -637,9 +637,11 @@ export async function getControlGetter(
           ...(code ? { sourceCodeHash: code } : {}),
         }) as Promise<ControlGetterResult>,
       ]);
-      return kernelCode === kernelProof.codeHash &&
-        kernelPointer.status === "success" &&
-        kernelPointer.value === kernel.toLowerCase()
+      if (kernelCode.status === "rejected") throw kernelCode.reason;
+      if (kernelPointer.status === "rejected") throw kernelPointer.reason;
+      return kernelCode.value === kernelProof.codeHash &&
+        kernelPointer.value.status === "success" &&
+        kernelPointer.value.value === kernel.toLowerCase()
         ? code
         : undefined;
     },

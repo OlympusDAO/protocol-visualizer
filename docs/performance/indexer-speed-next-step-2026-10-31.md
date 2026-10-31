@@ -1,6 +1,6 @@
 # Proposed next experiment: bounded contract-subject scheduling
 
-Status: awaiting user approval. No scheduling implementation is included.
+Status: approved when the user resumed with “continue.” The local implementation and measurement record are in [the scheduling milestone](indexer-speed-subject-scheduling-2026-10-31.md). Performance acceptance remains subject to replay evidence.
 
 The approved cache stages reduced proxy requests by 75.1% and improved one matched cold replay by 20.7%. Subsequent 35/second runs reached 346.5–354.4 blocks/second; the direct 40/second run reached 354.0. The cold target remains 430.2–573.7 blocks/second. Source and RPC latency vary, so these separate trials do not establish a precise incremental gain from either effect setting.
 

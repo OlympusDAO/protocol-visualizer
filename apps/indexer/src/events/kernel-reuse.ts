@@ -117,7 +117,7 @@ export async function reuseKernelRead<T extends Result>(
         chainId: input.chainId,
         epoch: generation,
         result,
-        verifiedAt: input.block,
+        verifiedAt: result.verifiedAt ?? input.block,
       });
   }
   return result;

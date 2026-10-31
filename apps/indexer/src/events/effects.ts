@@ -553,13 +553,14 @@ export async function getControlGetter(
     address: normalizeAddress(input.address) as Address,
     blockHash: input.blockHash.toLowerCase(),
   };
-  const read = async () =>
-    (await context.effect(
+  const read = async () => {
+    const deployment = await readDeploymentGetter(context, normalized);
+    if (deployment) return deployment;
+    return (await context.effect(
       readControlGetterEffect,
       normalized
     )) as ControlGetterResult;
-  const deployment = await readDeploymentGetter(context, normalized);
-  if (deployment) return deployment;
+  };
   const block =
     observationBlock ??
     (await getControlBlock(context, input.chainId, Number(input.blockNumber)));

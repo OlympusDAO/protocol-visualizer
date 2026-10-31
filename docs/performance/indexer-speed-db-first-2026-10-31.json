@@ -1,0 +1,67 @@
+{
+  "baseline": {
+    "fixture": true,
+    "latencyMillisecondsPerRpc": 10,
+    "preseededKernelFact": true,
+    "checkpoints": 10,
+    "loaderRestartPerCheckpoint": true,
+    "medianMilliseconds": 306.83695799999987,
+    "runs": [
+      {
+        "milliseconds": 299.460459,
+        "requests": {
+          "eth_getCode": 10,
+          "eth_getBlockByNumber": 20
+        },
+        "effects": 20
+      },
+      {
+        "milliseconds": 319.55595900000003,
+        "requests": {
+          "eth_getCode": 10,
+          "eth_getBlockByNumber": 20
+        },
+        "effects": 20
+      },
+      {
+        "milliseconds": 306.83695799999987,
+        "requests": {
+          "eth_getCode": 10,
+          "eth_getBlockByNumber": 20
+        },
+        "effects": 20
+      }
+    ]
+  },
+  "candidate": {
+    "fixture": true,
+    "latencyMillisecondsPerRpc": 10,
+    "preseededKernelFact": true,
+    "checkpoints": 10,
+    "loaderRestartPerCheckpoint": true,
+    "medianMilliseconds": 154.18058300000007,
+    "runs": [
+      {
+        "milliseconds": 156.95520799999997,
+        "requests": {
+          "eth_getBlockByNumber": 20
+        },
+        "effects": 0
+      },
+      {
+        "milliseconds": 150.433875,
+        "requests": {
+          "eth_getBlockByNumber": 20
+        },
+        "effects": 0
+      },
+      {
+        "milliseconds": 154.18058300000007,
+        "requests": {
+          "eth_getBlockByNumber": 20
+        },
+        "effects": 0
+      }
+    ]
+  }
+}

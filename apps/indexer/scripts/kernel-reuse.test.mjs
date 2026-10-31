@@ -7,6 +7,7 @@ import {
 import proofs from "../src/generated/kernel-read-proofs.json" with {
   type: "json",
 };
+import { RpcTransientFailure } from "../src/events/rpc.ts";
 
 const store = (rows = new Map()) => ({
   rows,
@@ -206,4 +207,52 @@ test("failed runtime proof still rechecks canonicality after a successful fresh 
   assert.equal((await run(block(10).hash)).status, "success");
   assert.equal(headers, 2);
   assert.equal(ctx.KernelReadCache.rows.size, 0);
+});
+
+test("seeding a Kernel fact from an already verified deployment value preserves its actual RPC block", async () => {
+  const proof = proofs.find((row) => row.name === "kernel");
+  const context = { KernelReadCache: store(), KernelReadEpoch: store() };
+  const input = {
+    chainId: 1,
+    address: proof.address,
+    getter: "moduleDependents:MINTR",
+    block: block(10),
+  };
+  const read = async () => ({
+    status: "success",
+    value: proof.address,
+    targetCode: "present",
+    verifiedAt: block(4),
+  });
+  let refreshes = 0;
+  const run = (
+    number,
+    refresh = async (result) => {
+      refreshes++;
+      return { ...result, targetCode: "absent" };
+    }
+  ) =>
+    reuseKernelRead(
+      context,
+      { ...input, block: block(number) },
+      read,
+      async () => proof.codeHash,
+      async (n) => block(Number(n)),
+      refresh
+    );
+  await run(10);
+  const reused = await run(11);
+  assert.deepEqual(reused.verifiedAt, block(4));
+  assert.equal(reused.targetCode, "absent");
+  assert.equal(
+    refreshes,
+    1,
+    "a stable address does not prove its target's code lifetime"
+  );
+  await assert.rejects(
+    run(12, async () => {
+      throw new RpcTransientFailure();
+    }),
+    RpcTransientFailure
+  );
 });

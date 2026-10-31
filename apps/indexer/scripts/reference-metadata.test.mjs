@@ -580,12 +580,15 @@ test("cached policy metadata rechecks each observation before exposing documenta
         return input.blockNumber === 13n
           ? undefined
           : block(Number(input.blockNumber));
-      assert.equal(effect.name, "readCanonicalCodeHash");
-      assert.equal(input.blockHash, block(Number(input.blockNumber)).hash);
-      codeReads.push(input.blockNumber);
-      return input.blockNumber === 10n
+      assert.equal(effect.name, "readPinnedBytecodeHash");
+      const number = [10n, 11n, 12n].find(
+        (height) => block(Number(height)).hash === input.blockHash
+      );
+      assert.notEqual(number, undefined);
+      codeReads.push(number);
+      return number === 10n
         ? source.codeHash
-        : input.blockNumber === 11n
+        : number === 11n
           ? "0xdifferent"
           : undefined;
     },

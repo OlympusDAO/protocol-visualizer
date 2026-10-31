@@ -15,10 +15,12 @@ import { emptyCodeHash, getBytecodeHash } from "./code-cache";
 import {
   type ControlGetterInput,
   type ControlGetterResult,
-  readPinnedControlGetter,
+  readHashBoundControlGetter,
 } from "./control-reads";
 import type { ControlBlock } from "./control-state";
 import { readDeploymentGetter } from "./deployment-getters";
+import type { CanonicalBlockReader } from "./deployment-facts";
+import contractMetadata from "../generated/contract-metadata.json";
 import { normalizeAddress } from "./ids";
 import { kernelReadProof, reuseKernelRead } from "./kernel-reuse";
 import {
@@ -360,61 +362,27 @@ function getContractProcessor(chainId: number): ContractProcessor {
   return newProcessor;
 }
 
-export const readCodeHashEffect = createEffect(
-  {
-    name: "readCanonicalCodeHash",
-    input: {
-      chainId: S.number,
-      address: S.address,
-      blockNumber: S.bigint,
-      blockHash: S.string,
-    },
-    output: S.optional(S.string),
-    rateLimit: { calls: 25, per: "second" },
-    cache: true,
-  },
-  async ({ input, context }) => {
-    try {
-      const client = getPublicClient(input.chainId);
-      const before = await client.getBlock({ blockNumber: input.blockNumber });
-      const codeHash = await getBytecodeHash(context, input.chainId, {
-        address: input.address,
-        blockHash: input.blockHash as Hex,
-        requireCanonical: true,
-      });
-      const after = await client.getBlock({ blockNumber: input.blockNumber });
-      if (
-        codeHash &&
-        codeHash !== emptyCodeHash &&
-        before.hash === input.blockHash &&
-        after.hash === input.blockHash
-      )
-        return codeHash;
-    } catch (error) {
-      rethrowTransientRpc(error);
-      /* Documentation stays unavailable when the pinned code cannot be verified. */
-    }
-    context.cache = false;
-    return undefined;
-  }
-);
-
 export async function getCanonicalCodeHash(
   context: EnvioContext,
-  input: Omit<ControlGetterInput, "getter">
+  input: Omit<ControlGetterInput, "getter">,
+  readCanonicalBlock?: CanonicalBlockReader
 ): Promise<string | undefined> {
-  const codeHash = context.VerifiedDeployment
-    ? await getBytecodeHash(context, input.chainId, {
-        address: input.address,
-        blockHash: input.blockHash as Hex,
-        blockNumber: input.blockNumber,
-        requireCanonical: true,
-      })
-    : await context.effect(readCodeHashEffect, input);
+  const codeHash = await getBytecodeHash(
+    context,
+    input.chainId,
+    {
+      address: input.address,
+      blockHash: input.blockHash as Hex,
+      blockNumber: input.blockNumber,
+      requireCanonical: true,
+    },
+    readCanonicalBlock
+  );
   if (!codeHash || codeHash === emptyCodeHash) return undefined;
   const current = await readCanonicalControlBlock(
     input.chainId,
-    input.blockNumber
+    input.blockNumber,
+    readCanonicalBlock
   );
   return current?.hash === input.blockHash.toLowerCase() ? codeHash : undefined;
 }
@@ -545,7 +513,7 @@ export const readControlGetterEffect = createEffect(
     cache: true,
   },
   async ({ input, context }) => {
-    const result = await readPinnedControlGetter(
+    const result = await readHashBoundControlGetter(
       getEffectClient(context, input.chainId),
       input,
       undefined,
@@ -563,28 +531,64 @@ export const readControlGetterEffect = createEffect(
 export async function getControlGetter(
   context: EnvioContext,
   input: ControlGetterInput,
-  observationBlock?: ControlBlock
+  observationBlock?: ControlBlock,
+  readCanonicalBlock?: CanonicalBlockReader
 ): Promise<ControlGetterResult> {
   const normalized = {
     ...input,
     address: normalizeAddress(input.address) as Address,
     blockHash: input.blockHash.toLowerCase(),
   };
-  const read = async () => {
-    const deployment = await readDeploymentGetter(context, normalized);
+  const read = async (): Promise<ControlGetterResult> => {
+    const deployment = await readDeploymentGetter(
+      context,
+      normalized,
+      readCanonicalBlock
+    );
     if (deployment) return deployment;
     const sourceCodeHash = context.VerifiedDeployment
-      ? await getBytecodeHash(context, input.chainId, {
-          address: normalized.address,
-          blockHash: normalized.blockHash as Hex,
-          blockNumber: input.blockNumber,
-          requireCanonical: true,
-        })
+      ? await getBytecodeHash(
+          context,
+          input.chainId,
+          {
+            address: normalized.address,
+            blockHash: normalized.blockHash as Hex,
+            blockNumber: input.blockNumber,
+            requireCanonical: true,
+          },
+          readCanonicalBlock
+        )
       : undefined;
-    return (await context.effect(readControlGetterEffect, {
+    const result = (await context.effect(readControlGetterEffect, {
       ...normalized,
       ...(sourceCodeHash ? { sourceCodeHash } : {}),
     })) as ControlGetterResult;
+    const contract = (
+      contractMetadata as Record<string, Record<string, ProcessedContractData>>
+    )[input.chainId]?.[normalized.address];
+    if (
+      result.status !== "success" ||
+      !result.functionContext?.source ||
+      !contract?.addressGetters?.includes(input.getter)
+    )
+      return result;
+    const targetHash = await getBytecodeHash(
+      context,
+      input.chainId,
+      {
+        address: result.value as Address,
+        blockNumber: input.blockNumber,
+        blockHash: normalized.blockHash as Hex,
+        requireCanonical: true,
+      },
+      readCanonicalBlock
+    );
+    return targetHash
+      ? {
+          ...result,
+          targetCode: targetHash === emptyCodeHash ? "absent" : "present",
+        }
+      : { status: "unavailable", reason: "historical code read unavailable" };
   };
   const block =
     observationBlock ??
@@ -603,19 +607,29 @@ export async function getControlGetter(
         getter: "moduleDependents:ROLES",
       });
       if (!kernelProof) return undefined;
-      const code = await getBytecodeHash(context, input.chainId, {
-        address: normalized.address,
-        blockHash: normalized.blockHash as Hex,
-        blockNumber: input.blockNumber,
-        requireCanonical: true,
-      });
-      const [kernelCode, kernelPointer] = await Promise.all([
-        getBytecodeHash(context, input.chainId, {
-          address: kernel,
+      const code = await getBytecodeHash(
+        context,
+        input.chainId,
+        {
+          address: normalized.address,
           blockHash: normalized.blockHash as Hex,
           blockNumber: input.blockNumber,
           requireCanonical: true,
-        }),
+        },
+        readCanonicalBlock
+      );
+      const [kernelCode, kernelPointer] = await Promise.all([
+        getBytecodeHash(
+          context,
+          input.chainId,
+          {
+            address: kernel,
+            blockHash: normalized.blockHash as Hex,
+            blockNumber: input.blockNumber,
+            requireCanonical: true,
+          },
+          readCanonicalBlock
+        ),
         context.effect(readControlGetterEffect, {
           ...normalized,
           getter: "kernel",
@@ -628,15 +642,25 @@ export async function getControlGetter(
         ? code
         : undefined;
     },
-    (number) => readCanonicalControlBlock(input.chainId, BigInt(number)),
+    (number) =>
+      readCanonicalControlBlock(
+        input.chainId,
+        BigInt(number),
+        readCanonicalBlock
+      ),
     async (result): Promise<ControlGetterResult> => {
       if (result.status !== "success" || !result.targetCode) return result;
-      const hash = await getBytecodeHash(context, input.chainId, {
-        address: result.value as Address,
-        blockHash: normalized.blockHash as Hex,
-        blockNumber: input.blockNumber,
-        requireCanonical: true,
-      });
+      const hash = await getBytecodeHash(
+        context,
+        input.chainId,
+        {
+          address: result.value as Address,
+          blockHash: normalized.blockHash as Hex,
+          blockNumber: input.blockNumber,
+          requireCanonical: true,
+        },
+        readCanonicalBlock
+      );
       if (!hash)
         return {
           status: "unavailable",
@@ -687,11 +711,13 @@ export async function getModuleDependencies(
     keycode: string;
     blockNumber: bigint;
     blockHash: string;
-  }
+  },
+  readCanonicalBlock?: CanonicalBlockReader
 ): Promise<DependencyReadResult> {
   const block = await readCanonicalControlBlock(
     input.chainId,
-    input.blockNumber
+    input.blockNumber,
+    readCanonicalBlock
   );
   if (!block || block.hash !== input.blockHash.toLowerCase())
     return { status: "unavailable", reason: "Canonical block changed" };
@@ -709,13 +735,23 @@ export async function getModuleDependencies(
         input
       )) as DependencyReadResult,
     () =>
-      getBytecodeHash(context, input.chainId, {
-        address: input.kernel,
-        blockHash: input.blockHash as Hex,
-        blockNumber: input.blockNumber,
-        requireCanonical: true,
-      }),
-    (number) => readCanonicalControlBlock(input.chainId, BigInt(number))
+      getBytecodeHash(
+        context,
+        input.chainId,
+        {
+          address: input.kernel,
+          blockHash: input.blockHash as Hex,
+          blockNumber: input.blockNumber,
+          requireCanonical: true,
+        },
+        readCanonicalBlock
+      ),
+    (number) =>
+      readCanonicalControlBlock(
+        input.chainId,
+        BigInt(number),
+        readCanonicalBlock
+      )
   );
 }
 
@@ -758,7 +794,8 @@ export async function getBridgeConfiguration(
     blockNumber: bigint;
     blockHash: string;
     selectors: string[];
-  }
+  },
+  readCanonicalBlock?: CanonicalBlockReader
 ): Promise<BridgeReadResult> {
   const result = (await context.effect(readBridgeConfigurationEffect, {
     ...input,
@@ -766,8 +803,13 @@ export async function getBridgeConfiguration(
   })) as BridgeReadResult;
   if (
     result.status === "success" &&
-    (await readCanonicalControlBlock(input.chainId, input.blockNumber))
-      ?.hash !== input.blockHash.toLowerCase()
+    (
+      await readCanonicalControlBlock(
+        input.chainId,
+        input.blockNumber,
+        readCanonicalBlock
+      )
+    )?.hash !== input.blockHash.toLowerCase()
   )
     return {
       status: "unavailable",
@@ -794,11 +836,14 @@ const readControlBlockEffect = createEffect(
 // Bypass the effect loader's per-batch memoization for canonical rechecks.
 export async function readCanonicalControlBlock(
   chainId: number,
-  blockNumber: bigint
+  blockNumber: bigint,
+  readCanonicalBlock?: CanonicalBlockReader
 ): Promise<ControlBlock | undefined> {
   try {
-    const block = await getPublicClient(chainId).getBlock({ blockNumber });
-    if (!block.hash) return undefined;
+    const block = await (readCanonicalBlock
+      ? readCanonicalBlock(chainId, blockNumber)
+      : getPublicClient(chainId).getBlock({ blockNumber }));
+    if (!block.hash || block.timestamp === undefined) return undefined;
     return {
       number: blockNumber.toString(),
       hash: block.hash.toLowerCase(),

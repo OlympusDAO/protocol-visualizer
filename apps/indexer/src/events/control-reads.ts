@@ -74,15 +74,23 @@ type ControlReadClient = {
 };
 
 /** Hash-bound reads stay on the same state even when the transport falls back to another provider. */
-export async function readPinnedControlGetter(
+async function readControlGetter(
   client: ControlReadClient,
   input: ControlGetterInput,
   contract: ProcessedContractData | undefined = (
     metadata as Record<string, Record<string, ProcessedContractData>>
   )[String(input.chainId)]?.[input.address.toLowerCase()],
   readCodeHash: (pin: BytecodePin) => Promise<Hex | undefined> = async (pin) =>
-    client.getCode ? keccak256((await client.getCode(pin)) ?? "0x") : undefined
+    client.getCode ? keccak256((await client.getCode(pin)) ?? "0x") : undefined,
+  mode: "observation" | "fact" = "observation"
 ): Promise<ControlGetterResult> {
+  const canonical =
+    mode === "observation"
+      ? async () =>
+          (
+            await client.getBlock({ blockNumber: input.blockNumber })
+          ).hash?.toLowerCase() === input.blockHash.toLowerCase()
+      : undefined;
   try {
     const [getter = "", token] = input.getter.split(":");
     const metadataGetter =
@@ -126,8 +134,7 @@ export async function readPinnedControlGetter(
       !registryGetter
     )
       return { status: "unavailable", reason: "getter is not configured" };
-    const before = await client.getBlock({ blockNumber: input.blockNumber });
-    if (before.hash?.toLowerCase() !== input.blockHash.toLowerCase())
+    if (canonical && !(await canonical()))
       return {
         status: "unavailable",
         reason: "canonical block hash changed before getter read",
@@ -184,8 +191,7 @@ export async function readPinnedControlGetter(
             index === 0 ? "administrator" : "pendingAdministrator"
           ];
     }
-    const after = await client.getBlock({ blockNumber: input.blockNumber });
-    if (after.hash?.toLowerCase() !== input.blockHash.toLowerCase())
+    if (canonical && !(await canonical()))
       return {
         status: "unavailable",
         reason: "canonical block hash changed during getter read",
@@ -233,7 +239,7 @@ export async function readPinnedControlGetter(
         reason: "getter returned an unexpected value",
       };
     let targetCode: "present" | "absent" | undefined;
-    if (generic && typeof value === "string") {
+    if (mode === "observation" && generic && typeof value === "string") {
       const codeHash = await readCodeHash({
         address: value as Address,
         blockHash: input.blockHash as Hex,
@@ -245,10 +251,7 @@ export async function readPinnedControlGetter(
           reason: "historical code read unavailable",
         };
       targetCode = codeHash === emptyCodeHash ? "absent" : "present";
-      const confirmed = await client.getBlock({
-        blockNumber: input.blockNumber,
-      });
-      if (confirmed.hash?.toLowerCase() !== input.blockHash.toLowerCase())
+      if (canonical && !(await canonical()))
         return {
           status: "unavailable",
           reason: "canonical block hash changed during code read",
@@ -267,4 +270,24 @@ export async function readPinnedControlGetter(
       reason: "historical getter read unavailable",
     };
   }
+}
+
+/** Standalone observations check canonicality around every read and target lookup. */
+export function readPinnedControlGetter(
+  client: ControlReadClient,
+  input: ControlGetterInput,
+  contract?: ProcessedContractData,
+  readCodeHash?: (pin: BytecodePin) => Promise<Hex | undefined>
+): Promise<ControlGetterResult> {
+  return readControlGetter(client, input, contract, readCodeHash);
+}
+
+/** Persisted hash-bound facts require canonical acceptance by their outer reader. */
+export function readHashBoundControlGetter(
+  client: ControlReadClient,
+  input: ControlGetterInput,
+  contract?: ProcessedContractData,
+  readCodeHash?: (pin: BytecodePin) => Promise<Hex | undefined>
+): Promise<ControlGetterResult> {
+  return readControlGetter(client, input, contract, readCodeHash, "fact");
 }

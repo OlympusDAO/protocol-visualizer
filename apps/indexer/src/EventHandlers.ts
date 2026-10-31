@@ -1,6 +1,7 @@
 import { indexer } from "envio";
 import { getKernelConstants } from "./constants";
 import { emptyCodeHash, getBytecodeHash } from "./events/code-cache";
+import { withCanonicalObservation } from "./events/canonical-observation";
 import { configureOwnershipEventFields } from "./events/ownership-policy";
 import {
   completeModuleDependencies,
@@ -52,8 +53,6 @@ import {
   type EnablerContract,
 } from "./events/enabler";
 import {
-  getControlBlock,
-  readCanonicalControlBlock,
   getModuleDependencies,
   getCanonicalCodeHash,
   getControlGetter,
@@ -505,204 +504,241 @@ for (const chainId of indexer.chainIds) {
       relationshipFields.push(field);
   }
   const complete = async (context: EnvioContext, number: number) => {
-    const block = await getControlBlock(context, chainId, number);
-    if (!block) return;
-    const readBlock = (number: string) =>
-      readCanonicalControlBlock(chainId, BigInt(number));
-    const ownershipFields = (fields: RelationshipField[]) =>
-      configureOwnershipEventFields(chainId, fields, {
-        Owned: chain.Owned.addresses,
-        ChainlinkOwned: chain.ChainlinkOwned.addresses,
-        TokenAdminRegistry: chain.TokenAdminRegistry.addresses,
-      });
-    const refreshTargetCode = async (
-      address: string,
-      observed: ControlBlock
-    ) => {
-      const hash = await getBytecodeHash(context, chainId, {
-        address: address as `0x${string}`,
-        blockHash: observed.hash as `0x${string}`,
-        blockNumber: BigInt(observed.number),
-        requireCanonical: true,
-      });
-      return hash ? (hash === emptyCodeHash ? "absent" : "present") : undefined;
-    };
-    const readGetter = (address: string, getter: string) =>
-      getControlGetter(
-        context,
-        {
-          chainId,
-          address: address as `0x${string}`,
-          blockNumber: BigInt(number),
-          blockHash: block.hash,
-          getter,
-        },
-        block
-      );
-    if (
-      !(await heartTaskAnchorsCanonical(
-        context,
-        chainId,
-        block,
-        taskManagers
-          .filter((manager) => manager.startBlock <= number)
-          .map((manager) => manager.address),
-        readBlock
-      ))
-    )
-      return;
-    if (
-      !(await controlAnchorsCanonical(
-        context,
-        chainId,
-        block,
-        legacyTasks
-          .filter((task) => task.startBlock <= number)
-          .map((task) => task.address),
-        readBlock
-      ))
-    )
-      return;
-    const dependencyFields = await getModuleDependencyFields(context, chainId);
-    if (
-      !(await relationshipAnchorsCanonical(
-        context,
-        chainId,
-        block,
-        dependencyFields,
-        readBlock
-      ))
-    )
-      return;
-    const observedFields = ownershipFields(
-      await getObservedPoolFields(
-        context,
-        chainId,
-        await getObservedAuthorityFields(context, chainId, relationshipFields)
-      )
-    );
-    if (
-      !(await bridgeAnchorsCanonical(
-        context,
-        chainId,
-        block,
-        getBridgeContracts(chainId, observedFields),
-        readBlock
-      ))
-    )
-      return;
-    if (
-      !(await relationshipAnchorsCanonical(
-        context,
-        chainId,
-        block,
-        observedFields,
-        readBlock
-      ))
-    )
-      return;
-    const enabledComplete = await completeEnablementBlock(
-      context,
+    await withCanonicalObservation(
       chainId,
-      block,
-      contracts,
-      (address) => readGetter(address, "isEnabled"),
-      readBlock
-    );
-    if (!enabledComplete) return;
-    for (const manager of taskManagers.filter(
-      (manager) => manager.startBlock <= number
-    ))
-      await completeHeartTasks(
-        context,
-        chainId,
-        manager.address,
-        block,
-        await readGetter(manager.address, "getPeriodicTasks")
-      );
-    for (const task of legacyTasks.filter((task) => task.startBlock <= number))
-      await observeLegacyTaskState(
-        context,
-        chainId,
-        task.address,
-        block,
-        task.getter,
-        await readGetter(task.address, task.getter)
-      );
-    const completed = await completeRelationshipBlock(
-      context,
-      chainId,
-      block,
-      observedFields,
-      readGetter,
-      readBlock,
-      refreshTargetCode
-    );
-    if (!completed) return;
-    const expanded = ownershipFields(
-      await getObservedPoolFields(
-        context,
-        chainId,
-        await getObservedAuthorityFields(context, chainId, observedFields)
-      )
-    );
-    if (expanded.length !== observedFields.length)
-      await completeRelationshipBlock(
-        context,
-        chainId,
-        block,
-        expanded,
-        readGetter,
-        readBlock,
-        refreshTargetCode
-      );
-    if (
-      !(await completeModuleDependencies(
-        context,
-        chainId,
-        block,
-        dependencyFields,
-        (keycode) =>
-          getModuleDependencies(context, {
+      BigInt(number),
+      async ({ block, readBlock, readCanonicalBlock }) => {
+        const ownershipFields = (fields: RelationshipField[]) =>
+          configureOwnershipEventFields(chainId, fields, {
+            Owned: chain.Owned.addresses,
+            ChainlinkOwned: chain.ChainlinkOwned.addresses,
+            TokenAdminRegistry: chain.TokenAdminRegistry.addresses,
+          });
+        const refreshTargetCode = async (
+          address: string,
+          observed: ControlBlock
+        ) => {
+          const hash = await getBytecodeHash(
+            context,
             chainId,
-            kernel: getKernelConstants(chainId).address,
-            keycode,
-            blockNumber: BigInt(block.number),
-            blockHash: block.hash,
-          }),
-        readBlock
-      ))
-    )
-      return;
-    await seedCoreContracts(
-      context,
-      chainId,
-      chain.startBlock,
-      block,
-      coreContracts,
-      async (address) =>
-        Boolean(
-          await getCanonicalCodeHash(context, {
+            {
+              address: address as `0x${string}`,
+              blockHash: observed.hash as `0x${string}`,
+              blockNumber: BigInt(observed.number),
+              requireCanonical: true,
+            },
+            readCanonicalBlock
+          );
+          return hash
+            ? hash === emptyCodeHash
+              ? "absent"
+              : "present"
+            : undefined;
+        };
+        const readGetter = (address: string, getter: string) =>
+          getControlGetter(
+            context,
+            {
+              chainId,
+              address: address as `0x${string}`,
+              blockNumber: BigInt(number),
+              blockHash: block.hash,
+              getter,
+            },
+            block,
+            readCanonicalBlock
+          );
+        if (
+          !(await heartTaskAnchorsCanonical(
+            context,
             chainId,
-            address,
-            blockNumber: BigInt(block.number),
-            blockHash: block.hash,
-          })
+            block,
+            taskManagers
+              .filter((manager) => manager.startBlock <= number)
+              .map((manager) => manager.address),
+            readBlock
+          ))
         )
-    );
-    await completeBridgeConfigurations(
-      context,
-      chainId,
-      block,
-      getBridgeContracts(chainId, expanded),
-      (contract, selectors) =>
-        getBridgeConfiguration(context, {
+          return;
+        if (
+          !(await controlAnchorsCanonical(
+            context,
+            chainId,
+            block,
+            legacyTasks
+              .filter((task) => task.startBlock <= number)
+              .map((task) => task.address),
+            readBlock
+          ))
+        )
+          return;
+        const dependencyFields = await getModuleDependencyFields(
+          context,
+          chainId
+        );
+        if (
+          !(await relationshipAnchorsCanonical(
+            context,
+            chainId,
+            block,
+            dependencyFields,
+            readBlock
+          ))
+        )
+          return;
+        const observedFields = ownershipFields(
+          await getObservedPoolFields(
+            context,
+            chainId,
+            await getObservedAuthorityFields(
+              context,
+              chainId,
+              relationshipFields
+            )
+          )
+        );
+        if (
+          !(await bridgeAnchorsCanonical(
+            context,
+            chainId,
+            block,
+            getBridgeContracts(chainId, observedFields),
+            readBlock
+          ))
+        )
+          return;
+        if (
+          !(await relationshipAnchorsCanonical(
+            context,
+            chainId,
+            block,
+            observedFields,
+            readBlock
+          ))
+        )
+          return;
+        const enabledComplete = await completeEnablementBlock(
+          context,
           chainId,
-          ...contract,
-          selectors,
-          blockNumber: BigInt(block.number),
-          blockHash: block.hash,
-        })
+          block,
+          contracts,
+          (address) => readGetter(address, "isEnabled"),
+          readBlock
+        );
+        if (!enabledComplete) return;
+        for (const manager of taskManagers.filter(
+          (manager) => manager.startBlock <= number
+        ))
+          await completeHeartTasks(
+            context,
+            chainId,
+            manager.address,
+            block,
+            await readGetter(manager.address, "getPeriodicTasks")
+          );
+        for (const task of legacyTasks.filter(
+          (task) => task.startBlock <= number
+        ))
+          await observeLegacyTaskState(
+            context,
+            chainId,
+            task.address,
+            block,
+            task.getter,
+            await readGetter(task.address, task.getter)
+          );
+        const completed = await completeRelationshipBlock(
+          context,
+          chainId,
+          block,
+          observedFields,
+          readGetter,
+          readBlock,
+          refreshTargetCode
+        );
+        if (!completed) return;
+        const expanded = ownershipFields(
+          await getObservedPoolFields(
+            context,
+            chainId,
+            await getObservedAuthorityFields(context, chainId, observedFields)
+          )
+        );
+        if (
+          expanded.length !== observedFields.length &&
+          !(await completeRelationshipBlock(
+            context,
+            chainId,
+            block,
+            expanded,
+            readGetter,
+            readBlock,
+            refreshTargetCode
+          ))
+        )
+          return false;
+        if (
+          !(await completeModuleDependencies(
+            context,
+            chainId,
+            block,
+            dependencyFields,
+            (keycode) =>
+              getModuleDependencies(
+                context,
+                {
+                  chainId,
+                  kernel: getKernelConstants(chainId).address,
+                  keycode,
+                  blockNumber: BigInt(block.number),
+                  blockHash: block.hash,
+                },
+                readCanonicalBlock
+              ),
+            readBlock
+          ))
+        )
+          return;
+        await seedCoreContracts(
+          context,
+          chainId,
+          chain.startBlock,
+          block,
+          coreContracts,
+          async (address) =>
+            Boolean(
+              await getCanonicalCodeHash(
+                context,
+                {
+                  chainId,
+                  address,
+                  blockNumber: BigInt(block.number),
+                  blockHash: block.hash,
+                },
+                readCanonicalBlock
+              )
+            )
+        );
+        await completeBridgeConfigurations(
+          context,
+          chainId,
+          block,
+          getBridgeContracts(chainId, expanded),
+          (contract, selectors) =>
+            getBridgeConfiguration(
+              context,
+              {
+                chainId,
+                ...contract,
+                selectors,
+                blockNumber: BigInt(block.number),
+                blockHash: block.hash,
+              },
+              readCanonicalBlock
+            )
+        );
+        return true;
+      }
     );
   };
   // Creation boundaries run after constructor logs; a truncated replay seeds at its own start.

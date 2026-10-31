@@ -1,0 +1,420 @@
+{
+  "base": "6a9f9ac",
+  "head": "1ddb54ac3c8ae7b3e5452f14df10edcbfd231a02",
+  "chain_id": 1,
+  "start_block": 26240000,
+  "end_block": 26290000,
+  "blocks": 50001,
+  "hypersync": true,
+  "checkpoint_interval": 10000,
+  "erpc_max_rps": 50,
+  "hasura": false,
+  "runs": [
+    {
+      "label": "baseline",
+      "commit": "6a9f9ac",
+      "complete": true,
+      "elapsed_seconds": 155.09555916721,
+      "blocks_per_second": 322.38834089436074,
+      "process_exit": 0,
+      "process_profile": {
+        "rpcEnvelopes": 2259,
+        "rpcItems": 6023,
+        "rpcMethods": {
+          "eth_getBlockByNumber": 1878,
+          "eth_call": 3110,
+          "eth_getCode": 1035
+        },
+        "batchSizes": {
+          "1": 1277,
+          "2": 149,
+          "3": 13,
+          "4": 241,
+          "5": 29,
+          "6": 550
+        },
+        "rpcPeakEnvelopes": 3,
+        "rpcFetchMilliseconds": 51591.839399000106,
+        "rpcOccupancyMilliseconds": {
+          "0": 102641.86804899969,
+          "1": 50918.2969100005,
+          "2": 329.52433299992117,
+          "3": 7.774666999990586
+        },
+        "sourceRequests": 129,
+        "sourceStatuses": {
+          "200": 128,
+          "404": 1
+        },
+        "sourceFetchMilliseconds": 64593.52021200007,
+        "elapsedMilliseconds": 153897.48504200001,
+        "cpu": {
+          "user": 13014243,
+          "system": 1521667
+        },
+        "maxRssKilobytes": 326816
+      },
+      "proxy_requests_by_method": {
+        "eth_call": 3110,
+        "eth_getBlockByNumber": 1878,
+        "eth_getCode": 1035
+      },
+      "upstream_requests_by_method": {
+        "eth_call": 3097,
+        "eth_chainId": 9,
+        "eth_getBlockByNumber": 191,
+        "eth_getCode": 1028,
+        "eth_syncing": 35
+      },
+      "upstream_attempt_outcomes": {
+        "empty": 518,
+        "exec_revert": 20,
+        "success": 3822
+      },
+      "proxy_failed_requests_by_method": {
+        "eth_call": 33,
+        "eth_getCode": 7
+      },
+      "local_budget_rejections_by_method": {
+        "eth_call": 13,
+        "eth_getBlockByNumber": 11,
+        "eth_getCode": 7,
+        "eth_syncing": 6
+      },
+      "proxy_cache_hits_by_method": {
+        "eth_getBlockByNumber": 1775
+      },
+      "final_meta": {
+        "chainId": 1,
+        "ecosystem": "evm",
+        "startBlock": 26240000,
+        "endBlock": 26290000,
+        "progressBlock": 26290000,
+        "progressBlockTime": null,
+        "bufferBlock": 26290000,
+        "firstEventBlock": 26240000,
+        "eventsProcessed": 523,
+        "sourceBlock": 26313086,
+        "readyAt": "2026-10-31T13:39:40.388+00:00",
+        "isReady": true
+      },
+      "relationships": 579,
+      "relationship_verification_outcomes": {
+        "match": 576,
+        "unavailable": 2,
+        "unperformed": 1
+      },
+      "relationship_unavailable_reasons": {
+        "Pending owner has no public getter; only replayed transfer requests establish the nominee.": 2
+      },
+      "config_sha256": "00b1a7c2428594bae04c0b7692441579318dc52996fba2b141f3fae7d4f475e3",
+      "relationship_rows_digest": "905d18b64c29a23e87c43ebd2e9037c700e0506a79205c3f3cd192975127ec65"
+    },
+    {
+      "label": "candidate",
+      "commit": "1ddb54ac3c8ae7b3e5452f14df10edcbfd231a02",
+      "complete": true,
+      "elapsed_seconds": 127.71755224978551,
+      "blocks_per_second": 391.4966981375418,
+      "process_exit": 0,
+      "process_profile": {
+        "rpcEnvelopes": 2119,
+        "rpcItems": 6165,
+        "rpcMethods": {
+          "eth_getBlockByNumber": 1884,
+          "eth_call": 3199,
+          "eth_getCode": 1082
+        },
+        "batchSizes": {
+          "1": 875,
+          "2": 445,
+          "3": 28,
+          "4": 295,
+          "5": 24,
+          "6": 277,
+          "7": 46,
+          "8": 129
+        },
+        "rpcPeakEnvelopes": 4,
+        "rpcFetchMilliseconds": 105582.49000400021,
+        "rpcOccupancyMilliseconds": {
+          "0": 49362.12044700007,
+          "1": 52644.201721999576,
+          "2": 22921.59733099991,
+          "3": 2295.2352510000055,
+          "4": 54.366373999990174
+        },
+        "sourceRequests": 129,
+        "sourceStatuses": {
+          "200": 128,
+          "404": 1
+        },
+        "sourceFetchMilliseconds": 6433.157381999959,
+        "elapsedMilliseconds": 127277.55225,
+        "cpu": {
+          "user": 13513909,
+          "system": 1524932
+        },
+        "maxRssKilobytes": 357488
+      },
+      "proxy_requests_by_method": {
+        "eth_call": 3199,
+        "eth_getBlockByNumber": 1884,
+        "eth_getCode": 1082
+      },
+      "upstream_requests_by_method": {
+        "eth_call": 3097,
+        "eth_chainId": 12,
+        "eth_getBlockByNumber": 143,
+        "eth_getCode": 1028,
+        "eth_syncing": 19
+      },
+      "upstream_attempt_outcomes": {
+        "empty": 518,
+        "exec_revert": 20,
+        "success": 3761
+      },
+      "proxy_failed_requests_by_method": {
+        "eth_call": 122,
+        "eth_getBlockByNumber": 6,
+        "eth_getCode": 54
+      },
+      "local_budget_rejections_by_method": {
+        "eth_call": 102,
+        "eth_getBlockByNumber": 56,
+        "eth_getCode": 54,
+        "eth_syncing": 26
+      },
+      "proxy_cache_hits_by_method": {
+        "eth_getBlockByNumber": 1775
+      },
+      "final_meta": {
+        "chainId": 1,
+        "ecosystem": "evm",
+        "startBlock": 26240000,
+        "endBlock": 26290000,
+        "progressBlock": 26290000,
+        "progressBlockTime": null,
+        "bufferBlock": 26290000,
+        "firstEventBlock": 26240000,
+        "eventsProcessed": 523,
+        "sourceBlock": 26313100,
+        "readyAt": "2026-10-31T13:41:55.518+00:00",
+        "isReady": true
+      },
+      "relationships": 579,
+      "relationship_verification_outcomes": {
+        "match": 576,
+        "unavailable": 2,
+        "unperformed": 1
+      },
+      "relationship_unavailable_reasons": {
+        "Pending owner has no public getter; only replayed transfer requests establish the nominee.": 2
+      },
+      "config_sha256": "00b1a7c2428594bae04c0b7692441579318dc52996fba2b141f3fae7d4f475e3",
+      "kernel_cache_rows": 10,
+      "relationship_rows_digest": "905d18b64c29a23e87c43ebd2e9037c700e0506a79205c3f3cd192975127ec65"
+    }
+  ],
+  "relationship_comparison": {
+    "available_both": 577,
+    "unavailable_both": 2,
+    "differences": [],
+    "recovered_ids": []
+  },
+  "comparison": {
+    "blocks_per_second_ratio": 1.214363698921191,
+    "duration_reduction_percent": 17.652347407257484,
+    "upstream_request_reduction_percent": 1.3990825688073416,
+    "proxy_request_reduction_percent": -2.3576290884941065
+  },
+  "all_entity_comparison": {
+    "Contract": {
+      "baseline_rows": 69,
+      "candidate_rows": 69,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "e519578246852e68c0c68357724870682bddaff5dd96e7ffb546f98f72ea8ab1",
+      "candidate_digest": "e519578246852e68c0c68357724870682bddaff5dd96e7ffb546f98f72ea8ab1"
+    },
+    "ContractEvent": {
+      "baseline_rows": 3,
+      "candidate_rows": 3,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "53b9efdf419afa1f03da47aff15e20a13459c09c569525bf01580f638f91cfbb",
+      "candidate_digest": "53b9efdf419afa1f03da47aff15e20a13459c09c569525bf01580f638f91cfbb"
+    },
+    "KernelExecutor": {
+      "baseline_rows": 1,
+      "candidate_rows": 1,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "111508a9877dbe5b019507e4baec6218410dee574ae0fbcf32e5101cdd42f90e",
+      "candidate_digest": "111508a9877dbe5b019507e4baec6218410dee574ae0fbcf32e5101cdd42f90e"
+    },
+    "KernelExecutorEvent": {
+      "baseline_rows": 1,
+      "candidate_rows": 1,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "6a107e19fa03b272713ed1a0f1a7ab89f2989b12ca5d51d4bbe942862229562f",
+      "candidate_digest": "6a107e19fa03b272713ed1a0f1a7ab89f2989b12ca5d51d4bbe942862229562f"
+    },
+    "ActionExecutedEvent": {
+      "baseline_rows": 3,
+      "candidate_rows": 3,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "593bcbcf5d56776ffc4792cf1e2dd9cc5c82f21e93f9be53265ece0f0f90e13c",
+      "candidate_digest": "593bcbcf5d56776ffc4792cf1e2dd9cc5c82f21e93f9be53265ece0f0f90e13c"
+    },
+    "RoleEvent": {
+      "baseline_rows": 0,
+      "candidate_rows": 0,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "candidate_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "Role": {
+      "baseline_rows": 0,
+      "candidate_rows": 0,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "candidate_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "RoleAssignment": {
+      "baseline_rows": 0,
+      "candidate_rows": 0,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "candidate_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "CurrentModule": {
+      "baseline_rows": 0,
+      "candidate_rows": 0,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "candidate_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "CurrentRoleAssignee": {
+      "baseline_rows": 0,
+      "candidate_rows": 0,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "candidate_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "ContractState": {
+      "baseline_rows": 22,
+      "candidate_rows": 22,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "599b60d4be9ca3d9b2d1b64c52f51339cfa35dac5490116bb7041374f5a763c0",
+      "candidate_digest": "599b60d4be9ca3d9b2d1b64c52f51339cfa35dac5490116bb7041374f5a763c0"
+    },
+    "ContractStateSeed": {
+      "baseline_rows": 599,
+      "candidate_rows": 599,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "a5719382c9e8a978178dafd4d4ac5587647d6d065406f1de01bcfbf2b7d49568",
+      "candidate_digest": "a5719382c9e8a978178dafd4d4ac5587647d6d065406f1de01bcfbf2b7d49568"
+    },
+    "ControlTransition": {
+      "baseline_rows": 2,
+      "candidate_rows": 2,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "0eaa98723c4de77d5983dc17ec3111ac8dd254fc744dd040bebe9d631fa66a1f",
+      "candidate_digest": "0eaa98723c4de77d5983dc17ec3111ac8dd254fc744dd040bebe9d631fa66a1f"
+    },
+    "ContractRelationship": {
+      "baseline_rows": 579,
+      "candidate_rows": 579,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "482fb4aaa2308660fc355b009eccdfd94797d071b6f6927bd26439ae227d777f",
+      "candidate_digest": "482fb4aaa2308660fc355b009eccdfd94797d071b6f6927bd26439ae227d777f"
+    },
+    "ChainObservation": {
+      "baseline_rows": 1,
+      "candidate_rows": 1,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "e571609c454a53b9cc67ad8ae3cfb08c5b81f09ecc3b2e3503cd50dc03c7fb7d",
+      "candidate_digest": "e571609c454a53b9cc67ad8ae3cfb08c5b81f09ecc3b2e3503cd50dc03c7fb7d"
+    },
+    "VerifiedDeployment": {
+      "baseline_rows": 97,
+      "candidate_rows": 97,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "06675f931af113f287fd93a2b1808e52ee555c2a436a8537407b31ac684a178c",
+      "candidate_digest": "06675f931af113f287fd93a2b1808e52ee555c2a436a8537407b31ac684a178c"
+    },
+    "KernelReadEpoch": {
+      "baseline_rows": 1,
+      "candidate_rows": 1,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "f8653891dc5a7ea2f2eecd546c918f7c7da8d74cffdd9a2d995fc60f0f64a3ab",
+      "candidate_digest": "f8653891dc5a7ea2f2eecd546c918f7c7da8d74cffdd9a2d995fc60f0f64a3ab"
+    },
+    "KernelReadCache": {
+      "baseline_rows": 10,
+      "candidate_rows": 10,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "68c69d2ea6743bcc75c7ff78a3781ab55485a3d4520a6e70bd92e386f613ddf5",
+      "candidate_digest": "68c69d2ea6743bcc75c7ff78a3781ab55485a3d4520a6e70bd92e386f613ddf5"
+    },
+    "HeartTasks": {
+      "baseline_rows": 1,
+      "candidate_rows": 1,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "bfd5b8ac694478dccd595f30fd7786cb2727d16404c2799d467f4658866da07c",
+      "candidate_digest": "bfd5b8ac694478dccd595f30fd7786cb2727d16404c2799d467f4658866da07c"
+    },
+    "BridgeConfiguration": {
+      "baseline_rows": 2,
+      "candidate_rows": 2,
+      "missing_rows": 0,
+      "field_differences": {},
+      "examples": [],
+      "baseline_digest": "c0cfeb10e793060ca16fb2c5522cdbd5e8978c82afb77e34e9230d5119385d1a",
+      "candidate_digest": "c0cfeb10e793060ca16fb2c5522cdbd5e8978c82afb77e34e9230d5119385d1a"
+    }
+  },
+  "limitations": [
+    "Single matched cold replay, with all 20 entity types exactly equal.",
+    "Baseline source fetches summed 64.594 seconds and candidate fetches 6.433 seconds; these overlap and are not wall-time slices.",
+    "Candidate absolute rate is 391.5 blocks/second, below the 430.2 target; no 50 percent gain is claimed.",
+    "More overlap increased recovered local budget rejections. No new unavailable result or exhausted indexing failure occurred.",
+    "Envio scrape is pre-completion and used only to locate waits."
+  ]
+}

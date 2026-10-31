@@ -28,7 +28,7 @@ export const readPinnedCallEffect = createEffect(
     name: "readPinnedRawCall",
     input: { chainId: S.number, params: S.string },
     output: S.string,
-    rateLimit: { calls: 35, per: "second" },
+    rateLimit: { calls: 40, per: "second" },
     cache: true,
   },
   async ({ input }) => {

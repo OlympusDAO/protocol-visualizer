@@ -25,8 +25,22 @@ Three of five scheduling checks failed on the serial implementation, then passed
 
 Astra's stage review and follow-up found no remaining actionable defect after the nested drain fix. Ponytail and five simplification lenses replaced a copied group array/index with the native iterator and preserved the original start-block predicate, including NaN exclusion. The existing TypeScript library does not declare `Map.groupBy`, so ordinary Map construction avoids changing compiler settings or dependencies.
 
-Strict indexer typechecking and all nine ordered validation steps passed: 133 ordinary indexer tests and one explicit opt-in SQL skip. The actual native PostgreSQL rollback/restart fixture passed separately in 1.67 seconds. The actual patched eRPC/PostgreSQL integration also passed, including dependency-reader capacity recovery and the aggregate mixed-method/mixed-chain budget; reset checks were explicitly skipped. The dedicated code review is in progress before final acceptance.
+Strict indexer typechecking and all nine ordered validation steps passed: 133 ordinary indexer tests and one explicit opt-in SQL skip. The actual native PostgreSQL rollback/restart fixture passed separately in 1.67 seconds. The actual patched eRPC/PostgreSQL integration also passed, including dependency-reader capacity recovery and the aggregate mixed-method/mixed-chain budget; reset checks were explicitly skipped. The dedicated seven-lens code review completed with no findings (`20261031-213318-dac150eb`); performance acceptance remains separate.
 
 ## Measurement status
 
-No whole-indexer gain is claimed from the overlap fixture. The next step is an immutable-commit, normal-batch paired HyperSync replay over the same 50,001 Ethereum blocks, with fresh disposable SQL and proxy-cache databases. Checkpoint interval, source, eRPC 50-credit cap, client bounds and retry policy remain unchanged. A promising result requires confirmation and full entity/provenance comparison.
+No whole-indexer gain is claimed from the overlap fixture. The immutable-commit, normal-batch paired HyperSync replay used the same 50,001 Ethereum blocks and fresh disposable SQL/proxy-cache databases. Checkpoint interval, source, eRPC 50-credit cap, client bounds and retry policy remain unchanged.
+
+| Normal-batch direct comparison | Serial 6a9f9ac | Two subjects 1ddb54a |
+| --- | ---: | ---: |
+| Committed range time | 155.096 s | 127.718 s |
+| Blocks/second | 322.4 | 391.5 |
+| Proxy RPC items | 6,023 | 6,165 |
+| Upstream requests including probes | 4,360 | 4,299 |
+| Recovered budget rejections including probes | 37 | 238 |
+
+Both runs committed 523 events, reached ready state and exited normally. All 20 entity types match exactly, including facts and complete relationship provenance; the same two observations remain unavailable. The pair has 21.4% higher throughput, but source fetches summed 64.594 seconds on the baseline and 6.433 seconds on the candidate. These overlapping timings are not additive wall-time slices, and the paired gain alone is not conclusive. The candidate's absolute rate is 36.5% above the recorded 286.8 reference, still below the 430.2 target. [Measurements](indexer-speed-subject35-2026-10-31.json).
+
+The pre-completion scrape reports 37.88 seconds of getter-window waits. Astra advised retesting the previously approved finite 40/second variant under the new demand pattern. This changes only the getter/raw-call constants. Require a repeatable gain of at least 3%, exact entity parity, readiness and normal exit; report the 116.215-second target separately. Stop on exhaustion, queue overflow, incomplete progress or state divergence. Retain 35 if increased rejection traffic has no repeatable benefit. No additional cache, queue, indexing worker or provider budget is introduced.
+
+The two-line 40/second variant passed all nine ordered validation steps with the same 133 ordinary tests and explicit SQL skip. Astra reviewed the retest decision in a fresh high-effort context; Ponytail retained the constant edits without adding settings or tests that duplicate them. Its speed and capacity behavior are still experimental until the matched replay completes.

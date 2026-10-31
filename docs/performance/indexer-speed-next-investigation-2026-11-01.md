@@ -1,0 +1,16 @@
+# Proposed source-proof generation experiment
+
+The retained normal-batch median is **404.7 blocks/second / 123.540 seconds**, below the 430.2 target derived from the recorded 286.8 reference. Closing that gap needs about 7.3 seconds less elapsed time, or 6.3% more throughput. The fresh matched-baseline comparison is +52.9%, while the fixed-reference improvement is +41.1%. This is a proposal for the next implementation experiment, not additional implemented behavior.
+
+| Direction | Evidence and decision |
+| --- | --- |
+| Attribute cold source-proof work, then consider generated proofs | Each retained replay made 129 source-service requests. Current Ethereum metadata has zero ordinary-deployment entries and one immutable-deployment entry. Some proof preparation may be reproducible, but summed fetch time overlaps RPC work and is not recoverable wall time. Investigate the actual critical path first. |
+| Broaden Kernel fact eligibility | Six proven subjects provide six Kernel getters and seven additional policy module getters. Ideal sequential reuse across six observations saves at most 30 or 65 calls, respectively, before bootstrap costs: about 1.0–2.1% of the observed 3,097 upstream calls. Native preload can reduce cold savings to zero. Deprioritize this as a way to close the target. |
+| Smaller native batches | The earlier 100-event sample enabled reuse between commits but was slower overall. Do not adopt that setting or count its warm-only gain as the normal-batch result. |
+| Higher proxy/provider budget or per-chain workers | A larger request budget needs actual provider compute-unit headroom, including other account traffic. Workers may improve multi-chain fairness, but do not create upstream capacity. Keep these last; neither is authorized by this proposal. |
+
+Astra recommends a bounded source-proof investigation: identify which source requests block committed progress and which proofs can be generated reproducibly for known deployments. Preserve automatic discovery for newly indexed or unknown contracts. Any generated facts must bind verified source and runtime, retain creation-parent and canonical checks, reject delegation/destructive runtimes, and preserve the actual verification block.
+
+The proposed stage first traces source-service waits and associated effect/proof work on the committed critical path. If that establishes a useful opportunity, extend the existing metadata generator to persist eligible verified deployment proofs for known contracts, while preserving runtime discovery for unknown contracts. Stop if the measured cost cannot justify the change; do not add a proof pipeline merely to hit a target. Confirm any candidate with three matched standard replays and a separate state-change holdout, retaining canonical and failure regressions.
+
+Merely warming a service/cache outside timing is not a cold-indexing optimization. Retain the standard benchmark's strict entity/provenance comparison; disclose intended provenance changes rather than relabelling reused facts or weakening comparisons to obtain a percentage. No performance gain is promised. Implementation of this next stage needs the user's approval; it includes no higher RPC cap, workers, deployment, PR update or live-variable change.

@@ -1,0 +1,93 @@
+{
+  "generatedAt": "2026-10-31T17:02:05.321Z",
+  "retainedSourceCommit": "c189fa246265cb4e3a712526ec0e6812b59adfcd",
+  "runtimeInputHash": "02e7efbb15e6f75573f5993b312ac9e1f5ed36f388f73eac42c01bad88f6a5f1",
+  "runtime": { "node": "24.22.1", "pnpm": "11.28.7" },
+  "orderedValidation": {
+    "script": "./scripts/validate.sh",
+    "status": "passed",
+    "steps": [
+      "pnpm run check:runtime-versions",
+      "pnpm install --frozen-lockfile",
+      "pnpm run lint:check",
+      "pnpm run build",
+      "pnpm run snapshots:generate:local",
+      "pnpm run docker:build:indexer",
+      "pnpm run docker:build:frontend",
+      "pnpm run docker:build:snapshot-gateway",
+      "pnpm run docker:build:snapshot-publisher"
+    ]
+  },
+  "focusedEvidence": {
+    "ordinaryIndexerTestsPassed": 133,
+    "benchmarkTestsPassed": 12,
+    "nativeSqlOptInSkippedInOrdinaryBuild": true,
+    "nativePostgresRollback": {
+      "status": "passed",
+      "processes": 3,
+      "durationSeconds": 2.02075775
+    },
+    "patchedErpcPostgres": {
+      "status": "passed",
+      "durationSeconds": 37.4250635,
+      "productionDependencyReaderCases": 9,
+      "persistedCacheRowsAcrossRestart": 17,
+      "aggregateBudget": {
+        "creditsPerSecond": 20,
+        "requests": 160,
+        "admitted": 20,
+        "capacityErrors": 140
+      },
+      "resetChecks": "explicitly skipped"
+    },
+    "isolatedFrozenInstallSmoke": {
+      "status": "success",
+      "source": "c189fa246265cb4e3a712526ec0e6812b59adfcd",
+      "dependencies": "isolated-frozen-install",
+      "range": {
+        "chainId": 1,
+        "start": 26240000,
+        "end": 26240000,
+        "checkpointInterval": 10000,
+        "configHash": "b64bd4954cf118d29bb3815b6171e43485dc2465607ac737befab6ae89d6e85a",
+        "eventSource": "HyperSync",
+        "rpcMode": "fallback"
+      },
+      "ready": true,
+      "progress": 26240000,
+      "exitCode": 0,
+      "cleanupComplete": true,
+      "performanceEvidence": false
+    }
+  },
+  "imageScans": {
+    "trivyVersion": "0.76.1",
+    "indexer": {
+      "imageId": "sha256:b3d7fe5ac565a07a699fe1cb7d44907eb0829eccff78191c226ed27293383c77",
+      "findings": { "MEDIUM": 24 },
+      "secretFindings": 0,
+      "mediumThreshold": "failed",
+      "newDatabaseFinding": {
+        "id": "CVE-2026-84243",
+        "package": "libc6",
+        "version": "2.41-12+deb13u4",
+        "fixedVersion": null
+      },
+      "installedPackagesUnchanged": true
+    },
+    "erpc": {
+      "imageId": "sha256:bda008e8ccf92d8c9a6d40030be61b9ca4d1c51ba8ff3f8fb46aacf25153507f",
+      "findings": {},
+      "secretFindings": 0,
+      "configuredThreshold": "passed"
+    },
+    "ignorePolicyChanged": false
+  },
+  "limitations": [
+    "Controlled Ethereum replay with real providers; not deployed or a live production rate.",
+    "Historical baseline varied substantially; the fixed 430.2 blocks/second target remains unmet.",
+    "Direct native SQL rollback is exercised; real HyperSync reorg dispatch is not.",
+    "No separate historical state-change holdout is claimed.",
+    "Proxy request credits do not establish account-wide provider compute-unit headroom."
+  ]
+}

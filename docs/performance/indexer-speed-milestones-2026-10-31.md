@@ -74,3 +74,24 @@ A regression captures the production metadata effect through its public caller a
 The unsuccessful replay is excluded from speed comparisons. Its baseline completed 50,001 blocks in 209.303 seconds (238.9 blocks/second); the candidate exited with no completed range. These timings establish neither a candidate speed gain nor semantic equivalence.
 
 All 126 indexer tests, strict typechecking and all nine ordered validation steps passed after the correction. The sandbox stopped at Docker step 6; the complete sequence then passed with approved buildx access.
+
+## Integrated cache-stage replay and finite effect tuning
+
+A fresh paired HyperSync replay used real upstreams through the patched eRPC image and separate disposable PostgreSQL/cache databases. Both commits processed Ethereum blocks 26,240,000–26,290,000 inclusive, with 10,000-block checkpoints and the same 50-credit cap. Baseline f193d3c and cache-stage candidate 774b61c each committed the end block and 523 events. All 579 relationship rows were present: 577 available in both with no semantic differences, plus the same two unavailable observations.
+
+| Single cold replay | Baseline | Cache stages |
+| --- | ---: | ---: |
+| Committed range time | 177.208 s | 146.876 s |
+| Committed blocks/second | 282.2 | 340.4 |
+| RPC items reaching eRPC | 24,354 | 6,058 |
+| Header items | 20,389 | 1,878 |
+| Upstream requests, including service probes | 4,120 | 4,353 |
+| eRPC budget rejections, including probes | 32 | 61 |
+
+This is 20.7% higher throughput, 17.1% less time, 75.1% fewer proxy requests and 90.8% fewer headers. Cold deployment proofs raise upstream requests 5.7%; cache savings cannot be equated to provider savings. The candidate retained ten Kernel cache rows. It was stopped after end-block persistence, before final ready metadata and the passive exit profile flushed. Confirmation runs will allow natural exit. This single pair does not establish the 50–100% target. [Measurements](indexer-speed-cache-stages-2026-10-31.json).
+
+The next experiment changes only the getter and raw-call effect gates from 25 to 35 operations/second. The candidate still accumulated over 63 seconds of getter window waits and 7 seconds of raw-call waits. These nested logical budgets are not upstream request reservations. All bytecode, source, module, metadata and Etherscan limits remain unchanged, as do the eight-active/256-waiter transport guard, bounded retries and aggregate eRPC cap. Astra recommended this narrow experiment; Ponytail retained the two constant edits without adding configuration or duplicating the existing retry/cache tests. Performance acceptance follows a completed replay and semantic comparison.
+
+The 35-operation experiment passed all nine ordered validation steps (126 indexer tests, with the opt-in SQL fixture skipped by the ordinary build). Docker required the same approved buildx access. The patched eRPC/PostgreSQL integration separately passed nine dependency-reader proxy/viem cases, capacity recovery, persistence and a mixed-method/mixed-chain aggregate budget: 20 credits admitted and 140 capacity errors from a 160-request burst. Reset checks were explicitly skipped; no database reset occurred.
+
+The full static code review completed eight lenses with no actionable defect. It identified populated PostgreSQL rollback/restart as a remaining acceptance check. Adding VerifiedDeployment also makes the stored schema incompatible with ordinary resume from the old baseline: future rollout requires a separate preservation/migration strategy. No existing database migration, reset or deployment is part of this work.

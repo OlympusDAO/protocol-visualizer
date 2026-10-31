@@ -55,21 +55,33 @@ export async function reuseKernelRead<T extends Result>(
   readBlock: (number: string) => Promise<ControlBlock | undefined>,
   refresh?: (result: T) => Promise<T>
 ): Promise<T | { status: "unavailable"; reason: string }> {
+  const readCanonical = async () => {
+    const result = await read();
+    if (
+      result.status === "success" &&
+      (await readBlock(input.block.number))?.hash !== input.block.hash
+    )
+      return {
+        status: "unavailable" as const,
+        reason: "Canonical block changed after cached observation",
+      };
+    return result;
+  };
   const proof = kernelReadProof(input);
-  if (!proof) return read();
+  if (!proof) return readCanonical();
   const epoch = await context.KernelReadEpoch.get<Epoch>(String(input.chainId));
-  if (epoch?.migrated) return read();
+  if (epoch?.migrated) return readCanonical();
   if (proof.name !== "kernel") {
     const contract = await context.Contract.get<ContractEntity>(
       contractId(input.chainId, input.address)
     );
     if (!contract?.isEnabled || contract.kernelHistory !== "installed")
-      return read();
+      return readCanonical();
   } else if (
     input.address.toLowerCase() !==
     getKernelConstants(input.chainId).address.toLowerCase()
   )
-    return read();
+    return readCanonical();
   const generation = epoch?.epoch ?? "initial";
   const id = `${input.chainId}:${proof.address}:${proof.codeHash}:${input.getter}:v1`;
   const cached = await context.KernelReadCache.get<Cached<T>>(id);

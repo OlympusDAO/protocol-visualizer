@@ -51,7 +51,7 @@ import {
 import {
   getControlBlock,
   getModuleDependencies,
-  readCodeHashEffect,
+  getCanonicalCodeHash,
   getControlGetter,
   getBridgeConfiguration,
 } from "./events/effects";
@@ -638,7 +638,7 @@ for (const chainId of indexer.chainIds) {
       coreContracts,
       async (address) =>
         Boolean(
-          await context.effect(readCodeHashEffect, {
+          await getCanonicalCodeHash(context, {
             chainId,
             address,
             blockNumber: BigInt(block.number),

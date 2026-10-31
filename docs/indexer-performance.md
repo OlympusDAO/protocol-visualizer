@@ -1,6 +1,6 @@
 # Indexer RPC performance
 
-This report records the first bytecode-cache optimization. See [local follow-on milestones](performance/indexer-rpc-milestones.md) for exact-call reuse, event/deployment facts, eRPC recovery, measurements and current validation/release boundaries.
+This report records the first bytecode-cache optimization. See [local follow-on milestones](performance/indexer-rpc-milestones.md) for exact-call reuse, event/deployment facts, eRPC recovery, measurements and current validation/release boundaries. The current follow-up includes a stale-observation fix and supersedes the earlier inner-effect/restart performance claims.
 
 ## Scope
 

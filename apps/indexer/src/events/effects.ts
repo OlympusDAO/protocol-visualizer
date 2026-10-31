@@ -383,6 +383,19 @@ export const readCodeHashEffect = createEffect(
   }
 );
 
+export async function getCanonicalCodeHash(
+  context: EnvioContext,
+  input: Omit<ControlGetterInput, "getter">
+): Promise<string | undefined> {
+  const codeHash = await context.effect(readCodeHashEffect, input);
+  if (!codeHash) return undefined;
+  const current = await readCanonicalControlBlock(
+    input.chainId,
+    input.blockNumber
+  );
+  return current?.hash === input.blockHash.toLowerCase() ? codeHash : undefined;
+}
+
 export async function getProcessedContract(
   context: EnvioContext,
   chainId: number,
@@ -406,7 +419,7 @@ export async function getProcessedContract(
     return metadata;
   const block = await getControlBlock(context, chainId, Number(blockNumber));
   const codeHash = block
-    ? await context.effect(readCodeHashEffect, {
+    ? await getCanonicalCodeHash(context, {
         chainId,
         address,
         blockNumber,
@@ -536,7 +549,6 @@ export async function getControlGetter(
     )) as ControlGetterResult;
   const deployment = await readDeploymentGetter(context, normalized);
   if (deployment) return deployment;
-  if (!kernelReadProof(normalized)) return read();
   const block =
     observationBlock ??
     (await getControlBlock(context, input.chainId, Number(input.blockNumber)));
@@ -706,10 +718,20 @@ export async function getBridgeConfiguration(
     selectors: string[];
   }
 ): Promise<BridgeReadResult> {
-  return (await context.effect(readBridgeConfigurationEffect, {
+  const result = (await context.effect(readBridgeConfigurationEffect, {
     ...input,
     address: input.address as Address,
   })) as BridgeReadResult;
+  if (
+    result.status === "success" &&
+    (await readCanonicalControlBlock(input.chainId, input.blockNumber))
+      ?.hash !== input.blockHash.toLowerCase()
+  )
+    return {
+      status: "unavailable",
+      reason: "Canonical block changed after cached bridge observation",
+    };
+  return result;
 }
 
 // A height's header may change on rollback. Never persist a height-only header cache.

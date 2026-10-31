@@ -40,6 +40,9 @@ const { makeEffectRuntime } = await import(
 const { getControlGetter } = await import(
   `${root}/apps/indexer/src/events/effects.ts`
 );
+const { handleKernelActionExecuted } = await import(
+  `${root}/apps/indexer/src/events/kernel.ts`
+);
 const { default: proofs } = await import(
   `${root}/apps/indexer/src/generated/kernel-read-proofs.json`,
   { with: { type: "json" } }
@@ -145,6 +148,41 @@ try {
       binding
     );
   }
+  rows.clear();
+  wrongKernelCode = false;
+  kernelPointer = kernel;
+  getterTarget = target;
+  const eventContext = {
+    ...ctx,
+    ...(await makeEffectRuntime()),
+    ActionExecutedEvent: store(),
+    KernelExecutor: store(),
+    KernelExecutorEvent: store(),
+  };
+  await getControlGetter(eventContext, input(30), block(30));
+  const action = (number, action_, target_) => ({
+    chainId: 1,
+    srcAddress: kernel,
+    block: { ...block(number), number, timestamp: number + 1700000000 },
+    transaction: { hash: `0x${"aa".repeat(32)}` },
+    logIndex: number,
+    params: { action_, target_ },
+  });
+  await handleKernelActionExecuted(action(31, 4, target), eventContext);
+  assert.equal(
+    (await getControlGetter(eventContext, input(32), block(32))).verifiedAt,
+    undefined,
+    "the actual event handler must invalidate the previous cached observation"
+  );
+  const newKernel = `0x${"56".repeat(20)}`;
+  await handleKernelActionExecuted(action(33, 5, newKernel), eventContext);
+  kernelPointer = newKernel;
+  getterTarget = `0x${"78".repeat(20)}`;
+  assert.equal(
+    (await getControlGetter(eventContext, input(34), block(34))).value,
+    getterTarget,
+    "migration through the actual handler must disable stale old-Kernel reuse"
+  );
 } finally {
   await new Promise((done) => server.close(done));
 }

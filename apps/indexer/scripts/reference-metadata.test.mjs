@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import http from "node:http";
 import {
   processAbiMetadata,
   processVerifiedContractMetadata,
@@ -589,22 +590,60 @@ test("cached policy metadata rechecks each observation before exposing documenta
           : undefined;
     },
   };
-  const documentation = async (number) =>
-    Object.values(
-      (
-        await getProcessedContract(
-          ctx,
-          1,
-          "0x0000000000000000000000000000000000000004",
-          "DocumentedPolicy",
-          number
-        )
-      ).functionSelectors
-    )[0].documentation;
-  assert.equal((await documentation(10n)).notice, "The destination");
-  for (const number of [11n, 12n, 13n])
-    assert.equal(await documentation(number), undefined);
-  assert.equal((await documentation(10n)).notice, "The destination");
-  assert.equal(metadataReads, 1);
-  assert.deepEqual(codeReads, [10n, 11n, 12n, 10n]);
+  let headerReads = 0;
+  const server = http.createServer(async (req, res) => {
+    let raw = "";
+    for await (const part of req) raw += part;
+    const payload = JSON.parse(raw);
+    const reply = (rpc) => {
+      assert.equal(rpc.method, "eth_getBlockByNumber");
+      headerReads++;
+      const b = block(Number(BigInt(rpc.params[0])));
+      return {
+        jsonrpc: "2.0",
+        id: rpc.id,
+        result: {
+          number: rpc.params[0],
+          hash: b.hash,
+          timestamp: `0x${BigInt(b.timestamp).toString(16)}`,
+        },
+      };
+    };
+    res.setHeader("content-type", "application/json");
+    res.end(
+      JSON.stringify(
+        Array.isArray(payload) ? payload.map(reply) : reply(payload)
+      )
+    );
+  });
+  await new Promise((done) => server.listen(0, "127.0.0.1", done));
+  process.env.ENVIO_RPC_URL_1 = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const documentation = async (number) =>
+      Object.values(
+        (
+          await getProcessedContract(
+            ctx,
+            1,
+            "0x0000000000000000000000000000000000000004",
+            "DocumentedPolicy",
+            number
+          )
+        ).functionSelectors
+      )[0].documentation;
+    assert.equal((await documentation(10n)).notice, "The destination");
+    for (const number of [11n, 12n, 13n])
+      assert.equal(await documentation(number), undefined);
+    assert.equal((await documentation(10n)).notice, "The destination");
+    assert.equal(metadataReads, 1);
+    assert.deepEqual(codeReads, [10n, 11n, 12n, 10n]);
+    assert.equal(
+      headerReads,
+      3,
+      "successful cached code observations require fresh acceptance checks"
+    );
+  } finally {
+    delete process.env.ENVIO_RPC_URL_1;
+    await new Promise((done) => server.close(done));
+  }
 });

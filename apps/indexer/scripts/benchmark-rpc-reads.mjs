@@ -52,7 +52,7 @@ registerHooks({
 const source = (file) =>
   import(pathToFileURL(resolve(root, "apps/indexer/src", file)));
 const { getRelationshipFields } = await source("events/ownership-contracts.ts");
-const { readControlGetterEffect } = await source("events/effects.ts");
+const { getControlGetter } = await source("events/effects.ts");
 const blockNumber = 17_238_767n;
 const blockHash = `0x${"ab".repeat(32)}`;
 const target = "0x0000000000000000000000000000000000000999";
@@ -104,6 +104,35 @@ const server = http.createServer(async (req, res) => {
 await new Promise((done) => server.listen(0, "127.0.0.1", done));
 process.env.ENVIO_RPC_URL_1 = `http://127.0.0.1:${server.address().port}`;
 let sql;
+const contextFor = (runtime) => ({
+  ...runtime,
+  Contract: { get: async () => undefined },
+  KernelReadEpoch: { get: async () => undefined },
+  KernelReadCache: {
+    get: async () => undefined,
+    set: () => {
+      throw new Error(
+        "Single-checkpoint fixture must not seed active Kernel facts"
+      );
+    },
+  },
+});
+const readGetter = (context, field) =>
+  getControlGetter(
+    context,
+    {
+      chainId: 1,
+      address: field.address,
+      blockNumber,
+      blockHash,
+      getter: field.getter,
+    },
+    {
+      number: String(blockNumber),
+      hash: blockHash,
+      timestamp: String(0x65000000),
+    }
+  );
 const runs = [];
 try {
   if (process.env.RPC_BENCH_DATABASE_URL) {
@@ -128,17 +157,12 @@ try {
         }
       : { rows: new Map() };
     const runtime = await makeEffectRuntime(storage);
+    const context = contextFor(runtime);
     counts = {};
     const start = performance.now();
     const results = [];
     for (const field of fields) {
-      const result = await runtime.effect(readControlGetterEffect, {
-        chainId: 1,
-        address: field.address,
-        blockNumber,
-        blockHash,
-        getter: field.getter,
-      });
+      const result = await readGetter(context, field);
       assert.equal(
         result.status,
         "success",
@@ -150,20 +174,11 @@ try {
     await runtime.flush();
     const coldCounts = counts;
     const restarted = await makeEffectRuntime(storage);
+    const restartedContext = contextFor(restarted);
     counts = {};
     for (const field of fields)
       assert.deepEqual(
-        JSON.parse(
-          JSON.stringify(
-            await restarted.effect(readControlGetterEffect, {
-              chainId: 1,
-              address: field.address,
-              blockNumber,
-              blockHash,
-              getter: field.getter,
-            })
-          )
-        ),
+        JSON.parse(JSON.stringify(await readGetter(restartedContext, field))),
         JSON.parse(JSON.stringify(results[fields.indexOf(field)]))
       );
     const bytecodeEffect = Object.values(runtime.state.effectState.tables).find(
@@ -183,7 +198,17 @@ try {
           codeHash
         );
     assert.equal(
-      Object.values(counts).reduce((sum, value) => sum + value, 0),
+      counts.eth_call ?? 0,
+      0,
+      "restart must reuse persisted call facts"
+    );
+    assert.equal(
+      counts.eth_getCode ?? 0,
+      0,
+      "restart must reuse persisted code facts"
+    );
+    const restartRequests = Object.values(counts).reduce(
+      (sum, value) => sum + value,
       0
     );
     runs.push({
@@ -192,7 +217,8 @@ try {
       resultDigest: createHash("sha256")
         .update(JSON.stringify(results))
         .digest("hex"),
-      restartRequests: 0,
+      restartRequests,
+      restartRequestMethods: { ...counts },
       bytecodeRestartVerified: Boolean(bytecodeEffect),
       effects: Object.fromEntries(
         Object.values(runtime.state.effectState.tables).map(({ stats }) => [
@@ -205,6 +231,8 @@ try {
   console.log(
     JSON.stringify({
       fixture: true,
+      entryPoint: "getControlGetter",
+      kernelMembership: "unseeded",
       storage: sql ? "postgres-adapter" : "memory-adapter",
       envio: require("envio/package.json").version,
       blockNumber: Number(blockNumber),

@@ -4,6 +4,24 @@ All work stays on the performance branch. Checkpoint frequency and HyperSync rem
 
 Milestone verification statements record the status at each commit; the final validation section gives the closeout status.
 
+## Current result after the cache-safety challenge
+
+This section supersedes the ordinary-getter timing and restart claims in the historical milestone entries below. A new production-entry regression demonstrated that a persisted successful getter observation could be accepted after a restart even when its block hash had become orphaned. The underlying fact was still bound to the old hash, but the successful observation had skipped a fresh canonical check.
+
+Successful ordinary/inactive/migrated getter results, unknown-Kernel dependency results, bridge configurations and code verification for metadata/deployment seeding now have a fresh canonical acceptance check outside their persisted effects. Proven active Kernel and immutable-deployment paths retain their existing checks. The regression restarts the actual pinned Envio effect loader, retains persisted old-fork effects, rejects old pins, and verifies new values on the replacement fork. Normal restart still reuses all contract-call and bytecode facts; it now performs fresh header checks.
+
+| Controlled workload | Requests | Median before -> after | Fewer requests / shorter time |
+| --- | ---: | ---: | ---: |
+| 324-getter production entry point | 1944 -> 1685 | 27.463 -> 25.684 s | 13.3% / 6.5% |
+| 13 Kernel pointers + 3 dependency scans over 10 checkpoints | 780 -> 430 | 11.181 -> 4.497 s | 44.9% / 59.8% |
+| 7 immutable getters over 10 checkpoints | 300 -> 229 | 5.305 -> 3.259 s | 23.7% / 38.6% |
+
+These are three-repetition fixtures at 10 ms/RPC, with PostgreSQL-backed effects. The ordinary benchmark now uses getControlGetter, the production entry point, and was rerun against the untouched base checkout. Results have identical digests. Previously quoted 1361 requests described the inner effect; the corrected production entry point uses 1685 because its 583 avoided bytecode requests are offset by 324 fresh canonical-header checks. That is 259 fewer requests, or 13.3%. Its restarted run makes zero EVM-call/code requests and 324 header requests. Latency varies with the host; these fresh paired figures replace the older timing comparison for current claims.
+
+Proof work verified eight audited runtime hashes, 43 source-file hash bindings across the Kernel manifests, and all seven public immutable declarations. Seven in-memory mutation tests removed chain isolation, epoch invalidation, inactive fallback, Kernel runtime binding, the deployment boundary, canonical acceptance, or actual event-handler invalidation; every altered version failed an assertion. Production tests also invoke the actual ActionExecuted handler for executor changes and migrations. No production source files were mutated for these negative tests.
+
+All nine required validation commands passed again, the indexer suite passed 79 tests, TypeScript checking passed, and focused independent review had no actionable findings. Raw results are in [the cache proof artifact](indexer-rpc-cache-proof-2026-10-31.json). Full Envio database rollback/entity restoration and a full optimized replay remain untested. RPC honesty and configured chain finality remain assumptions. Existing-database migration planning and disabled worker isolation remain release boundaries; nothing was deployed or changed live.
+
 ## Comparable baseline
 
 The recorded controlled PostgreSQL fixture runs 324 Ethereum relationship getter operations at block 17238767, a shared returned target, and 10 ms latency per RPC. Three serial repetitions use the pinned Envio loader with PostgreSQL-backed effect rows. The original baseline is 1944 requests and 31.660 s median. The first committed bytecode optimization is 1361 requests and 22.37 s median. Results and restart persistence match. This is not a full replay or live billing measurement. eRPC already absorbs duplicate upstream requests.

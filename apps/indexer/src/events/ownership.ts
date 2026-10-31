@@ -2,6 +2,12 @@ import type { FunctionContext } from "../../../../packages/snapshot-artifacts/sr
 import type { ControlGetterResult } from "./control-reads";
 import type { ControlBlock } from "./control-state";
 import { contractId, controlTransitionId } from "./ids";
+import {
+  getOwnershipEventPolicy,
+  policyCoversEvent,
+  policyCoversGetter,
+  type OwnershipEventPolicy,
+} from "./ownership-policy";
 import type { ControlEvent, EnvioContext } from "./types";
 
 export type RelationshipField = {
@@ -14,6 +20,7 @@ export type RelationshipField = {
   coverage?: string;
   scope?: { registry?: string; token?: string };
   inventoryPools?: string[];
+  eventPolicy?: OwnershipEventPolicy;
 };
 type Provenance = ControlBlock & {
   transactionHash?: string;
@@ -44,6 +51,7 @@ export type RelationshipState = {
     block?: ControlBlock;
     getterValue?: string;
     reason?: string;
+    eventReplay?: OwnershipEventPolicy & { block: ControlBlock };
   };
   coverage?: string;
   functionContext?: FunctionContext;
@@ -66,7 +74,8 @@ export const relationshipId = (
   address: string,
   getter: string
 ) => `${contractId(chainId, address)}:${getter}`;
-const isPending = (getter: string) => getter.startsWith("new");
+const isPending = (getter: string) =>
+  getter.startsWith("new") || getter === "pendingOwner";
 const reference = (kind: string) =>
   [
     "contract-reference",
@@ -80,7 +89,9 @@ const reference = (kind: string) =>
     "token-reference",
   ].includes(kind);
 const currentGetter = (getter: string) =>
-  getter.charAt(3).toLowerCase() + getter.slice(4);
+  getter === "pendingOwner"
+    ? "owner"
+    : getter.charAt(3).toLowerCase() + getter.slice(4);
 const poolDiscrepancy = (
   field: RelationshipField,
   value: string | null | undefined
@@ -137,19 +148,41 @@ async function writeField(
   field: RelationshipField,
   value: string,
   provenance: Provenance,
-  event?: ControlEvent
+  event?: ControlEvent,
+  ownershipEvent?: string
 ): Promise<void> {
   if (!/^0x[0-9a-fA-F]{40}$/.test(value))
     throw new Error("relationship getter must return an address");
   const id = relationshipId(chainId, field.address, field.getter);
   const previous =
     await context.ContractRelationship.get<RelationshipState>(id);
+  const current =
+    event && ownershipEvent && isPending(field.getter)
+      ? await context.ContractRelationship.get<RelationshipState>(
+          relationshipId(chainId, field.address, currentGetter(field.getter))
+        )
+      : undefined;
+  const replay =
+    previous?.verification?.eventReplay ?? current?.verification?.eventReplay;
+  const eventReplay =
+    replay &&
+    ownershipEvent &&
+    policyCoversEvent(replay, field.getter, ownershipEvent)
+      ? replay
+      : undefined;
   const coverage =
     poolDiscrepancy(field, value) ?? field.coverage ?? previous?.coverage;
   const transitionId =
     event && controlTransitionId(event, `relationship:${field.getter}`);
   if (transitionId && (await context.ControlTransition.get(transitionId)))
     return;
+  if (
+    event &&
+    previous?.verification?.eventReplay &&
+    previous.indexedThrough &&
+    BigInt(event.block.number) <= BigInt(previous.indexedThrough.number)
+  )
+    throw new Error("event precedes completed ownership checkpoint");
   if (
     event &&
     previous?.seed &&
@@ -180,7 +213,17 @@ async function writeField(
     seed: previous?.seed ?? (event ? null : provenance),
     lastChange: event ? provenanceFor(event) : (previous?.lastChange ?? null),
     indexedThrough: previous?.indexedThrough ?? null,
-    verification: { outcome: "unperformed" },
+    verification: eventReplay
+      ? {
+          ...(previous?.verification?.getterValue !== undefined
+            ? previous.verification
+            : {}),
+          outcome: "unperformed",
+          reason:
+            "Current value is derived from verified ownership events; retained RPC fields describe the last actual read.",
+          eventReplay,
+        }
+      : { outcome: "unperformed" },
     ...(previous?.functionContext
       ? { functionContext: previous.functionContext }
       : {}),
@@ -238,7 +281,13 @@ async function eventField(
   getter: string,
   kind: string,
   value: unknown,
-  scope?: RelationshipField["scope"]
+  {
+    scope,
+    ownershipEvent,
+  }: {
+    scope?: RelationshipField["scope"];
+    ownershipEvent?: string;
+  } = {}
 ) {
   if (typeof value !== "string")
     throw new Error("relationship event lacks address");
@@ -254,14 +303,48 @@ async function eventField(
     },
     value,
     provenanceFor(event),
-    event
+    event,
+    ownershipEvent
   );
 }
 export async function handleOwnershipEvent(
   context: Context,
   event: RelationshipEvent
 ) {
-  await eventField(context, event, "owner", "owner", event.params.newOwner);
+  await eventField(context, event, "owner", "owner", event.params.newOwner, {
+    ownershipEvent: "OwnershipTransferred",
+  });
+  const pending = await context.ContractRelationship.get<RelationshipState>(
+    relationshipId(event.chainId, event.srcAddress, "pendingOwner")
+  );
+  if (
+    getOwnershipEventPolicy(event.chainId, event.srcAddress)?.profile ===
+      "oz-ownable2step" ||
+    pending?.verification?.eventReplay?.profile === "oz-ownable2step"
+  )
+    await eventField(context, event, "pendingOwner", "owner", zero, {
+      ownershipEvent: "OwnershipTransferred",
+    });
+}
+
+/** OpenZeppelin Ownable2Step separates nomination from ownership acceptance. */
+export async function handleOpenZeppelinOwnershipEvent(
+  context: Context,
+  event: RelationshipEvent,
+  action: "OwnershipTransferStarted" | "OwnershipTransferred"
+) {
+  if (action === "OwnershipTransferred") {
+    await handleOwnershipEvent(context, event);
+    return;
+  }
+  await eventField(
+    context,
+    event,
+    "pendingOwner",
+    "owner",
+    event.params.newOwner,
+    { ownershipEvent: action }
+  );
 }
 /** Chainlink ConfirmedOwner uses from/to and does not expose its private pending owner. */
 export async function handleChainlinkOwnershipEvent(
@@ -271,10 +354,16 @@ export async function handleChainlinkOwnershipEvent(
   kind: "pool-owner" | "registry-owner"
 ) {
   if (action === "OwnershipTransferRequested")
-    await eventField(context, event, "newOwner", kind, event.params.to);
+    await eventField(context, event, "newOwner", kind, event.params.to, {
+      ownershipEvent: action,
+    });
   else {
-    await eventField(context, event, "owner", kind, event.params.to);
-    await eventField(context, event, "newOwner", kind, zero);
+    await eventField(context, event, "owner", kind, event.params.to, {
+      ownershipEvent: action,
+    });
+    await eventField(context, event, "newOwner", kind, zero, {
+      ownershipEvent: action,
+    });
   }
 }
 
@@ -301,7 +390,7 @@ export async function handleRegistryEvent(
       `getPool:${token}`,
       "registered-pool",
       event.params.newPool,
-      scope
+      { scope, ownershipEvent: action }
     );
   else if (action === "AdministratorTransferRequested")
     await eventField(
@@ -310,7 +399,7 @@ export async function handleRegistryEvent(
       `newAdministrator:${token}`,
       "token-admin",
       event.params.newAdmin,
-      scope
+      { scope, ownershipEvent: action }
     );
   else {
     await eventField(
@@ -319,7 +408,7 @@ export async function handleRegistryEvent(
       `administrator:${token}`,
       "token-admin",
       event.params.newAdmin,
-      scope
+      { scope, ownershipEvent: action }
     );
     await eventField(
       context,
@@ -327,7 +416,7 @@ export async function handleRegistryEvent(
       `newAdministrator:${token}`,
       "token-admin",
       zero,
-      scope
+      { scope, ownershipEvent: action }
     );
   }
 }
@@ -432,7 +521,11 @@ export async function completeRelationshipBlock(
   block: ControlBlock,
   fields: RelationshipField[],
   read: (address: string, getter: string) => Promise<ControlGetterResult>,
-  readCanonicalBlock: (number: string) => Promise<ControlBlock | undefined>
+  readCanonicalBlock: (number: string) => Promise<ControlBlock | undefined>,
+  refreshTargetCode?: (
+    address: string,
+    block: ControlBlock
+  ) => Promise<"present" | "absent" | undefined>
 ): Promise<boolean> {
   if (
     !(await relationshipAnchorsCanonical(
@@ -449,6 +542,52 @@ export async function completeRelationshipBlock(
   )) {
     const id = relationshipId(chainId, field.address, field.getter);
     let state = await context.ContractRelationship.get<RelationshipState>(id);
+    const policy = field.eventPolicy;
+    const replay = state?.verification?.eventReplay;
+    let canReplay = Boolean(
+      policy &&
+        policyCoversGetter(policy, field.getter) &&
+        !field.coverage?.startsWith("getter-only") &&
+        state?.value != null &&
+        replay?.profile === policy.profile &&
+        replay.codeHash === policy.codeHash &&
+        replay.version === policy.version &&
+        BigInt(replay.block.number) <= BigInt(block.number) &&
+        BigInt(state.provenance.number) <= BigInt(block.number) &&
+        (!state.indexedThrough ||
+          BigInt(state.indexedThrough.number) <= BigInt(block.number)) &&
+        (state.targetCode === undefined || refreshTargetCode)
+    );
+    let targetCode: "present" | "absent" | undefined;
+    if (canReplay && state?.value && refreshTargetCode) {
+      targetCode = await refreshTargetCode(state.value, block);
+      canReplay = targetCode !== undefined;
+    }
+    if (canReplay && state && replay) {
+      // These callbacks must read fresh headers outside Envio's effect memoization.
+      const [anchor, current] = await Promise.all([
+        readCanonicalBlock(replay.block.number),
+        readCanonicalBlock(block.number),
+      ]);
+      if (anchor?.hash !== replay.block.hash || current?.hash !== block.hash) {
+        context.ContractRelationship.set({
+          ...state,
+          verification: {
+            ...state.verification,
+            outcome: "unavailable",
+            reason:
+              "Ownership replay anchor is not on the observed canonical chain.",
+          },
+        });
+        return false;
+      }
+      context.ContractRelationship.set({
+        ...(await present(context, state)),
+        indexedThrough: block,
+        ...(targetCode ? { targetCode } : {}),
+      });
+      continue;
+    }
     const result = await read(field.address, field.getter);
     if (
       result.status === "success" &&
@@ -483,6 +622,15 @@ export async function completeRelationshipBlock(
         ...(field.scope ? { scope: field.scope } : {}),
       };
     }
+    const eventReplay =
+      policy &&
+      policyCoversGetter(policy, field.getter) &&
+      !field.coverage?.startsWith("getter-only") &&
+      result.status === "success" &&
+      result.functionContext?.source?.codeHash === policy.codeHash &&
+      state.value === result.value.toLowerCase()
+        ? { ...policy, block: result.verifiedAt ?? block }
+        : undefined;
     context.ContractRelationship.set({
       ...(await present(context, state)),
       ...(field.callSignature ? { callSignature: field.callSignature } : {}),
@@ -514,6 +662,7 @@ export async function completeRelationshipBlock(
                     : "mismatch",
               block: result.verifiedAt ?? block,
               getterValue: result.value.toLowerCase(),
+              ...(eventReplay ? { eventReplay } : {}),
             },
     });
   }

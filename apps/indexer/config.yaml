@@ -63,6 +63,7 @@ contracts:
     handler: ./src/EventHandlers.ts
     events:
       - event: "OwnershipTransferred(address indexed user, address indexed newOwner)"
+      - event: "OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner)"
 
   - name: OlympusAccessControlled
     abi_file_path: ./abis/json/OlympusAccessControlled.json

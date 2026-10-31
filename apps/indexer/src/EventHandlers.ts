@@ -1,5 +1,7 @@
 import { indexer } from "envio";
 import { getKernelConstants } from "./constants";
+import { emptyCodeHash, getBytecodeHash } from "./events/code-cache";
+import { configureOwnershipEventFields } from "./events/ownership-policy";
 import {
   completeModuleDependencies,
   getModuleDependencyFields,
@@ -28,6 +30,7 @@ import {
 } from "./events/ownership-contracts";
 import {
   handleOwnershipEvent,
+  handleOpenZeppelinOwnershipEvent,
   handleRegistryEvent,
   handleChainlinkOwnershipEvent,
   handleAuthorityEvent,
@@ -50,12 +53,16 @@ import {
 } from "./events/enabler";
 import {
   getControlBlock,
+  readCanonicalControlBlock,
   getModuleDependencies,
   getCanonicalCodeHash,
   getControlGetter,
   getBridgeConfiguration,
 } from "./events/effects";
-import { setControlCapability } from "./events/control-state";
+import {
+  setControlCapability,
+  type ControlBlock,
+} from "./events/control-state";
 
 import { handleKernelActionExecuted } from "./events/kernel";
 import {
@@ -181,6 +188,19 @@ indexer.onEvent(
     fields: { block: ["hash", "timestamp"], transaction: ["hash"] },
   },
   ({ event, context }) => handleOwnershipEvent(context as EnvioContext, event)
+);
+indexer.onEvent(
+  {
+    contract: "Owned",
+    event: "OwnershipTransferStarted",
+    fields: { block: ["hash", "timestamp"], transaction: ["hash"] },
+  },
+  ({ event, context }) =>
+    handleOpenZeppelinOwnershipEvent(
+      context as EnvioContext,
+      event,
+      "OwnershipTransferStarted"
+    )
 );
 for (const action of [
   "OwnershipTransferRequested",
@@ -488,7 +508,24 @@ for (const chainId of indexer.chainIds) {
     const block = await getControlBlock(context, chainId, number);
     if (!block) return;
     const readBlock = (number: string) =>
-      getControlBlock(context, chainId, Number(number));
+      readCanonicalControlBlock(chainId, BigInt(number));
+    const ownershipFields = (fields: RelationshipField[]) =>
+      configureOwnershipEventFields(chainId, fields, {
+        Owned: chain.Owned.addresses,
+        ChainlinkOwned: chain.ChainlinkOwned.addresses,
+        TokenAdminRegistry: chain.TokenAdminRegistry.addresses,
+      });
+    const refreshTargetCode = async (
+      address: string,
+      observed: ControlBlock
+    ) => {
+      const hash = await getBytecodeHash(context, chainId, {
+        address: address as `0x${string}`,
+        blockHash: observed.hash as `0x${string}`,
+        requireCanonical: true,
+      });
+      return hash ? (hash === emptyCodeHash ? "absent" : "present") : undefined;
+    };
     const readGetter = (address: string, getter: string) =>
       getControlGetter(
         context,
@@ -536,10 +573,12 @@ for (const chainId of indexer.chainIds) {
       ))
     )
       return;
-    const observedFields = await getObservedPoolFields(
-      context,
-      chainId,
-      await getObservedAuthorityFields(context, chainId, relationshipFields)
+    const observedFields = ownershipFields(
+      await getObservedPoolFields(
+        context,
+        chainId,
+        await getObservedAuthorityFields(context, chainId, relationshipFields)
+      )
     );
     if (
       !(await bridgeAnchorsCanonical(
@@ -595,13 +634,16 @@ for (const chainId of indexer.chainIds) {
       block,
       observedFields,
       readGetter,
-      readBlock
+      readBlock,
+      refreshTargetCode
     );
     if (!completed) return;
-    const expanded = await getObservedPoolFields(
-      context,
-      chainId,
-      await getObservedAuthorityFields(context, chainId, observedFields)
+    const expanded = ownershipFields(
+      await getObservedPoolFields(
+        context,
+        chainId,
+        await getObservedAuthorityFields(context, chainId, observedFields)
+      )
     );
     if (expanded.length !== observedFields.length)
       await completeRelationshipBlock(
@@ -610,7 +652,8 @@ for (const chainId of indexer.chainIds) {
         block,
         expanded,
         readGetter,
-        readBlock
+        readBlock,
+        refreshTargetCode
       );
     if (
       !(await completeModuleDependencies(

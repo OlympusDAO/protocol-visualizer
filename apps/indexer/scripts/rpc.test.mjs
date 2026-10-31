@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import http from "node:http";
 import { test } from "node:test";
+import { inspect } from "node:util";
 import { getPublicClient } from "../src/events/rpc.ts";
 import { RpcTransientFailure } from "../src/events/rpc.ts";
 import { readPinnedControlGetter } from "../src/events/control-reads.ts";
@@ -16,16 +17,20 @@ test("RPC clients require a configured endpoint, retry the private proxy, and sa
   const server = http.createServer((_req, res) => {
     calls++;
     res.writeHead(503);
-    res.end();
+    res.end("fixture-provider-credential");
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   try {
-    process.env.ENVIO_RPC_URL_999992 = `http://127.0.0.1:${server.address().port}`;
+    process.env.ENVIO_RPC_URL_999992 = `http://127.0.0.1:${server.address().port}/?apiKey=fixture-provider-credential`;
     process.env.ENVIO_RPC_URL_FALLBACK_999992 = "http://127.0.0.1:1";
     await assert.rejects(
       getControlBlock(await makeEffectRuntime(), 999992, 10),
       (error) => {
         assert.doesNotMatch(error.message, /127\.0\.0\.1|http:/);
+        assert.doesNotMatch(
+          inspect(error, { depth: 12 }),
+          /fixture-provider-credential|127\.0\.0\.1/
+        );
         assert.match(error.message, /Indexer RPC temporarily unavailable/);
         return true;
       }
@@ -40,9 +45,11 @@ test("RPC clients require a configured endpoint, retry the private proxy, and sa
 
 test("proxy recovery queues bounded cross-chain pressure and never retries EVM reverts", async () => {
   let calls = 0,
+    envelopes = 0,
     active = 0,
     peak = 0;
   const server = http.createServer(async (req, res) => {
+    envelopes++;
     let raw = "";
     for await (const part of req) raw += part;
     const payload = JSON.parse(raw);
@@ -81,6 +88,7 @@ test("proxy recovery queues bounded cross-chain pressure and never retries EVM r
       42n
     );
     assert.equal(calls, 2);
+    const beforeEnvelopes = envelopes;
     const results = await Promise.all(
       Array.from({ length: 40 }, (_, i) =>
         getPublicClient(999993 + (i % 2)).request({ method: "eth_blockNumber" })
@@ -93,6 +101,10 @@ test("proxy recovery queues bounded cross-chain pressure and never retries EVM r
       "all 40 distinct logical requests reached the proxy"
     );
     assert(peak <= 8, `maximum logical in-flight RPCs: ${peak}`);
+    assert(
+      envelopes - beforeEnvelopes <= 10,
+      "HTTP batching packs 40 logical requests into at most ten cross-chain envelopes"
+    );
     const before = calls;
     await assert.rejects(
       getPublicClient(999993).readContract({
@@ -110,6 +122,65 @@ test("proxy recovery queues bounded cross-chain pressure and never retries EVM r
       })
     );
     assert.equal(calls, before + 1);
+  } finally {
+    await new Promise((done) => server.close(done));
+  }
+});
+
+test("JSON-RPC capacity codes recover, while historical and EVM failures are terminal", async () => {
+  let errorCode = 429;
+  let calls = 0;
+  let errorMessage = "private-provider-credential";
+  let errorData;
+  const server = http.createServer(async (req, res) => {
+    let raw = "";
+    for await (const part of req) raw += part;
+    const payload = JSON.parse(raw);
+    const reply = ({ id }) => {
+      calls++;
+      return {
+        id,
+        jsonrpc: "2.0",
+        ...(calls <= 2
+          ? {
+              error: {
+                code: errorCode,
+                message: errorMessage,
+                data: errorData,
+              },
+            }
+          : { result: "0x2a" }),
+      };
+    };
+    res.setHeader("content-type", "application/json");
+    res.end(
+      JSON.stringify(
+        Array.isArray(payload) ? payload.map(reply) : reply(payload)
+      )
+    );
+  });
+  await new Promise((done) => server.listen(0, "127.0.0.1", done));
+  process.env.ENVIO_RPC_URL_999997 = `http://127.0.0.1:${server.address().port}`;
+  const client = getPublicClient(999997);
+  try {
+    for (const code of [429, -32007, -32016]) {
+      errorCode = code;
+      calls = 0;
+      assert.equal(await client.request({ method: "eth_blockNumber" }), "0x2a");
+      assert.equal(calls, 3, `capacity code ${code} recovers`);
+    }
+    for (const failure of [
+      { code: -32603, message: "historical state is not available" },
+      { code: 3, message: "execution reverted" },
+      { code: -32603, message: "execution reverted", data: "0x12345678" },
+    ]) {
+      errorCode = failure.code;
+      errorMessage = failure.message;
+      errorData = failure.data;
+      calls = 0;
+      await assert.rejects(client.request({ method: "eth_blockNumber" }));
+      assert.equal(calls, 1, `${failure.message} is not retried`);
+    }
   } finally {
     await new Promise((done) => server.close(done));
   }
@@ -167,6 +238,56 @@ test("transient exhaustion crosses getter, bridge, optional router and dependenc
     ),
     RpcTransientFailure
   );
+});
+
+test("a partial HTTP batch retries only the capacity-limited item", async () => {
+  const counts = new Map();
+  let envelopes = 0;
+  const server = http.createServer(async (req, res) => {
+    envelopes++;
+    let raw = "";
+    for await (const part of req) raw += part;
+    const payload = JSON.parse(raw);
+    const reply = ({ id, params }) => {
+      const address = params[0];
+      const count = (counts.get(address) ?? 0) + 1;
+      counts.set(address, count);
+      return {
+        id,
+        jsonrpc: "2.0",
+        ...(address.endsWith("00") && count === 1
+          ? { error: { code: 429, message: "capacity" } }
+          : { result: "0x2a" }),
+      };
+    };
+    res.setHeader("content-type", "application/json");
+    res.end(
+      JSON.stringify(
+        Array.isArray(payload) ? payload.map(reply) : reply(payload)
+      )
+    );
+  });
+  await new Promise((done) => server.listen(0, "127.0.0.1", done));
+  process.env.ENVIO_RPC_URL_999998 = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const results = await Promise.all(
+      Array.from({ length: 8 }, (_, i) =>
+        getPublicClient(999998).request({
+          method: "eth_getBalance",
+          params: [`0x${i.toString(16).padStart(40, "0")}`, "0x1"],
+        })
+      )
+    );
+    assert(results.every((value) => value === "0x2a"));
+    assert.equal(envelopes, 2);
+    assert.equal([...counts.values()].filter((value) => value === 2).length, 1);
+    assert.equal(
+      [...counts.values()].reduce((a, b) => a + b),
+      9
+    );
+  } finally {
+    await new Promise((done) => server.close(done));
+  }
 });
 
 test("a saturated indexer queue rejects overflow, drains, and recovers across chains", async () => {

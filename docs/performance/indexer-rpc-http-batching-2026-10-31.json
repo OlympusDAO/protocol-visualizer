@@ -1,0 +1,43 @@
+{
+  "kind": "HTTP transport fixture",
+  "latencyMs": 10,
+  "concurrency": 8,
+  "runs": [
+    {
+      "mode": "unbatched",
+      "envelopes": 128,
+      "rpcItems": 128,
+      "durationMs": 217.822333
+    },
+    {
+      "mode": "batched",
+      "envelopes": 16,
+      "rpcItems": 128,
+      "durationMs": 212.74325
+    },
+    {
+      "mode": "batched",
+      "envelopes": 16,
+      "rpcItems": 128,
+      "durationMs": 222.2426250000001
+    },
+    {
+      "mode": "unbatched",
+      "envelopes": 128,
+      "rpcItems": 128,
+      "durationMs": 231.65641599999992
+    },
+    {
+      "mode": "unbatched",
+      "envelopes": 128,
+      "rpcItems": 128,
+      "durationMs": 230.52320800000007
+    },
+    {
+      "mode": "batched",
+      "envelopes": 16,
+      "rpcItems": 128,
+      "durationMs": 218.89575000000013
+    }
+  ]
+}

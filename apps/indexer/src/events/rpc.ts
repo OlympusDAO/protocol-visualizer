@@ -2,6 +2,7 @@ import {
   createPublicClient,
   createTransport,
   http,
+  withRetry,
   type EIP1193RequestFn,
   type PublicClient,
   type Transport,
@@ -76,7 +77,7 @@ function classify(error: unknown) {
     chain.some(
       (cause) =>
         [408, 429, 500, 502, 503, 504].includes(Number(cause.status)) ||
-        [-32005, -32016, -32603].includes(Number(cause.code)) ||
+        [429, -32005, -32007, -32016, -32603].includes(Number(cause.code)) ||
         ["TimeoutError", "SocketClosedError"].includes(String(cause.name)) ||
         (cause.name === "HttpRequestError" && !cause.status)
     );
@@ -112,21 +113,29 @@ export function getPublicClient(chainId: number): PublicClient<Transport> {
         type: "http",
         retryCount: 0,
         request: (async (args: { method: string; params?: unknown }) => {
-          for (let attempt = 0; ; attempt++) {
-            const release = await acquire();
-            try {
-              return await proxy.request(args, { retryCount: 0 });
-            } catch (error) {
-              const { transient, safe } = classify(error);
-              if (!transient) throw safe;
-              if (attempt === 5) throw new RpcTransientFailure();
-            } finally {
-              release();
-            }
-            const delay = Math.min(250 * 2 ** attempt, 4000);
-            await new Promise((resolve) =>
-              setTimeout(resolve, delay * (0.75 + Math.random() * 0.5))
+          try {
+            return await withRetry(
+              async () => {
+                const release = await acquire();
+                try {
+                  return await proxy.request(args, { retryCount: 0 });
+                } finally {
+                  release();
+                }
+              },
+              {
+                retryCount: 5,
+                shouldRetry: ({ error }) => classify(error).transient,
+                delay: ({ count }) =>
+                  Math.min(250 * 2 ** count, 4000) *
+                  (0.75 + Math.random() * 0.5),
+              }
             );
+          } catch (error) {
+            rethrowTransientRpc(error);
+            const { transient, safe } = classify(error);
+            if (transient) throw new RpcTransientFailure();
+            throw safe;
           }
         }) as EIP1193RequestFn,
       });

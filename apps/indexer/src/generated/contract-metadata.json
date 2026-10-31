@@ -33029,7 +33029,24 @@
           "signature": "transferOwnership(address)()"
         }
       },
-      "roleToFunctions": {}
+      "roleToFunctions": {},
+      "immutableDeployment": {
+        "chainId": 1,
+        "address": "0xe045bd0a0d85e980aa152064c06eae6b6ae358d2",
+        "creationBlock": "22515497",
+        "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+        "version": "compiler-immutables-v1",
+        "sourceUrl": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata,sources,sourceIds,runtimeBytecode.onchainBytecode,runtimeBytecode.sourceMap,runtimeBytecode.immutableReferences,deployment.blockNumber,compilation.language,proxyResolution",
+        "immutableGetters": {
+          "0x2a72bbb9": "CHREG()",
+          "0x5b1fd710": "FLASH()",
+          "0x9e1d18e0": "COOLERV2()",
+          "0x9ecd7472": "MIGRATOR()",
+          "0xc8ef95ae": "USDS()",
+          "0xd1d5b4c8": "GOHM()",
+          "0xe0bab4c4": "DAI()"
+        }
+      }
     },
     "0xe05646971ec444f8449d1ca6fc8d9793986017d5": {
       "addressGetters": ["ROLES", "kernel", "operator", "rewardToken"],

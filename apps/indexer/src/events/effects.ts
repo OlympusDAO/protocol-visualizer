@@ -76,11 +76,22 @@ const processedContractDataSchema: S.Schema<ProcessedContractData> = S.schema({
   roleToFunctions: S.record(S.array(S.string)),
   functionSelectors: S.record(functionDetailsSchema),
   addressGetters: S.optional(S.array(S.string)),
+  immutableDeployment: S.optional(
+    S.schema({
+      chainId: S.number,
+      address: S.string,
+      creationBlock: S.string,
+      codeHash: S.string,
+      version: S.string,
+      sourceUrl: S.string,
+      immutableGetters: S.record(S.string),
+    })
+  ),
 });
 
 const processContractMetadataEffect = createEffect(
   {
-    name: "processContractMetadataV2",
+    name: "processContractMetadataV3",
     input: {
       chainId: S.number,
       address: S.address,
@@ -750,7 +761,7 @@ const readControlBlockEffect = createEffect(
 );
 
 // Bypass the effect loader's per-batch memoization for canonical rechecks.
-async function readCanonicalControlBlock(
+export async function readCanonicalControlBlock(
   chainId: number,
   blockNumber: bigint
 ): Promise<ControlBlock | undefined> {

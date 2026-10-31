@@ -572,7 +572,7 @@ test("cached policy metadata rechecks each observation before exposing documenta
   const codeReads = [];
   const ctx = {
     effect: async (effect, input) => {
-      if (effect.name === "processContractMetadataV2") {
+      if (effect.name === "processContractMetadataV3") {
         metadataReads++;
         return structuredClone(getterMetadata);
       }

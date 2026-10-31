@@ -1,10 +1,9 @@
 import { type Address, type Hex, toFunctionSelector } from "viem";
 import metadata from "../generated/contract-metadata.json";
-import deployments from "../generated/deployment-facts.json";
 import type { ProcessedContractData } from "../services/contracts/types";
 import { emptyCodeHash, getBytecodeHash } from "./code-cache";
 import type { ControlGetterInput, ControlGetterResult } from "./control-reads";
-import { getDeploymentFact } from "./deployment-facts";
+import { getDeploymentFact, getImmutableDeployment } from "./deployment-facts";
 import { getPublicClient } from "./rpc";
 import type { EnvioContext } from "./types";
 
@@ -12,23 +11,29 @@ export async function readDeploymentGetter(
   context: EnvioContext,
   input: ControlGetterInput
 ): Promise<ControlGetterResult | undefined> {
-  const deployment = deployments.find(
-    (d) =>
-      d.chainId === input.chainId && d.address === input.address.toLowerCase()
-  );
-  if (!deployment || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(input.getter))
-    return undefined;
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(input.getter)) return undefined;
+  const deployment = await getImmutableDeployment(context, input);
+  if (!deployment) return undefined;
   const data = toFunctionSelector(`${input.getter}()`);
   if (!Object.hasOwn(deployment.immutableGetters, data)) return undefined;
   const contract = (
     metadata as Record<string, Record<string, ProcessedContractData>>
   )[input.chainId]?.[deployment.address];
-  const functionContext = Object.values(contract?.functionSelectors ?? {}).find(
+  const knownContext = Object.values(contract?.functionSelectors ?? {}).find(
     (fn) => fn.canonicalSignature === `${input.getter}()`
   )?.documentation;
-  if (functionContext?.source?.codeHash !== deployment.codeHash)
-    return undefined;
-  const fact = await getDeploymentFact(context, { ...input, data });
+  const functionContext =
+    knownContext?.source?.codeHash === deployment.codeHash
+      ? knownContext
+      : {
+          signature: `${input.getter}()`,
+          source: {
+            url: deployment.sourceUrl,
+            codeHash: deployment.codeHash,
+            match: "code" as const,
+          },
+        };
+  const fact = await getDeploymentFact(context, { ...input, data }, deployment);
   if (!fact?.data) return undefined;
   const value = `0x${fact.data.slice(-40)}` as Address;
   // Immutable reference value does not prove the referenced contract's lifetime.

@@ -8,7 +8,7 @@ import {
 } from "./types";
 import { type EtherscanApi, getEtherscanApi } from "../etherscan/api";
 import type { ChainId } from "../../constants";
-import { processAbiMetadata } from "./abi";
+import { processAbiMetadata, fetchVerifiedContractMetadata } from "./abi";
 import precomputedContractMetadata from "../../generated/contract-metadata.json";
 
 const CACHE_FILE = "./data/contract-cache.json";
@@ -52,7 +52,7 @@ export class ContractProcessor {
       ];
     if (precomputedData) {
       console.log(`PRECOMPUTED CACHE HIT for ${name} on chain ${this.chainId}`);
-      return precomputedData;
+      return this.enrichImmutableMetadata(normalizedAddress, precomputedData);
     }
 
     // Check cache first
@@ -65,7 +65,10 @@ export class ContractProcessor {
       existsSync(this.getAbiPath(normalizedAddress))
     ) {
       console.log(`CACHE HIT for ${name} on chain ${this.chainId}`);
-      return contractCache.processedData;
+      return this.enrichImmutableMetadata(
+        normalizedAddress,
+        contractCache.processedData
+      );
     }
 
     let abi: Abi;
@@ -96,10 +99,9 @@ export class ContractProcessor {
     }
 
     console.log(`Processing source code for ${name} on chain ${this.chainId}`);
-    const processedContractData = this.processSourceCode(
-      name,
-      sourceCode,
-      processedData
+    const processedContractData = await this.enrichImmutableMetadata(
+      normalizedAddress,
+      this.processSourceCode(name, sourceCode, processedData)
     );
 
     let currentChainCache = this.cache[this.chainId];
@@ -116,6 +118,22 @@ export class ContractProcessor {
     this.saveCache();
 
     return processedContractData;
+  }
+
+  private async enrichImmutableMetadata(
+    address: string,
+    previous: ProcessedContractData
+  ): Promise<ProcessedContractData> {
+    if (previous.immutableDeployment) return previous;
+    try {
+      return await fetchVerifiedContractMetadata(
+        this.chainId,
+        address,
+        previous
+      );
+    } catch {
+      return previous;
+    }
   }
 
   private getChainAbiDir(): string {

@@ -25,6 +25,7 @@ test("verified deployment facts obey lifetime boundaries, raw allowlist, canonic
   let priorCode = "0x";
   let currentHash = hash;
   let deployedHash = creationHash;
+  let switchCreationAfterRead = false;
   const server = http.createServer(async (req, res) => {
     let body = "";
     for await (const chunk of req) body += chunk;
@@ -39,6 +40,10 @@ test("verified deployment facts obey lifetime boundaries, raw allowlist, canonic
           parentHash: priorHash,
           timestamp: "0x100",
         };
+        if (number === creation && switchCreationAfterRead) {
+          deployedHash = fork;
+          switchCreationAfterRead = false;
+        }
       } else if (rpc.method === "eth_getCode") {
         result =
           rpc.params[1].blockHash === priorHash
@@ -60,6 +65,11 @@ test("verified deployment facts obey lifetime boundaries, raw allowlist, canonic
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   process.env.ENVIO_RPC_URL_1 = `http://127.0.0.1:${server.address().port}`;
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = (url, init) =>
+    String(url).startsWith("https://sourcify.dev/")
+      ? Promise.resolve(new Response(null, { status: 404 }))
+      : previousFetch(url, init);
   try {
     const input = {
       chainId: 1,
@@ -90,10 +100,12 @@ test("verified deployment facts obey lifetime boundaries, raw allowlist, canonic
       );
     assert.equal(
       calls.length,
-      0,
-      "unknown/predeployment/non-allowlisted calls keep the normal read path"
+      1,
+      "an unknown deployment gets one automatic code lookup; ineligible selectors and history keep ordinary reads"
     );
 
+    assert.equal(calls[0].method, "eth_getCode");
+    runtime = await makeEffectRuntime();
     wrongRuntime = true;
     assert.equal(await getDeploymentFact(runtime, input), undefined);
     await runtime.flush();
@@ -153,6 +165,16 @@ test("verified deployment facts obey lifetime boundaries, raw allowlist, canonic
       "code-only consumers reuse the same deployment proof"
     );
 
+    currentHash = `0x${"77".repeat(32)}`;
+    switchCreationAfterRead = true;
+    assert.equal(
+      await getDeploymentFact(runtime, { ...input, blockHash: currentHash }),
+      undefined,
+      "persisted deployment facts must not mix an old creation anchor with a replacement descendant"
+    );
+    deployedHash = creationHash;
+    currentHash = hash;
+
     currentHash = fork;
     assert.equal(
       await getDeploymentFact(runtime, input),
@@ -170,6 +192,7 @@ test("verified deployment facts obey lifetime boundaries, raw allowlist, canonic
     );
     assert.ok(reads().every((rpc) => rpc.params[1].requireCanonical === true));
   } finally {
+    globalThis.fetch = previousFetch;
     delete process.env.ENVIO_RPC_URL_1;
     await new Promise((resolve) => server.close(resolve));
   }

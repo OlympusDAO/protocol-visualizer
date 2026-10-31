@@ -6,6 +6,11 @@ import {
   type Abi,
 } from "viem";
 import type { ProcessedContractData } from "./types";
+import {
+  discoverImmutableDeployment,
+  verifiedGetterFields,
+  type VerifiedImmutableInput,
+} from "./immutables";
 import type { FunctionContext } from "../../../../../packages/snapshot-artifacts/src/index";
 
 type CompilerDocs = {
@@ -69,7 +74,7 @@ export function processAbiMetadata(
 }
 
 export function processVerifiedContractMetadata(
-  verified: {
+  verified: VerifiedImmutableInput & {
     chainId?: string | number;
     address?: string;
     runtimeMatch?: string;
@@ -102,5 +107,42 @@ export function processVerifiedContractMetadata(
   for (const [selector, details] of Object.entries(processed.functionSelectors))
     details.roles = previous?.functionSelectors?.[selector]?.roles ?? [];
   processed.roleToFunctions = previous?.roleToFunctions ?? {};
+  const immutableDeployment = discoverImmutableDeployment(
+    verified,
+    chainId,
+    address
+  );
+  if (immutableDeployment) processed.immutableDeployment = immutableDeployment;
   return processed;
+}
+
+export async function fetchVerifiedContract(
+  chainId: string | number,
+  address: string
+): Promise<Parameters<typeof processVerifiedContractMetadata>[0]> {
+  const response = await fetch(
+    `https://sourcify.dev/server/v2/contract/${chainId}/${address.toLowerCase()}?fields=${verifiedGetterFields}`,
+    { signal: AbortSignal.timeout(30_000) }
+  );
+  if (!response.ok)
+    throw Object.assign(new Error("Verified contract metadata unavailable"), {
+      status: response.status,
+    });
+  const value: unknown = await response.json();
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new Error("Invalid verified contract metadata response");
+  return value as Parameters<typeof processVerifiedContractMetadata>[0];
+}
+
+export async function fetchVerifiedContractMetadata(
+  chainId: string | number,
+  address: string,
+  previous?: ProcessedContractData
+): Promise<ProcessedContractData> {
+  return processVerifiedContractMetadata(
+    await fetchVerifiedContract(chainId, address),
+    chainId,
+    address,
+    previous
+  );
 }

@@ -9,7 +9,18 @@ export interface ContractSource {
   lastFetched: number;
 }
 
+export interface ImmutableDeployment {
+  chainId: number;
+  address: string;
+  creationBlock: string;
+  codeHash: string;
+  version: string;
+  sourceUrl: string;
+  immutableGetters: Record<string, string>;
+}
+
 export interface ProcessedContractData {
+  immutableDeployment?: ImmutableDeployment;
   roleToFunctions: Record<string, string[]>;
   functionSelectors: Record<string, FunctionDetails>;
   addressGetters?: string[];

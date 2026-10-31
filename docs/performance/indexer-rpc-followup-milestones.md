@@ -8,7 +8,7 @@ The shared RPC boundary now uses viem's exported `withRetry` instead of a handwr
 
 The classifier now recognizes JSON-RPC capacity codes 429 and -32007 alongside the existing proxy codes. A regression first failed on the raw JSON-RPC 429 response, then passed with the policy update. Historical-state failures and legitimate reverts remain terminal. Error-chain inspection checks that fixture credentials and private URLs do not escape exhaustion.
 
-HTTP batching was already enabled and remains enabled with no extra collection delay. A partial batch regression proves that one capacity-limited item retries without resending its seven successful siblings. Forty cross-chain logical operations use at most ten HTTP envelopes while respecting eight in-flight operations.
+HTTP batching was already enabled and remains enabled with no extra collection delay. A partial batch regression proves that one capacity-limited item retries without resending its seven successful siblings. Cross-chain tests verify batching while respecting eight in-flight operations; exact batch packing depends on event-loop scheduling.
 
 | Three-run transport fixture | Unbatched | Existing batching |
 | --- | ---: | ---: |
@@ -29,3 +29,26 @@ node --import ./scripts/register-typescript.mjs scripts/benchmark-http-batching.
 ## Kernel reuse is database state
 
 KernelReadCache and KernelReadEpoch are ordinary Envio database entities. They form a materialized cache in the database, persist across restarts and participate in event rollback. Replacing them with a process-global map would lose those properties. Persisted raw-call and deployment effects are separate: they survive rollback and therefore require block/deployment identity and fresh canonical acceptance checks.
+
+## Automatic immutable getter discovery
+
+New contracts no longer need a hand-written immutable getter list. Normal contract metadata processing, the metadata refresh command and the runtime getter path use verified compiler artifacts. Solidity's immutableReferences identify PUSH operands; the compiler source map binds them to public immutable declarations in hash-checked source files. Zero-argument address-returning ABI selectors must match those declarations. This also supports inherited/interface declarations with the public immutable override form. The Sourcify API does not expose the needed AST, so the implementation uses its compiler source maps and immutable references directly. No compiler executable or package dependency was added to the indexer.
+
+Both the actual CoolerV2Migrator artifact (seven getters) and a separately compiled AddedImmutable contract (TOKEN getter, different runtime/address) establish automatic discovery without an address allowlist. The existing generated Cooler descriptor was produced by that same detector. Production code no longer imports the old one-contract deployment manifest; it remains test/benchmark evidence.
+
+An uncatalogued runtime gets one shared source-discovery effect keyed by chain, address and observed runtime hash, limited to five calls per second. Eligible descriptors and verified no-eligible-getter decisions persist. HTTP 404, transport and server failures do not persist, so a later source verification can be discovered on a subsequent batch/restart. Envio coalesces same-input discovery within a batch. Source discovery has cold network/CPU cost and is separate from provider RPC limits.
+
+The runtime proof still requires empty parent-block code, matching ordinary runtime at creation, a requested block at or after creation, allowlisted complete calldata and fresh canonical checks. Source artifacts are trusted Sourcify/compiler inputs; hashing source files checks their binding but does not independently authenticate that service. Proxies, delegation/EOF runtimes, code containing executable CALLCODE/DELEGATECALL/SELFDESTRUCT, and inconclusive mappings fall back to ordinary reads. The scanner now walks the complete runtime and skips only PUSH operands; harmless metadata can therefore cause conservative false negatives. It does not trust arbitrary trailing bytes as a CBOR boundary.
+
+A mid-call fork regression reproduced mixing an old persisted creation proof with a replacement descendant. Requested-pin preflight plus post-effect creation and descendant checks now reject that race. Target code remains block-specific and is checked before final acceptance. The last actual immutable RPC verification block remains the creation block.
+
+| Seven getters over ten checkpoints, three runs | Block-specific effects | Deployment reuse with current safety checks |
+| --- | ---: | ---: |
+| Header RPC items | 210 | 350 |
+| Bytecode RPC items | 20 | 12 |
+| Contract-call RPC items | 70 | 7 |
+| Total RPC items | 300 | 369 |
+| Median fixture duration | 4.347 s | 4.364 s |
+
+This PostgreSQL-effect fixture restarts its Envio loader at every checkpoint and charges every RPC item 10 ms, including headers. The additional canonical checks supersede the earlier 229-request immutable fixture: current total items increase by 23.0%, while contract calls decrease by 90.0%. Timing is effectively flat in this paired run (about 0.4% slower); it is not a latency win. Real eRPC header cache hits have different costs, so provider savings require separate upstream counters. Raw evidence: [automatic immutable fixture](indexer-rpc-automatic-immutables-2026-10-31.json).
+

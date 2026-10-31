@@ -1,0 +1,103 @@
+{
+  "chainId": "1",
+  "address": "0x3434343434343434343434343434343434343434",
+  "runtimeMatch": "exact_match",
+  "deployment": {
+    "blockNumber": "100"
+  },
+  "compilation": {
+    "language": "Solidity"
+  },
+  "runtimeBytecode": {
+    "onchainBytecode": "0x6080604052348015600f57600080fd5b506004361060285760003560e01c806382bfefc814602d575b600080fd5b60537f000000000000000000000000121212121212121212121212121212121212121281565b6040516001600160a01b03909116815260200160405180910390f3fea264697066735822122099911be7feaf6d7d09a7508e16092295d0660878514629833a6d9e321bc7a59064736f6c634300080f0033",
+    "sourceMap": "135:133:0:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;180:39;;;;;;;;-1:-1:-1;;;;;178:32:1;;;160:51;;148:2;133:18;180:39:0;;;;;;",
+    "immutableReferences": {
+      "12": [
+        {
+          "length": 32,
+          "start": 49
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "compiler": {
+      "version": "0.8.15+commit.e14f2714"
+    },
+    "language": "Solidity",
+    "output": {
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "token",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [],
+          "name": "TOKEN",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        }
+      ],
+      "devdoc": {
+        "kind": "dev",
+        "methods": {},
+        "version": 1
+      },
+      "userdoc": {
+        "kind": "user",
+        "methods": {},
+        "version": 1
+      }
+    },
+    "settings": {
+      "compilationTarget": {
+        "AddedImmutable.sol": "AddedImmutable"
+      },
+      "evmVersion": "london",
+      "libraries": {},
+      "metadata": {
+        "bytecodeHash": "ipfs"
+      },
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "remappings": []
+    },
+    "sources": {
+      "AddedImmutable.sol": {
+        "keccak256": "0x63fcd487f91bd27a0f5ae4e7b31d8d5462dbb40447004bfe14c9a055375d6536",
+        "license": "MIT",
+        "urls": [
+          "bzz-raw://472e16f97d961cfaaabb84f869aba5fa4b9432ef444968e46a4a10b93bae1eb2",
+          "dweb:/ipfs/QmQ5uyJiUgsXtcLafY9GhNpeh3XJM6QwgnayVtp2MSvKaW"
+        ]
+      }
+    },
+    "version": 1
+  },
+  "sources": {
+    "AddedImmutable.sol": {
+      "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.15;\ninterface ITokenReference { function TOKEN() external view returns(address); }\ncontract AddedImmutable is ITokenReference { address public immutable override TOKEN; constructor(address token) { TOKEN = token; } }\n"
+    }
+  },
+  "sourceIds": {
+    "AddedImmutable.sol": {
+      "id": 0
+    }
+  }
+}

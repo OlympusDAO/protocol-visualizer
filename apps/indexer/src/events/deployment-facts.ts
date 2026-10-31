@@ -1,6 +1,16 @@
 import { createEffect, type EffectContext, S } from "envio";
 import { type Address, type Hex, keccak256 } from "viem";
-import deployments from "../generated/deployment-facts.json";
+import metadata from "../generated/contract-metadata.json";
+import type {
+  ImmutableDeployment,
+  ProcessedContractData,
+} from "../services/contracts/types";
+import {
+  fetchVerifiedContract,
+  processVerifiedContractMetadata,
+} from "../services/contracts/abi";
+import { ordinaryRuntime } from "../services/contracts/immutables";
+import { emptyCodeHash, getBytecodeHash } from "./code-cache";
 import { getPublicClient, rethrowTransientRpc } from "./rpc";
 
 type DeploymentFactInput = {
@@ -18,18 +28,78 @@ export type DeploymentFact = {
   verifiedAt: { number: string; hash: string; timestamp: string };
 };
 
-// This is a second check on a manually source-reviewed, exact runtime hash, not
-// a general proxy detector. PUSH operands and the compiler's CBOR trailer are data.
-function canChangeOwnCode(code: Hex): boolean {
-  const bytes = Buffer.from(code.slice(2), "hex");
-  const end = bytes.length - bytes.readUInt16BE(bytes.length - 2) - 2;
-  if (end <= 0) return true;
-  for (let offset = 0; offset < end; offset++) {
-    const opcode = bytes.readUInt8(offset);
-    if ([0xf2, 0xf4, 0xff].includes(opcode)) return true;
-    if (opcode >= 0x60 && opcode <= 0x7f) offset += opcode - 0x5f;
+const discoverDeploymentEffect = createEffect(
+  {
+    name: "discoverCompilerImmutableDeploymentV1",
+    input: { chainId: S.number, address: S.address, codeHash: S.string },
+    output: S.optional(S.string),
+    rateLimit: { calls: 5, per: "second" },
+    cache: true,
+  },
+  async ({ input, context }) => {
+    try {
+      const verified = await fetchVerifiedContract(
+        input.chainId,
+        input.address
+      );
+      const processed = processVerifiedContractMetadata(
+        verified,
+        input.chainId,
+        input.address
+      );
+      const sourceHashes = Object.values(processed.functionSelectors).flatMap(
+        (fn) => fn.documentation?.source?.codeHash ?? []
+      );
+      if (!sourceHashes.includes(input.codeHash)) {
+        context.cache = false;
+        return undefined;
+      }
+      if (processed.immutableDeployment)
+        return JSON.stringify(processed.immutableDeployment);
+      if (
+        verified.runtimeBytecode?.immutableReferences &&
+        (Object.keys(verified.runtimeBytecode.immutableReferences).length ===
+          0 ||
+          !ordinaryRuntime(verified.runtimeBytecode.onchainBytecode ?? "0x") ||
+          verified.proxyResolution?.isProxy)
+      )
+        return "null";
+      context.cache = false;
+      return undefined;
+    } catch {
+      context.cache = false;
+      return undefined;
+    }
   }
-  return false;
+);
+
+/** One persisted discovery per observed runtime; a source outage keeps ordinary reads. */
+export async function getImmutableDeployment(
+  context: Pick<EffectContext, "effect">,
+  input: DeploymentFactInput
+): Promise<ImmutableDeployment | undefined> {
+  const precomputed = (
+    metadata as Record<string, Record<string, ProcessedContractData>>
+  )[input.chainId]?.[input.address.toLowerCase()]?.immutableDeployment;
+  if (precomputed) return precomputed;
+  if (!/^0x[0-9a-f]{64}$/i.test(input.blockHash)) return undefined;
+  try {
+    const codeHash = await getBytecodeHash(context, input.chainId, {
+      address: input.address.toLowerCase() as Address,
+      blockHash: input.blockHash as Hex,
+      requireCanonical: true,
+    });
+    if (!codeHash || codeHash === emptyCodeHash) return undefined;
+    const encoded = await context.effect(discoverDeploymentEffect, {
+      chainId: input.chainId,
+      address: input.address.toLowerCase() as Address,
+      codeHash,
+    });
+    return encoded ? (JSON.parse(encoded) ?? undefined) : undefined;
+  } catch (error) {
+    rethrowTransientRpc(error);
+    return undefined;
+  }
 }
 
 const deploymentIdentity = {
@@ -65,7 +135,7 @@ const verifyDeploymentEffect = createEffect(
       typeof runtime === "string" &&
       /^0x(?:[0-9a-f]{2})+$/i.test(runtime) &&
       keccak256(runtime) === input.codeHash &&
-      !canChangeOwnCode(runtime);
+      ordinaryRuntime(runtime);
     if (!verified) context.cache = false;
     return verified;
   }
@@ -96,23 +166,22 @@ const readImmutableDeploymentCallEffect = createEffect(
 );
 
 /**
- * Prove one known ordinary deployment on the current branch, then reuse its
+ * Prove an automatically discovered ordinary deployment on the current branch, then reuse its
  * runtime/immutable bytes for its lifetime. No empty-code, unknown-runtime,
  * storage-getter, caller-specific or predeployment facts enter this cache.
  * A nonempty ordinary contract cannot become an EIP-7702 delegation designator;
- * the reviewed runtime has no code deletion or delegated execution instruction.
+ * the compiler-bound runtime has no code deletion or delegated execution instruction.
  */
 export async function getDeploymentFact(
   context: Pick<EffectContext, "effect">,
-  input: DeploymentFactInput
+  input: DeploymentFactInput,
+  resolved?: ImmutableDeployment
 ): Promise<DeploymentFact | undefined> {
-  const deployment = deployments.find(
-    (entry) =>
-      entry.chainId === input.chainId &&
-      entry.address === input.address.toLowerCase()
-  );
+  const deployment = resolved ?? (await getImmutableDeployment(context, input));
   if (
     !deployment ||
+    deployment.chainId !== input.chainId ||
+    deployment.address.toLowerCase() !== input.address.toLowerCase() ||
     input.blockNumber < BigInt(deployment.creationBlock) ||
     !/^0x[0-9a-f]{64}$/i.test(input.blockHash) ||
     (input.data !== undefined &&
@@ -122,6 +191,9 @@ export async function getDeploymentFact(
 
   try {
     const client = getPublicClient(input.chainId);
+    const before = await client.getBlock({ blockNumber: input.blockNumber });
+    if (before.hash?.toLowerCase() !== input.blockHash.toLowerCase())
+      return undefined;
     const creation = await client.getBlock({
       blockNumber: BigInt(deployment.creationBlock),
     });
@@ -149,10 +221,15 @@ export async function getDeploymentFact(
             data: input.data.toLowerCase(),
           });
     if (input.data !== undefined && !data) return undefined;
-    // The deployment header was freshly read above. Recheck the requested
-    // descendant after effects, including when persisted reads were cache hits.
-    const requested = await client.getBlock({ blockNumber: input.blockNumber });
-    if (requested.hash?.toLowerCase() !== input.blockHash.toLowerCase())
+    // Both anchors must remain canonical after effects, including persisted hits.
+    const [creationAfter, requested] = await Promise.all([
+      client.getBlock({ blockNumber: BigInt(deployment.creationBlock) }),
+      client.getBlock({ blockNumber: input.blockNumber }),
+    ]);
+    if (
+      creationAfter.hash?.toLowerCase() !== identity.creationHash ||
+      requested.hash?.toLowerCase() !== input.blockHash.toLowerCase()
+    )
       return undefined;
 
     return {

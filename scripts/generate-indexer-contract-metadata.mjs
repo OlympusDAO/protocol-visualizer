@@ -23,6 +23,10 @@ const outputPath = path.join(
   "generated",
   "contract-metadata.json"
 );
+const { verifiedGetterFields } = await import(
+  "../apps/indexer/src/services/contracts/immutables.ts"
+);
+
 const etherscanBaseUrl = "https://api.etherscan.io/v2/api";
 const roleRolesAdmin = "RolesAdmin";
 loadDotEnv(path.join(repoRoot, ".env"));
@@ -659,6 +663,7 @@ if (cliOptions.verifiedSource) {
     const functions = Object.values(previous?.functionSelectors ?? {});
     if (
       !cliOptions.force &&
+      previous?.immutableDeployment &&
       Array.isArray(previous?.addressGetters) &&
       functions.every((fn) => fn.canonicalSignature && fn.documentation?.source)
     )
@@ -666,7 +671,7 @@ if (cliOptions.verifiedSource) {
     try {
       await waitForEtherscanRequestSlot();
       lastEtherscanRequestAt = Date.now();
-      const url = `https://sourcify.dev/server/v2/contract/${contract.chainId}/${contract.normalizedAddress}?fields=metadata,runtimeBytecode.onchainBytecode`;
+      const url = `https://sourcify.dev/server/v2/contract/${contract.chainId}/${contract.normalizedAddress}?fields=${verifiedGetterFields}`;
       const response = await fetch(url, {
         signal: AbortSignal.timeout(30_000),
       });

@@ -87,7 +87,8 @@ const processedContractDataSchema: S.Schema<ProcessedContractData> = S.schema({
   roleToFunctions: S.record(S.array(S.string)),
   functionSelectors: S.record(functionDetailsSchema),
   addressGetters: S.optional(S.array(S.string)),
-  ordinaryDeployment: S.optional(S.schema(deploymentFields)),
+  // S.schema mutates definitions; keep the shared field template intact.
+  ordinaryDeployment: S.optional(S.schema({ ...deploymentFields })),
   immutableDeployment: S.optional(
     S.schema({
       ...deploymentFields,

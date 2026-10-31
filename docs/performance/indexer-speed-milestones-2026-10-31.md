@@ -64,3 +64,13 @@ Astra reviewed the phase and found no production correctness issue. Its test fin
 All 125 indexer tests, strict typechecking and all nine ordered validation steps passed. The sandbox attempt stopped at Docker step 6; the complete sequence then passed with approved buildx access. The whole-indexer measurement follows after this commit, with no builds running alongside it.
 
 The phase retains the existing provider-finality assumption: eRPC can permanently cache numeric headers the provider declared finalized. Unfinalized fork fixtures prove phase rejection; these checks do not establish protection against a finalized-chain reversal. Native onBlock callbacks expose only height, so opening RPC headers and existing event-provenance anchors retain the prior HyperSync/RPC synchronization boundary.
+
+## Metadata storage codec correction
+
+The first real PostgreSQL replay exposed a schema-construction error before the candidate could commit its first batch. The schema library mutates object definitions. Reusing that object for the immutable descriptor copied internal field records instead of schemas. Passing a shallow copy to the first schema constructor fixes the shared-object mutation without changing stored metadata or effect names.
+
+A regression captures the production metadata effect through its public caller and round-trips absent, ordinary, immutable-only and combined deployment descriptors through Envio's native output serializer/parser. It reproduced the same `schema.~r is not a function` failure before the fix and passes afterward. The earlier memory-backed tests did not exercise this codec. Astra independently reproduced the failure and confirmed the fix, with no blocking finding. Ponytail retained the one-line copy rather than adding another schema factory or export. A comment explains the library's mutation; actual PostgreSQL batching still requires the replay.
+
+The unsuccessful replay is excluded from speed comparisons. Its baseline completed 50,001 blocks in 209.303 seconds (238.9 blocks/second); the candidate exited with no completed range. These timings establish neither a candidate speed gain nor semantic equivalence.
+
+All 126 indexer tests, strict typechecking and all nine ordered validation steps passed after the correction. The sandbox stopped at Docker step 6; the complete sequence then passed with approved buildx access.

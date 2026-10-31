@@ -195,6 +195,17 @@ type ChainObservation {
 }
 
 # Entity caches roll back with events. Effects alone survive rollback.
+type VerifiedDeployment {
+  id: ID!
+  chainId: Int! @index
+  address: String! @index
+  creationBlock: BigInt!
+  creationHash: String!
+  codeHash: String!
+  version: String!
+  verifiedAt: Json!
+}
+
 type KernelReadEpoch {
   id: ID!
   chainId: Int! @index

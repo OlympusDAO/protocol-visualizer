@@ -3,6 +3,7 @@ import { type Address, type Hex, keccak256 } from "viem";
 import metadata from "../generated/contract-metadata.json";
 import type {
   ImmutableDeployment,
+  OrdinaryDeployment,
   ProcessedContractData,
 } from "../services/contracts/types";
 import {
@@ -10,10 +11,10 @@ import {
   processVerifiedContractMetadata,
 } from "../services/contracts/abi";
 import { ordinaryRuntime } from "../services/contracts/immutables";
-import { emptyCodeHash, getBytecodeHash } from "./code-cache";
+import { emptyCodeHash, readExactBytecodeHash } from "./code-cache";
 import { getPublicClient, rethrowTransientRpc } from "./rpc";
 
-type DeploymentFactInput = {
+export type DeploymentFactInput = {
   chainId: number;
   address: string;
   blockNumber: bigint;
@@ -21,6 +22,15 @@ type DeploymentFactInput = {
   // Only a complete, allowlisted zero-argument call with no caller/options is eligible.
   data?: string;
 };
+
+export type CanonicalBlockReader = (
+  chainId: number,
+  blockNumber: bigint
+) => Promise<{
+  hash?: string | null;
+  parentHash?: string;
+  timestamp?: bigint;
+}>;
 
 export type DeploymentFact = {
   codeHash: Hex;
@@ -30,7 +40,7 @@ export type DeploymentFact = {
 
 const discoverDeploymentEffect = createEffect(
   {
-    name: "discoverCompilerImmutableDeploymentV1",
+    name: "discoverVerifiedOrdinaryDeploymentV2",
     input: { chainId: S.number, address: S.address, codeHash: S.string },
     output: S.optional(S.string),
     rateLimit: { calls: 5, per: "second" },
@@ -47,25 +57,32 @@ const discoverDeploymentEffect = createEffect(
         input.chainId,
         input.address
       );
-      const sourceHashes = Object.values(processed.functionSelectors).flatMap(
-        (fn) => fn.documentation?.source?.codeHash ?? []
-      );
-      if (!sourceHashes.includes(input.codeHash)) {
+      if (
+        !verified.runtimeBytecode?.onchainBytecode ||
+        keccak256(verified.runtimeBytecode.onchainBytecode) !== input.codeHash
+      ) {
         context.cache = false;
         return undefined;
       }
-      if (processed.immutableDeployment)
-        return JSON.stringify(processed.immutableDeployment);
+      const provenIneligible =
+        (verified.runtimeBytecode.immutableReferences &&
+          processed.ordinaryDeployment &&
+          Object.keys(verified.runtimeBytecode.immutableReferences).length ===
+            0) ||
+        !ordinaryRuntime(verified.runtimeBytecode.onchainBytecode) ||
+        verified.proxyResolution?.isProxy === true;
+      if (!processed.immutableDeployment && !provenIneligible)
+        context.cache = false;
       if (
-        verified.runtimeBytecode?.immutableReferences &&
-        (Object.keys(verified.runtimeBytecode.immutableReferences).length ===
-          0 ||
-          !ordinaryRuntime(verified.runtimeBytecode.onchainBytecode ?? "0x") ||
-          verified.proxyResolution?.isProxy)
+        !processed.ordinaryDeployment &&
+        !processed.immutableDeployment &&
+        !provenIneligible
       )
-        return "null";
-      context.cache = false;
-      return undefined;
+        return undefined;
+      return JSON.stringify({
+        ordinaryDeployment: processed.ordinaryDeployment,
+        immutableDeployment: processed.immutableDeployment,
+      });
     } catch {
       context.cache = false;
       return undefined;
@@ -73,22 +90,54 @@ const discoverDeploymentEffect = createEffect(
   }
 );
 
-/** One persisted discovery per observed runtime; a source outage keeps ordinary reads. */
 export async function getImmutableDeployment(
   context: Pick<EffectContext, "effect">,
-  input: DeploymentFactInput
+  input: DeploymentFactInput,
+  observedCodeHash?: Hex
 ): Promise<ImmutableDeployment | undefined> {
   const precomputed = (
     metadata as Record<string, Record<string, ProcessedContractData>>
   )[input.chainId]?.[input.address.toLowerCase()]?.immutableDeployment;
   if (precomputed) return precomputed;
+  return (await discoverDeployment(context, input, observedCodeHash))
+    ?.immutableDeployment;
+}
+
+export async function getOrdinaryDeployment(
+  context: Pick<EffectContext, "effect">,
+  input: DeploymentFactInput,
+  observedCodeHash?: Hex
+): Promise<OrdinaryDeployment | undefined> {
+  const precomputed = (
+    metadata as Record<string, Record<string, ProcessedContractData>>
+  )[input.chainId]?.[input.address.toLowerCase()];
+  if (precomputed?.ordinaryDeployment) return precomputed.ordinaryDeployment;
+  if (precomputed?.immutableDeployment) return precomputed.immutableDeployment;
+  return (await discoverDeployment(context, input, observedCodeHash))
+    ?.ordinaryDeployment;
+}
+
+async function discoverDeployment(
+  context: Pick<EffectContext, "effect">,
+  input: DeploymentFactInput,
+  observedCodeHash?: Hex
+): Promise<
+  | {
+      ordinaryDeployment?: OrdinaryDeployment;
+      immutableDeployment?: ImmutableDeployment;
+    }
+  | undefined
+> {
   if (!/^0x[0-9a-f]{64}$/i.test(input.blockHash)) return undefined;
   try {
-    const codeHash = await getBytecodeHash(context, input.chainId, {
-      address: input.address.toLowerCase() as Address,
-      blockHash: input.blockHash as Hex,
-      requireCanonical: true,
-    });
+    // This exact observation must never recurse through lifetime discovery.
+    const codeHash =
+      observedCodeHash ??
+      (await readExactBytecodeHash(context, input.chainId, {
+        address: input.address.toLowerCase() as Address,
+        blockHash: input.blockHash as Hex,
+        requireCanonical: true,
+      }));
     if (!codeHash || codeHash === emptyCodeHash) return undefined;
     const encoded = await context.effect(discoverDeploymentEffect, {
       chainId: input.chainId,
@@ -175,7 +224,9 @@ const readImmutableDeploymentCallEffect = createEffect(
 export async function getDeploymentFact(
   context: Pick<EffectContext, "effect">,
   input: DeploymentFactInput,
-  resolved?: ImmutableDeployment
+  resolved?: OrdinaryDeployment,
+  readCanonicalBlock: CanonicalBlockReader = (chainId, blockNumber) =>
+    getPublicClient(chainId).getBlock({ blockNumber })
 ): Promise<DeploymentFact | undefined> {
   const deployment = resolved ?? (await getImmutableDeployment(context, input));
   if (
@@ -185,19 +236,28 @@ export async function getDeploymentFact(
     input.blockNumber < BigInt(deployment.creationBlock) ||
     !/^0x[0-9a-f]{64}$/i.test(input.blockHash) ||
     (input.data !== undefined &&
-      !Object.hasOwn(deployment.immutableGetters, input.data.toLowerCase()))
+      (!("immutableGetters" in deployment) ||
+        !Object.hasOwn(
+          deployment.immutableGetters as Record<string, string>,
+          input.data.toLowerCase()
+        )))
   )
     return undefined;
 
   try {
-    const client = getPublicClient(input.chainId);
-    const before = await client.getBlock({ blockNumber: input.blockNumber });
+    const before = await readCanonicalBlock(input.chainId, input.blockNumber);
     if (before.hash?.toLowerCase() !== input.blockHash.toLowerCase())
       return undefined;
-    const creation = await client.getBlock({
-      blockNumber: BigInt(deployment.creationBlock),
-    });
-    if (!creation.hash || !creation.parentHash) return undefined;
+    const creation = await readCanonicalBlock(
+      input.chainId,
+      BigInt(deployment.creationBlock)
+    );
+    if (
+      !creation.hash ||
+      !creation.parentHash ||
+      creation.timestamp === undefined
+    )
+      return undefined;
     const identity = {
       chainId: input.chainId,
       address: deployment.address as Address,
@@ -223,8 +283,8 @@ export async function getDeploymentFact(
     if (input.data !== undefined && !data) return undefined;
     // Both anchors must remain canonical after effects, including persisted hits.
     const [creationAfter, requested] = await Promise.all([
-      client.getBlock({ blockNumber: BigInt(deployment.creationBlock) }),
-      client.getBlock({ blockNumber: input.blockNumber }),
+      readCanonicalBlock(input.chainId, BigInt(deployment.creationBlock)),
+      readCanonicalBlock(input.chainId, input.blockNumber),
     ]);
     if (
       creationAfter.hash?.toLowerCase() !== identity.creationHash ||

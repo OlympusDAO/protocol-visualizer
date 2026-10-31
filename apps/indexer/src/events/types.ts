@@ -9,6 +9,7 @@ export type EntityStore = {
 };
 
 export type EnvioContext = EvmOnEventContext & {
+  VerifiedDeployment?: EntityStore;
   KernelReadEpoch: EntityStore;
   KernelReadCache: EntityStore;
   BridgeConfiguration: EntityStore;

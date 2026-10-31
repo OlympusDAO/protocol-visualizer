@@ -5,7 +5,7 @@ import {
   type Abi,
   type Hex,
 } from "viem";
-import type { ImmutableDeployment } from "./types";
+import type { ImmutableDeployment, OrdinaryDeployment } from "./types";
 
 export const verifiedGetterFields =
   "metadata,sources,sourceIds,runtimeBytecode.onchainBytecode,runtimeBytecode.sourceMap,runtimeBytecode.immutableReferences,deployment.blockNumber,compilation.language,proxyResolution";
@@ -46,18 +46,13 @@ export function ordinaryRuntime(code: Hex): boolean {
   return true;
 }
 
-/**
- * Compiler immutableReferences identify immutable operands; compiler sourceMap
- * entries bind generated public getters to their declarations. ABI names alone
- * never establish immutability. No compiler process or source-name allowlist.
- */
-export function discoverImmutableDeployment(
+export function discoverOrdinaryDeployment(
   verified: VerifiedImmutableInput,
   chainId: string | number,
   address: string
-): ImmutableDeployment | undefined {
-  const runtime = verified.runtimeBytecode;
+): OrdinaryDeployment | undefined {
   const creationBlock = String(verified.deployment?.blockNumber ?? "");
+  const code = verified.runtimeBytecode?.onchainBytecode;
   if (
     !/^[1-9][0-9]*$/.test(String(chainId)) ||
     !Number.isSafeInteger(Number(chainId)) ||
@@ -68,8 +63,35 @@ export function discoverImmutableDeployment(
       "Solidity" ||
     verified.proxyResolution?.isProxy === true ||
     !/^[1-9][0-9]*$/.test(creationBlock) ||
+    !code ||
+    !ordinaryRuntime(code)
+  )
+    return undefined;
+  return {
+    chainId: Number(chainId),
+    address: address.toLowerCase(),
+    creationBlock,
+    codeHash: keccak256(code),
+    version: "ordinary-runtime-v1",
+    sourceUrl: `https://sourcify.dev/server/v2/contract/${chainId}/${address.toLowerCase()}?fields=${verifiedGetterFields}`,
+  };
+}
+
+/**
+ * Compiler immutableReferences identify immutable operands; compiler sourceMap
+ * entries bind generated public getters to their declarations. ABI names alone
+ * never establish immutability. No compiler process or source-name allowlist.
+ */
+export function discoverImmutableDeployment(
+  verified: VerifiedImmutableInput,
+  chainId: string | number,
+  address: string
+): ImmutableDeployment | undefined {
+  const ordinary = discoverOrdinaryDeployment(verified, chainId, address);
+  const runtime = verified.runtimeBytecode;
+  if (
+    !ordinary ||
     !runtime?.onchainBytecode ||
-    !ordinaryRuntime(runtime.onchainBytecode) ||
     !runtime.sourceMap ||
     !runtime.immutableReferences ||
     !verified.sourceIds ||
@@ -187,12 +209,8 @@ export function discoverImmutableDeployment(
   }
   if (!Object.keys(immutableGetters).length) return undefined;
   return {
-    chainId: Number(chainId),
-    address: address.toLowerCase(),
-    creationBlock,
-    codeHash: keccak256(runtime.onchainBytecode),
+    ...ordinary,
     version: "compiler-immutables-v1",
-    sourceUrl: `https://sourcify.dev/server/v2/contract/${chainId}/${address.toLowerCase()}?fields=${verifiedGetterFields}`,
     immutableGetters: Object.fromEntries(
       Object.entries(immutableGetters).sort(([a], [b]) => a.localeCompare(b))
     ),

@@ -1,0 +1,25 @@
+{
+  "fixture": true,
+  "liveProviders": false,
+  "checkpoints": 10,
+  "latencySpeedClaim": false,
+  "freshLoaderPerCheckpoint": true,
+  "reader": "getCanonicalCodeHash",
+  "results": {
+    "exact": {
+      "requests": {
+        "eth_getBlockByNumber": 30,
+        "eth_getCode": 10
+      },
+      "effectEntries": 10
+    },
+    "deployment": {
+      "requests": {
+        "eth_getCode": 3,
+        "eth_getBlockByNumber": 50
+      },
+      "effectEntries": 3
+    }
+  },
+  "interpretation": "Code RPCs10to3, effect interface entries10to3; total RPCitems40to53 because creation/current checks remain repeated. Header sharing is nextstage; no whole-indexer speedclaim."
+}

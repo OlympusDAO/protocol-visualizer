@@ -522,6 +522,7 @@ for (const chainId of indexer.chainIds) {
       const hash = await getBytecodeHash(context, chainId, {
         address: address as `0x${string}`,
         blockHash: observed.hash as `0x${string}`,
+        blockNumber: BigInt(observed.number),
         requireCanonical: true,
       });
       return hash ? (hash === emptyCodeHash ? "absent" : "present") : undefined;

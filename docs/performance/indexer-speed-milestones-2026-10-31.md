@@ -23,3 +23,26 @@ The fixture starts with a proven Kernel entity fact, restarts the real Envio eff
 Run `node --import ./apps/indexer/scripts/register-typescript.mjs apps/indexer/scripts/benchmark-db-first.mjs <source-root>` from the repository root. The baseline used source exported from 69e6379.
 
 Astra's stage review found no actionable production issue. Its suggested target refresh/failure characterization was added; broader persisted-fork tests remain in the existing suite. Ponytail simplification retained the existing fallback closure and entity schema; no second cache, queue or cache helper was added for this change. The one-line provenance change is required to preserve actual verification history.
+
+## Verified deployment code in entity state
+
+VerifiedDeployment is a regular Envio entity. It binds chain/address to the creation block/hash, runtime hash, proof version and original verification block. A successful hit avoids code/source RPCs and the effect loader. Native effect contexts and unproven deployments keep exact block-hash effects.
+
+Ordinary deployment discovery is independent of immutable getter discovery. Empty-parent code, exact ordinary runtime at creation and canonical creation/current anchors establish eligibility. Delegate execution, selfdestruct, delegation/EOF, proxies, empty code and precreation requests cannot become lifetime facts. Referenced target code needs its own proof. Missing provenance, wrong identity/version or orphaned anchors take the exact proof path.
+
+Public code reads and getter source verification now use the entity path. Cold Kernel verification forwards the already verified source hash into its getter effect. Module verification includes the observation height. Conclusive unsafe/proxy/no-immutable decisions persist; incomplete compiler/source proof and outages remain retryable. Metadata accepts an additive ordinary deployment descriptor without invalidating otherwise valid older metadata entries.
+
+| Controlled public code-reader fixture, ten checkpoints | Exact block-specific code | Deployment entity |
+| --- | ---: | ---: |
+| Code RPC items | 10 | 3 |
+| Header RPC items | 30 | 50 |
+| Total RPC items | 40 | 53 |
+| Calls through the effect interface | 10 | 3 |
+
+The three code reads establish current code, empty parent and creation runtime. Subsequent hits enter no effect. Code reads fall 70%, but total items rise 32.5% while repeated numeric canonical checks remain. No latency or whole-indexer speed gain is claimed for this intermediate stage. The next milestone shares those checks within a validated observation phase. [Fixture counts](indexer-speed-deployment-state-2026-10-31.json).
+
+Initial regressions failed before implementation. Eight deployment tests now cover persistence/restart, simulated entity rollback, identity/provenance rejection, deployment boundaries, forks, empty target code, source recovery and negative-cache persistence. The public code-reader regression also demonstrated effect entry before wiring and zero entry on a verified entity hit afterward. The integrated focused suite passed 36 tests; strict typechecking passed.
+
+Astra reviewed this stage, identified three remaining performance bypasses and a malformed-provenance fallback issue, then reviewed their fixes with no remaining actionable findings. The fixes were applied; its independent eight-test rerun passed. Ponytail and five simplification lenses retained existing helpers and every safety check, removed four narrating comments, and declined a cold metadata micro-optimization that would widen the proof API.
+
+The ordered validation first stopped on two lint warnings, which were corrected without weakening tests. The next run passed steps 1–5 and stopped on Docker buildx filesystem permissions. The complete sequence restarted with approved access and passed all nine steps. Strict typechecking also passed. This stage's unit fixtures adapt entity/effect storage; real PostgreSQL replay/schema evidence is recorded in the later integrated measurement.

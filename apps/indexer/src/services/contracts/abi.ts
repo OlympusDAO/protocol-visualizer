@@ -8,6 +8,7 @@ import {
 import type { ProcessedContractData } from "./types";
 import {
   discoverImmutableDeployment,
+  discoverOrdinaryDeployment,
   verifiedGetterFields,
   type VerifiedImmutableInput,
 } from "./immutables";
@@ -107,6 +108,12 @@ export function processVerifiedContractMetadata(
   for (const [selector, details] of Object.entries(processed.functionSelectors))
     details.roles = previous?.functionSelectors?.[selector]?.roles ?? [];
   processed.roleToFunctions = previous?.roleToFunctions ?? {};
+  const ordinaryDeployment = discoverOrdinaryDeployment(
+    verified,
+    chainId,
+    address
+  );
+  if (ordinaryDeployment) processed.ordinaryDeployment = ordinaryDeployment;
   const immutableDeployment = discoverImmutableDeployment(
     verified,
     chainId,

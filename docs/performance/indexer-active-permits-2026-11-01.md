@@ -1,0 +1,13 @@
+# Bounded active RPC permit experiment
+
+The user approved testing ten active logical proxy requests instead of eight. The only production edit is the active bound in `apps/indexer/src/events/rpc.ts`. The existing saturation and recovery checks now expect ten active plus 256 waiting requests, one overflow rejection beyond that capacity, and complete permit recovery across chains.
+
+The waiter bound, viem retry policy, 35/second effect gates, HTTP batching, native batch size, checkpoint interval, HyperSync source and eRPC aggregate 50-credit cap stay fixed. Logical requests and HTTP envelopes are different: viem can pack several logical operations into an envelope. More client permits cannot increase the proxy's configured upstream allowance, but can increase rejected/retried traffic.
+
+Acceptance requires three fresh standard replays per side, at least 3% lower median committed time beyond observed run variation, and matching shared entity contents, verification provenance and event counts. Every replay must commit the full range, reach readiness and exit normally. Reject exhaustion, overflow during replay, incomplete progress, changed observations, sustained new upstream throttling, or extra retry pressure without a repeatable speed benefit. The separate 50–100% target remains 430.2–573.7 blocks/second against the recorded 286.8 reference.
+
+Astra advised the experiment and its stop conditions; Ponytail found no useful simplification beyond the constant and existing test updates. Measurement and final retention are pending. This experiment does not establish account-wide Alchemy compute-unit headroom, and it changes no live settings.
+
+The corrected standard driver completed three cold runs of the eight-request baseline `2e5e671`: 132.102, 129.656 and 145.336 seconds, or 378.5 blocks/second median. All runs committed 523 events with identical entity/provenance digests, readiness and normal exit. Median proxy/upstream items were 6,119/4,341; the databases and containers were cleaned after each run. [Baseline artifact](indexer-benchmark-eight.json).
+
+The ten-request candidate passed the twelve focused transport/cache/scheduler checks and all nine ordered validation steps. The actual patched eRPC/PostgreSQL fixture passed in 37.425 seconds, including nine production-reader revert/recovery cases and a mixed-method/chain burst admitting exactly 20 of 160 upstream requests at a 20-credit test cap; reset checks were explicitly skipped. Native SQL rollback/restart passed separately in 2.021 seconds. Fresh image scans found the same 23 Debian MEDIUM indexer advisories, no HIGH/CRITICAL or secret findings, and no unsuppressed eRPC findings under the existing policy. The indexer MEDIUM threshold still fails; no ignore entry changed.

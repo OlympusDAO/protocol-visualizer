@@ -100,7 +100,7 @@ test("proxy recovery queues bounded cross-chain pressure and never retries EVM r
       42,
       "all 40 distinct logical requests reached the proxy"
     );
-    assert(peak <= 8, `maximum logical in-flight RPCs: ${peak}`);
+    assert(peak <= 10, `maximum logical in-flight RPCs: ${peak}`);
     assert(
       envelopes - beforeEnvelopes < 40,
       "HTTP batching coalesces concurrent items; later response scheduling can split batches"
@@ -319,7 +319,7 @@ test("a saturated indexer queue rejects overflow, drains, and recovers across ch
     process.env[`ENVIO_RPC_URL_${chain}`] =
       `http://127.0.0.1:${server.address().port}/${chain}`;
   try {
-    const calls = Array.from({ length: 265 }, (_, index) =>
+    const calls = Array.from({ length: 267 }, (_, index) =>
       getPublicClient(999995 + (index % 2)).request({
         method: "eth_blockNumber",
       })
@@ -337,21 +337,21 @@ test("a saturated indexer queue rejects overflow, drains, and recovers across ch
       )
     );
     assert.match(overflow.message, /Indexer RPC temporarily unavailable/);
-    assert(count <= 8, "only active permits reach the proxy before release");
+    assert(count <= 10, "only active permits reach the proxy before release");
     release();
     const results = await settled;
     assert.equal(
       results.filter((result) => result.status === "fulfilled").length,
-      264
+      266
     );
-    assert.equal(count, 264);
+    assert.equal(count, 266);
     assert.equal(
       await getPublicClient(999996).getBlockNumber({ cacheTime: 0 }),
       42n
     );
     assert.equal(
       count,
-      265,
+      267,
       "overflow does not leak permits after queue drain"
     );
   } finally {

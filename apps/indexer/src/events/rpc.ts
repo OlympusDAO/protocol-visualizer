@@ -15,7 +15,7 @@ const publicClients = new Map<number, PublicClient<Transport>>();
 let active = 0;
 const waiting: (() => void)[] = [];
 async function acquire() {
-  if (active < 8) active++;
+  if (active < 10) active++;
   else {
     if (waiting.length >= 256) throw new RpcTransientFailure();
     await new Promise<void>((resolve) => waiting.push(resolve));

@@ -1,0 +1,4206 @@
+{
+  "localReplay": true,
+  "fixtureProviders": false,
+  "liveDeployment": false,
+  "existingDatabasesReset": false,
+  "primaryAttempt": "v2",
+  "baselineCommit": "e206f72",
+  "candidateRuntimeCommit": "bc44616",
+  "all109SampledFilesMatchFinalTree": true,
+  "limits": [
+    "One Ethereum range and sequential pair, not a nine-chain or production throughput guarantee.",
+    "Preliminary candidate overlapped validation; do not treat its timing as isolated.",
+    "Source service cache and network conditions varied between attempts. Sum of source-fetch times is not wall time.",
+    "eRPC upstream totals include background health traffic; indexer-to-proxy savings are not provider billing savings.",
+    "Relationships compare semantic fields separately from RPC/event verification provenance."
+  ],
+  "attempts": [
+    {
+      "base": "e206f72",
+      "head": "86a448a",
+      "chain_id": 1,
+      "start_block": 26240000,
+      "end_block": 26290000,
+      "blocks": 50001,
+      "hypersync": true,
+      "checkpoint_interval": 10000,
+      "erpc_max_rps": 50,
+      "hasura": false,
+      "runs": [
+        {
+          "label": "baseline",
+          "commit": "e206f72",
+          "complete": true,
+          "elapsed_seconds": 179.9667166247964,
+          "blocks_per_second": 277.8347070933376,
+          "samples": [
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": -1,
+              "sourceBlock": 0,
+              "elapsed_seconds": 2.071
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 4.129
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 6.191
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 8.261
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 10.335
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 12.406
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 14.483
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 16.6
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 18.653
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 20.704
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 22.776
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 24.851
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 26.915
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 28.982
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 31.045
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 33.106
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 35.142
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 37.2
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 39.244
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 41.306
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 43.369
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 45.457
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 47.546
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 49.597
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 51.685
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 53.74
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 55.847
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 57.914
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 59.983
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 62.05
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 64.114
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 66.154
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 68.196
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 70.242
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 72.282
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 74.349
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 76.417
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 78.48
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 80.557
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 82.628
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 84.684
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 86.772
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 88.857
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 90.938
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 93.013
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 95.112
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 97.161
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 99.262
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 101.309
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 103.374
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 105.475
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 107.579
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 109.669
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 111.744
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 113.812
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 115.866
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 117.937
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 120.007
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 122.074
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 124.128
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 126.184
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 128.234
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 130.296
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 132.359
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 134.431
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 136.501
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 138.554
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 140.645
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 142.696
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 144.771
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 146.85
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 148.92
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 150.989
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 153.075
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 155.138
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 157.196
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 159.266
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 161.319
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 163.372
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 165.44
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 167.493
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 169.553
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 171.61
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 173.674
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 175.78
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 177.837
+            },
+            {
+              "chainId": 1,
+              "progressBlock": 26290000,
+              "eventsProcessed": 523,
+              "bufferBlock": 26290000,
+              "sourceBlock": 26310341,
+              "elapsed_seconds": 179.903
+            }
+          ],
+          "process_exit": 0,
+          "source_discovery": {
+            "requests": 0,
+            "statuses": {},
+            "totalMilliseconds": 0
+          },
+          "proxy_requests_by_method": {
+            "eth_call": 3427,
+            "eth_getBlockByNumber": 17856,
+            "eth_getCode": 794
+          },
+          "upstream_requests_by_method": {
+            "eth_call": 3426,
+            "eth_chainId": 11,
+            "eth_getBlockByNumber": 108,
+            "eth_getCode": 790,
+            "eth_syncing": 36
+          },
+          "upstream_attempt_outcomes": {
+            "empty": 399,
+            "exec_revert": 20,
+            "success": 3952
+          },
+          "proxy_failed_requests_by_method": {
+            "eth_call": 21,
+            "eth_getCode": 4
+          },
+          "local_budget_rejections_by_method": {
+            "eth_call": 1,
+            "eth_chainId": 2,
+            "eth_getBlockByNumber": 14,
+            "eth_getCode": 4,
+            "eth_syncing": 6
+          },
+          "proxy_cache_hits_by_method": {
+            "eth_getBlockByNumber": 17848
+          },
+          "final_meta": {
+            "chainId": 1,
+            "ecosystem": "evm",
+            "startBlock": 26240000,
+            "endBlock": 26290000,
+            "progressBlock": 26290000,
+            "progressBlockTime": null,
+            "bufferBlock": 26290000,
+            "firstEventBlock": 26240000,
+            "eventsProcessed": 523,
+            "sourceBlock": 26310341,
+            "readyAt": "2026-10-31T04:28:58.711+00:00",
+            "isReady": true
+          },
+          "relationships": 579,
+          "relationship_verification_outcomes": {
+            "match": 577,
+            "unavailable": 2
+          },
+          "relationship_unavailable_reasons": {
+            "Pending owner has no public getter; only replayed transfer requests establish the nominee.": 2
+          },
+          "effect_cache_tables": [
+            {
+              "tablename": "envio_effect_processContractMetadataV2"
+            },
+            {
+              "tablename": "envio_effect_readBridgeConfiguration"
+            },
+            {
+              "tablename": "envio_effect_readCanonicalCodeHash"
+            },
+            {
+              "tablename": "envio_effect_readControlGetter"
+            },
+            {
+              "tablename": "envio_effect_readImmutableDeploymentCall"
+            },
+            {
+              "tablename": "envio_effect_readKernelExecutor"
+            },
+            {
+              "tablename": "envio_effect_readModuleDependencies"
+            },
+            {
+              "tablename": "envio_effect_readPinnedBytecodeHash"
+            },
+            {
+              "tablename": "envio_effect_readPinnedRawCall"
+            },
+            {
+              "tablename": "envio_effect_readPolicyPermissions"
+            },
+            {
+              "tablename": "envio_effect_verifyStaticDeployment"
+            }
+          ],
+          "config_sha256": "2d6a00b1dbac784d157b73373a34f066816ea527227937dec34828c179f263b1",
+          "relationship_rows_digest": "67e41490eb138c81ab187b43cf8d40bceeadbdeed4ff0e44175b1c4e01508265",
+          "proxy_requests_total": 22077,
+          "upstream_requests_total": 4371
+        },
+        {
+          "label": "candidate",
+          "commit": "86a448a",
+          "complete": true,
+          "elapsed_seconds": 194.27070258418098,
+          "blocks_per_second": 257.3779748304234,
+          "samples": [
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": -1,
+              "sourceBlock": 0,
+              "elapsed_seconds": 2.061
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 4.14
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 6.221
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 8.275
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 10.319
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 12.382
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 14.447
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 16.529
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 18.612
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 20.727
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 22.785
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 24.839
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 26.911
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 28.982
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 31.04
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 33.114
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 35.176
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 37.248
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 39.321
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 41.394
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 43.457
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 45.512
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 47.62
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 49.676
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 51.728
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 53.789
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 55.862
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 57.921
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 59.989
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 62.072
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 64.178
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 66.241
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 68.316
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 70.366
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 72.439
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 74.5
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 76.551
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 78.596
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 80.649
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 82.707
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 84.781
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 86.86
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 88.922
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 91.027
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 93.114
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 95.214
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 97.303
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 99.383
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 101.469
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 103.563
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 105.646
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 107.714
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 109.766
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 111.846
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 113.9
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 115.956
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 118.012
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 120.05
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 122.121
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 124.18
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 126.271
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 128.377
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 130.423
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 132.467
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 134.516
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 136.561
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 138.616
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 140.672
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 142.728
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 144.781
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 146.86
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 148.916
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 150.967
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 153.026
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 155.085
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 157.152
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 159.211
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 161.29
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 163.369
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 165.428
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 167.484
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 169.537
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 171.586
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 173.628
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 175.687
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 177.744
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 179.796
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 181.876
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 183.936
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 185.99
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 188.048
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 190.089
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 192.153
+            },
+            {
+              "chainId": 1,
+              "progressBlock": 26290000,
+              "eventsProcessed": 523,
+              "bufferBlock": 26290000,
+              "sourceBlock": 26310357,
+              "elapsed_seconds": 194.2
+            }
+          ],
+          "process_exit": 0,
+          "source_discovery": {
+            "requests": 91,
+            "statuses": {
+              "200": 91
+            },
+            "totalMilliseconds": 44497.517160000025
+          },
+          "proxy_requests_by_method": {
+            "eth_call": 3105,
+            "eth_getBlockByNumber": 20390,
+            "eth_getCode": 839
+          },
+          "upstream_requests_by_method": {
+            "eth_call": 3097,
+            "eth_chainId": 12,
+            "eth_getBlockByNumber": 140,
+            "eth_getCode": 836,
+            "eth_syncing": 36
+          },
+          "upstream_attempt_outcomes": {
+            "empty": 422,
+            "exec_revert": 20,
+            "success": 3679
+          },
+          "proxy_failed_requests_by_method": {
+            "eth_call": 28,
+            "eth_getBlockByNumber": 1,
+            "eth_getCode": 3
+          },
+          "local_budget_rejections_by_method": {
+            "eth_call": 8,
+            "eth_getBlockByNumber": 1,
+            "eth_getCode": 3
+          },
+          "proxy_cache_hits_by_method": {
+            "eth_getBlockByNumber": 20358
+          },
+          "final_meta": {
+            "chainId": 1,
+            "ecosystem": "evm",
+            "startBlock": 26240000,
+            "endBlock": 26290000,
+            "progressBlock": 26290000,
+            "progressBlockTime": null,
+            "bufferBlock": 26290000,
+            "firstEventBlock": 26240000,
+            "eventsProcessed": 523,
+            "sourceBlock": 26310357,
+            "readyAt": "2026-10-31T04:32:20.913+00:00",
+            "isReady": true
+          },
+          "relationships": 579,
+          "relationship_verification_outcomes": {
+            "match": 576,
+            "unavailable": 2,
+            "unperformed": 1
+          },
+          "relationship_unavailable_reasons": {
+            "Pending owner has no public getter; only replayed transfer requests establish the nominee.": 2
+          },
+          "effect_cache_tables": [
+            {
+              "tablename": "envio_effect_discoverCompilerImmutableDeploymentV1"
+            },
+            {
+              "tablename": "envio_effect_processContractMetadataV3"
+            },
+            {
+              "tablename": "envio_effect_readBridgeConfiguration"
+            },
+            {
+              "tablename": "envio_effect_readCanonicalCodeHash"
+            },
+            {
+              "tablename": "envio_effect_readControlGetter"
+            },
+            {
+              "tablename": "envio_effect_readImmutableDeploymentCall"
+            },
+            {
+              "tablename": "envio_effect_readKernelExecutor"
+            },
+            {
+              "tablename": "envio_effect_readModuleDependencies"
+            },
+            {
+              "tablename": "envio_effect_readPinnedBytecodeHash"
+            },
+            {
+              "tablename": "envio_effect_readPinnedRawCall"
+            },
+            {
+              "tablename": "envio_effect_readPolicyPermissions"
+            },
+            {
+              "tablename": "envio_effect_verifyStaticDeployment"
+            }
+          ],
+          "config_sha256": "00b1a7c2428594bae04c0b7692441579318dc52996fba2b141f3fae7d4f475e3",
+          "kernel_cache_rows": 10,
+          "kernel_epoch_rows": [
+            {
+              "id": "1",
+              "epoch": "0xd22013d401476cf7f70bed5a1844c902ed2f21eab1d318996a1115141e57e379:0x06f0efd97fda995a8c3d07edb3904c250ce18c78eedbf5edebe62daaf00cb30f:1493",
+              "migrated": false
+            }
+          ],
+          "relationship_rows_digest": "905d18b64c29a23e87c43ebd2e9037c700e0506a79205c3f3cd192975127ec65",
+          "proxy_requests_total": 24334,
+          "upstream_requests_total": 4121
+        }
+      ],
+      "candidate_source": "saved local implementation snapshot over 86a448a",
+      "relationship_comparison": {
+        "available_both": 577,
+        "unavailable_both": 2,
+        "differences": [],
+        "recovered_ids": []
+      },
+      "comparison": {
+        "blocks_per_second_ratio": 0.9263708538183394,
+        "duration_reduction_percent": -7.948128536014942,
+        "upstream_request_reduction_percent": 5.719514985129259,
+        "proxy_request_reduction_percent": -10.223309326448348
+      },
+      "candidate_source_files": [
+        {
+          "path": "apps/indexer/.dockerignore",
+          "sha256": "12ab9d34e5287b40c8bfffaa508f622c2cc6dd682397e2c4bf005b8a2e4c6749"
+        },
+        {
+          "path": "apps/indexer/.env.sample",
+          "sha256": "f0594019a46f1e38f533eb4f21d04f2c61a01a6b9be239dc0e097ad816bfbb7a"
+        },
+        {
+          "path": "apps/indexer/.envio/.gitignore",
+          "sha256": "b4a7f47e4cef7e73c48e3a682ff9952fc6e78e076faa2c1f875bc8b39b086f8b"
+        },
+        {
+          "path": "apps/indexer/.eslintrc.json",
+          "sha256": "1c424f2465b995aaef103d7f140c54ba8d04cdc0f434cf1e5df64d70467cb4eb"
+        },
+        {
+          "path": "apps/indexer/.gitignore",
+          "sha256": "da5f7be40bd2c9009bc065518ed737939715cd89b7ab2be8659ce13df45e3750"
+        },
+        {
+          "path": "apps/indexer/README.md",
+          "sha256": "6180e8444d5195e1f92b332ba503d7d9418b1ed09cb404180b861fe3822e09ce"
+        },
+        {
+          "path": "apps/indexer/abis/Kernel.ts",
+          "sha256": "069090108d7a74e83a78d5d1c6173c00264b5027d26ab30c448c424a93a78baa"
+        },
+        {
+          "path": "apps/indexer/abis/Module.ts",
+          "sha256": "4cab18d4b27c7dfbb78ec178d05419e8ad9417a93631d92529258fcd405b0661"
+        },
+        {
+          "path": "apps/indexer/abis/OlympusRoles.ts",
+          "sha256": "ac9da72d9f4e242c343072e08544d968df34cf8d0ae2e9a127b15ae85a0a19ef"
+        },
+        {
+          "path": "apps/indexer/abis/Policy.ts",
+          "sha256": "6c5a3985ae74163d159fc9fe435e14187922036b055386979499e079ccb404e0"
+        },
+        {
+          "path": "apps/indexer/abis/RolesAdmin.ts",
+          "sha256": "af7ed1eead8874e1202010e3ea397a72304ea3313af99bcc03210611a573e744"
+        },
+        {
+          "path": "apps/indexer/abis/json/CCIPBridge.json",
+          "sha256": "961eca7d56c99c759842f30c0f4a5171a7f1cb790894bc39cd9896867bd5ec4e"
+        },
+        {
+          "path": "apps/indexer/abis/json/CCIPTokenPool.json",
+          "sha256": "738f6aefa1931fc0e933665bb33866462f9253a40df9cb4e823a617691206b1f"
+        },
+        {
+          "path": "apps/indexer/abis/json/ChainlinkOwned.json",
+          "sha256": "78f51559a47439a2dc5f047a4f7929ea595437d87c5278737781ef23f7a6a8f8"
+        },
+        {
+          "path": "apps/indexer/abis/json/GovernanceOHM.json",
+          "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+        },
+        {
+          "path": "apps/indexer/abis/json/IEnabler.json",
+          "sha256": "d40eb6845dfa10c6f1f841006464648a8ca8d392fb49bf87e01db6885f7f89d7"
+        },
+        {
+          "path": "apps/indexer/abis/json/Kernel.json",
+          "sha256": "fad8f68ba97127c01887c6671102a838ed1b2ba869bf9d1adb6842e106e3e406"
+        },
+        {
+          "path": "apps/indexer/abis/json/LegacyPeriodicTask.json",
+          "sha256": "501f691fee57f64e443abd45bf5ba18f76cb7b50cd68c6068d1cf85859851832"
+        },
+        {
+          "path": "apps/indexer/abis/json/Module.json",
+          "sha256": "15266b7168405c4f937da917cde4322e662b9e38361237cfdfe4a5ac1b4c2bda"
+        },
+        {
+          "path": "apps/indexer/abis/json/MonoCoolerReferences.json",
+          "sha256": "66767b2bdcfec50431b366d5f906f65ebaadb7235b15572d7432b9e1578334d8"
+        },
+        {
+          "path": "apps/indexer/abis/json/OlympusAccessControlled.json",
+          "sha256": "fc218b8924b086b86b49087a5f6cffe83f464cbee92a391ae1162a2257a35500"
+        },
+        {
+          "path": "apps/indexer/abis/json/OlympusAuthority.json",
+          "sha256": "0cee52f090537ef589f42f63bab05499398860a41416f27a60a09a7248641880"
+        },
+        {
+          "path": "apps/indexer/abis/json/OlympusRoles.json",
+          "sha256": "d106ef6699be380b1175d43ed0fda1ed0afece567ce058ecccd47dee2a8f0bd4"
+        },
+        {
+          "path": "apps/indexer/abis/json/Owned.json",
+          "sha256": "4946a4a223d231108ddff7f2ce749be3069984d6e3e1bb07d72ef0c5b1cbd2bf"
+        },
+        {
+          "path": "apps/indexer/abis/json/PeriodicTaskManager.json",
+          "sha256": "53ee49566389d3e686784403a28b6bb095b70866af6e2729bc55b421530340c7"
+        },
+        {
+          "path": "apps/indexer/abis/json/Policy.json",
+          "sha256": "338cfde51b07cd702457380fc2f7061de6ac954ff101cd0906d1aa04a596c88b"
+        },
+        {
+          "path": "apps/indexer/abis/json/RolesAdmin.json",
+          "sha256": "de49746457df4ff1c4c675fd963b35945f5b8862aab3a7b859fc1b983d8b8adf"
+        },
+        {
+          "path": "apps/indexer/abis/json/StakedOHM.json",
+          "sha256": "d7c7b976fc6d71bd798415d9ff9f4528319f5da47b5a2d6e9f3bdaa58febadbe"
+        },
+        {
+          "path": "apps/indexer/abis/json/TokenAdminRegistry.json",
+          "sha256": "3f49f6dabed28b20b006d5b8ae8a108a8e159de5a943492c586214ad06a20bc9"
+        },
+        {
+          "path": "apps/indexer/config.yaml",
+          "sha256": "e79c4f9861006fdf98d649240959e5aedffa6d6c11fc88ca56cb552402f6165c"
+        },
+        {
+          "path": "apps/indexer/envio-env.d.ts",
+          "sha256": "dc4c03666533099b201362fdafdbf7b4df37e47bf1ea36d92027ab272efdc49b"
+        },
+        {
+          "path": "apps/indexer/package.json",
+          "sha256": "04e8f099808e7783ca84d67ef38d808986dfe661762b981268bd298c357049c5"
+        },
+        {
+          "path": "apps/indexer/schema.graphql",
+          "sha256": "9153124b6488143aefc67018e1b9fd2d7b1e087b104904517ac208ed4906f7cd"
+        },
+        {
+          "path": "apps/indexer/scripts/benchmark-deployment-facts.mjs",
+          "sha256": "3e61f1c75b9d2de1aea1d3c56ae4215a215757548ed488977779146acc729e2b"
+        },
+        {
+          "path": "apps/indexer/scripts/benchmark-http-batching.mjs",
+          "sha256": "47676a30d2fb0831b469c711e4378a68b7095b41e26d81c312154604f8b6b88d"
+        },
+        {
+          "path": "apps/indexer/scripts/benchmark-kernel-reuse.mjs",
+          "sha256": "30f911cbe42c1e245c3bcb8a49c25ab412a63a252a3b77f6493e5f96ed15694a"
+        },
+        {
+          "path": "apps/indexer/scripts/benchmark-rpc-reads.mjs",
+          "sha256": "a684727e7aef22a35990ca86469dc30326987252cf910b60b7b2f0a1e35857bf"
+        },
+        {
+          "path": "apps/indexer/scripts/bridge-config.test.mjs",
+          "sha256": "94469f8686078b0ef306b5ed80b50e45473a620d53e25bdcb990cfcfa9b5eb9c"
+        },
+        {
+          "path": "apps/indexer/scripts/call-cache.test.mjs",
+          "sha256": "71ef3cf612131b3102cb4481635cdeb2074229f3c02790f340ebcbc2b1812e30"
+        },
+        {
+          "path": "apps/indexer/scripts/code-cache.test.mjs",
+          "sha256": "1829b3567518b6645d251872325aab6865353feffe171a324c9535b3b24af0fe"
+        },
+        {
+          "path": "apps/indexer/scripts/control-state.test.mjs",
+          "sha256": "accd10eac4e96c77f07419712939e3827987ca09e3613a5e2e2a966f61615f28"
+        },
+        {
+          "path": "apps/indexer/scripts/deployment-facts.test.mjs",
+          "sha256": "2cea640356be36605d133438f3d511863594551d26c989290ed9a1df1cfa5ce0"
+        },
+        {
+          "path": "apps/indexer/scripts/deployments.test.mjs",
+          "sha256": "595ef4813480a697053762ff795cd43d348d8cb7d12413820023e28ba0795f6d"
+        },
+        {
+          "path": "apps/indexer/scripts/enabler.test.mjs",
+          "sha256": "fec6c0eb4754899168bdec8b66348d1978c5a47944beea74fa8886a61c5db168"
+        },
+        {
+          "path": "apps/indexer/scripts/event-ownership.test.mjs",
+          "sha256": "7b432f148088848ebb3566c36e0b8a0992682a1aa457d83c9035b11ff5de3c11"
+        },
+        {
+          "path": "apps/indexer/scripts/fixtures/effect-runtime.mjs",
+          "sha256": "017319cd0cb5b4eea96a21b3ad87a397efd434b6a7964455392bc30122095d30"
+        },
+        {
+          "path": "apps/indexer/scripts/fixtures/immutable-added-compiler-proof.json",
+          "sha256": "ab3b55e24a2f396be69726af2527b55db8a24ac956b85717a33a138ff41b446a"
+        },
+        {
+          "path": "apps/indexer/scripts/fixtures/immutable-compiler-proof.json",
+          "sha256": "f5be07eddf0a4c264d44ca80e6dd421780a21dbfe5193aae539aa3adf61b0dbe"
+        },
+        {
+          "path": "apps/indexer/scripts/fixtures/reset-envio.mjs",
+          "sha256": "633288c8d5bbdbfa50a056a363cb6cfe7f9e7f2168359e1d8dc493e02435764d"
+        },
+        {
+          "path": "apps/indexer/scripts/heart-tasks.test.mjs",
+          "sha256": "b04cd462b4423d1c709eff0f8cb67fb8dfafe43b6eaea99c2fef6cc36ad01df2"
+        },
+        {
+          "path": "apps/indexer/scripts/immutable-discovery.test.mjs",
+          "sha256": "e20e53d311f09d5d882a121ecdc7a8b8462a434b9e436c91914ad142e881ba35"
+        },
+        {
+          "path": "apps/indexer/scripts/kernel-history.test.mjs",
+          "sha256": "2419ca1f79d1e62073ec30bbd27d24dc51783096b682045974c3faeeb46f5234"
+        },
+        {
+          "path": "apps/indexer/scripts/kernel-reuse-fork.test.mjs",
+          "sha256": "d3c2f6be3a53f8399556448079639085a11038ca383a3f0428c6c302707bbb1e"
+        },
+        {
+          "path": "apps/indexer/scripts/kernel-reuse.test.mjs",
+          "sha256": "2f3cc69bb40a7923e1feec19babedb4d3120b9c459a4ebcb82b80ac0ada846b0"
+        },
+        {
+          "path": "apps/indexer/scripts/measure-indexing.mjs",
+          "sha256": "44eedb058016bada17926419ee189a410b0ca0c01da635f073782d38bb47c425"
+        },
+        {
+          "path": "apps/indexer/scripts/observation-canonical.test.mjs",
+          "sha256": "9c20942b11337e15e139155e279f8f1539e3a9236a05e291bffcd59d43d4667b"
+        },
+        {
+          "path": "apps/indexer/scripts/ownership.test.mjs",
+          "sha256": "8abf5350564c859935f9fcfec13dea5fcade0daa2d68ad33c2c2b089c6bf8de8"
+        },
+        {
+          "path": "apps/indexer/scripts/reference-metadata.test.mjs",
+          "sha256": "22f42891b132d2995e98a6f7ea3ea4d1117d8d3b5818c28fe85c86fb24cdf2d2"
+        },
+        {
+          "path": "apps/indexer/scripts/register-typescript.mjs",
+          "sha256": "f6aa7e6406f6f7afeee18531a3083b4141c28ed9ab9648fc957c60115ea8354a"
+        },
+        {
+          "path": "apps/indexer/scripts/reset-envio.mjs",
+          "sha256": "400ed81185ec8a03fbade3411387964de8b007f1f6efd4851d8414595e6c2d86"
+        },
+        {
+          "path": "apps/indexer/scripts/reset-envio.test.mjs",
+          "sha256": "0ad2ea25499c946eccf4feb8fb8f78bfa674527e1325574e8920b4fae786db57"
+        },
+        {
+          "path": "apps/indexer/scripts/rpc.test.mjs",
+          "sha256": "9d13051721d138dbf007be90bf869b87937bd5a5ed2acfa48e41b740b51c914f"
+        },
+        {
+          "path": "apps/indexer/scripts/start-envio.mjs",
+          "sha256": "a2c10e41e187115811775dad5ec140300a10760435ff49caef9e830d56ff579c"
+        },
+        {
+          "path": "apps/indexer/scripts/start-envio.test.mjs",
+          "sha256": "38d56baa636603ecf59de49f8208ef4b1853a95bc5da55a0c832ba257b9839cc"
+        },
+        {
+          "path": "apps/indexer/src/ContractNames.ts",
+          "sha256": "5994be32359293a0f657d27352da72a7b3196c4741de2b517d3a02c9f9182fec"
+        },
+        {
+          "path": "apps/indexer/src/EventHandlers.ts",
+          "sha256": "448347a11571ce83c00a7507d631e41569304ddb82c2d1430c9c41491a9c3a56"
+        },
+        {
+          "path": "apps/indexer/src/constants.ts",
+          "sha256": "431614963bc10582bc7c873102306f62421a5c8477c9ca853ac650643b839efd"
+        },
+        {
+          "path": "apps/indexer/src/events/bridge-config.ts",
+          "sha256": "1bbdaf09dbc1077b1833acf385f344a392c6761ca7d35fc593017e22d402b211"
+        },
+        {
+          "path": "apps/indexer/src/events/bridge-reads.ts",
+          "sha256": "4d8e7e9179269b050bf27212603a7700d203fb4f3b388686130029ca7eeb9ef6"
+        },
+        {
+          "path": "apps/indexer/src/events/call-cache.ts",
+          "sha256": "378cb0721ca768edeb9a762477c4785baa99cbe4e4c5ca1d822e7ec0a0589165"
+        },
+        {
+          "path": "apps/indexer/src/events/code-cache.ts",
+          "sha256": "cd7e37b97db00cc75ef0db9c37fd3eece4696dc83b15c6cb5ba5f383f5e31792"
+        },
+        {
+          "path": "apps/indexer/src/events/contractParsing.ts",
+          "sha256": "29417306df0d1661905423a68ba5dcd559640f7492c083a68d39d9a6ac96d2c3"
+        },
+        {
+          "path": "apps/indexer/src/events/control-reads.ts",
+          "sha256": "616e3a0f68f1103ef34bea5de4c2bc25a91ca7e406d59f3c663ec92f0b22f73a"
+        },
+        {
+          "path": "apps/indexer/src/events/control-state.ts",
+          "sha256": "d9fefaf0032b3164188aa125a0fd233e385201f387c88e8d3406a32e8c4f0727"
+        },
+        {
+          "path": "apps/indexer/src/events/deployment-facts.ts",
+          "sha256": "93553ab90ab4d9117200bca151b819d49c19263649ead69adb4714b002c44abe"
+        },
+        {
+          "path": "apps/indexer/src/events/deployment-getters.ts",
+          "sha256": "faec97f262a167ab20d9edfed4adf6ae9faa6c68adbf8910a525d3c6a7a95a8e"
+        },
+        {
+          "path": "apps/indexer/src/events/effects.ts",
+          "sha256": "e061339cbdc690fe6d81381f6377643121ebb730c9b830372b0abe7b4251f2a6"
+        },
+        {
+          "path": "apps/indexer/src/events/enabler-contracts.ts",
+          "sha256": "abc00346b2b3222e3a0a943a99c22cd46e48b457bad5d7fed883d3a860d13ca5"
+        },
+        {
+          "path": "apps/indexer/src/events/enabler.ts",
+          "sha256": "f3fa99255d7ff66a1b5b3ce16983c30ccf13c9f85ac24db9674db5f54c861472"
+        },
+        {
+          "path": "apps/indexer/src/events/heart-tasks.ts",
+          "sha256": "d88c532f950fc0d070abe36b104ef802ee57990666bd05c3bf08401afa1852aa"
+        },
+        {
+          "path": "apps/indexer/src/events/ids.ts",
+          "sha256": "688f37a847d0f8f1a3becdbc8a64b6331314ffd5abcea09a43316bd30d9ca481"
+        },
+        {
+          "path": "apps/indexer/src/events/kernel-history.ts",
+          "sha256": "7b767e1f372e357f8dd51450db6149ee2ce889ad0d701e2e7b02710c73187233"
+        },
+        {
+          "path": "apps/indexer/src/events/kernel-reuse.ts",
+          "sha256": "c7f95ca2e3d5a55f87dcd58b1577ca57c4420a599af586f6a2ea599e1ca192e5"
+        },
+        {
+          "path": "apps/indexer/src/events/kernel.ts",
+          "sha256": "ffd05da448240d20d94c23639f6d635f2dcfea305d2e0b32b2d32beff0523b6f"
+        },
+        {
+          "path": "apps/indexer/src/events/module-dependencies.ts",
+          "sha256": "dc67a344c2ac6de4bd5b2526a5d90ef9db5b4f161b855006c13d80ea73f46845"
+        },
+        {
+          "path": "apps/indexer/src/events/modules.ts",
+          "sha256": "bf7ed6b04b638f2efa180de82dada0be1ad2ee31ed9f9b1a14f5abddfe901e3d"
+        },
+        {
+          "path": "apps/indexer/src/events/ownership-contracts.ts",
+          "sha256": "823cf15371f58a8745aad14efd8571e13cfc3531d9177ae0402403720d2cde9e"
+        },
+        {
+          "path": "apps/indexer/src/events/ownership-policy.ts",
+          "sha256": "943c129930c5a960a89922aca9065f9d0d2c12d04efd1422f9008d7a99c5ada3"
+        },
+        {
+          "path": "apps/indexer/src/events/ownership.ts",
+          "sha256": "13d0f52a6458a0f966a7c0cc048fae83521ee32a79c081065f6b6156a640cbc3"
+        },
+        {
+          "path": "apps/indexer/src/events/roles.ts",
+          "sha256": "9b417ca1265c36f1096b53fc997c945da2c3f3775ec7205b8156c7ab46b75230"
+        },
+        {
+          "path": "apps/indexer/src/events/rpc.ts",
+          "sha256": "11056b7641126ca7514fd62ebe93a54ea025b3a839e0a6ff9ede85885a583880"
+        },
+        {
+          "path": "apps/indexer/src/events/seeding.ts",
+          "sha256": "17b5b04fba0523201b1deff6cffd0819addeff3e5b1fb20c87dd8338a886958a"
+        },
+        {
+          "path": "apps/indexer/src/events/types.ts",
+          "sha256": "85a182b9961d75d4eda7642ec5318cabc9c9bb4325d930a392cc980945c803b5"
+        },
+        {
+          "path": "apps/indexer/src/generated/contract-metadata.json",
+          "sha256": "8e426e8839e2174f3c8f09fdbeeb731dce0fe3cc30608bad70927ce991afb971"
+        },
+        {
+          "path": "apps/indexer/src/generated/deployment-facts.json",
+          "sha256": "08c2d9fa5778169496b82338c5c8118cffe323d77d16d847b6b66d4ed45f6ed3"
+        },
+        {
+          "path": "apps/indexer/src/generated/kernel-read-proofs.json",
+          "sha256": "fcf534ef994fe5d9a42210e3fadee3b39fefdf400702781c7aa2081c62a5478e"
+        },
+        {
+          "path": "apps/indexer/src/generated/ownership-read-proofs.json",
+          "sha256": "5d83e865aea93f50427aa3deeb2872d6673b4cdc65da7f34aa6e1e30dac57b01"
+        },
+        {
+          "path": "apps/indexer/src/services/contracts/abi.ts",
+          "sha256": "c3563ea6a70639d20270969e68511a8a64169c4383b8f4470229e1d7cfd15650"
+        },
+        {
+          "path": "apps/indexer/src/services/contracts/immutables.ts",
+          "sha256": "7f0a080d02dcd2d09e7a165f57aca8903c419dc1f1ef8edf373739637e122ddb"
+        },
+        {
+          "path": "apps/indexer/src/services/contracts/index.ts",
+          "sha256": "20e6eaf36da32e2b082e54879b72be8945cde2f5841a1de955336ac9554b8cc7"
+        },
+        {
+          "path": "apps/indexer/src/services/contracts/processor.ts",
+          "sha256": "d6bdbf878235eb0ff654dedf6256d522555588c402752cd6bd877a1d56fdf6e9"
+        },
+        {
+          "path": "apps/indexer/src/services/contracts/types.ts",
+          "sha256": "fd6ad90b4a957dcf6b20a5bca79e0ca096edcc0752a0417bc3ae0c73ae689f55"
+        },
+        {
+          "path": "apps/indexer/src/services/etherscan/api.ts",
+          "sha256": "e76a80597c894f7641957cd4dbd6ed3e6059bca433e0cd02d562eb64b8e37d8c"
+        },
+        {
+          "path": "apps/indexer/src/services/etherscan/types.ts",
+          "sha256": "0382ffa1adcab255b51a2563fe45e38e308459ca309a260cb6e3ad29613fadab"
+        },
+        {
+          "path": "apps/indexer/tsconfig.json",
+          "sha256": "104d611fbd5dd1b435992815ffa5f15818163b003f1f5a29a738833f1d8d9620"
+        },
+        {
+          "path": "packages/protocol-config/README.md",
+          "sha256": "77ad78d2ccc5199b8900ff0201bbad4385302cd30777db24465560b5972ec82b"
+        },
+        {
+          "path": "packages/protocol-config/ccip-external-chains.json",
+          "sha256": "497a52e104cab4a4bea5f7011aab9f2cc2d613bae5b84bf94870112eb75d36ed"
+        },
+        {
+          "path": "packages/protocol-config/other-contracts.json",
+          "sha256": "e2cf8c7c1e79831efdcef5f84d1c55b3084e184ec6e68fd2fdcd04e55e7b2db7"
+        },
+        {
+          "path": "packages/protocol-config/protocol-chains.json",
+          "sha256": "264ad7cb05f0faec42f2122ab455dea6dba85fa0db9859e368a974987739acb8"
+        }
+      ],
+      "role": "preliminary; candidate overlapped local validation",
+      "source_discovery_persisted": {
+        "decisions": 77,
+        "immutable_descriptors": 23,
+        "no_eligible_getters": 54
+      }
+    },
+    {
+      "base": "e206f72",
+      "head": "bc44616",
+      "chain_id": 1,
+      "start_block": 26240000,
+      "end_block": 26290000,
+      "blocks": 50001,
+      "hypersync": true,
+      "checkpoint_interval": 10000,
+      "erpc_max_rps": 50,
+      "hasura": false,
+      "runs": [
+        {
+          "label": "baseline",
+          "commit": "e206f72",
+          "complete": true,
+          "elapsed_seconds": 173.7178381672129,
+          "blocks_per_second": 287.82881785502826,
+          "samples": [
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": -1,
+              "sourceBlock": 0,
+              "elapsed_seconds": 2.094
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 4.167
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 6.251
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 8.315
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 10.364
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 12.427
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 14.484
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 16.544
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 18.604
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 20.655
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 22.704
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 24.769
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 26.842
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 28.908
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 30.977
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 33.031
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 35.099
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 37.166
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 39.244
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 41.329
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 43.396
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 45.457
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 47.529
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 49.611
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 51.69
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 53.751
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 55.817
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 57.877
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 59.942
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 62.019
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 64.096
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 66.177
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 68.257
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 70.349
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 72.427
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 74.501
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 76.579
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 78.639
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 80.728
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 82.779
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 84.822
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 86.869
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 88.907
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 90.963
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 93.017
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 95.109
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 97.169
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 99.242
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 101.329
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 103.402
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 105.48
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 107.55
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 109.6
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 111.665
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 113.737
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 115.802
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 117.859
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 119.921
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 121.966
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 124.021
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 126.096
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 128.176
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 130.263
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 132.324
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 134.393
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 136.475
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 138.539
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 140.614
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 142.693
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 144.774
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 146.83
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 148.909
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 150.98
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 153.022
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 155.082
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 157.139
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 159.215
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 161.281
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 163.339
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 165.411
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 167.472
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 169.531
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 171.586
+            },
+            {
+              "chainId": 1,
+              "progressBlock": 26290000,
+              "eventsProcessed": 523,
+              "bufferBlock": 26290000,
+              "sourceBlock": 26310377,
+              "elapsed_seconds": 173.649
+            }
+          ],
+          "process_exit": 0,
+          "source_discovery": {
+            "requests": 0,
+            "statuses": {},
+            "totalMilliseconds": 0
+          },
+          "proxy_requests_by_method": {
+            "eth_call": 3427,
+            "eth_getBlockByNumber": 17856,
+            "eth_getCode": 794
+          },
+          "upstream_requests_by_method": {
+            "eth_call": 3426,
+            "eth_chainId": 9,
+            "eth_getBlockByNumber": 92,
+            "eth_getCode": 790,
+            "eth_syncing": 36
+          },
+          "upstream_attempt_outcomes": {
+            "empty": 399,
+            "exec_revert": 20,
+            "success": 3934
+          },
+          "proxy_failed_requests_by_method": {
+            "eth_call": 21,
+            "eth_getCode": 4
+          },
+          "local_budget_rejections_by_method": {
+            "eth_call": 1,
+            "eth_getBlockByNumber": 17,
+            "eth_getCode": 4,
+            "eth_syncing": 10
+          },
+          "proxy_cache_hits_by_method": {
+            "eth_getBlockByNumber": 17848
+          },
+          "final_meta": {
+            "chainId": 1,
+            "ecosystem": "evm",
+            "startBlock": 26240000,
+            "endBlock": 26290000,
+            "progressBlock": 26290000,
+            "progressBlockTime": null,
+            "bufferBlock": 26290000,
+            "firstEventBlock": 26240000,
+            "eventsProcessed": 523,
+            "sourceBlock": 26310377,
+            "readyAt": "2026-10-31T04:36:03.334+00:00",
+            "isReady": true
+          },
+          "relationships": 579,
+          "relationship_verification_outcomes": {
+            "match": 577,
+            "unavailable": 2
+          },
+          "relationship_unavailable_reasons": {
+            "Pending owner has no public getter; only replayed transfer requests establish the nominee.": 2
+          },
+          "effect_cache_tables": [
+            {
+              "tablename": "envio_effect_processContractMetadataV2"
+            },
+            {
+              "tablename": "envio_effect_readBridgeConfiguration"
+            },
+            {
+              "tablename": "envio_effect_readCanonicalCodeHash"
+            },
+            {
+              "tablename": "envio_effect_readControlGetter"
+            },
+            {
+              "tablename": "envio_effect_readImmutableDeploymentCall"
+            },
+            {
+              "tablename": "envio_effect_readKernelExecutor"
+            },
+            {
+              "tablename": "envio_effect_readModuleDependencies"
+            },
+            {
+              "tablename": "envio_effect_readPinnedBytecodeHash"
+            },
+            {
+              "tablename": "envio_effect_readPinnedRawCall"
+            },
+            {
+              "tablename": "envio_effect_readPolicyPermissions"
+            },
+            {
+              "tablename": "envio_effect_verifyStaticDeployment"
+            }
+          ],
+          "config_sha256": "2d6a00b1dbac784d157b73373a34f066816ea527227937dec34828c179f263b1",
+          "relationship_rows_digest": "67e41490eb138c81ab187b43cf8d40bceeadbdeed4ff0e44175b1c4e01508265",
+          "proxy_requests_total": 22077,
+          "upstream_requests_total": 4353
+        },
+        {
+          "label": "candidate",
+          "commit": "bc44616",
+          "complete": true,
+          "elapsed_seconds": 174.3230412499979,
+          "blocks_per_second": 286.82955300380064,
+          "samples": [
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 2.075
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 4.13
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 6.205
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 8.26
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 10.311
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 12.376
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 14.451
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 16.518
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 18.585
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 20.65
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 22.731
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 24.812
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 26.912
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 28.978
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 31.039
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 33.103
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 35.167
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 37.237
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 39.302
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 41.368
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 43.437
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 45.504
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 47.585
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 49.668
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 51.75
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 53.834
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 55.914
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 57.993
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 60.068
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 62.136
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 64.196
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 66.274
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 68.349
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 70.418
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 72.491
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 74.563
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 76.634
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 78.711
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 80.766
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 82.844
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 84.92
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 87.0
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 89.083
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 91.144
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 93.204
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 95.277
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 97.369
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 99.443
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 101.527
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 103.597
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 105.665
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 107.749
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 109.853
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 111.965
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 114.065
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 116.148
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 118.235
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 120.303
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 122.383
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 124.458
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 126.535
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 128.613
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 130.688
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 132.753
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 134.825
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 136.927
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 139.025
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 141.074
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 143.142
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 145.211
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 147.272
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 149.344
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 151.405
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 153.475
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 155.552
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 157.622
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 159.683
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 161.743
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 163.805
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 165.847
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 167.937
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 170.044
+            },
+            {
+              "chainId": 1,
+              "progressBlock": -1,
+              "eventsProcessed": 0,
+              "bufferBlock": 26290000,
+              "sourceBlock": 0,
+              "elapsed_seconds": 172.121
+            },
+            {
+              "chainId": 1,
+              "progressBlock": 26290000,
+              "eventsProcessed": 523,
+              "bufferBlock": 26290000,
+              "sourceBlock": 26310392,
+              "elapsed_seconds": 174.217
+            }
+          ],
+          "process_exit": 0,
+          "source_discovery": {
+            "requests": 91,
+            "statuses": {
+              "200": 91
+            },
+            "totalMilliseconds": 3219.968795000019
+          },
+          "proxy_requests_by_method": {
+            "eth_call": 3123,
+            "eth_getBlockByNumber": 20389,
+            "eth_getCode": 843
+          },
+          "upstream_requests_by_method": {
+            "eth_call": 3097,
+            "eth_chainId": 11,
+            "eth_getBlockByNumber": 127,
+            "eth_getCode": 836,
+            "eth_syncing": 36
+          },
+          "upstream_attempt_outcomes": {
+            "empty": 422,
+            "exec_revert": 20,
+            "success": 3665
+          },
+          "proxy_failed_requests_by_method": {
+            "eth_call": 46,
+            "eth_getCode": 7
+          },
+          "local_budget_rejections_by_method": {
+            "eth_call": 26,
+            "eth_getBlockByNumber": 1,
+            "eth_getCode": 7,
+            "eth_syncing": 1
+          },
+          "proxy_cache_hits_by_method": {
+            "eth_getBlockByNumber": 20358
+          },
+          "final_meta": {
+            "chainId": 1,
+            "ecosystem": "evm",
+            "startBlock": 26240000,
+            "endBlock": 26290000,
+            "progressBlock": 26290000,
+            "progressBlockTime": null,
+            "bufferBlock": 26290000,
+            "firstEventBlock": 26240000,
+            "eventsProcessed": 523,
+            "sourceBlock": 26310392,
+            "readyAt": "2026-10-31T04:39:03.81+00:00",
+            "isReady": true
+          },
+          "relationships": 579,
+          "relationship_verification_outcomes": {
+            "match": 576,
+            "unavailable": 2,
+            "unperformed": 1
+          },
+          "relationship_unavailable_reasons": {
+            "Pending owner has no public getter; only replayed transfer requests establish the nominee.": 2
+          },
+          "effect_cache_tables": [
+            {
+              "tablename": "envio_effect_discoverCompilerImmutableDeploymentV1"
+            },
+            {
+              "tablename": "envio_effect_processContractMetadataV3"
+            },
+            {
+              "tablename": "envio_effect_readBridgeConfiguration"
+            },
+            {
+              "tablename": "envio_effect_readCanonicalCodeHash"
+            },
+            {
+              "tablename": "envio_effect_readControlGetter"
+            },
+            {
+              "tablename": "envio_effect_readImmutableDeploymentCall"
+            },
+            {
+              "tablename": "envio_effect_readKernelExecutor"
+            },
+            {
+              "tablename": "envio_effect_readModuleDependencies"
+            },
+            {
+              "tablename": "envio_effect_readPinnedBytecodeHash"
+            },
+            {
+              "tablename": "envio_effect_readPinnedRawCall"
+            },
+            {
+              "tablename": "envio_effect_readPolicyPermissions"
+            },
+            {
+              "tablename": "envio_effect_verifyStaticDeployment"
+            }
+          ],
+          "config_sha256": "00b1a7c2428594bae04c0b7692441579318dc52996fba2b141f3fae7d4f475e3",
+          "kernel_cache_rows": 10,
+          "kernel_epoch_rows": [
+            {
+              "id": "1",
+              "epoch": "0xd22013d401476cf7f70bed5a1844c902ed2f21eab1d318996a1115141e57e379:0x06f0efd97fda995a8c3d07edb3904c250ce18c78eedbf5edebe62daaf00cb30f:1493",
+              "migrated": false
+            }
+          ],
+          "relationship_rows_digest": "905d18b64c29a23e87c43ebd2e9037c700e0506a79205c3f3cd192975127ec65",
+          "proxy_requests_total": 24355,
+          "upstream_requests_total": 4107
+        }
+      ],
+      "candidate_source": "saved local implementation snapshot over bc44616",
+      "relationship_comparison": {
+        "available_both": 577,
+        "unavailable_both": 2,
+        "differences": [],
+        "recovered_ids": []
+      },
+      "comparison": {
+        "blocks_per_second_ratio": 0.9965282668404283,
+        "duration_reduction_percent": -0.3483828081042972,
+        "upstream_request_reduction_percent": 5.651274982770504,
+        "proxy_request_reduction_percent": -10.318430946233637
+      },
+      "candidate_source_files": [
+        {
+          "path": "apps/indexer/.dockerignore",
+          "sha256": "12ab9d34e5287b40c8bfffaa508f622c2cc6dd682397e2c4bf005b8a2e4c6749"
+        },
+        {
+          "path": "apps/indexer/.env.sample",
+          "sha256": "f0594019a46f1e38f533eb4f21d04f2c61a01a6b9be239dc0e097ad816bfbb7a"
+        },
+        {
+          "path": "apps/indexer/.envio/.gitignore",
+          "sha256": "b4a7f47e4cef7e73c48e3a682ff9952fc6e78e076faa2c1f875bc8b39b086f8b"
+        },
+        {
+          "path": "apps/indexer/.eslintrc.json",
+          "sha256": "1c424f2465b995aaef103d7f140c54ba8d04cdc0f434cf1e5df64d70467cb4eb"
+        },
+        {
+          "path": "apps/indexer/.gitignore",
+          "sha256": "da5f7be40bd2c9009bc065518ed737939715cd89b7ab2be8659ce13df45e3750"
+        },
+        {
+          "path": "apps/indexer/README.md",
+          "sha256": "6180e8444d5195e1f92b332ba503d7d9418b1ed09cb404180b861fe3822e09ce"
+        },
+        {
+          "path": "apps/indexer/abis/Kernel.ts",
+          "sha256": "069090108d7a74e83a78d5d1c6173c00264b5027d26ab30c448c424a93a78baa"
+        },
+        {
+          "path": "apps/indexer/abis/Module.ts",
+          "sha256": "4cab18d4b27c7dfbb78ec178d05419e8ad9417a93631d92529258fcd405b0661"
+        },
+        {
+          "path": "apps/indexer/abis/OlympusRoles.ts",
+          "sha256": "ac9da72d9f4e242c343072e08544d968df34cf8d0ae2e9a127b15ae85a0a19ef"
+        },
+        {
+          "path": "apps/indexer/abis/Policy.ts",
+          "sha256": "6c5a3985ae74163d159fc9fe435e14187922036b055386979499e079ccb404e0"
+        },
+        {
+          "path": "apps/indexer/abis/RolesAdmin.ts",
+          "sha256": "af7ed1eead8874e1202010e3ea397a72304ea3313af99bcc03210611a573e744"
+        },
+        {
+          "path": "apps/indexer/abis/json/CCIPBridge.json",
+          "sha256": "961eca7d56c99c759842f30c0f4a5171a7f1cb790894bc39cd9896867bd5ec4e"
+        },
+        {
+          "path": "apps/indexer/abis/json/CCIPTokenPool.json",
+          "sha256": "738f6aefa1931fc0e933665bb33866462f9253a40df9cb4e823a617691206b1f"
+        },
+        {
+          "path": "apps/indexer/abis/json/ChainlinkOwned.json",
+          "sha256": "78f51559a47439a2dc5f047a4f7929ea595437d87c5278737781ef23f7a6a8f8"
+        },
+        {
+          "path": "apps/indexer/abis/json/GovernanceOHM.json",
+          "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+        },
+        {
+          "path": "apps/indexer/abis/json/IEnabler.json",
+          "sha256": "d40eb6845dfa10c6f1f841006464648a8ca8d392fb49bf87e01db6885f7f89d7"
+        },
+        {
+          "path": "apps/indexer/abis/json/Kernel.json",
+          "sha256": "fad8f68ba97127c01887c6671102a838ed1b2ba869bf9d1adb6842e106e3e406"
+        },
+        {
+          "path": "apps/indexer/abis/json/LegacyPeriodicTask.json",
+          "sha256": "501f691fee57f64e443abd45bf5ba18f76cb7b50cd68c6068d1cf85859851832"
+        },
+        {
+          "path": "apps/indexer/abis/json/Module.json",
+          "sha256": "15266b7168405c4f937da917cde4322e662b9e38361237cfdfe4a5ac1b4c2bda"
+        },
+        {
+          "path": "apps/indexer/abis/json/MonoCoolerReferences.json",
+          "sha256": "66767b2bdcfec50431b366d5f906f65ebaadb7235b15572d7432b9e1578334d8"
+        },
+        {
+          "path": "apps/indexer/abis/json/OlympusAccessControlled.json",
+          "sha256": "fc218b8924b086b86b49087a5f6cffe83f464cbee92a391ae1162a2257a35500"
+        },
+        {
+          "path": "apps/indexer/abis/json/OlympusAuthority.json",
+          "sha256": "0cee52f090537ef589f42f63bab05499398860a41416f27a60a09a7248641880"
+        },
+        {
+          "path": "apps/indexer/abis/json/OlympusRoles.json",
+          "sha256": "d106ef6699be380b1175d43ed0fda1ed0afece567ce058ecccd47dee2a8f0bd4"
+        },
+        {
+          "path": "apps/indexer/abis/json/Owned.json",
+          "sha256": "4946a4a223d231108ddff7f2ce749be3069984d6e3e1bb07d72ef0c5b1cbd2bf"
+        },
+        {
+          "path": "apps/indexer/abis/json/PeriodicTaskManager.json",
+          "sha256": "53ee49566389d3e686784403a28b6bb095b70866af6e2729bc55b421530340c7"
+        },
+        {
+          "path": "apps/indexer/abis/json/Policy.json",
+          "sha256": "338cfde51b07cd702457380fc2f7061de6ac954ff101cd0906d1aa04a596c88b"
+        },
+        {
+          "path": "apps/indexer/abis/json/RolesAdmin.json",
+          "sha256": "de49746457df4ff1c4c675fd963b35945f5b8862aab3a7b859fc1b983d8b8adf"
+        },
+        {
+          "path": "apps/indexer/abis/json/StakedOHM.json",
+          "sha256": "d7c7b976fc6d71bd798415d9ff9f4528319f5da47b5a2d6e9f3bdaa58febadbe"
+        },
+        {
+          "path": "apps/indexer/abis/json/TokenAdminRegistry.json",
+          "sha256": "3f49f6dabed28b20b006d5b8ae8a108a8e159de5a943492c586214ad06a20bc9"
+        },
+        {
+          "path": "apps/indexer/config.yaml",
+          "sha256": "e79c4f9861006fdf98d649240959e5aedffa6d6c11fc88ca56cb552402f6165c"
+        },
+        {
+          "path": "apps/indexer/envio-env.d.ts",
+          "sha256": "dc4c03666533099b201362fdafdbf7b4df37e47bf1ea36d92027ab272efdc49b"
+        },
+        {
+          "path": "apps/indexer/package.json",
+          "sha256": "04e8f099808e7783ca84d67ef38d808986dfe661762b981268bd298c357049c5"
+        },
+        {
+          "path": "apps/indexer/schema.graphql",
+          "sha256": "9153124b6488143aefc67018e1b9fd2d7b1e087b104904517ac208ed4906f7cd"
+        },
+        {
+          "path": "apps/indexer/scripts/benchmark-deployment-facts.mjs",
+          "sha256": "3e61f1c75b9d2de1aea1d3c56ae4215a215757548ed488977779146acc729e2b"
+        },
+        {
+          "path": "apps/indexer/scripts/benchmark-http-batching.mjs",
+          "sha256": "47676a30d2fb0831b469c711e4378a68b7095b41e26d81c312154604f8b6b88d"
+        },
+        {
+          "path": "apps/indexer/scripts/benchmark-kernel-reuse.mjs",
+          "sha256": "30f911cbe42c1e245c3bcb8a49c25ab412a63a252a3b77f6493e5f96ed15694a"
+        },
+        {
+          "path": "apps/indexer/scripts/benchmark-rpc-reads.mjs",
+          "sha256": "a684727e7aef22a35990ca86469dc30326987252cf910b60b7b2f0a1e35857bf"
+        },
+        {
+          "path": "apps/indexer/scripts/bridge-config.test.mjs",
+          "sha256": "94469f8686078b0ef306b5ed80b50e45473a620d53e25bdcb990cfcfa9b5eb9c"
+        },
+        {
+          "path": "apps/indexer/scripts/call-cache.test.mjs",
+          "sha256": "71ef3cf612131b3102cb4481635cdeb2074229f3c02790f340ebcbc2b1812e30"
+        },
+        {
+          "path": "apps/indexer/scripts/code-cache.test.mjs",
+          "sha256": "1829b3567518b6645d251872325aab6865353feffe171a324c9535b3b24af0fe"
+        },
+        {
+          "path": "apps/indexer/scripts/control-state.test.mjs",
+          "sha256": "accd10eac4e96c77f07419712939e3827987ca09e3613a5e2e2a966f61615f28"
+        },
+        {
+          "path": "apps/indexer/scripts/deployment-facts.test.mjs",
+          "sha256": "2cea640356be36605d133438f3d511863594551d26c989290ed9a1df1cfa5ce0"
+        },
+        {
+          "path": "apps/indexer/scripts/deployments.test.mjs",
+          "sha256": "595ef4813480a697053762ff795cd43d348d8cb7d12413820023e28ba0795f6d"
+        },
+        {
+          "path": "apps/indexer/scripts/enabler.test.mjs",
+          "sha256": "fec6c0eb4754899168bdec8b66348d1978c5a47944beea74fa8886a61c5db168"
+        },
+        {
+          "path": "apps/indexer/scripts/event-ownership.test.mjs",
+          "sha256": "7b432f148088848ebb3566c36e0b8a0992682a1aa457d83c9035b11ff5de3c11"
+        },
+        {
+          "path": "apps/indexer/scripts/fixtures/effect-runtime.mjs",
+          "sha256": "017319cd0cb5b4eea96a21b3ad87a397efd434b6a7964455392bc30122095d30"
+        },
+        {
+          "path": "apps/indexer/scripts/fixtures/immutable-added-compiler-proof.json",
+          "sha256": "ab3b55e24a2f396be69726af2527b55db8a24ac956b85717a33a138ff41b446a"
+        },
+        {
+          "path": "apps/indexer/scripts/fixtures/immutable-compiler-proof.json",
+          "sha256": "f5be07eddf0a4c264d44ca80e6dd421780a21dbfe5193aae539aa3adf61b0dbe"
+        },
+        {
+          "path": "apps/indexer/scripts/fixtures/reset-envio.mjs",
+          "sha256": "633288c8d5bbdbfa50a056a363cb6cfe7f9e7f2168359e1d8dc493e02435764d"
+        },
+        {
+          "path": "apps/indexer/scripts/heart-tasks.test.mjs",
+          "sha256": "b04cd462b4423d1c709eff0f8cb67fb8dfafe43b6eaea99c2fef6cc36ad01df2"
+        },
+        {
+          "path": "apps/indexer/scripts/immutable-discovery.test.mjs",
+          "sha256": "e20e53d311f09d5d882a121ecdc7a8b8462a434b9e436c91914ad142e881ba35"
+        },
+        {
+          "path": "apps/indexer/scripts/kernel-history.test.mjs",
+          "sha256": "2419ca1f79d1e62073ec30bbd27d24dc51783096b682045974c3faeeb46f5234"
+        },
+        {
+          "path": "apps/indexer/scripts/kernel-reuse-fork.test.mjs",
+          "sha256": "d3c2f6be3a53f8399556448079639085a11038ca383a3f0428c6c302707bbb1e"
+        },
+        {
+          "path": "apps/indexer/scripts/kernel-reuse.test.mjs",
+          "sha256": "2f3cc69bb40a7923e1feec19babedb4d3120b9c459a4ebcb82b80ac0ada846b0"
+        },
+        {
+          "path": "apps/indexer/scripts/measure-indexing.mjs",
+          "sha256": "44eedb058016bada17926419ee189a410b0ca0c01da635f073782d38bb47c425"
+        },
+        {
+          "path": "apps/indexer/scripts/observation-canonical.test.mjs",
+          "sha256": "9c20942b11337e15e139155e279f8f1539e3a9236a05e291bffcd59d43d4667b"
+        },
+        {
+          "path": "apps/indexer/scripts/ownership.test.mjs",
+          "sha256": "8abf5350564c859935f9fcfec13dea5fcade0daa2d68ad33c2c2b089c6bf8de8"
+        },
+        {
+          "path": "apps/indexer/scripts/reference-metadata.test.mjs",
+          "sha256": "22f42891b132d2995e98a6f7ea3ea4d1117d8d3b5818c28fe85c86fb24cdf2d2"
+        },
+        {
+          "path": "apps/indexer/scripts/register-typescript.mjs",
+          "sha256": "f6aa7e6406f6f7afeee18531a3083b4141c28ed9ab9648fc957c60115ea8354a"
+        },
+        {
+          "path": "apps/indexer/scripts/reset-envio.mjs",
+          "sha256": "400ed81185ec8a03fbade3411387964de8b007f1f6efd4851d8414595e6c2d86"
+        },
+        {
+          "path": "apps/indexer/scripts/reset-envio.test.mjs",
+          "sha256": "0ad2ea25499c946eccf4feb8fb8f78bfa674527e1325574e8920b4fae786db57"
+        },
+        {
+          "path": "apps/indexer/scripts/rpc.test.mjs",
+          "sha256": "9d13051721d138dbf007be90bf869b87937bd5a5ed2acfa48e41b740b51c914f"
+        },
+        {
+          "path": "apps/indexer/scripts/start-envio.mjs",
+          "sha256": "a2c10e41e187115811775dad5ec140300a10760435ff49caef9e830d56ff579c"
+        },
+        {
+          "path": "apps/indexer/scripts/start-envio.test.mjs",
+          "sha256": "38d56baa636603ecf59de49f8208ef4b1853a95bc5da55a0c832ba257b9839cc"
+        },
+        {
+          "path": "apps/indexer/src/ContractNames.ts",
+          "sha256": "5994be32359293a0f657d27352da72a7b3196c4741de2b517d3a02c9f9182fec"
+        },
+        {
+          "path": "apps/indexer/src/EventHandlers.ts",
+          "sha256": "448347a11571ce83c00a7507d631e41569304ddb82c2d1430c9c41491a9c3a56"
+        },
+        {
+          "path": "apps/indexer/src/constants.ts",
+          "sha256": "431614963bc10582bc7c873102306f62421a5c8477c9ca853ac650643b839efd"
+        },
+        {
+          "path": "apps/indexer/src/events/bridge-config.ts",
+          "sha256": "1bbdaf09dbc1077b1833acf385f344a392c6761ca7d35fc593017e22d402b211"
+        },
+        {
+          "path": "apps/indexer/src/events/bridge-reads.ts",
+          "sha256": "4d8e7e9179269b050bf27212603a7700d203fb4f3b388686130029ca7eeb9ef6"
+        },
+        {
+          "path": "apps/indexer/src/events/call-cache.ts",
+          "sha256": "378cb0721ca768edeb9a762477c4785baa99cbe4e4c5ca1d822e7ec0a0589165"
+        },
+        {
+          "path": "apps/indexer/src/events/code-cache.ts",
+          "sha256": "cd7e37b97db00cc75ef0db9c37fd3eece4696dc83b15c6cb5ba5f383f5e31792"
+        },
+        {
+          "path": "apps/indexer/src/events/contractParsing.ts",
+          "sha256": "29417306df0d1661905423a68ba5dcd559640f7492c083a68d39d9a6ac96d2c3"
+        },
+        {
+          "path": "apps/indexer/src/events/control-reads.ts",
+          "sha256": "616e3a0f68f1103ef34bea5de4c2bc25a91ca7e406d59f3c663ec92f0b22f73a"
+        },
+        {
+          "path": "apps/indexer/src/events/control-state.ts",
+          "sha256": "d9fefaf0032b3164188aa125a0fd233e385201f387c88e8d3406a32e8c4f0727"
+        },
+        {
+          "path": "apps/indexer/src/events/deployment-facts.ts",
+          "sha256": "93553ab90ab4d9117200bca151b819d49c19263649ead69adb4714b002c44abe"
+        },
+        {
+          "path": "apps/indexer/src/events/deployment-getters.ts",
+          "sha256": "faec97f262a167ab20d9edfed4adf6ae9faa6c68adbf8910a525d3c6a7a95a8e"
+        },
+        {
+          "path": "apps/indexer/src/events/effects.ts",
+          "sha256": "e061339cbdc690fe6d81381f6377643121ebb730c9b830372b0abe7b4251f2a6"
+        },
+        {
+          "path": "apps/indexer/src/events/enabler-contracts.ts",
+          "sha256": "abc00346b2b3222e3a0a943a99c22cd46e48b457bad5d7fed883d3a860d13ca5"
+        },
+        {
+          "path": "apps/indexer/src/events/enabler.ts",
+          "sha256": "f3fa99255d7ff66a1b5b3ce16983c30ccf13c9f85ac24db9674db5f54c861472"
+        },
+        {
+          "path": "apps/indexer/src/events/heart-tasks.ts",
+          "sha256": "d88c532f950fc0d070abe36b104ef802ee57990666bd05c3bf08401afa1852aa"
+        },
+        {
+          "path": "apps/indexer/src/events/ids.ts",
+          "sha256": "688f37a847d0f8f1a3becdbc8a64b6331314ffd5abcea09a43316bd30d9ca481"
+        },
+        {
+          "path": "apps/indexer/src/events/kernel-history.ts",
+          "sha256": "7b767e1f372e357f8dd51450db6149ee2ce889ad0d701e2e7b02710c73187233"
+        },
+        {
+          "path": "apps/indexer/src/events/kernel-reuse.ts",
+          "sha256": "c7f95ca2e3d5a55f87dcd58b1577ca57c4420a599af586f6a2ea599e1ca192e5"
+        },
+        {
+          "path": "apps/indexer/src/events/kernel.ts",
+          "sha256": "ffd05da448240d20d94c23639f6d635f2dcfea305d2e0b32b2d32beff0523b6f"
+        },
+        {
+          "path": "apps/indexer/src/events/module-dependencies.ts",
+          "sha256": "dc67a344c2ac6de4bd5b2526a5d90ef9db5b4f161b855006c13d80ea73f46845"
+        },
+        {
+          "path": "apps/indexer/src/events/modules.ts",
+          "sha256": "bf7ed6b04b638f2efa180de82dada0be1ad2ee31ed9f9b1a14f5abddfe901e3d"
+        },
+        {
+          "path": "apps/indexer/src/events/ownership-contracts.ts",
+          "sha256": "823cf15371f58a8745aad14efd8571e13cfc3531d9177ae0402403720d2cde9e"
+        },
+        {
+          "path": "apps/indexer/src/events/ownership-policy.ts",
+          "sha256": "943c129930c5a960a89922aca9065f9d0d2c12d04efd1422f9008d7a99c5ada3"
+        },
+        {
+          "path": "apps/indexer/src/events/ownership.ts",
+          "sha256": "13d0f52a6458a0f966a7c0cc048fae83521ee32a79c081065f6b6156a640cbc3"
+        },
+        {
+          "path": "apps/indexer/src/events/roles.ts",
+          "sha256": "9b417ca1265c36f1096b53fc997c945da2c3f3775ec7205b8156c7ab46b75230"
+        },
+        {
+          "path": "apps/indexer/src/events/rpc.ts",
+          "sha256": "11056b7641126ca7514fd62ebe93a54ea025b3a839e0a6ff9ede85885a583880"
+        },
+        {
+          "path": "apps/indexer/src/events/seeding.ts",
+          "sha256": "17b5b04fba0523201b1deff6cffd0819addeff3e5b1fb20c87dd8338a886958a"
+        },
+        {
+          "path": "apps/indexer/src/events/types.ts",
+          "sha256": "85a182b9961d75d4eda7642ec5318cabc9c9bb4325d930a392cc980945c803b5"
+        },
+        {
+          "path": "apps/indexer/src/generated/contract-metadata.json",
+          "sha256": "8e426e8839e2174f3c8f09fdbeeb731dce0fe3cc30608bad70927ce991afb971"
+        },
+        {
+          "path": "apps/indexer/src/generated/deployment-facts.json",
+          "sha256": "08c2d9fa5778169496b82338c5c8118cffe323d77d16d847b6b66d4ed45f6ed3"
+        },
+        {
+          "path": "apps/indexer/src/generated/kernel-read-proofs.json",
+          "sha256": "fcf534ef994fe5d9a42210e3fadee3b39fefdf400702781c7aa2081c62a5478e"
+        },
+        {
+          "path": "apps/indexer/src/generated/ownership-read-proofs.json",
+          "sha256": "5d83e865aea93f50427aa3deeb2872d6673b4cdc65da7f34aa6e1e30dac57b01"
+        },
+        {
+          "path": "apps/indexer/src/services/contracts/abi.ts",
+          "sha256": "c3563ea6a70639d20270969e68511a8a64169c4383b8f4470229e1d7cfd15650"
+        },
+        {
+          "path": "apps/indexer/src/services/contracts/immutables.ts",
+          "sha256": "7f0a080d02dcd2d09e7a165f57aca8903c419dc1f1ef8edf373739637e122ddb"
+        },
+        {
+          "path": "apps/indexer/src/services/contracts/index.ts",
+          "sha256": "20e6eaf36da32e2b082e54879b72be8945cde2f5841a1de955336ac9554b8cc7"
+        },
+        {
+          "path": "apps/indexer/src/services/contracts/processor.ts",
+          "sha256": "d6bdbf878235eb0ff654dedf6256d522555588c402752cd6bd877a1d56fdf6e9"
+        },
+        {
+          "path": "apps/indexer/src/services/contracts/types.ts",
+          "sha256": "fd6ad90b4a957dcf6b20a5bca79e0ca096edcc0752a0417bc3ae0c73ae689f55"
+        },
+        {
+          "path": "apps/indexer/src/services/etherscan/api.ts",
+          "sha256": "e76a80597c894f7641957cd4dbd6ed3e6059bca433e0cd02d562eb64b8e37d8c"
+        },
+        {
+          "path": "apps/indexer/src/services/etherscan/types.ts",
+          "sha256": "0382ffa1adcab255b51a2563fe45e38e308459ca309a260cb6e3ad29613fadab"
+        },
+        {
+          "path": "apps/indexer/tsconfig.json",
+          "sha256": "104d611fbd5dd1b435992815ffa5f15818163b003f1f5a29a738833f1d8d9620"
+        },
+        {
+          "path": "packages/protocol-config/README.md",
+          "sha256": "77ad78d2ccc5199b8900ff0201bbad4385302cd30777db24465560b5972ec82b"
+        },
+        {
+          "path": "packages/protocol-config/ccip-external-chains.json",
+          "sha256": "497a52e104cab4a4bea5f7011aab9f2cc2d613bae5b84bf94870112eb75d36ed"
+        },
+        {
+          "path": "packages/protocol-config/other-contracts.json",
+          "sha256": "e2cf8c7c1e79831efdcef5f84d1c55b3084e184ec6e68fd2fdcd04e55e7b2db7"
+        },
+        {
+          "path": "packages/protocol-config/protocol-chains.json",
+          "sha256": "264ad7cb05f0faec42f2122ab455dea6dba85fa0db9859e368a974987739acb8"
+        }
+      ],
+      "role": "repeat; no concurrent validation builds",
+      "source_discovery_persisted": {
+        "decisions": 77,
+        "immutable_descriptors": 23,
+        "no_eligible_getters": 54
+      }
+    }
+  ]
+}

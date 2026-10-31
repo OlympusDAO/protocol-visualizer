@@ -3,8 +3,6 @@ import http from "node:http";
 import { createPublicClient, http as transport } from "viem";
 import { getPublicClient } from "../src/events/rpc.ts";
 
-// Transport fixture: equal RPC work and eight concurrent items in both modes.
-// Batched mode uses the production boundary; baseline disables HTTP batching.
 const latencyMs = 10;
 let envelopes = 0;
 let rpcItems = 0;

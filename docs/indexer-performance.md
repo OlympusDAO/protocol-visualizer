@@ -2,6 +2,8 @@
 
 This report records the first bytecode-cache optimization. See [local follow-on milestones](performance/indexer-rpc-milestones.md) for exact-call reuse, event/deployment facts, eRPC recovery, measurements and current validation/release boundaries. The current follow-up includes a stale-observation fix and supersedes the earlier inner-effect/restart performance claims.
 
+See [getter and transport follow-up](performance/indexer-rpc-followup-milestones.md) for automatic compiler-proven immutable discovery, event-maintained ownership including OpenZeppelin Ownable, viem retry scheduling and HTTP batching. Its measurements and limitations supersede the corresponding implementation descriptions below.
+
 ## Scope
 
 The performance branch starts from commit `9eb4755be2904f6751a72890ecce134c4c701fef`.

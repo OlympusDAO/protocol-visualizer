@@ -1,0 +1,75 @@
+{
+  "node": "24.22.1",
+  "pnpm": "11.28.7",
+  "orderedValidation": {
+    "script": "scripts/validate.sh",
+    "stepsPassed": 9,
+    "initialFailures": [
+      "Cross-chain HTTP batch-packing assertion was too strict under whole-suite scheduling; corrected to require real coalescing, leaving the deterministic packing benchmark unchanged.",
+      "Final sandbox attempt stopped at step 6: Docker buildx activity write denied. Complete sequence rerun with filesystem access passed."
+    ]
+  },
+  "indexerTests": {
+    "passed": 100,
+    "failed": 0
+  },
+  "strictIndexerTypecheck": "passed",
+  "offlineCodegen": "passed; localhost placeholders",
+  "patchedErpcPostgresIntegration": {
+    "passed": true,
+    "fixtureProviders": true,
+    "durationSeconds": 39.050189167,
+    "persistedRowsAcrossRestart": 17,
+    "productionDependencyReaderCases": 9,
+    "capacityRecoveryMilliseconds": 16147,
+    "aggregateBudget": 20,
+    "burstItems": 160,
+    "upstreamAdmissions": 20,
+    "capacityErrors": 140,
+    "databaseResetChecks": "explicitly skipped"
+  },
+  "review": {
+    "status": "complete",
+    "actionableFindings": 0,
+    "personas": 8,
+    "runId": "20261031-122233-45de702d",
+    "crossModel": "unavailable; in-process adversarial fallback",
+    "gaps": [
+      "Real Envio reorg dispatch/rollback not exercised; manual entity rollback fixture only.",
+      "Known mutable and source-outage whole-checkpoint latency fixture remains absent; actual replay covers successful cold source requests."
+    ]
+  },
+  "security": {
+    "scanner": "Trivy 0.76.1",
+    "existingIgnorePolicy": true,
+    "ignoreChanges": false,
+    "scans": {
+      "indexer": {
+        "exitCode": 1,
+        "imageId": "sha256:db7fd6c2dbf3dd434b16f9b0c64070cb9038d4091eff27c822865c9fd7b07a38",
+        "vulnerabilitiesBySeverity": {
+          "MEDIUM": 23
+        },
+        "secretFindings": 0,
+        "languageVulnerabilityCount": 0
+      },
+      "erpc": {
+        "exitCode": 0,
+        "imageId": "sha256:bda008e8ccf92d8c9a6d40030be61b9ca4d1c51ba8ff3f8fb46aacf25153507f",
+        "vulnerabilitiesBySeverity": {},
+        "secretFindings": 0,
+        "languageVulnerabilityCount": 0
+      }
+    },
+    "unchangedIndexerOsMediumFindings": 23,
+    "newDependencies": false
+  },
+  "originalWorktree": {
+    "head": "9eb4755be2904f6751a72890ecce134c4c701fef",
+    "clean": true
+  },
+  "published": false,
+  "deployed": false,
+  "liveVariablesChanged": false,
+  "existingDatabasesReset": false
+}

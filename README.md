@@ -63,6 +63,14 @@ to a private Railway Bucket.
 
 ## Validation
 
+With the repository-pinned Node and pnpm versions active, run the nine required agent validation steps:
+
+```bash
+./scripts/validate.sh
+```
+
+The script runs from the repository root, prints each step, and stops at the first failure with its exit code.
+
 Run full local validation (including Docker builds):
 
 ```bash

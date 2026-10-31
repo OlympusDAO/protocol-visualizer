@@ -2,7 +2,7 @@
 
 ## Validation Skill
 
-When asked to validate this repository, run these commands in order:
+When asked to validate this repository, run `./scripts/validate.sh`. It executes these commands in order:
 
 1. `pnpm run check:runtime-versions`
 2. `pnpm install --frozen-lockfile`

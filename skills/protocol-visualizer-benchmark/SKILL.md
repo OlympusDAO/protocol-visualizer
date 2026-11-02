@@ -51,6 +51,19 @@ The comparison must reject incompatible protocols, stale source fingerprints, in
 
 Report median committed time and blocks/second, sample count, request counts, capacity/retry behavior and source-service variation. Cached proxy traffic is not upstream traffic or provider billing. Explicitly distinguish cold, warm-state, holdout and synthetic fixture results. Include any unmet target or validation limit.
 
+## Equal-work Robinhood-base comparison
+
+For the performance branch's actual Robinhood base, read the [versioned acceptance protocol](../../docs/performance/indexer-robinhood-benchmark-protocol.md). The old reader can advance after failed RPC reads, and the new reader deliberately retains different proof provenance. Keep the strict v1 result withheld when its criteria fail.
+
+```sh
+pnpm exec node scripts/benchmark-indexer-robinhood.mjs --env-file .env --provider-profile local-private
+pnpm exec node scripts/benchmark-indexer-robinhood.mjs --check
+```
+
+This fixed profile runs three cold trials per revision in alternating order, with identical benchmark-side capacity recovery and the unchanged aggregate 50-credit cap. It writes the standard `docs/performance/indexer-benchmark-robinhood-{baseline,candidate,comparison}.json` artifacts. A percentage requires complete repeatable results, an equal canonical event manifest, fresh getter oracles and explicit proof checks for every admitted provenance difference. Private full-state diagnostics must remain available for `--check`; they stay in ignored `benchmarks/` directories.
+
+Use the accepted comparison artifact, rather than manually dividing unrelated rates. Name the queued recovery profile in PR text and distinguish equal verified business state from identical physical proof records. Do not use this narrow profile for a different config/schema change without reviewing its equivalence contract prospectively and rerunning both sides.
+
 ## Include comparisons in the branch PR
 
 When PR publication or updating is authorized, include an **Indexer benchmark** section in that branch's PR body. Use its actual base revision and candidate source fingerprint, not a remembered branch name. Include the generated comparison table, sample/profile details, exact artifact links and any caveats about state, coverage, throttling or source latency. Commit the standard result and any freshly generated baseline artifact before linking them.

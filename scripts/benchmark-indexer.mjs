@@ -30,6 +30,7 @@ const cacheEntities = new Set([
   "KernelReadEpoch",
 ]);
 const protocol = "protocol-visualizer-indexer-benchmark-v1";
+const queuedProtocol = "protocol-visualizer-indexer-queued-benchmark-v2";
 const image = "protocol-visualizer/rpc-cache:local";
 const pgImage = "postgres:17-alpine";
 const compareText = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -81,9 +82,11 @@ export function parseOptions(args) {
           "start",
           "end",
           "provider-profile",
+          "oracle-ref",
         ].map((name) => [name, { type: "string" }])
       ),
       "install-deps": { type: "boolean", default: false },
+      "queued-admission": { type: "boolean", default: false },
     },
     strict: true,
     allowPositionals: false,
@@ -96,6 +99,8 @@ export function parseOptions(args) {
     compareRef: values["compare-ref"],
     envFile: values["env-file"],
     installDeps: values["install-deps"],
+    queuedAdmission: values["queued-admission"],
+    oracleRef: values["oracle-ref"],
     start: Number(values.start ?? 26_240_000),
     end: Number(values.end ?? 26_290_000),
     providerProfile: values["provider-profile"] ?? "unspecified",
@@ -220,9 +225,12 @@ export function summarize(runs) {
   };
 }
 
-function resultProblems(result) {
+export function resultProblems(result) {
   const reasons = [];
-  if (result.protocol !== protocol || result.schemaVersion !== 1)
+  if (
+    ![protocol, queuedProtocol].includes(result.protocol) ||
+    result.schemaVersion !== 1
+  )
     reasons.push("protocol mismatch");
   if (result.status !== "success") reasons.push("incomplete or failed result");
   if (result.cleanupComplete !== true)
@@ -243,6 +251,17 @@ function resultProblems(result) {
   )
     reasons.push("invalid workload descriptor");
   const fixture = result.inputs?.fixture;
+  if (
+    (result.protocol === queuedProtocol) !==
+      Boolean(fixture?.queuedAdmission) ||
+    (fixture?.queuedAdmission &&
+      (!/^[a-f0-9]{64}$/.test(fixture.queuedAdmission.implementation ?? "") ||
+        fixture.queuedAdmission.active !== 32 ||
+        fixture.queuedAdmission.waiting !== 256 ||
+        fixture.queuedAdmission.maxInFlight !== 1024 ||
+        fixture.queuedAdmission.deadlineMilliseconds !== 8000))
+  )
+    reasons.push("invalid admission profile");
   if (
     fixture?.aggregateCreditsPerSecond !== 50 ||
     !Array.isArray(fixture.proxyNetworks) ||
@@ -270,6 +289,17 @@ function resultProblems(result) {
     reasons.push("no complete runs");
   else {
     for (const run of result.runs) {
+      if (
+        result.protocol === queuedProtocol &&
+        (!["requests", "capacityRetries", "exhausted"].every(
+          (key) =>
+            Number.isSafeInteger(run.admission?.[key]) &&
+            run.admission[key] >= 0
+        ) ||
+          !(run.admission?.requests > 0) ||
+          run.admission?.exhausted !== 0)
+      )
+        reasons.push("missing or exhausted admission evidence");
       if (
         !Number.isFinite(run.committedSeconds) ||
         run.committedSeconds <= 0 ||
@@ -327,6 +357,8 @@ function resultProblems(result) {
 
 export function compareResults(baseline, candidate) {
   const reasons = [...resultProblems(baseline), ...resultProblems(candidate)];
+  if (baseline.protocol !== candidate.protocol)
+    reasons.push("protocol mismatch");
   if (baseline.inputFingerprint !== candidate.inputFingerprint)
     reasons.push("workload, runtime or fixture mismatch");
   const a = baseline.runs?.[0]?.entities ?? {};
@@ -416,7 +448,7 @@ const git = (...args) => command("git", args).trim();
 const resolveRef = (ref) =>
   git("rev-parse", "--verify", "--end-of-options", `${ref}^{commit}`);
 
-function runtimeHash(commit) {
+export function runtimeHash(commit) {
   const tree = git(
     "ls-tree",
     "-r",
@@ -443,6 +475,26 @@ function runtimeHash(commit) {
       })
       .join("\n")
   );
+}
+
+export function assertProofInputClean() {
+  const paths = [
+    "apps/indexer/src",
+    "apps/indexer/abis",
+    "apps/indexer/config.yaml",
+    "apps/indexer/schema.graphql",
+    "apps/indexer/package.json",
+    "apps/indexer/tsconfig.json",
+    "packages",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+  ];
+  if (
+    git("diff", "--name-only", "--no-ext-diff", "HEAD", "--", ...paths) ||
+    git("ls-files", "--others", "--exclude-standard", "--", ...paths)
+  )
+    throw new BenchmarkFailure("uncommitted_audit_runtime_inputs");
 }
 
 function metric(text, name, label, allowed = /^[A-Za-z0-9_.-]{1,64}$/) {
@@ -608,6 +660,7 @@ async function collectRun(options, setup, runNumber, cancelled) {
   let exit;
   let spawnFailed = false;
   let logFd;
+  let admission;
   try {
     if (cancelled()) throw new BenchmarkFailure("interrupted");
     const source = join(temp, "source");
@@ -696,14 +749,14 @@ async function collectRun(options, setup, runNumber, cancelled) {
       "127.0.0.1::4001",
       setup.erpcImageId
     );
-    const origin = `http://127.0.0.1:${docker("port", proxy, "4000/tcp").split(":").at(-1)}`;
+    const proxyOrigin = `http://127.0.0.1:${docker("port", proxy, "4000/tcp").split(":").at(-1)}`;
     const metricsUrl = `http://127.0.0.1:${docker("port", proxy, "4001/tcp").split(":").at(-1)}/metrics`;
     ready = false;
     for (let i = 0; i < 30; i++) {
       try {
         if (
           (
-            await fetch(`${origin}/healthcheck`, {
+            await fetch(`${proxyOrigin}/healthcheck`, {
               signal: AbortSignal.timeout(1000),
             })
           ).ok
@@ -715,6 +768,13 @@ async function collectRun(options, setup, runNumber, cancelled) {
       await pause(1000);
     }
     if (!ready) throw new BenchmarkFailure("proxy_not_ready");
+    if (options.queuedAdmission) {
+      const { queuedAdmission } = await import(
+        "./benchmark-indexer-admission.mjs"
+      );
+      admission = await queuedAdmission(proxyOrigin);
+    }
+    const origin = admission?.origin ?? proxyOrigin;
     const probe = join(temp, "probe.mjs");
     const profilePath = join(temp, "profile.json");
     writeFileSync(probe, setup.probe);
@@ -842,6 +902,11 @@ async function collectRun(options, setup, runNumber, cancelled) {
       committedSeconds === undefined
     )
       throw new BenchmarkFailure("indexer_did_not_complete");
+    if (admission) {
+      await admission.close();
+      if (admission.stats.exhausted !== 0)
+        throw new BenchmarkFailure("admission_recovery_exhausted");
+    }
     const metricsResponse = await fetch(metricsUrl, {
       signal: AbortSignal.timeout(3000),
     });
@@ -867,13 +932,83 @@ async function collectRun(options, setup, runNumber, cancelled) {
     )
       throw new BenchmarkFailure("event_source_not_hypersync");
     const entities = {};
+    const state = {};
     for (const name of metadata.entities) {
       if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name))
         throw new BenchmarkFailure("invalid_entity_name");
-      entities[name] = entityDigests(
-        name,
-        await database.unsafe(`SELECT * FROM "${name}"`)
+      state[name] = await database.unsafe(`SELECT * FROM "${name}"`);
+      entities[name] = entityDigests(name, state[name]);
+    }
+    writeFileSync(join(logs, "state.private.json"), JSON.stringify(state), {
+      mode: 0o600,
+    });
+    writeFileSync(
+      join(logs, "completed.private.json"),
+      JSON.stringify({
+        committedSeconds,
+        meta,
+        rpc,
+        entities,
+        profile: JSON.parse(readFileSync(profilePath, "utf8")),
+      }),
+      { mode: 0o600 }
+    );
+    let audit;
+    if (options.oracleRef) {
+      assertProofInputClean();
+      console.log(
+        `Run ${runNumber}/${options.runs}: independent post-timing audit`
       );
+      const auditOutput = join(logs, "audit.private.json");
+      const auditLog = openSync(join(logs, "audit.private.log"), "w", 0o600);
+      try {
+        child = spawn(
+          process.execPath,
+          [
+            "--import",
+            join(root, "apps/indexer/scripts/typescript-loader.mjs"),
+            join(root, "scripts/benchmark-indexer-audit.mjs"),
+            "--state",
+            join(logs, "state.private.json"),
+            "--output",
+            auditOutput,
+            "--source",
+            source,
+            "--oracle-source",
+            setup.oracleSource,
+            "--identity",
+            JSON.stringify(setup.auditIdentity),
+          ],
+          {
+            cwd: join(source, "apps/indexer"),
+            env: { ...env, ENVIO_RPC_URL_1: `${proxyOrigin}/pv/evm/1` },
+            stdio: ["ignore", auditLog, auditLog],
+            detached: true,
+          }
+        );
+        exit = new Promise((accept) => {
+          child.once("exit", (code, signal) => accept({ code, signal }));
+          child.once("error", () => {
+            spawnFailed = true;
+            accept({ code: null });
+          });
+        });
+        const auditStart = performance.now();
+        while (child.exitCode === null && child.signalCode === null) {
+          if (
+            spawnFailed ||
+            cancelled() ||
+            performance.now() - auditStart > 900_000
+          )
+            throw new BenchmarkFailure("audit_interrupted_or_timeout");
+          await pause(250);
+        }
+        if ((await exit).code !== 0)
+          throw new BenchmarkFailure("independent_audit_failed");
+        audit = JSON.parse(readFileSync(auditOutput, "utf8"));
+      } finally {
+        closeSync(auditLog);
+      }
     }
     const record = {
       committedSeconds,
@@ -888,6 +1023,8 @@ async function collectRun(options, setup, runNumber, cancelled) {
         "effect"
       ),
       entities,
+      ...(admission ? { admission: { ...admission.stats } } : {}),
+      ...(audit ? { audit } : {}),
       profile: JSON.parse(readFileSync(profilePath, "utf8")),
     };
     console.log(
@@ -898,6 +1035,11 @@ async function collectRun(options, setup, runNumber, cancelled) {
     let cleanupFailed = false;
     try {
       await stopChild(child, exit);
+    } catch {
+      cleanupFailed = true;
+    }
+    try {
+      if (admission) await admission.close();
     } catch {
       cleanupFailed = true;
     }
@@ -946,7 +1088,7 @@ async function collectRun(options, setup, runNumber, cancelled) {
 async function runBenchmark(options) {
   const output = resolve(root, options.output);
   const result = {
-    protocol,
+    protocol: options.queuedAdmission ? queuedProtocol : protocol,
     schemaVersion: 1,
     status: "running",
     generatedAt: new Date().toISOString(),
@@ -1025,6 +1167,42 @@ async function runBenchmark(options) {
     temporary = mkdtempSync(join(tmpdir(), "pv-indexer-benchmark-source-"));
     const archive = join(temporary, "source.tar");
     command("git", ["archive", "--format=tar", `--output=${archive}`, commit]);
+    let oracleSource;
+    let auditIdentity;
+    if (options.oracleRef) {
+      const oracleCommit = resolveRef(options.oracleRef);
+      auditIdentity = {
+        oracleCommit,
+        oracleInputHash: runtimeHash(oracleCommit),
+        proofCommit: resolveRef("HEAD"),
+        proofInputHash: runtimeHash(resolveRef("HEAD")),
+        implementation: bytesDigest(
+          readFileSync(join(root, "scripts/benchmark-indexer-audit.mjs"))
+        ),
+        loaderHash: bytesDigest(
+          readFileSync(join(root, "apps/indexer/scripts/typescript-loader.mjs"))
+        ),
+        effectRuntimeHash: bytesDigest(
+          readFileSync(
+            join(root, "apps/indexer/scripts/fixtures/effect-runtime.mjs")
+          )
+        ),
+      };
+      if (git("show", `${oracleCommit}:pnpm-lock.yaml`) !== lock)
+        throw new BenchmarkFailure("oracle_dependency_mismatch");
+      const oracleArchive = join(temporary, "oracle.tar");
+      oracleSource = join(temporary, "oracle");
+      mkdirSync(oracleSource);
+      command("git", [
+        "archive",
+        "--format=tar",
+        `--output=${oracleArchive}`,
+        oracleCommit,
+      ]);
+      command("tar", ["-xf", oracleArchive, "-C", oracleSource]);
+      for (const path of ["node_modules", "apps/indexer/node_modules"])
+        symlinkSync(join(root, path), join(oracleSource, path), "dir");
+    }
     const diagnosticId = `indexer-${randomUUID()}`;
     const logs = join(root, "benchmarks", diagnosticId);
     mkdirSync(logs, { recursive: true, mode: 0o700 });
@@ -1115,6 +1293,21 @@ async function runBenchmark(options) {
         postgresImageId: pgImageId,
         aggregateCreditsPerSecond: 50,
         proxyNetworks: networks,
+        ...(options.queuedAdmission
+          ? {
+              queuedAdmission: {
+                implementation: bytesDigest(
+                  readFileSync(
+                    join(root, "scripts/benchmark-indexer-admission.mjs")
+                  )
+                ),
+                active: 32,
+                waiting: 256,
+                maxInFlight: 1024,
+                deadlineMilliseconds: 8000,
+              },
+            }
+          : {}),
       },
       providerProfile: options.providerProfile,
     };
@@ -1135,6 +1328,8 @@ async function runBenchmark(options) {
             cleanup,
             dependencyRoot,
             source: result.source,
+            oracleSource,
+            auditIdentity,
           },
           run,
           () => cancelled
@@ -1254,7 +1449,7 @@ function comparisonReport(options) {
 export async function main(args) {
   if (args.includes("--help")) {
     console.log(
-      "Usage: pnpm benchmark:indexer [--ref HEAD] [--runs 3] [--env-file FILE] [--output FILE] [--start BLOCK --end BLOCK] [--provider-profile LABEL] [--install-deps]\nCompare saved results without Docker or credentials: pnpm benchmark:indexer --compare-ref BRANCH | --compare FILE\nRequires pinned Node/pnpm, installed driver dependencies, prebuilt rpc-cache/Postgres images, ENVIO_API_TOKEN, ETHERSCAN_API_KEY and all nine UPSTREAM_RPC_URL_<chain> values. Matching lockfiles reuse installed dependencies; --install-deps explicitly installs frozen dependencies in an isolated snapshot before timing. Uses fresh local containers/databases and unchanged 50-credit eRPC protection. Private logs: benchmarks/<diagnosticId>/."
+      "Usage: pnpm benchmark:indexer [--ref HEAD] [--runs 3] [--env-file FILE] [--output FILE] [--start BLOCK --end BLOCK] [--provider-profile LABEL] [--install-deps]\nQueued recovery profile: --queued-admission [--oracle-ref BASE_COMMIT]; use scripts/benchmark-indexer-robinhood.mjs for the matched six-trial comparison.\nCompare saved results without Docker or credentials: pnpm benchmark:indexer --compare-ref BRANCH | --compare FILE\nRequires pinned Node/pnpm, installed driver dependencies, prebuilt rpc-cache/Postgres images, ENVIO_API_TOKEN, ETHERSCAN_API_KEY and all nine UPSTREAM_RPC_URL_<chain> values. Matching lockfiles reuse installed dependencies; --install-deps explicitly installs frozen dependencies in an isolated snapshot before timing. Uses fresh local containers/databases and unchanged 50-credit eRPC protection. Private logs: benchmarks/<diagnosticId>/."
     );
     return;
   }

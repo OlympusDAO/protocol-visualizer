@@ -227,6 +227,44 @@ function result(seconds = 10) {
   };
 }
 
+test("queued protocol rejects missing, malformed and exhausted recovery evidence", () => {
+  const make = () => {
+    const r = result();
+    r.protocol = "protocol-visualizer-indexer-queued-benchmark-v2";
+    r.inputs.fixture.queuedAdmission = {
+      implementation: "d".repeat(64),
+      active: 32,
+      waiting: 256,
+      maxInFlight: 1024,
+      deadlineMilliseconds: 8000,
+    };
+    r.runs[0].admission = { requests: 20, capacityRetries: 3, exhausted: 0 };
+    r.inputFingerprint = digest(r.inputs);
+    return r;
+  };
+  assert.equal(compareResults(make(), make()).compatible, true);
+  for (const mutate of [
+    (r) => {
+      delete r.runs[0].admission;
+    },
+    (r) => {
+      r.runs[0].admission.exhausted = 1;
+    },
+    (r) => {
+      r.runs[0].admission.capacityRetries = -1;
+    },
+    (r) => {
+      r.inputs.fixture.queuedAdmission.deadlineMilliseconds = 9000;
+      r.inputFingerprint = digest(r.inputs);
+    },
+  ]) {
+    const changed = make();
+    mutate(changed);
+    assert.equal(compareResults(make(), changed).throughputGainPercent, null);
+  }
+  assert.equal(compareResults(result(), make()).compatible, false);
+});
+
 test("comparison requires completed equivalent work and fresh workload/runtime/summary fingerprints", () => {
   const baseline = result(10);
   const candidate = result(5);

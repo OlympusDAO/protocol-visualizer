@@ -45,6 +45,8 @@ CodeRabbit's first pass reported four minor findings. Two evidence-wording defec
 
 The nine ordered validation steps, 17 focused benchmark checks and actual patched eRPC/PostgreSQL integration passed before measurement. Publication validation passed all nine steps again after formatting the metadata CLI fix; its first attempt stopped at step 3 for that formatting issue. The real proxy fixture verifies cache restart persistence, nine dependency-reader error cases, capacity recovery and aggregate mixed-method/chain admission; existing-database reset checks were explicitly skipped. Local image scans using the October 31 vulnerability database found no HIGH/CRITICAL or secrets; the indexer retains 24 MEDIUM and nine LOW findings, while eRPC has one LOW and six UNKNOWN findings. No ignore entry was added.
 
+The first PR CI run exposed a fixture-only failure when resuming eRPC after the rate-limit probes: Docker had reassigned its ephemeral host port, while the test polled the old URL. The fixture now refreshes that mapping and exercises resume even with database resets disabled. Its separate reset assertion also takes a fresh cache-row baseline after the intervening cacheable probes. These test changes do not change the measured indexer runtime or benchmark acceptance implementation; full database-reset checks remain outside local validation.
+
 ## Reproduce and inspect
 
 ```sh

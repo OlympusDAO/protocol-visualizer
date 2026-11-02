@@ -639,12 +639,23 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
     console.log(
       `Aggregate mixed-method/chain fixture: ${JSON.stringify({ budget, perSecond, requests: burst.length, capacityErrors: burstResults.filter((result) => result.body.error).length, durationMs: Date.now() - burstStart })}`
     );
-    // Legacy reset checks (when enabled) use the original service name.
-    base = originalBase;
-    if (!skipReset) {
-      docker("start", erpc);
-      await eventually(health, "original eRPC did not resume");
-    }
+    // Docker can reassign an ephemeral host port when a container starts again.
+    // Exercise resume even when database-reset checks are disabled.
+    docker("start", erpc);
+    base = `http://127.0.0.1:${docker("port", erpc, "4000/tcp").split(":").at(-1)}`;
+    await eventually(health, "original eRPC did not resume");
+    const resetBaseline = docker(
+      "exec",
+      pg,
+      "psql",
+      "-U",
+      "postgres",
+      "-Atc",
+      "SELECT count(*) FROM rpc_cache"
+    );
+    console.log(
+      `Proxy resume verified; published port changed: ${base !== originalBase}; cache rows after probes: ${resetBaseline}.`
+    );
     if (!skipReset) {
       // The reset command must run in the actual distroless deployed image, with
       // its real config and a separate disposable Envio DB. No indexer is running.
@@ -718,7 +729,7 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
           "-Atc",
           "SELECT count(*) FROM rpc_cache"
         ),
-        expiry,
+        resetBaseline,
         "Envio reset touched cache storage"
       );
       assert.equal((await rpc(1, "eth_call", call)).cached, "HIT");

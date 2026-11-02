@@ -6,10 +6,12 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import {
+import "../apps/indexer/scripts/typescript-loader.mjs";
+
+const {
   processAbiMetadata,
   processVerifiedContractMetadata,
-} from "../apps/indexer/src/services/contracts/abi.ts";
+} = await import("../apps/indexer/src/services/contracts/abi.ts");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");

@@ -21,5 +21,5 @@
       "effectEntries": 3
     }
   },
-  "interpretation": "Code RPCs10to3, effect interface entries10to3; total RPCitems40to53 because creation/current checks remain repeated. Header sharing is nextstage; no whole-indexer speedclaim."
+  "interpretation": "Code RPCs 10 to 3, effect interface entries 10 to 3; total RPC items 40 to 53 because creation/current checks remain repeated. Header sharing is the next stage; no whole-indexer speed claim."
 }

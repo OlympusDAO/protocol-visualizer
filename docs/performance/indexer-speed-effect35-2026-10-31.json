@@ -224,8 +224,8 @@
   },
   "limitations": [
     "Single cold paired replay, not a live deployment or nine-chain throughput result.",
-    "Compared with the recorded286.8bps reference, the346.5bps candidate is20.8percent faster, below50percent target.",
-    "Baseline source fetches summed51.062s versus24.348s candidate; paired42percent gain alone overstates certainty.",
+    "Compared with the recorded 286.8 bps reference, the 346.5 bps candidate is 20.8 percent faster, below the 50 percent target.",
+    "Baseline source fetches summed 51.062 s versus 24.348 s for the candidate; the paired 42 percent gain alone overstates certainty.",
     "Envio scrape is pre-completion and is used only for bottleneck localization; final progress, readiness, event and relationship evidence comes from SQL after exit."
   ]
 }

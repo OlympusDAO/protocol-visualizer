@@ -4,11 +4,11 @@ This work extends the local performance branch. Checkpoint frequency, HyperSync 
 
 ## Viem retry scheduling and HTTP batching
 
-The shared RPC boundary now uses viem's exported `withRetry` instead of a handwritten retry loop. The existing eight-active-operation guard, 256-waiter queue, six total proxy attempts, jittered exponential delay and sanitized exhaustion exception remain. Permits are released while waiting between attempts. eRPC retains upstream retry and aggregate rate ownership. Native HTTP and outer transport retry counts stay zero, so retry layers are not accidentally multiplied.
+At this milestone, the shared RPC boundary moved to viem's exported `withRetry` instead of a handwritten retry loop. It retained the then-current eight-active-operation guard, 256-waiter queue, six total proxy attempts, jittered exponential delay and sanitized exhaustion exception. The [later permit experiment](indexer-active-permits-2026-11-01.md) raised the active bound to ten. Permits are released while waiting between attempts. eRPC retains upstream retry and aggregate rate ownership. Native HTTP and outer transport retry counts stay zero, so retry layers are not accidentally multiplied.
 
 The classifier now recognizes JSON-RPC capacity codes 429 and -32007 alongside the existing proxy codes. A regression first failed on the raw JSON-RPC 429 response, then passed with the policy update. Historical-state failures and legitimate reverts remain terminal. Error-chain inspection checks that fixture credentials and private URLs do not escape exhaustion.
 
-HTTP batching was already enabled and remains enabled with no extra collection delay. A partial batch regression proves that one capacity-limited item retries without resending its seven successful siblings. Cross-chain tests verify batching while respecting eight in-flight operations; exact batch packing depends on event-loop scheduling.
+HTTP batching was already enabled and remains enabled with no extra collection delay. A partial batch regression proves that one capacity-limited item retries without resending its seven successful siblings. At this milestone, cross-chain tests verified batching with eight in-flight operations; the current bound is ten. Exact batch packing depends on event-loop scheduling.
 
 | Three-run transport fixture | Unbatched | Existing batching |
 | --- | ---: | ---: |

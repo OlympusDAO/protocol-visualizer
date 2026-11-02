@@ -1,0 +1,63 @@
+{
+  "protocol": "protocol-visualizer-robinhood-comparison-v2",
+  "status": "success",
+  "generatedAt": "2026-11-02T09:41:15.193Z",
+  "acceptanceHash": "c77e206f7d1a7011da45932f401dda73b524c176e53c3b77cec9183f87ccc773",
+  "runOrder": [
+    "baseline",
+    "candidate",
+    "candidate",
+    "baseline",
+    "baseline",
+    "candidate"
+  ],
+  "equivalence": {
+    "accepted": {
+      "immutable": 74,
+      "kernel": 87,
+      "ownership": 6,
+      "coverage": 7,
+      "targetCode": 3,
+      "seeds": 74
+    },
+    "sharedEntityTypes": 17,
+    "commonStateHash": "a60b4b756c15309c470e97be338cde48f5a4afa0cc06edfe7144216f3911590d",
+    "relationships": 579
+  },
+  "throughputGainPercent": 142.65086405590012,
+  "timeReductionPercent": 58.78852507322506,
+  "baseline": {
+    "ref": "9eb4755be2904f6751a72890ecce134c4c701fef",
+    "commit": "9eb4755be2904f6751a72890ecce134c4c701fef",
+    "indexerInputHash": "a339da04431450b9c9cb113ce349af42b32f67b259bc56b170f1ecddae794901",
+    "lockfileHash": "3ad3acd3125bd06c65f300904bb28cc7cad5dcef683350649d821eecf666eee2",
+    "nativeBatchSize": 5000,
+    "configHash": "2d6a00b1dbac784d157b73373a34f066816ea527227937dec34828c179f263b1",
+    "dependencies": "reused-matching-lockfile"
+  },
+  "candidate": {
+    "ref": "fdbaaf8e6650d0e66480a87d954c0221f4bb9633",
+    "commit": "fdbaaf8e6650d0e66480a87d954c0221f4bb9633",
+    "indexerInputHash": "02e7efbb15e6f75573f5993b312ac9e1f5ed36f388f73eac42c01bad88f6a5f1",
+    "lockfileHash": "3ad3acd3125bd06c65f300904bb28cc7cad5dcef683350649d821eecf666eee2",
+    "nativeBatchSize": 5000,
+    "configHash": "00b1a7c2428594bae04c0b7692441579318dc52996fba2b141f3fae7d4f475e3",
+    "dependencies": "reused-matching-lockfile"
+  },
+  "baselineSummary": {
+    "runCount": 3,
+    "medianCommittedSeconds": 281.051003083,
+    "medianBlocksPerSecond": 177.90721061840046,
+    "medianProxyRequests": 20883,
+    "medianUpstreamRequests": 10504,
+    "stateConsistent": true
+  },
+  "candidateSummary": {
+    "runCount": 3,
+    "medianCommittedSeconds": 115.825263667,
+    "medianBlocksPerSecond": 431.69338378329877,
+    "medianProxyRequests": 6127,
+    "medianUpstreamRequests": 4319,
+    "stateConsistent": true
+  }
+}

@@ -8,10 +8,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import "../apps/indexer/scripts/typescript-loader.mjs";
 
-const {
-  processAbiMetadata,
-  processVerifiedContractMetadata,
-} = await import("../apps/indexer/src/services/contracts/abi.ts");
+const { processAbiMetadata, processVerifiedContractMetadata } = await import(
+  "../apps/indexer/src/services/contracts/abi.ts"
+);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
   copyFileSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -592,6 +593,19 @@ else fs.writeFileSync(${JSON.stringify(installLog)}, JSON.stringify({cwd:process
     );
     assert.equal(run.status, 1);
     result = JSON.parse(readFileSync(output, "utf8"));
+    assert.doesNotMatch(
+      readFileSync(output, "utf8") + run.stdout + run.stderr,
+      /provider\.invalid|private-token|private-key|private-child-stderr-sentinel/
+    );
+    const pinnedNode = readFileSync(
+      new URL("../.node-version", import.meta.url),
+      "utf8"
+    ).trim();
+    if (process.versions.node !== pinnedNode) {
+      assert.equal(result.failure, "activate_pinned_runtime", run.stderr);
+      assert.equal(existsSync(installLog), false);
+      return;
+    }
     assert.equal(
       result.failure,
       "isolated_dependencies_missing_envio",
@@ -609,10 +623,6 @@ else fs.writeFileSync(${JSON.stringify(installLog)}, JSON.stringify({cwd:process
     ]);
     assert.equal(install.hasLock, true);
     assert.equal(install.providerCredentials, false);
-    assert.doesNotMatch(
-      readFileSync(output, "utf8") + run.stdout + run.stderr,
-      /provider\.invalid|private-token|private-key|private-child-stderr-sentinel/
-    );
   } finally {
     if (/^indexer-[a-f0-9-]+$/.test(result?.diagnosticId ?? ""))
       rmSync(new URL(`../benchmarks/${result.diagnosticId}`, import.meta.url), {

@@ -71,6 +71,15 @@ its settings if needed. Neither operation resets application databases.
 The initial migration preparation did not run cutover, undo, or apply.
 Later PR 82 cache setup is recorded in [PR 82 cache bootstrap](rpc-cache.md#pr-82-cache-bootstrap-2026-10-29).
 
+Verify the effective `ServiceInstance.railwayConfigFile` field after cutover.
+In PR 84, CLI 5.71.0 reported no legacy readers, but six service instances still
+referenced deleted `railway-*.json` files. Deployment failed at `SNAPSHOT_CODE`
+before Docker started. Clear those paths in the target environment's service
+settings, then read them back before retrying. The CLI's cutover mutation uses
+an empty string; sending `null` leaves the old value unchanged. For a preview,
+verify its `sourceEnvironment` and compare other environments before and after
+the update. Do not clear production settings as part of preview recovery.
+
 Before the first merge:
 
 1. Create a Railway API token scoped to the **Olympus workspace** in Account Settings → Tokens.

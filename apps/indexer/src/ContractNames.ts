@@ -3,6 +3,8 @@ import otherContracts from "../../../packages/protocol-config/other-contracts.js
 
 type ContractDetails = {
   name: string;
+  /** Keep the address label without treating it as a metadata target. */
+  labelOnly?: boolean;
   type?: "kernel" | "module" | "policy" | "external";
   startBlock?: number;
   /**
@@ -382,6 +384,7 @@ const contractNames: MultiChainContracts = {
     },
     "0x1a5309f208f161a393e8b5a253de8ab894a67188": {
       name: "Deployer",
+      labelOnly: true,
     },
     "0x02331A4c97a4841084dF54d7c0eC04DD3f1A9F1c": {
       name: "DEPOS",
@@ -517,6 +520,7 @@ const contractNames: MultiChainContracts = {
     },
     "0x1a5309f208f161a393e8b5a253de8ab894a67188": {
       name: "Deployer",
+      labelOnly: true,
     },
   },
   [ChainId.Base]: {
@@ -578,6 +582,7 @@ const contractNames: MultiChainContracts = {
     },
     "0x1a5309f208f161a393e8b5a253de8ab894a67188": {
       name: "Deployer",
+      labelOnly: true,
     },
   },
   [ChainId.Berachain]: {
@@ -648,6 +653,7 @@ const contractNames: MultiChainContracts = {
     },
     "0x1a5309f208f161a393e8b5a253de8ab894a67188": {
       name: "Deployer",
+      labelOnly: true,
     },
   },
   [ChainId.Optimism]: {
@@ -703,6 +709,7 @@ const contractNames: MultiChainContracts = {
     },
     "0x1a5309f208f161a393e8b5a253de8ab894a67188": {
       name: "Deployer",
+      labelOnly: true,
     },
   },
   [ChainId.Sepolia]: {
@@ -772,6 +779,7 @@ const contractNames: MultiChainContracts = {
     },
     "0x1A5309F208f161a393E8b5A253de8Ab894A67188": {
       name: "Deployer",
+      labelOnly: true,
     },
     "0x784cA0C006b8651BAB183829A99fA46BeCe50dBc": {
       name: "OHM",
@@ -969,10 +977,6 @@ const contractNames: MultiChainContracts = {
       type: "policy",
       startBlock: 9060194,
     },
-    "0xf6d5d06a4e8e6904e4360108749c177692f59e90": {
-      name: "PriceConfig",
-      type: "policy",
-    },
   },
   [ChainId.Robinhood]: {
     "0x02331a4c97a4841084df54d7c0ec04dd3f1a9f1c": {
@@ -1089,6 +1093,7 @@ const contractNames: MultiChainContracts = {
     },
     "0x1a5309f208f161a393e8b5a253de8ab894a67188": {
       name: "DAO / Emergency address",
+      labelOnly: true,
     },
     "0x6577cfd3b625a6bd0b708da1f066855c19ac8360": {
       name: "CCIPBurnMintTokenPool",

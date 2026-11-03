@@ -45747,6 +45747,124 @@
       },
       "roleToFunctions": {}
     },
+    "0x1912c3cfafe8a76a32a92861d815ac2837f237ca": {
+      "addressGetters": ["owner"],
+      "functionSelectors": {
+        "0x10cbcf18": {
+          "canonicalSignature": "removeRegistryModule(address)",
+          "name": "removeRegistryModule",
+          "roles": [],
+          "selector": "0x10cbcf18",
+          "signature": "removeRegistryModule(address)()"
+        },
+        "0x156194da": {
+          "canonicalSignature": "acceptAdminRole(address)",
+          "name": "acceptAdminRole",
+          "roles": [],
+          "selector": "0x156194da",
+          "signature": "acceptAdminRole(address)()"
+        },
+        "0x181f5a77": {
+          "canonicalSignature": "typeAndVersion()",
+          "name": "typeAndVersion",
+          "roles": [],
+          "selector": "0x181f5a77",
+          "signature": "typeAndVersion()(string)"
+        },
+        "0x3dc45772": {
+          "canonicalSignature": "addRegistryModule(address)",
+          "name": "addRegistryModule",
+          "roles": [],
+          "selector": "0x3dc45772",
+          "signature": "addRegistryModule(address)()"
+        },
+        "0x4e847fc7": {
+          "canonicalSignature": "setPool(address,address)",
+          "name": "setPool",
+          "roles": [],
+          "selector": "0x4e847fc7",
+          "signature": "setPool(address,address)()"
+        },
+        "0x5e63547a": {
+          "canonicalSignature": "getPools(address[])",
+          "name": "getPools",
+          "roles": [],
+          "selector": "0x5e63547a",
+          "signature": "getPools(address[])(address[])"
+        },
+        "0x72d64a81": {
+          "canonicalSignature": "getAllConfiguredTokens(uint64,uint64)",
+          "name": "getAllConfiguredTokens",
+          "roles": [],
+          "selector": "0x72d64a81",
+          "signature": "getAllConfiguredTokens(uint64,uint64)(address[])"
+        },
+        "0x79ba5097": {
+          "canonicalSignature": "acceptOwnership()",
+          "name": "acceptOwnership",
+          "roles": [],
+          "selector": "0x79ba5097",
+          "signature": "acceptOwnership()()"
+        },
+        "0x7d3f2552": {
+          "canonicalSignature": "isRegistryModule(address)",
+          "name": "isRegistryModule",
+          "roles": [],
+          "selector": "0x7d3f2552",
+          "signature": "isRegistryModule(address)(bool)"
+        },
+        "0x8da5cb5b": {
+          "canonicalSignature": "owner()",
+          "name": "owner",
+          "roles": [],
+          "selector": "0x8da5cb5b",
+          "signature": "owner()(address)"
+        },
+        "0xbbe4f6db": {
+          "canonicalSignature": "getPool(address)",
+          "name": "getPool",
+          "roles": [],
+          "selector": "0xbbe4f6db",
+          "signature": "getPool(address)(address)"
+        },
+        "0xc1af6e03": {
+          "canonicalSignature": "isAdministrator(address,address)",
+          "name": "isAdministrator",
+          "roles": [],
+          "selector": "0xc1af6e03",
+          "signature": "isAdministrator(address,address)(bool)"
+        },
+        "0xcb67e3b1": {
+          "canonicalSignature": "getTokenConfig(address)",
+          "name": "getTokenConfig",
+          "roles": [],
+          "selector": "0xcb67e3b1",
+          "signature": "getTokenConfig(address)(tuple)"
+        },
+        "0xddadfa8e": {
+          "canonicalSignature": "transferAdminRole(address,address)",
+          "name": "transferAdminRole",
+          "roles": [],
+          "selector": "0xddadfa8e",
+          "signature": "transferAdminRole(address,address)()"
+        },
+        "0xe677ae37": {
+          "canonicalSignature": "proposeAdministrator(address,address)",
+          "name": "proposeAdministrator",
+          "roles": [],
+          "selector": "0xe677ae37",
+          "signature": "proposeAdministrator(address,address)()"
+        },
+        "0xf2fde38b": {
+          "canonicalSignature": "transferOwnership(address)",
+          "name": "transferOwnership",
+          "roles": [],
+          "selector": "0xf2fde38b",
+          "signature": "transferOwnership(address)()"
+        }
+      },
+      "roleToFunctions": {}
+    },
     "0x20a3d8510f2e1176e8db4cea9883a8287a9029db": {
       "addressGetters": ["kernel"],
       "deploymentDiscovery": {

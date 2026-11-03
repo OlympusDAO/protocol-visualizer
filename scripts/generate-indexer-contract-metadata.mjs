@@ -50,6 +50,9 @@ let lastEtherscanRequestAt = 0;
 const requireFromRepo = createRequire(path.join(repoRoot, "package.json"));
 // TypeScript 7's native compiler does not expose this JavaScript AST API.
 const ts = requireFromRepo("@typescript/typescript6");
+const { parseAbi } = createRequire(path.join(indexerRoot, "package.json"))(
+  "viem"
+);
 
 const cliOptions = parseArgs(process.argv.slice(2));
 const outputPath = cliOptions.output
@@ -69,6 +72,7 @@ function parseArgs(args) {
     prefetchDeployments: false,
     output: undefined,
     sourceReport: undefined,
+    explorerAbi: undefined,
   };
 
   for (let index = 0; index < args.length; index += 1) {
@@ -97,6 +101,11 @@ function parseArgs(args) {
     if (arg === "--verified-source") {
       index += 1;
       options.verifiedSource = readRequiredArg(args, index, arg);
+      continue;
+    }
+    if (arg === "--explorer-abi") {
+      index += 1;
+      options.explorerAbi = readRequiredArg(args, index, arg);
       continue;
     }
     if (arg === "--force") {
@@ -131,6 +140,17 @@ function parseArgs(args) {
 
   if (options.chainId !== undefined && !/^\d+$/.test(options.chainId)) {
     throw new Error(`--chain-id must be numeric; received ${options.chainId}`);
+  }
+  if (
+    options.explorerAbi &&
+    (options.verifiedSource ||
+      options.refreshGetters ||
+      options.prefetchDeployments ||
+      options.cacheOnly)
+  ) {
+    throw new Error(
+      "--explorer-abi cannot be combined with other preparation modes"
+    );
   }
 
   return options;
@@ -266,6 +286,8 @@ function getPropertyName(node, chainIdByName) {
 }
 
 function getLiteralValue(expression) {
+  if (expression.kind === ts.SyntaxKind.TrueKeyword) return true;
+  if (expression.kind === ts.SyntaxKind.FalseKeyword) return false;
   if (ts.isStringLiteral(expression) || ts.isNumericLiteral(expression)) {
     return expression.text;
   }
@@ -364,6 +386,7 @@ function parseContractNames() {
             normalizedAddress: address.toLowerCase(),
             name: details.name,
             type: details.type,
+            labelOnly: details.labelOnly === true,
           });
         }
       }
@@ -378,6 +401,11 @@ function isLikelyModuleName(name) {
 }
 
 function shouldFetchContract(contract) {
+  if (
+    contract.labelOnly ||
+    targets.get(`${contract.chainId}:${contract.normalizedAddress}`)?.labelOnly
+  )
+    return false;
   if (cliOptions.chainId && contract.chainId !== cliOptions.chainId) {
     return false;
   }
@@ -655,6 +683,38 @@ async function fetchProcessedContract(contract) {
   }
 }
 
+async function metadataTargets() {
+  const targets = new Map(
+    parseContractNames().map((contract) => [
+      `${contract.chainId}:${contract.normalizedAddress}`,
+      contract,
+    ])
+  );
+  const inventory = await readJsonIfExists(
+    path.join(repoRoot, "packages/protocol-config/other-contracts.json"),
+    []
+  );
+  for (const contract of inventory) {
+    const identity = `${contract.chainId}:${contract.address.toLowerCase()}`;
+    const previous = targets.get(identity);
+    if (previous) {
+      if (contract.labelOnly) previous.labelOnly = true;
+    } else
+      targets.set(identity, {
+        ...contract,
+        chainId: String(contract.chainId),
+        normalizedAddress: contract.address.toLowerCase(),
+        type: "external",
+      });
+  }
+  return targets;
+}
+
+const targets = await metadataTargets();
+const explicitLabel =
+  cliOptions.chainId && cliOptions.address
+    ? targets.get(`${cliOptions.chainId}:${cliOptions.address}`)
+    : undefined;
 const existingMetadata = await readJsonIfExists(outputPath, {});
 const cache = await readJsonIfExists(cachePath, {});
 const metadata = structuredClone(existingMetadata);
@@ -671,7 +731,81 @@ for (const [chainId, contracts] of Object.entries(cache)) {
   }
 }
 
-if (cliOptions.verifiedSource) {
+if (explicitLabel?.labelOnly) {
+  console.log(
+    `Metadata checks skipped for label-only entry: ${cliOptions.chainId}:${cliOptions.address} ${explicitLabel.name}`
+  );
+  if (cliOptions.sourceReport) {
+    await mkdir(path.dirname(path.resolve(cliOptions.sourceReport)), {
+      recursive: true,
+    });
+    await writeFile(
+      path.resolve(cliOptions.sourceReport),
+      `${JSON.stringify({ schemaVersion: 1, entries: [], excluded: [{ chainId: Number(cliOptions.chainId), address: cliOptions.address, name: explicitLabel.name, reason: "label-only" }] }, null, 2)}\n`
+    );
+  }
+} else if (cliOptions.explorerAbi) {
+  if (!cliOptions.chainId || !cliOptions.address || !explicitLabel)
+    throw new Error(
+      "--explorer-abi requires a registered --chain-id and --address"
+    );
+  const observed = await readJsonIfExists(cliOptions.explorerAbi, undefined);
+  const expectedUrl = `https://robinhoodchain.blockscout.com/api/v2/smart-contracts/${cliOptions.address}`;
+  if (
+    cliOptions.chainId !== "4663" ||
+    String(observed?.chainId) !== cliOptions.chainId ||
+    observed?.address?.toLowerCase() !== cliOptions.address ||
+    observed?.sourceUrl !== expectedUrl ||
+    observed?.verified !== true ||
+    typeof observed?.partial !== "boolean" ||
+    !Array.isArray(observed?.functions) ||
+    !observed.functions.every((fn) => typeof fn === "string")
+  )
+    throw new Error(
+      "Explorer ABI observation does not match the requested verified contract"
+    );
+  const previous = metadata[cliOptions.chainId]?.[cliOptions.address];
+  const importing = isEmptyMetadataEntry(previous);
+  if (importing) {
+    metadata[cliOptions.chainId] ??= {};
+    const processed = processAbiMetadata(parseAbi(observed.functions));
+    metadata[cliOptions.chainId][cliOptions.address] = {
+      ...previous,
+      ...processed,
+      addressGetters: previous?.addressGetters ?? processed.addressGetters,
+    };
+  }
+  console.log(
+    `${importing ? "Prepared Blockscout ABI" : "Retained existing metadata"}: ${cliOptions.chainId}:${cliOptions.address}; ${observed.partial ? "partial" : "full"} explorer verification; no deployment proof added.`
+  );
+  if (cliOptions.sourceReport) {
+    const report = await readJsonIfExists(cliOptions.sourceReport, {
+      schemaVersion: 1,
+      entries: [],
+    });
+    report.explorerImports = (report.explorerImports ?? []).filter(
+      (entry) =>
+        !(entry.chainId === 4663 && entry.address === cliOptions.address)
+    );
+    report.explorerImports.push({
+      chainId: 4663,
+      address: cliOptions.address,
+      provider: "blockscout",
+      verification: observed.partial ? "partial" : "full",
+      sourceUrl: observed.sourceUrl,
+      abiFunctions: observed.functions.length,
+      metadataAction: importing ? "imported" : "retained",
+      deploymentProof: false,
+    });
+    await mkdir(path.dirname(path.resolve(cliOptions.sourceReport)), {
+      recursive: true,
+    });
+    await writeFile(
+      path.resolve(cliOptions.sourceReport),
+      `${JSON.stringify(report, null, 2)}\n`
+    );
+  }
+} else if (cliOptions.verifiedSource) {
   if (!cliOptions.chainId || !cliOptions.address)
     throw new Error("--verified-source requires --chain-id and --address");
   const verified = JSON.parse(
@@ -686,26 +820,6 @@ if (cliOptions.verifiedSource) {
       metadata[cliOptions.chainId][cliOptions.address]
     );
 } else if (cliOptions.refreshGetters || cliOptions.prefetchDeployments) {
-  const inventory = await readJsonIfExists(
-    path.join(repoRoot, "packages/protocol-config/other-contracts.json"),
-    []
-  );
-  const targets = new Map(
-    parseContractNames().map((contract) => [
-      `${contract.chainId}:${contract.normalizedAddress}`,
-      contract,
-    ])
-  );
-  for (const contract of inventory.filter((entry) => !entry.labelOnly)) {
-    const identity = `${contract.chainId}:${contract.address.toLowerCase()}`;
-    if (!targets.has(identity))
-      targets.set(identity, {
-        ...contract,
-        chainId: String(contract.chainId),
-        normalizedAddress: contract.address.toLowerCase(),
-        type: "external",
-      });
-  }
   const activeChains = new Set(
     [
       ...readFileSync(path.join(indexerRoot, "config.yaml"), "utf8").matchAll(
@@ -713,7 +827,7 @@ if (cliOptions.verifiedSource) {
       ),
     ].map((match) => match[1])
   );
-  const selected = [...targets.values()].filter(
+  const matched = [...targets.values()].filter(
     (contract) =>
       (!cliOptions.prefetchDeployments ||
         cliOptions.chainId ||
@@ -723,7 +837,16 @@ if (cliOptions.verifiedSource) {
         contract.normalizedAddress === cliOptions.address) &&
       (!cliOptions.name || contract.name === cliOptions.name)
   );
-  if (cliOptions.address && !selected.length)
+  const excluded = matched
+    .filter((contract) => contract.labelOnly)
+    .map((contract) => ({
+      chainId: Number(contract.chainId),
+      address: contract.normalizedAddress,
+      name: contract.name,
+      reason: "label-only",
+    }));
+  const selected = matched.filter((contract) => !contract.labelOnly);
+  if (cliOptions.address && !matched.length)
     throw new Error(
       "No registered contract matches the requested getter refresh"
     );
@@ -844,7 +967,7 @@ if (cliOptions.verifiedSource) {
     });
     await writeFile(
       path.resolve(cliOptions.sourceReport),
-      `${JSON.stringify({ schemaVersion: 1, sourcifyUnavailable: sourceCoverage.length, etherscanAvailable, unavailable, entries: sourceCoverage }, null, 2)}\n`
+      `${JSON.stringify({ schemaVersion: 1, sourcifyUnavailable: sourceCoverage.length, etherscanAvailable, unavailable, entries: sourceCoverage, excluded }, null, 2)}\n`
     );
   }
   if (unavailable && (cliOptions.address || cliOptions.name))

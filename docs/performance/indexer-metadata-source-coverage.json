@@ -847,5 +847,65 @@
       "similarMatch": false,
       "status": "matched"
     }
-  ]
+  ],
+  "explorerImports": [
+    {
+      "chainId": 4663,
+      "address": "0x1912c3cfafe8a76a32a92861d815ac2837f237ca",
+      "provider": "blockscout",
+      "verification": "partial",
+      "sourceUrl": "https://robinhoodchain.blockscout.com/api/v2/smart-contracts/0x1912c3cfafe8a76a32a92861d815ac2837f237ca",
+      "abiFunctions": 16,
+      "deploymentProof": false,
+      "metadataAction": "imported"
+    }
+  ],
+  "followUp": {
+    "checkedAt": "2026-11-03",
+    "historicalUnavailableEntries": 9,
+    "expectedEoaLabelsExcluded": 7,
+    "exclusion": "Explicit labelOnly inventory flags; source failures and empty code never infer permanent EOA status.",
+    "invalidRegistrationRemoved": {
+      "chainId": 11155111,
+      "address": "0xf6d5d06a4e8e6904e4360108749c177692f59e90",
+      "correctAddress": "0x68009f5e809c5a3438438312f8eefb9f5c73d534",
+      "source": "Olympus V3 deployments/.sepolia-1756216080.json; src/scripts/env.json",
+      "reason": "The removed registration copied the mainnet PriceConfig address. The correct Sepolia registration and generated metadata already existed."
+    },
+    "blockscoutAbiPrepared": {
+      "chainId": 4663,
+      "address": "0x1912c3cfafe8a76a32a92861d815ac2837f237ca",
+      "functions": 16,
+      "sourceVerification": "partial",
+      "deploymentProofAdded": false,
+      "observationFile": "apps/indexer/scripts/fixtures/robinhood-token-admin-registry-abi.json"
+    },
+    "rpcVerification": {
+      "status": "verified",
+      "observations": [
+        {
+          "chainId": 11155111,
+          "blockNumber": 12054378,
+          "blockHash": "0xb982edf0de6eabeb0f2d65204725ab20c84d9cb1f076aef0fbbf85bb2e4c76bc",
+          "incorrectAddress": "0xf6d5d06a4e8e6904e4360108749c177692f59e90",
+          "incorrectRuntimeBytes": 0,
+          "address": "0x68009f5e809c5a3438438312f8eefb9f5c73d534",
+          "runtimeBytes": 5391,
+          "codeHash": "0x5d7bd4503cc35cd28bac709ad30f8ae4a732350abd3b7b9b5112081d37a24678",
+          "kernel": "0x4b0bba51ce44175a9766f7e55e3d122a9f4be78e",
+          "canonicalHeaderRechecked": true
+        },
+        {
+          "chainId": 4663,
+          "blockNumber": 104959959,
+          "blockHash": "0x87c15ce640e3f9c8a2dfe926f1e849c8795ffa94eb7cecfd0b5aafd6699a291b",
+          "address": "0x1912c3cfafe8a76a32a92861d815ac2837f237ca",
+          "runtimeBytes": 5287,
+          "codeHash": "0x5c6ba86e149d6e9665ffaf9f3eddf50cfa23ad6253df82cf3a3918dd9b8d0224",
+          "typeAndVersion": "TokenAdminRegistry 1.5.0",
+          "canonicalHeaderRechecked": true
+        }
+      ]
+    }
+  }
 }

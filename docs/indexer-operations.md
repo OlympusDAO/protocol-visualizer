@@ -48,6 +48,28 @@ New or unprepared contracts retain automatic runtime discovery. These cases can
 still contact Sourcify or Etherscan, so their independent runtime limits remain.
 Raising eRPC's RPC budget does not change either metadata service's allowance.
 
+Known account labels use `labelOnly: true` in `ContractNames.ts` or
+`packages/protocol-config/other-contracts.json`. Preparation excludes these
+identities before either metadata service is called, including with `--force`.
+The source report lists them separately under `excluded`; their display names
+remain available. An address present in both inventories stays excluded if either
+entry marks it label-only. This is an explicit inventory decision, not an EOA
+classification inferred from a failed download or an empty historical code read.
+If an address later becomes a contract, review and remove the flag before preparing
+its metadata. Runtime code-absence facts are not made permanent by this setting.
+
+For the partially verified Robinhood `TokenAdminRegistry`, the public Blockscout
+ABI observation is retained as a fixture. Reproduce the offline ABI import with:
+
+```bash
+pnpm run indexer:metadata -- --chain-id 4663 --address 0x1912c3cfafe8a76a32a92861d815ac2837f237ca --explorer-abi apps/indexer/scripts/fixtures/robinhood-token-admin-registry-abi.json
+```
+
+This narrow import validates the registered identity and Blockscout observation
+URL, fills empty ABI metadata and retains any existing nonempty metadata. It
+performs no HTTP requests. Partial explorer verification does not authorize
+deployment lifetime, immutable-getter or conclusive-discovery proofs.
+
 The source report distinguishes unavailable Sourcify evidence from Etherscan
 availability, unverified contracts, unsupported chains, authentication failures,
 quota errors and malformed responses. Etherscan fallback preserves existing

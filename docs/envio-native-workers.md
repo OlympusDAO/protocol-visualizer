@@ -297,3 +297,45 @@ repository validation steps before these trials. Astra independently verified
 the comparisons and stored-state equality; Ponytail reviewed the implementation
 and reporting scope. Raw diagnostics remain outside tracked source; the compact
 report retains their hashes, inputs and individual trial timings.
+
+## Metadata inventory corrections
+
+The earlier source report's nine unavailable entries have now been classified:
+seven are the expected deployer/account address on separate chains and are
+explicitly label-only; one was an incorrect Sepolia PriceConfig registration;
+one is a Robinhood registry with a partially verified Blockscout ABI. The report
+retains its historical download outcomes and records the follow-up separately.
+
+The Sepolia PriceConfig is
+[`0x68009f5e809C5A3438438312F8EEFB9F5C73d534`](https://sepolia.etherscan.io/address/0x68009f5e809C5A3438438312F8EEFB9F5C73d534).
+The Olympus deployment inventory identifies it; a fresh canonical finalized RPC
+read confirmed 5,391 bytes of code and its configured Sepolia Kernel. The removed
+`0xf6d5…` address belongs to mainnet and was empty on Sepolia at block 12,054,378.
+The correct Sepolia entry and metadata already existed; only the erroneous
+duplicate registration was removed. Mainnet registration remains intact.
+
+The Robinhood
+[`TokenAdminRegistry`](https://robinhoodchain.blockscout.com/address/0x1912c3cfafe8a76a32a92861d815ac2837f237ca)
+has 5,287 bytes of code and returns `TokenAdminRegistry 1.5.0` in a fresh canonical
+RPC observation. Blockscout's public API succeeded in Chrome while terminal
+access returned HTTP 403. Its captured ABI supplies 16 function selectors and an
+ordinary `owner` getter; partial source verification supplies no lifetime proof.
+The generated inventory now has 269 entries. The 145 discovery receipts, 145
+ordinary deployment descriptors and 40 immutable descriptors are unchanged.
+All 268 previous records remain identical.
+
+These corrections avoid seven recurring miss checks and remove one invalid
+target from broad preparation. The ABI import fills one missing record. They
+have no separately accepted indexing speed percentage; the capacity sweep above
+uses the earlier frozen source. No dependency versions or frontend implementation
+changed. The [runbook](indexer-operations.md#prepare-metadata-before-indexing)
+documents the explicit label flag and reproducible offline import.
+
+Validation passed five focused CLI regressions and the full ordered nine-step
+sequence, including all four application images. The new checks exercise forced
+EOA exclusions across nine chain identities, bulk duplicate selection, preserved
+display labels, the PriceConfig chain correction and offline ABI identity/error
+boundaries. ABI preparation is repeatable across process restarts and preserves
+existing proofs without granting new ones. Fresh address observations used the
+production RPC boundary through a disposable eRPC/PostgreSQL fixture and rechecked
+canonical headers after reading; its resources were cleaned up.

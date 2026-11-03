@@ -204,3 +204,44 @@ Deployment defaults remain unchanged. Selecting four workers requires
 schema. Existing shared-schema databases were not migrated. One supervisor still
 owns the workers' shared failure boundary, and all workers share the same eRPC
 account budget.
+
+## Etherscan source fallback
+
+The earlier 91 unavailable entries were Sourcify misses, not failures across all
+source services. The preparation command now checks Etherscan too when its key is
+configured, with a separate [source coverage report](performance/indexer-metadata-source-coverage.json).
+The controlled preparation checked all 91 misses: **82 returned ABI and source;
+nine were unverified on Etherscan**. No unsupported-chain, authentication, quota
+or malformed-response category occurred in this pass.
+
+The remaining entries are the deployer/DAO-labelled address
+`0x1a5309f208f161a393e8b5a253de8ab894a67188` on seven chains (Ethereum, Arbitrum,
+Base, Berachain, Optimism, Sepolia and Base Sepolia), Sepolia `PriceConfig`
+(`0xf6d5d06a4e8e6904e4360108749c177692f59e90`), and Robinhood `TokenAdminRegistry`
+(`0x1912c3cfafe8a76a32a92861d815ac2837f237ca`). An unverified explorer response
+does not establish whether code exists. Ordinary configured reads remain available.
+
+Preparation added 27 missing ABI metadata entries, bringing the artifact to 268.
+Conclusive deployment discovery remains at 145 receipts, with 145 ordinary and
+40 immutable deployment descriptors. These counts overlap. Etherscan source/ABI
+availability does not establish the compiler/runtime/creation proof needed to
+increase those optimization counts. Existing nonempty metadata and valid proofs
+are retained on fallback; no proxy or similar-match address is followed.
+
+The ordinary Etherscan preparation path now obtains ABI and source from one
+`getsourcecode` response instead of two API requests. CLI regressions verify this,
+conservative proof preservation, missing-ABI enrichment, bounded quota/network
+recovery and exhaustion, response-body timeout recovery, malformed responses,
+credential redaction, no-key/getter-only gating, authentication batch shutdown
+and terminal daily quotas. No worker or RPC-capacity result includes
+these source-preparation changes; no additional indexing gain is claimed here.
+
+The expanded ABI inventory also exposed two missing enablement subscriptions:
+Arbitrum Sepolia `LZCrossChainBridge` (V2 `Transition`) and Sepolia
+`ConvertibleDepositAuctioneerLimitOrders` (V1 `Enabled`/`Disabled`). Fresh Etherscan
+lookups confirmed the exact event types/indexing and boolean `isEnabled` getter,
+with neither proxy nor similar-match indirection. Their existing creation anchors
+are retained, and the addresses now join the corresponding HyperSync subscriptions.
+The existing capability/subscription consistency regression rejected the omission
+and passes after this configuration fix. Neither chain is part of the four-chain
+worker benchmark.

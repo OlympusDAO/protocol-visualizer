@@ -205,6 +205,7 @@ chains:
           - "0x0d33c811d0fcc711bcb388dfb3a152de445be66f"
           - "0x0f953d861347414698f34b75dbfd6e7df1a73493"
           - "0x1d316c489bab10b755cb0562759a6cf285f89814"
+          - "0xc8431feb345b46c30a4576c1b5faf080fdc54e2f"
         start_block: 273448382
       - name: Owned
         address:
@@ -664,6 +665,7 @@ chains:
           - "0x70233d8f47042d3a5813026e2157b5181c608cd0"
           - "0x992ea219636777de4b99b63bbb0b08b90a3d57da"
           - "0xcfe75cca2b7a9354f7c25e889b1216f977dec6a5"
+          - "0xef64bab08c3431bbc527b063354b95d1c5b549b0"
         start_block: 8226491
       - name: Owned
         address:

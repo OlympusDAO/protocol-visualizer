@@ -68,6 +68,7 @@ function parseArgs(args) {
     refreshGetters: false,
     prefetchDeployments: false,
     output: undefined,
+    sourceReport: undefined,
   };
 
   for (let index = 0; index < args.length; index += 1) {
@@ -86,6 +87,11 @@ function parseArgs(args) {
     if (arg === "--output") {
       index += 1;
       options.output = readRequiredArg(args, index, arg);
+      continue;
+    }
+    if (arg === "--source-report") {
+      index += 1;
+      options.sourceReport = readRequiredArg(args, index, arg);
       continue;
     }
     if (arg === "--verified-source") {
@@ -406,7 +412,9 @@ async function fetchEtherscanResult(params) {
   for (let attempt = 1; attempt <= etherscanMaxRetries; attempt += 1) {
     try {
       await waitForEtherscanRequestSlot();
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(30_000),
+      });
       lastEtherscanRequestAt = Date.now();
 
       if (!response.ok) {
@@ -418,35 +426,53 @@ async function fetchEtherscanResult(params) {
           await sleep(retryDelayMs);
           continue;
         }
-        throw new Error(`Etherscan HTTP ${response.status}`);
+        throw etherscanError(`http-${response.status}`);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (error) {
+        if (error instanceof SyntaxError)
+          throw etherscanError("invalid-response");
+        throw error;
+      }
+      if (
+        !data ||
+        typeof data !== "object" ||
+        Array.isArray(data) ||
+        !["0", "1"].includes(data.status)
+      )
+        throw etherscanError("invalid-response");
       if (data.status !== "1") {
-        const message = formatEtherscanApiError(data);
-        if (isRateLimitResponse(data) && attempt < etherscanMaxRetries) {
+        const error = etherscanError(etherscanApiErrorCategory(data));
+        if (
+          error.category !== "daily-quota-exceeded" &&
+          isRateLimitResponse(data) &&
+          attempt < etherscanMaxRetries
+        ) {
           const retryDelayMs = getBackoffDelayMs(attempt, {
             minimumDelayMs: etherscanRateLimitDelayMs,
           });
           console.warn(
-            `${message}; retrying in ${retryDelayMs}ms (${attempt}/${etherscanMaxRetries})`
+            `${error.message}; retrying in ${retryDelayMs}ms (${attempt}/${etherscanMaxRetries})`
           );
           await sleep(retryDelayMs);
           continue;
         }
-        throw new Error(message);
+        throw error;
       }
 
       return data.result;
     } catch (error) {
-      lastError = error;
+      lastError = error.category ? error : etherscanError("network-error");
       if (attempt >= etherscanMaxRetries || !isRetryableNetworkError(error)) {
-        throw error;
+        throw lastError;
       }
 
       const retryDelayMs = getBackoffDelayMs(attempt);
       console.warn(
-        `Etherscan request failed: ${error.message}; retrying in ${retryDelayMs}ms (${attempt}/${etherscanMaxRetries})`
+        `Etherscan request failed; retrying in ${retryDelayMs}ms (${attempt}/${etherscanMaxRetries})`
       );
       await sleep(retryDelayMs);
     }
@@ -455,12 +481,26 @@ async function fetchEtherscanResult(params) {
   throw lastError ?? new Error("Etherscan request failed");
 }
 
-function formatEtherscanApiError(data) {
-  return `Etherscan API error: ${data.message}${data.result ? ` (${data.result})` : ""}`;
+function etherscanError(category) {
+  return Object.assign(new Error(`Etherscan ${category}`), { category });
+}
+
+function etherscanApiErrorCategory(data) {
+  const text =
+    `${data.message ?? ""} ${typeof data.result === "string" ? data.result : ""}`.toLowerCase();
+  if (/daily.*(?:limit|quota)/.test(text)) return "daily-quota-exceeded";
+  if (text.includes("unsupported chain") || text.includes("invalid chain"))
+    return "unsupported-chain";
+  if (isRateLimitResponse(data)) return "rate-limited";
+  if (text.includes("api key") || text.includes("apikey"))
+    return "authentication-error";
+  if (text.includes("not verified")) return "unverified";
+  return "api-error";
 }
 
 function isRateLimitResponse(data) {
-  const text = `${data.message ?? ""} ${data.result ?? ""}`.toLowerCase();
+  const text =
+    `${typeof data.message === "string" ? data.message : ""} ${typeof data.result === "string" ? data.result : ""}`.toLowerCase();
   return (
     text.includes("rate limit") ||
     text.includes("max rate") ||
@@ -499,31 +539,21 @@ function getBackoffDelayMs(attempt, { minimumDelayMs = 0 } = {}) {
 }
 
 function isRetryableNetworkError(error) {
-  const message = error?.message?.toLowerCase() ?? "";
+  const message = [error?.name, error?.message, error?.code, error?.cause?.code]
+    .filter((value) => typeof value === "string")
+    .join(" ")
+    .toLowerCase();
   return (
     message.includes("fetch failed") ||
     message.includes("network") ||
     message.includes("timeout") ||
     message.includes("econnreset") ||
-    message.includes("socket")
+    message.includes("socket") ||
+    message.includes("terminated")
   );
 }
 
-async function fetchContractAbi(chainId, address) {
-  const result = await fetchEtherscanResult(
-    new URLSearchParams({
-      chainid: chainId,
-      module: "contract",
-      action: "getabi",
-      address,
-      apikey: process.env.ETHERSCAN_API_KEY,
-    })
-  );
-
-  return JSON.parse(result);
-}
-
-async function fetchContractSourceCode(chainId, address) {
+async function fetchContractSource(chainId, address) {
   const result = await fetchEtherscanResult(
     new URLSearchParams({
       chainid: chainId,
@@ -533,17 +563,26 @@ async function fetchContractSourceCode(chainId, address) {
       apikey: process.env.ETHERSCAN_API_KEY,
     })
   );
-  const [sourceCodeResponse] = result;
-  if (!sourceCodeResponse?.SourceCode) {
-    throw new Error("Etherscan returned no source code");
-  }
-
+  const sourceCodeResponse = Array.isArray(result) && result[0];
+  if (!sourceCodeResponse || typeof sourceCodeResponse.SourceCode !== "string")
+    throw etherscanError("invalid-response");
   const sourceCode = sourceCodeResponse.SourceCode;
   const trimmedSourceCode = sourceCode.trim();
-  if (trimmedSourceCode.startsWith("{{") && trimmedSourceCode.endsWith("}}")) {
-    return trimmedSourceCode.slice(1, -1);
+  if (!trimmedSourceCode) throw etherscanError("unverified");
+  let abi;
+  try {
+    abi = JSON.parse(sourceCodeResponse.ABI);
+  } catch {
+    throw etherscanError("invalid-response");
   }
-  return sourceCode;
+  if (!Array.isArray(abi)) throw etherscanError("invalid-response");
+  return {
+    abi,
+    sourceCode:
+      trimmedSourceCode.startsWith("{{") && trimmedSourceCode.endsWith("}}")
+        ? trimmedSourceCode.slice(1, -1)
+        : sourceCode,
+  };
 }
 
 function findRoleFromModifier(name, functionDefinition, sourceCode) {
@@ -601,12 +640,19 @@ function processSourceCode(name, sourceCode, processedData) {
 }
 
 async function fetchProcessedContract(contract) {
-  const abi = await fetchContractAbi(contract.chainId, contract.address);
-  const sourceCode = await fetchContractSourceCode(
+  const { abi, sourceCode } = await fetchContractSource(
     contract.chainId,
     contract.address
   );
-  return processSourceCode(contract.name, sourceCode, processAbiMetadata(abi));
+  try {
+    return processSourceCode(
+      contract.name,
+      sourceCode,
+      processAbiMetadata(abi)
+    );
+  } catch {
+    throw etherscanError("invalid-response");
+  }
 }
 
 const existingMetadata = await readJsonIfExists(outputPath, {});
@@ -683,6 +729,9 @@ if (cliOptions.verifiedSource) {
     );
   let unavailable = 0;
   let updated = 0;
+  let etherscanAvailable = 0;
+  let etherscanDisabledReason;
+  const sourceCoverage = [];
   for (const contract of selected) {
     const previous = metadata[contract.chainId]?.[contract.normalizedAddress];
     const functions = Object.values(previous?.functionSelectors ?? {});
@@ -708,7 +757,10 @@ if (cliOptions.verifiedSource) {
       const response = await fetch(url, {
         signal: AbortSignal.timeout(30_000),
       });
-      if (!response.ok) throw new Error(`Sourcify HTTP ${response.status}`);
+      if (!response.ok)
+        throw Object.assign(new Error(`Sourcify HTTP ${response.status}`), {
+          status: response.status,
+        });
       const processed = processVerifiedContractMetadata(
         await response.json(),
         contract.chainId,
@@ -729,15 +781,72 @@ if (cliOptions.verifiedSource) {
         `Verified metadata: ${contract.chainId}:${contract.normalizedAddress} ${contract.name} (${processed.deploymentDiscovery ? "complete discovery" : "partial discovery"})`
       );
     } catch (error) {
-      unavailable++;
+      const coverage = {
+        chainId: Number(contract.chainId),
+        address: contract.normalizedAddress,
+        name: contract.name,
+        sourcify: error.status ? `http-${error.status}` : "unavailable",
+        etherscan: !cliOptions.prefetchDeployments
+          ? "not-attempted"
+          : (etherscanDisabledReason ?? "not-configured"),
+        etherscanAttempted: false,
+        etherscanDeploymentProof: false,
+      };
+      let explorerAvailable = false;
+      if (
+        cliOptions.prefetchDeployments &&
+        !etherscanDisabledReason &&
+        process.env.ETHERSCAN_API_KEY?.trim()
+      ) {
+        coverage.etherscanAttempted = true;
+        try {
+          const processed = await fetchProcessedContract(contract);
+          // ABI/source availability is not compiler/runtime or immutable proof.
+          // Never replace prepared facts or verified documentation on fallback.
+          if (isEmptyMetadataEntry(previous)) {
+            metadata[contract.chainId] ??= {};
+            metadata[contract.chainId][contract.normalizedAddress] = {
+              ...previous,
+              ...processed,
+              addressGetters:
+                previous?.addressGetters ?? processed.addressGetters,
+            };
+          }
+          coverage.etherscan = "available";
+          explorerAvailable = true;
+          etherscanAvailable++;
+          console.log(
+            `Explorer metadata available: ${contract.chainId}:${contract.normalizedAddress} ${contract.name}; no deployment proof added.`
+          );
+        } catch (explorerError) {
+          coverage.etherscan = explorerError.category ?? "invalid-response";
+          if (
+            ["authentication-error", "daily-quota-exceeded"].includes(
+              coverage.etherscan
+            )
+          )
+            etherscanDisabledReason = coverage.etherscan;
+        }
+      }
+      sourceCoverage.push(coverage);
+      if (!explorerAvailable) unavailable++;
       console.warn(
-        `Getter verification unavailable: ${contract.chainId}:${contract.normalizedAddress} ${contract.name}: ${error.message}; retained previous metadata.`
+        `Sourcify verification unavailable: ${contract.chainId}:${contract.normalizedAddress} ${contract.name}: ${error.message}; ${explorerAvailable ? "Etherscan metadata available" : "retained previous metadata"}.`
       );
     }
   }
   console.log(
-    `Getter metadata: ${updated} refreshed, ${unavailable} unavailable, ${selected.length - updated - unavailable} already verified.`
+    `Getter metadata: ${updated} Sourcify refreshed, ${sourceCoverage.length} Sourcify unavailable, ${etherscanAvailable} Etherscan available, ${unavailable} unavailable from configured sources, ${selected.length - updated - sourceCoverage.length} already verified.`
   );
+  if (cliOptions.sourceReport) {
+    await mkdir(path.dirname(path.resolve(cliOptions.sourceReport)), {
+      recursive: true,
+    });
+    await writeFile(
+      path.resolve(cliOptions.sourceReport),
+      `${JSON.stringify({ schemaVersion: 1, sourcifyUnavailable: sourceCoverage.length, etherscanAvailable, unavailable, entries: sourceCoverage }, null, 2)}\n`
+    );
+  }
   if (unavailable && (cliOptions.address || cliOptions.name))
     throw new Error(
       "Requested getter verification unavailable; previous metadata retained"

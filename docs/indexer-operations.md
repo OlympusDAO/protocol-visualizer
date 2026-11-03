@@ -8,12 +8,14 @@ RPC cache deployment and storage belong in [rpc-cache.md](rpc-cache.md).
 Download verified metadata before building the indexer:
 
 ```bash
-ETHERSCAN_MIN_REQUEST_INTERVAL_MS=1000 pnpm run indexer:metadata -- --prefetch-deployments
+ETHERSCAN_MIN_REQUEST_INTERVAL_MS=1000 pnpm run indexer:metadata -- --prefetch-deployments --source-report docs/performance/indexer-metadata-source-coverage.json
 ```
 
 This uses Sourcify's [contract lookup API](https://docs.sourcify.dev/docs/api/),
 including compiler metadata, source files and runtime/deployment evidence. It
-requires no Etherscan key. The existing interval variable also paces this
+works without an Etherscan key. When `ETHERSCAN_API_KEY` is configured, Sourcify
+misses also query Etherscan's `getsourcecode` endpoint for ABI and source in one
+request. The existing interval variable also paces this
 sequential Sourcify loop; the command above permits one request per second.
 It selects registered contracts on the configured indexer chains, including
 non-label external contracts, and writes `apps/indexer/src/generated/contract-metadata.json`.
@@ -45,6 +47,21 @@ Inspect the final summary rather than treating exit zero as complete coverage.
 New or unprepared contracts retain automatic runtime discovery. These cases can
 still contact Sourcify or Etherscan, so their independent runtime limits remain.
 Raising eRPC's RPC budget does not change either metadata service's allowance.
+
+The source report distinguishes unavailable Sourcify evidence from Etherscan
+availability, unverified contracts, unsupported chains, authentication failures,
+quota errors and malformed responses. Etherscan fallback preserves existing
+nonempty metadata and independent proofs. It only fills missing ABI metadata;
+it never follows proxy implementation or similar-match addresses. An explorer
+ABI/source response does not supply compiler immutable references, source maps,
+runtime matching or creation proof, so it cannot create a deployment-discovery
+receipt or an immutable/lifetime fact. Later Sourcify proof discovery remains
+eligible. `--refresh-getters` retains its Sourcify-only verification behavior.
+
+Explorer requests use bounded retries for HTTP/API rate limits, transport errors
+and body-read timeouts. Errors and source reports omit provider-authored error
+text and credential URLs. Authentication failure or exhausted daily quota stops
+further explorer calls for that batch while Sourcify preparation continues.
 
 ## Normal startup
 

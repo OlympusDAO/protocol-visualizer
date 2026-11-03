@@ -41033,6 +41033,201 @@
       },
       "roleToFunctions": {}
     },
+    "0x0b5740c6b4a97f90ef2f0220651cca420b868ffb": {
+      "addressGetters": [],
+      "functionSelectors": {
+        "0x06fdde03": {
+          "canonicalSignature": "name()",
+          "name": "name",
+          "roles": [],
+          "selector": "0x06fdde03",
+          "signature": "name()(string)"
+        },
+        "0x095ea7b3": {
+          "canonicalSignature": "approve(address,uint256)",
+          "name": "approve",
+          "roles": [],
+          "selector": "0x095ea7b3",
+          "signature": "approve(address,uint256)(bool)"
+        },
+        "0x18160ddd": {
+          "canonicalSignature": "totalSupply()",
+          "name": "totalSupply",
+          "roles": [],
+          "selector": "0x18160ddd",
+          "signature": "totalSupply()(uint256)"
+        },
+        "0x23b872dd": {
+          "canonicalSignature": "transferFrom(address,address,uint256)",
+          "name": "transferFrom",
+          "roles": [],
+          "selector": "0x23b872dd",
+          "signature": "transferFrom(address,address,uint256)(bool)"
+        },
+        "0x248a9ca3": {
+          "canonicalSignature": "getRoleAdmin(bytes32)",
+          "name": "getRoleAdmin",
+          "roles": [],
+          "selector": "0x248a9ca3",
+          "signature": "getRoleAdmin(bytes32)(bytes32)"
+        },
+        "0x2f2ff15d": {
+          "canonicalSignature": "grantRole(bytes32,address)",
+          "name": "grantRole",
+          "roles": [],
+          "selector": "0x2f2ff15d",
+          "signature": "grantRole(bytes32,address)()"
+        },
+        "0x313ce567": {
+          "canonicalSignature": "decimals()",
+          "name": "decimals",
+          "roles": [],
+          "selector": "0x313ce567",
+          "signature": "decimals()(uint8)"
+        },
+        "0x3644e515": {
+          "canonicalSignature": "DOMAIN_SEPARATOR()",
+          "name": "DOMAIN_SEPARATOR",
+          "roles": [],
+          "selector": "0x3644e515",
+          "signature": "DOMAIN_SEPARATOR()(bytes32)"
+        },
+        "0x36568abe": {
+          "canonicalSignature": "renounceRole(bytes32,address)",
+          "name": "renounceRole",
+          "roles": [],
+          "selector": "0x36568abe",
+          "signature": "renounceRole(bytes32,address)()"
+        },
+        "0x39509351": {
+          "canonicalSignature": "increaseAllowance(address,uint256)",
+          "name": "increaseAllowance",
+          "roles": [],
+          "selector": "0x39509351",
+          "signature": "increaseAllowance(address,uint256)(bool)"
+        },
+        "0x40c10f19": {
+          "canonicalSignature": "mint(address,uint256)",
+          "name": "mint",
+          "roles": [],
+          "selector": "0x40c10f19",
+          "signature": "mint(address,uint256)()"
+        },
+        "0x42966c68": {
+          "canonicalSignature": "burn(uint256)",
+          "name": "burn",
+          "roles": [],
+          "selector": "0x42966c68",
+          "signature": "burn(uint256)()"
+        },
+        "0x70a08231": {
+          "canonicalSignature": "balanceOf(address)",
+          "name": "balanceOf",
+          "roles": [],
+          "selector": "0x70a08231",
+          "signature": "balanceOf(address)(uint256)"
+        },
+        "0x79cc6790": {
+          "canonicalSignature": "burnFrom(address,uint256)",
+          "name": "burnFrom",
+          "roles": [],
+          "selector": "0x79cc6790",
+          "signature": "burnFrom(address,uint256)()"
+        },
+        "0x7ecebe00": {
+          "canonicalSignature": "nonces(address)",
+          "name": "nonces",
+          "roles": [],
+          "selector": "0x7ecebe00",
+          "signature": "nonces(address)(uint256)"
+        },
+        "0x9010d07c": {
+          "canonicalSignature": "getRoleMember(bytes32,uint256)",
+          "name": "getRoleMember",
+          "roles": [],
+          "selector": "0x9010d07c",
+          "signature": "getRoleMember(bytes32,uint256)(address)"
+        },
+        "0x91d14854": {
+          "canonicalSignature": "hasRole(bytes32,address)",
+          "name": "hasRole",
+          "roles": [],
+          "selector": "0x91d14854",
+          "signature": "hasRole(bytes32,address)(bool)"
+        },
+        "0x95d89b41": {
+          "canonicalSignature": "symbol()",
+          "name": "symbol",
+          "roles": [],
+          "selector": "0x95d89b41",
+          "signature": "symbol()(string)"
+        },
+        "0xa217fddf": {
+          "canonicalSignature": "DEFAULT_ADMIN_ROLE()",
+          "name": "DEFAULT_ADMIN_ROLE",
+          "roles": [],
+          "selector": "0xa217fddf",
+          "signature": "DEFAULT_ADMIN_ROLE()(bytes32)"
+        },
+        "0xa457c2d7": {
+          "canonicalSignature": "decreaseAllowance(address,uint256)",
+          "name": "decreaseAllowance",
+          "roles": [],
+          "selector": "0xa457c2d7",
+          "signature": "decreaseAllowance(address,uint256)(bool)"
+        },
+        "0xa9059cbb": {
+          "canonicalSignature": "transfer(address,uint256)",
+          "name": "transfer",
+          "roles": [],
+          "selector": "0xa9059cbb",
+          "signature": "transfer(address,uint256)(bool)"
+        },
+        "0xca15c873": {
+          "canonicalSignature": "getRoleMemberCount(bytes32)",
+          "name": "getRoleMemberCount",
+          "roles": [],
+          "selector": "0xca15c873",
+          "signature": "getRoleMemberCount(bytes32)(uint256)"
+        },
+        "0xd505accf": {
+          "canonicalSignature": "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)",
+          "name": "permit",
+          "roles": [],
+          "selector": "0xd505accf",
+          "signature": "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)()"
+        },
+        "0xd5391393": {
+          "canonicalSignature": "MINTER_ROLE()",
+          "name": "MINTER_ROLE",
+          "roles": [],
+          "selector": "0xd5391393",
+          "signature": "MINTER_ROLE()(bytes32)"
+        },
+        "0xd547741f": {
+          "canonicalSignature": "revokeRole(bytes32,address)",
+          "name": "revokeRole",
+          "roles": [],
+          "selector": "0xd547741f",
+          "signature": "revokeRole(bytes32,address)()"
+        },
+        "0xdd62ed3e": {
+          "canonicalSignature": "allowance(address,address)",
+          "name": "allowance",
+          "roles": [],
+          "selector": "0xdd62ed3e",
+          "signature": "allowance(address,address)(uint256)"
+        },
+        "0xde7ea79d": {
+          "canonicalSignature": "initialize(string,string,uint8,address)",
+          "name": "initialize",
+          "roles": [],
+          "selector": "0xde7ea79d",
+          "signature": "initialize(string,string,uint8,address)()"
+        }
+      },
+      "roleToFunctions": {}
+    },
     "0x13dfeff85779118136bb9826dcad8f3bd25153a3": {
       "addressGetters": [
         "authority",
@@ -43213,6 +43408,11 @@
         "sourceUrl": "https://sourcify.dev/server/v2/contract/10/0x657c42abe4cd8aa731aec322f871b5b90cf6274f?fields=metadata,sources,sourceIds,runtimeBytecode.onchainBytecode,runtimeBytecode.sourceMap,runtimeBytecode.immutableReferences,deployment.blockNumber,compilation.language,proxyResolution",
         "version": "ordinary-runtime-v1"
       },
+      "roleToFunctions": {}
+    },
+    "0xa8a6ff2606b24f61afa986381d8991dfcccd2d55": {
+      "addressGetters": [],
+      "functionSelectors": {},
       "roleToFunctions": {}
     },
     "0xb1fa0ac44d399b778b14af0aaf4bcf8af3437ad1": {
@@ -45880,6 +46080,11 @@
         "sourceUrl": "https://sourcify.dev/server/v2/contract/4663/0x20a3d8510f2e1176e8db4cea9883a8287a9029db?fields=metadata,sources,sourceIds,runtimeBytecode.onchainBytecode,runtimeBytecode.sourceMap,runtimeBytecode.immutableReferences,deployment.blockNumber,compilation.language,proxyResolution",
         "version": "ordinary-runtime-v1"
       },
+      "roleToFunctions": {}
+    },
+    "0x317e0f5ef883db95f8ffb5b995b8457903873608": {
+      "addressGetters": [],
+      "functionSelectors": {},
       "roleToFunctions": {}
     },
     "0x5261fba7b50aa22b19b9edf939b771d109de991f": {
@@ -48586,6 +48791,11 @@
         "sourceUrl": "https://sourcify.dev/server/v2/contract/4663/0x9f08c2603e919a46d6d98289c9ada5250b310558?fields=metadata,sources,sourceIds,runtimeBytecode.onchainBytecode,runtimeBytecode.sourceMap,runtimeBytecode.immutableReferences,deployment.blockNumber,compilation.language,proxyResolution",
         "version": "ordinary-runtime-v1"
       },
+      "roleToFunctions": {}
+    },
+    "0xa8a6ff2606b24f61afa986381d8991dfcccd2d55": {
+      "addressGetters": [],
+      "functionSelectors": {},
       "roleToFunctions": {}
     },
     "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50": {
@@ -52948,6 +53158,11 @@
         "sourceUrl": "https://sourcify.dev/server/v2/contract/8453/0x6f6c373d09c07425baae72317863d7f6bb731e37?fields=metadata,sources,sourceIds,runtimeBytecode.onchainBytecode,runtimeBytecode.sourceMap,runtimeBytecode.immutableReferences,deployment.blockNumber,compilation.language,proxyResolution",
         "version": "ordinary-runtime-v1"
       },
+      "roleToFunctions": {}
+    },
+    "0xa8a6ff2606b24f61afa986381d8991dfcccd2d55": {
+      "addressGetters": [],
+      "functionSelectors": {},
       "roleToFunctions": {}
     },
     "0xb1fa0ac44d399b778b14af0aaf4bcf8af3437ad1": {
@@ -58333,6 +58548,201 @@
       },
       "roleToFunctions": {}
     },
+    "0x8d9ba570d6cb60c7e3e0f31343efe75ab8e65fb1": {
+      "addressGetters": [],
+      "functionSelectors": {
+        "0x06fdde03": {
+          "canonicalSignature": "name()",
+          "name": "name",
+          "roles": [],
+          "selector": "0x06fdde03",
+          "signature": "name()(string)"
+        },
+        "0x095ea7b3": {
+          "canonicalSignature": "approve(address,uint256)",
+          "name": "approve",
+          "roles": [],
+          "selector": "0x095ea7b3",
+          "signature": "approve(address,uint256)(bool)"
+        },
+        "0x18160ddd": {
+          "canonicalSignature": "totalSupply()",
+          "name": "totalSupply",
+          "roles": [],
+          "selector": "0x18160ddd",
+          "signature": "totalSupply()(uint256)"
+        },
+        "0x23b872dd": {
+          "canonicalSignature": "transferFrom(address,address,uint256)",
+          "name": "transferFrom",
+          "roles": [],
+          "selector": "0x23b872dd",
+          "signature": "transferFrom(address,address,uint256)(bool)"
+        },
+        "0x248a9ca3": {
+          "canonicalSignature": "getRoleAdmin(bytes32)",
+          "name": "getRoleAdmin",
+          "roles": [],
+          "selector": "0x248a9ca3",
+          "signature": "getRoleAdmin(bytes32)(bytes32)"
+        },
+        "0x2f2ff15d": {
+          "canonicalSignature": "grantRole(bytes32,address)",
+          "name": "grantRole",
+          "roles": [],
+          "selector": "0x2f2ff15d",
+          "signature": "grantRole(bytes32,address)()"
+        },
+        "0x313ce567": {
+          "canonicalSignature": "decimals()",
+          "name": "decimals",
+          "roles": [],
+          "selector": "0x313ce567",
+          "signature": "decimals()(uint8)"
+        },
+        "0x3644e515": {
+          "canonicalSignature": "DOMAIN_SEPARATOR()",
+          "name": "DOMAIN_SEPARATOR",
+          "roles": [],
+          "selector": "0x3644e515",
+          "signature": "DOMAIN_SEPARATOR()(bytes32)"
+        },
+        "0x36568abe": {
+          "canonicalSignature": "renounceRole(bytes32,address)",
+          "name": "renounceRole",
+          "roles": [],
+          "selector": "0x36568abe",
+          "signature": "renounceRole(bytes32,address)()"
+        },
+        "0x39509351": {
+          "canonicalSignature": "increaseAllowance(address,uint256)",
+          "name": "increaseAllowance",
+          "roles": [],
+          "selector": "0x39509351",
+          "signature": "increaseAllowance(address,uint256)(bool)"
+        },
+        "0x40c10f19": {
+          "canonicalSignature": "mint(address,uint256)",
+          "name": "mint",
+          "roles": [],
+          "selector": "0x40c10f19",
+          "signature": "mint(address,uint256)()"
+        },
+        "0x42966c68": {
+          "canonicalSignature": "burn(uint256)",
+          "name": "burn",
+          "roles": [],
+          "selector": "0x42966c68",
+          "signature": "burn(uint256)()"
+        },
+        "0x70a08231": {
+          "canonicalSignature": "balanceOf(address)",
+          "name": "balanceOf",
+          "roles": [],
+          "selector": "0x70a08231",
+          "signature": "balanceOf(address)(uint256)"
+        },
+        "0x79cc6790": {
+          "canonicalSignature": "burnFrom(address,uint256)",
+          "name": "burnFrom",
+          "roles": [],
+          "selector": "0x79cc6790",
+          "signature": "burnFrom(address,uint256)()"
+        },
+        "0x7ecebe00": {
+          "canonicalSignature": "nonces(address)",
+          "name": "nonces",
+          "roles": [],
+          "selector": "0x7ecebe00",
+          "signature": "nonces(address)(uint256)"
+        },
+        "0x9010d07c": {
+          "canonicalSignature": "getRoleMember(bytes32,uint256)",
+          "name": "getRoleMember",
+          "roles": [],
+          "selector": "0x9010d07c",
+          "signature": "getRoleMember(bytes32,uint256)(address)"
+        },
+        "0x91d14854": {
+          "canonicalSignature": "hasRole(bytes32,address)",
+          "name": "hasRole",
+          "roles": [],
+          "selector": "0x91d14854",
+          "signature": "hasRole(bytes32,address)(bool)"
+        },
+        "0x95d89b41": {
+          "canonicalSignature": "symbol()",
+          "name": "symbol",
+          "roles": [],
+          "selector": "0x95d89b41",
+          "signature": "symbol()(string)"
+        },
+        "0xa217fddf": {
+          "canonicalSignature": "DEFAULT_ADMIN_ROLE()",
+          "name": "DEFAULT_ADMIN_ROLE",
+          "roles": [],
+          "selector": "0xa217fddf",
+          "signature": "DEFAULT_ADMIN_ROLE()(bytes32)"
+        },
+        "0xa457c2d7": {
+          "canonicalSignature": "decreaseAllowance(address,uint256)",
+          "name": "decreaseAllowance",
+          "roles": [],
+          "selector": "0xa457c2d7",
+          "signature": "decreaseAllowance(address,uint256)(bool)"
+        },
+        "0xa9059cbb": {
+          "canonicalSignature": "transfer(address,uint256)",
+          "name": "transfer",
+          "roles": [],
+          "selector": "0xa9059cbb",
+          "signature": "transfer(address,uint256)(bool)"
+        },
+        "0xca15c873": {
+          "canonicalSignature": "getRoleMemberCount(bytes32)",
+          "name": "getRoleMemberCount",
+          "roles": [],
+          "selector": "0xca15c873",
+          "signature": "getRoleMemberCount(bytes32)(uint256)"
+        },
+        "0xd505accf": {
+          "canonicalSignature": "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)",
+          "name": "permit",
+          "roles": [],
+          "selector": "0xd505accf",
+          "signature": "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)()"
+        },
+        "0xd5391393": {
+          "canonicalSignature": "MINTER_ROLE()",
+          "name": "MINTER_ROLE",
+          "roles": [],
+          "selector": "0xd5391393",
+          "signature": "MINTER_ROLE()(bytes32)"
+        },
+        "0xd547741f": {
+          "canonicalSignature": "revokeRole(bytes32,address)",
+          "name": "revokeRole",
+          "roles": [],
+          "selector": "0xd547741f",
+          "signature": "revokeRole(bytes32,address)()"
+        },
+        "0xdd62ed3e": {
+          "canonicalSignature": "allowance(address,address)",
+          "name": "allowance",
+          "roles": [],
+          "selector": "0xdd62ed3e",
+          "signature": "allowance(address,address)(uint256)"
+        },
+        "0xde7ea79d": {
+          "canonicalSignature": "initialize(string,string,uint8,address)",
+          "name": "initialize",
+          "roles": [],
+          "selector": "0xde7ea79d",
+          "signature": "initialize(string,string,uint8,address)()"
+        }
+      },
+      "roleToFunctions": {}
+    },
     "0x8f6406edbfa393e327822d4a08bcf15503570d87": {
       "addressGetters": ["kernel", "ohm"],
       "deploymentDiscovery": {
@@ -59259,6 +59669,11 @@
         "sourceUrl": "https://sourcify.dev/server/v2/contract/42161/0xa8578c9a73c2b4f75968ec76d6689045ff68b97c?fields=metadata,sources,sourceIds,runtimeBytecode.onchainBytecode,runtimeBytecode.sourceMap,runtimeBytecode.immutableReferences,deployment.blockNumber,compilation.language,proxyResolution",
         "version": "ordinary-runtime-v1"
       },
+      "roleToFunctions": {}
+    },
+    "0xa8a6ff2606b24f61afa986381d8991dfcccd2d55": {
+      "addressGetters": [],
+      "functionSelectors": {},
       "roleToFunctions": {}
     },
     "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50": {
@@ -61017,6 +61432,266 @@
     }
   },
   "80094": {
+    "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0": {
+      "addressGetters": [
+        "authority",
+        "governor",
+        "guardian",
+        "newGovernor",
+        "newGuardian",
+        "newPolicy",
+        "newVault",
+        "policy",
+        "vault"
+      ],
+      "functionSelectors": {
+        "0x0505c8c9": {
+          "canonicalSignature": "policy()",
+          "name": "policy",
+          "roles": [],
+          "selector": "0x0505c8c9",
+          "signature": "policy()(address)"
+        },
+        "0x0c340a24": {
+          "canonicalSignature": "governor()",
+          "name": "governor",
+          "roles": [],
+          "selector": "0x0c340a24",
+          "signature": "governor()(address)"
+        },
+        "0x19859847": {
+          "canonicalSignature": "newGuardian()",
+          "name": "newGuardian",
+          "roles": [],
+          "selector": "0x19859847",
+          "signature": "newGuardian()(address)"
+        },
+        "0x1afe8714": {
+          "canonicalSignature": "pushGuardian(address,bool)",
+          "name": "pushGuardian",
+          "roles": [],
+          "selector": "0x1afe8714",
+          "signature": "pushGuardian(address,bool)()"
+        },
+        "0x215e92bc": {
+          "canonicalSignature": "pullVault()",
+          "name": "pullVault",
+          "roles": [],
+          "selector": "0x215e92bc",
+          "signature": "pullVault()()"
+        },
+        "0x3bf90c28": {
+          "canonicalSignature": "newPolicy()",
+          "name": "newPolicy",
+          "roles": [],
+          "selector": "0x3bf90c28",
+          "signature": "newPolicy()(address)"
+        },
+        "0x452a9320": {
+          "canonicalSignature": "guardian()",
+          "name": "guardian",
+          "roles": [],
+          "selector": "0x452a9320",
+          "signature": "guardian()(address)"
+        },
+        "0x52759694": {
+          "canonicalSignature": "pushGovernor(address,bool)",
+          "name": "pushGovernor",
+          "roles": [],
+          "selector": "0x52759694",
+          "signature": "pushGovernor(address,bool)()"
+        },
+        "0x54e3d703": {
+          "canonicalSignature": "pushPolicy(address,bool)",
+          "name": "pushPolicy",
+          "roles": [],
+          "selector": "0x54e3d703",
+          "signature": "pushPolicy(address,bool)()"
+        },
+        "0x5beede08": {
+          "canonicalSignature": "pullPolicy()",
+          "name": "pullPolicy",
+          "roles": [],
+          "selector": "0x5beede08",
+          "signature": "pullPolicy()()"
+        },
+        "0x6fe72c14": {
+          "canonicalSignature": "pushVault(address,bool)",
+          "name": "pushVault",
+          "roles": [],
+          "selector": "0x6fe72c14",
+          "signature": "pushVault(address,bool)()"
+        },
+        "0x7a9e5e4b": {
+          "canonicalSignature": "setAuthority(address)",
+          "name": "setAuthority",
+          "roles": [],
+          "selector": "0x7a9e5e4b",
+          "signature": "setAuthority(address)()"
+        },
+        "0x88aaf0c8": {
+          "canonicalSignature": "newVault()",
+          "name": "newVault",
+          "roles": [],
+          "selector": "0x88aaf0c8",
+          "signature": "newVault()(address)"
+        },
+        "0x8fd20577": {
+          "canonicalSignature": "newGovernor()",
+          "name": "newGovernor",
+          "roles": [],
+          "selector": "0x8fd20577",
+          "signature": "newGovernor()(address)"
+        },
+        "0xbe11f1dd": {
+          "canonicalSignature": "pullGuardian()",
+          "name": "pullGuardian",
+          "roles": [],
+          "selector": "0xbe11f1dd",
+          "signature": "pullGuardian()()"
+        },
+        "0xbf7e214f": {
+          "canonicalSignature": "authority()",
+          "name": "authority",
+          "roles": [],
+          "selector": "0xbf7e214f",
+          "signature": "authority()(address)"
+        },
+        "0xd8a04212": {
+          "canonicalSignature": "pullGovernor()",
+          "name": "pullGovernor",
+          "roles": [],
+          "selector": "0xd8a04212",
+          "signature": "pullGovernor()()"
+        },
+        "0xfbfa77cf": {
+          "canonicalSignature": "vault()",
+          "name": "vault",
+          "roles": [],
+          "selector": "0xfbfa77cf",
+          "signature": "vault()(address)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0x0944c3fb1db7d165336569221995b31cbe6c8a55": {
+      "addressGetters": ["owner"],
+      "functionSelectors": {
+        "0x10cbcf18": {
+          "canonicalSignature": "removeRegistryModule(address)",
+          "name": "removeRegistryModule",
+          "roles": [],
+          "selector": "0x10cbcf18",
+          "signature": "removeRegistryModule(address)()"
+        },
+        "0x156194da": {
+          "canonicalSignature": "acceptAdminRole(address)",
+          "name": "acceptAdminRole",
+          "roles": [],
+          "selector": "0x156194da",
+          "signature": "acceptAdminRole(address)()"
+        },
+        "0x181f5a77": {
+          "canonicalSignature": "typeAndVersion()",
+          "name": "typeAndVersion",
+          "roles": [],
+          "selector": "0x181f5a77",
+          "signature": "typeAndVersion()(string)"
+        },
+        "0x3dc45772": {
+          "canonicalSignature": "addRegistryModule(address)",
+          "name": "addRegistryModule",
+          "roles": [],
+          "selector": "0x3dc45772",
+          "signature": "addRegistryModule(address)()"
+        },
+        "0x4e847fc7": {
+          "canonicalSignature": "setPool(address,address)",
+          "name": "setPool",
+          "roles": [],
+          "selector": "0x4e847fc7",
+          "signature": "setPool(address,address)()"
+        },
+        "0x5e63547a": {
+          "canonicalSignature": "getPools(address[])",
+          "name": "getPools",
+          "roles": [],
+          "selector": "0x5e63547a",
+          "signature": "getPools(address[])(address[])"
+        },
+        "0x72d64a81": {
+          "canonicalSignature": "getAllConfiguredTokens(uint64,uint64)",
+          "name": "getAllConfiguredTokens",
+          "roles": [],
+          "selector": "0x72d64a81",
+          "signature": "getAllConfiguredTokens(uint64,uint64)(address[])"
+        },
+        "0x79ba5097": {
+          "canonicalSignature": "acceptOwnership()",
+          "name": "acceptOwnership",
+          "roles": [],
+          "selector": "0x79ba5097",
+          "signature": "acceptOwnership()()"
+        },
+        "0x7d3f2552": {
+          "canonicalSignature": "isRegistryModule(address)",
+          "name": "isRegistryModule",
+          "roles": [],
+          "selector": "0x7d3f2552",
+          "signature": "isRegistryModule(address)(bool)"
+        },
+        "0x8da5cb5b": {
+          "canonicalSignature": "owner()",
+          "name": "owner",
+          "roles": [],
+          "selector": "0x8da5cb5b",
+          "signature": "owner()(address)"
+        },
+        "0xbbe4f6db": {
+          "canonicalSignature": "getPool(address)",
+          "name": "getPool",
+          "roles": [],
+          "selector": "0xbbe4f6db",
+          "signature": "getPool(address)(address)"
+        },
+        "0xc1af6e03": {
+          "canonicalSignature": "isAdministrator(address,address)",
+          "name": "isAdministrator",
+          "roles": [],
+          "selector": "0xc1af6e03",
+          "signature": "isAdministrator(address,address)(bool)"
+        },
+        "0xcb67e3b1": {
+          "canonicalSignature": "getTokenConfig(address)",
+          "name": "getTokenConfig",
+          "roles": [],
+          "selector": "0xcb67e3b1",
+          "signature": "getTokenConfig(address)(tuple)"
+        },
+        "0xddadfa8e": {
+          "canonicalSignature": "transferAdminRole(address,address)",
+          "name": "transferAdminRole",
+          "roles": [],
+          "selector": "0xddadfa8e",
+          "signature": "transferAdminRole(address,address)()"
+        },
+        "0xe677ae37": {
+          "canonicalSignature": "proposeAdministrator(address,address)",
+          "name": "proposeAdministrator",
+          "roles": [],
+          "selector": "0xe677ae37",
+          "signature": "proposeAdministrator(address,address)()"
+        },
+        "0xf2fde38b": {
+          "canonicalSignature": "transferOwnership(address)",
+          "name": "transferOwnership",
+          "roles": [],
+          "selector": "0xf2fde38b",
+          "signature": "transferOwnership(address)()"
+        }
+      },
+      "roleToFunctions": {}
+    },
     "0x0d33c811d0fcc711bcb388dfb3a152de445be66f": {
       "functionSelectors": {
         "0x22f3e2d4": {
@@ -61108,6 +61783,145 @@
           "roles": ["custodian"],
           "selector": "0xed60f188",
           "signature": "decreaseDebt(address,address,uint256)()"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0x18878df23e2a36f81e820e4b47b4a40576d3159c": {
+      "addressGetters": ["authority"],
+      "functionSelectors": {
+        "0x06fdde03": {
+          "canonicalSignature": "name()",
+          "name": "name",
+          "roles": [],
+          "selector": "0x06fdde03",
+          "signature": "name()(string)"
+        },
+        "0x095ea7b3": {
+          "canonicalSignature": "approve(address,uint256)",
+          "name": "approve",
+          "roles": [],
+          "selector": "0x095ea7b3",
+          "signature": "approve(address,uint256)(bool)"
+        },
+        "0x18160ddd": {
+          "canonicalSignature": "totalSupply()",
+          "name": "totalSupply",
+          "roles": [],
+          "selector": "0x18160ddd",
+          "signature": "totalSupply()(uint256)"
+        },
+        "0x23b872dd": {
+          "canonicalSignature": "transferFrom(address,address,uint256)",
+          "name": "transferFrom",
+          "roles": [],
+          "selector": "0x23b872dd",
+          "signature": "transferFrom(address,address,uint256)(bool)"
+        },
+        "0x313ce567": {
+          "canonicalSignature": "decimals()",
+          "name": "decimals",
+          "roles": [],
+          "selector": "0x313ce567",
+          "signature": "decimals()(uint8)"
+        },
+        "0x3644e515": {
+          "canonicalSignature": "DOMAIN_SEPARATOR()",
+          "name": "DOMAIN_SEPARATOR",
+          "roles": [],
+          "selector": "0x3644e515",
+          "signature": "DOMAIN_SEPARATOR()(bytes32)"
+        },
+        "0x39509351": {
+          "canonicalSignature": "increaseAllowance(address,uint256)",
+          "name": "increaseAllowance",
+          "roles": [],
+          "selector": "0x39509351",
+          "signature": "increaseAllowance(address,uint256)(bool)"
+        },
+        "0x40c10f19": {
+          "canonicalSignature": "mint(address,uint256)",
+          "name": "mint",
+          "roles": [],
+          "selector": "0x40c10f19",
+          "signature": "mint(address,uint256)()"
+        },
+        "0x42966c68": {
+          "canonicalSignature": "burn(uint256)",
+          "name": "burn",
+          "roles": [],
+          "selector": "0x42966c68",
+          "signature": "burn(uint256)()"
+        },
+        "0x70a08231": {
+          "canonicalSignature": "balanceOf(address)",
+          "name": "balanceOf",
+          "roles": [],
+          "selector": "0x70a08231",
+          "signature": "balanceOf(address)(uint256)"
+        },
+        "0x79cc6790": {
+          "canonicalSignature": "burnFrom(address,uint256)",
+          "name": "burnFrom",
+          "roles": [],
+          "selector": "0x79cc6790",
+          "signature": "burnFrom(address,uint256)()"
+        },
+        "0x7a9e5e4b": {
+          "canonicalSignature": "setAuthority(address)",
+          "name": "setAuthority",
+          "roles": [],
+          "selector": "0x7a9e5e4b",
+          "signature": "setAuthority(address)()"
+        },
+        "0x7ecebe00": {
+          "canonicalSignature": "nonces(address)",
+          "name": "nonces",
+          "roles": [],
+          "selector": "0x7ecebe00",
+          "signature": "nonces(address)(uint256)"
+        },
+        "0x95d89b41": {
+          "canonicalSignature": "symbol()",
+          "name": "symbol",
+          "roles": [],
+          "selector": "0x95d89b41",
+          "signature": "symbol()(string)"
+        },
+        "0xa457c2d7": {
+          "canonicalSignature": "decreaseAllowance(address,uint256)",
+          "name": "decreaseAllowance",
+          "roles": [],
+          "selector": "0xa457c2d7",
+          "signature": "decreaseAllowance(address,uint256)(bool)"
+        },
+        "0xa9059cbb": {
+          "canonicalSignature": "transfer(address,uint256)",
+          "name": "transfer",
+          "roles": [],
+          "selector": "0xa9059cbb",
+          "signature": "transfer(address,uint256)(bool)"
+        },
+        "0xbf7e214f": {
+          "canonicalSignature": "authority()",
+          "name": "authority",
+          "roles": [],
+          "selector": "0xbf7e214f",
+          "signature": "authority()(address)"
+        },
+        "0xd505accf": {
+          "canonicalSignature": "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)",
+          "name": "permit",
+          "roles": [],
+          "selector": "0xd505accf",
+          "signature": "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)()"
+        },
+        "0xdd62ed3e": {
+          "canonicalSignature": "allowance(address,address)",
+          "name": "allowance",
+          "roles": [],
+          "selector": "0xdd62ed3e",
+          "signature": "allowance(address,address)(uint256)"
         }
       },
       "roleToFunctions": {}
@@ -61920,6 +62734,21 @@
           "signature": "modulePermissions(bytes5,address,bytes4)(bool)"
         }
       },
+      "roleToFunctions": {}
+    },
+    "0x91494d1bc2286343d51c55e46ae80c9356d099b5": {
+      "addressGetters": [],
+      "functionSelectors": {},
+      "roleToFunctions": {}
+    },
+    "0xa5ea62894027d981d34bb99a04bd36b818b2aaf0": {
+      "addressGetters": [],
+      "functionSelectors": {},
+      "roleToFunctions": {}
+    },
+    "0xa8a6ff2606b24f61afa986381d8991dfcccd2d55": {
+      "addressGetters": [],
+      "functionSelectors": {},
       "roleToFunctions": {}
     },
     "0xb1fa0ac44d399b778b14af0aaf4bcf8af3437ad1": {
@@ -68148,6 +68977,145 @@
     }
   },
   "421614": {
+    "0x060cb087a9730e13aa191f31a6d86bff8dfcdcc0": {
+      "addressGetters": ["authority"],
+      "functionSelectors": {
+        "0x06fdde03": {
+          "canonicalSignature": "name()",
+          "name": "name",
+          "roles": [],
+          "selector": "0x06fdde03",
+          "signature": "name()(string)"
+        },
+        "0x095ea7b3": {
+          "canonicalSignature": "approve(address,uint256)",
+          "name": "approve",
+          "roles": [],
+          "selector": "0x095ea7b3",
+          "signature": "approve(address,uint256)(bool)"
+        },
+        "0x18160ddd": {
+          "canonicalSignature": "totalSupply()",
+          "name": "totalSupply",
+          "roles": [],
+          "selector": "0x18160ddd",
+          "signature": "totalSupply()(uint256)"
+        },
+        "0x23b872dd": {
+          "canonicalSignature": "transferFrom(address,address,uint256)",
+          "name": "transferFrom",
+          "roles": [],
+          "selector": "0x23b872dd",
+          "signature": "transferFrom(address,address,uint256)(bool)"
+        },
+        "0x313ce567": {
+          "canonicalSignature": "decimals()",
+          "name": "decimals",
+          "roles": [],
+          "selector": "0x313ce567",
+          "signature": "decimals()(uint8)"
+        },
+        "0x3644e515": {
+          "canonicalSignature": "DOMAIN_SEPARATOR()",
+          "name": "DOMAIN_SEPARATOR",
+          "roles": [],
+          "selector": "0x3644e515",
+          "signature": "DOMAIN_SEPARATOR()(bytes32)"
+        },
+        "0x39509351": {
+          "canonicalSignature": "increaseAllowance(address,uint256)",
+          "name": "increaseAllowance",
+          "roles": [],
+          "selector": "0x39509351",
+          "signature": "increaseAllowance(address,uint256)(bool)"
+        },
+        "0x40c10f19": {
+          "canonicalSignature": "mint(address,uint256)",
+          "name": "mint",
+          "roles": [],
+          "selector": "0x40c10f19",
+          "signature": "mint(address,uint256)()"
+        },
+        "0x42966c68": {
+          "canonicalSignature": "burn(uint256)",
+          "name": "burn",
+          "roles": [],
+          "selector": "0x42966c68",
+          "signature": "burn(uint256)()"
+        },
+        "0x70a08231": {
+          "canonicalSignature": "balanceOf(address)",
+          "name": "balanceOf",
+          "roles": [],
+          "selector": "0x70a08231",
+          "signature": "balanceOf(address)(uint256)"
+        },
+        "0x79cc6790": {
+          "canonicalSignature": "burnFrom(address,uint256)",
+          "name": "burnFrom",
+          "roles": [],
+          "selector": "0x79cc6790",
+          "signature": "burnFrom(address,uint256)()"
+        },
+        "0x7a9e5e4b": {
+          "canonicalSignature": "setAuthority(address)",
+          "name": "setAuthority",
+          "roles": [],
+          "selector": "0x7a9e5e4b",
+          "signature": "setAuthority(address)()"
+        },
+        "0x7ecebe00": {
+          "canonicalSignature": "nonces(address)",
+          "name": "nonces",
+          "roles": [],
+          "selector": "0x7ecebe00",
+          "signature": "nonces(address)(uint256)"
+        },
+        "0x95d89b41": {
+          "canonicalSignature": "symbol()",
+          "name": "symbol",
+          "roles": [],
+          "selector": "0x95d89b41",
+          "signature": "symbol()(string)"
+        },
+        "0xa457c2d7": {
+          "canonicalSignature": "decreaseAllowance(address,uint256)",
+          "name": "decreaseAllowance",
+          "roles": [],
+          "selector": "0xa457c2d7",
+          "signature": "decreaseAllowance(address,uint256)(bool)"
+        },
+        "0xa9059cbb": {
+          "canonicalSignature": "transfer(address,uint256)",
+          "name": "transfer",
+          "roles": [],
+          "selector": "0xa9059cbb",
+          "signature": "transfer(address,uint256)(bool)"
+        },
+        "0xbf7e214f": {
+          "canonicalSignature": "authority()",
+          "name": "authority",
+          "roles": [],
+          "selector": "0xbf7e214f",
+          "signature": "authority()(address)"
+        },
+        "0xd505accf": {
+          "canonicalSignature": "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)",
+          "name": "permit",
+          "roles": [],
+          "selector": "0xd505accf",
+          "signature": "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)()"
+        },
+        "0xdd62ed3e": {
+          "canonicalSignature": "allowance(address,address)",
+          "name": "allowance",
+          "roles": [],
+          "selector": "0xdd62ed3e",
+          "signature": "allowance(address,address)(uint256)"
+        }
+      },
+      "roleToFunctions": {}
+    },
     "0x0d33c811d0fcc711bcb388dfb3a152de445be66f": {
       "functionSelectors": {
         "0x01ffc9a7": {
@@ -68586,6 +69554,148 @@
           "roles": [],
           "selector": "0xffa1ad74",
           "signature": "VERSION()(uint8,uint8)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0x13dfeff85779118136bb9826dcad8f3bd25153a3": {
+      "addressGetters": [
+        "authority",
+        "governor",
+        "guardian",
+        "newGovernor",
+        "newGuardian",
+        "newPolicy",
+        "newVault",
+        "policy",
+        "vault"
+      ],
+      "functionSelectors": {
+        "0x0505c8c9": {
+          "canonicalSignature": "policy()",
+          "name": "policy",
+          "roles": [],
+          "selector": "0x0505c8c9",
+          "signature": "policy()(address)"
+        },
+        "0x0c340a24": {
+          "canonicalSignature": "governor()",
+          "name": "governor",
+          "roles": [],
+          "selector": "0x0c340a24",
+          "signature": "governor()(address)"
+        },
+        "0x19859847": {
+          "canonicalSignature": "newGuardian()",
+          "name": "newGuardian",
+          "roles": [],
+          "selector": "0x19859847",
+          "signature": "newGuardian()(address)"
+        },
+        "0x1afe8714": {
+          "canonicalSignature": "pushGuardian(address,bool)",
+          "name": "pushGuardian",
+          "roles": [],
+          "selector": "0x1afe8714",
+          "signature": "pushGuardian(address,bool)()"
+        },
+        "0x215e92bc": {
+          "canonicalSignature": "pullVault()",
+          "name": "pullVault",
+          "roles": [],
+          "selector": "0x215e92bc",
+          "signature": "pullVault()()"
+        },
+        "0x3bf90c28": {
+          "canonicalSignature": "newPolicy()",
+          "name": "newPolicy",
+          "roles": [],
+          "selector": "0x3bf90c28",
+          "signature": "newPolicy()(address)"
+        },
+        "0x452a9320": {
+          "canonicalSignature": "guardian()",
+          "name": "guardian",
+          "roles": [],
+          "selector": "0x452a9320",
+          "signature": "guardian()(address)"
+        },
+        "0x52759694": {
+          "canonicalSignature": "pushGovernor(address,bool)",
+          "name": "pushGovernor",
+          "roles": [],
+          "selector": "0x52759694",
+          "signature": "pushGovernor(address,bool)()"
+        },
+        "0x54e3d703": {
+          "canonicalSignature": "pushPolicy(address,bool)",
+          "name": "pushPolicy",
+          "roles": [],
+          "selector": "0x54e3d703",
+          "signature": "pushPolicy(address,bool)()"
+        },
+        "0x5beede08": {
+          "canonicalSignature": "pullPolicy()",
+          "name": "pullPolicy",
+          "roles": [],
+          "selector": "0x5beede08",
+          "signature": "pullPolicy()()"
+        },
+        "0x6fe72c14": {
+          "canonicalSignature": "pushVault(address,bool)",
+          "name": "pushVault",
+          "roles": [],
+          "selector": "0x6fe72c14",
+          "signature": "pushVault(address,bool)()"
+        },
+        "0x7a9e5e4b": {
+          "canonicalSignature": "setAuthority(address)",
+          "name": "setAuthority",
+          "roles": [],
+          "selector": "0x7a9e5e4b",
+          "signature": "setAuthority(address)()"
+        },
+        "0x88aaf0c8": {
+          "canonicalSignature": "newVault()",
+          "name": "newVault",
+          "roles": [],
+          "selector": "0x88aaf0c8",
+          "signature": "newVault()(address)"
+        },
+        "0x8fd20577": {
+          "canonicalSignature": "newGovernor()",
+          "name": "newGovernor",
+          "roles": [],
+          "selector": "0x8fd20577",
+          "signature": "newGovernor()(address)"
+        },
+        "0xbe11f1dd": {
+          "canonicalSignature": "pullGuardian()",
+          "name": "pullGuardian",
+          "roles": [],
+          "selector": "0xbe11f1dd",
+          "signature": "pullGuardian()()"
+        },
+        "0xbf7e214f": {
+          "canonicalSignature": "authority()",
+          "name": "authority",
+          "roles": [],
+          "selector": "0xbf7e214f",
+          "signature": "authority()(address)"
+        },
+        "0xd8a04212": {
+          "canonicalSignature": "pullGovernor()",
+          "name": "pullGovernor",
+          "roles": [],
+          "selector": "0xd8a04212",
+          "signature": "pullGovernor()()"
+        },
+        "0xfbfa77cf": {
+          "canonicalSignature": "vault()",
+          "name": "vault",
+          "roles": [],
+          "selector": "0xfbfa77cf",
+          "signature": "vault()(address)"
         }
       },
       "roleToFunctions": {}
@@ -69076,6 +70186,193 @@
         }
       },
       "roleToFunctions": {}
+    },
+    "0xc8431feb345b46c30a4576c1b5faf080fdc54e2f": {
+      "addressGetters": [
+        "OHM",
+        "configurator",
+        "gateway",
+        "owner",
+        "reEnabler"
+      ],
+      "functionSelectors": {
+        "0x01ffc9a7": {
+          "canonicalSignature": "supportsInterface(bytes4)",
+          "name": "supportsInterface",
+          "roles": [],
+          "selector": "0x01ffc9a7",
+          "signature": "supportsInterface(bytes4)(bool)"
+        },
+        "0x0c223cc3": {
+          "canonicalSignature": "validateSetGateway(address)",
+          "name": "validateSetGateway",
+          "roles": [],
+          "selector": "0x0c223cc3",
+          "signature": "validateSetGateway(address)()"
+        },
+        "0x0c959556": {
+          "canonicalSignature": "enable(bytes)",
+          "name": "enable",
+          "roles": [],
+          "selector": "0x0c959556",
+          "signature": "enable(bytes)()"
+        },
+        "0x116191b6": {
+          "canonicalSignature": "gateway()",
+          "name": "gateway",
+          "roles": [],
+          "selector": "0x116191b6",
+          "signature": "gateway()(address)"
+        },
+        "0x12b1ca94": {
+          "canonicalSignature": "reEnabler()",
+          "name": "reEnabler",
+          "roles": [],
+          "selector": "0x12b1ca94",
+          "signature": "reEnabler()(address)"
+        },
+        "0x2b507df8": {
+          "canonicalSignature": "configurator()",
+          "name": "configurator",
+          "roles": [],
+          "selector": "0x2b507df8",
+          "signature": "configurator()(address)"
+        },
+        "0x4222ddb6": {
+          "canonicalSignature": "setGracePeriod(uint32)",
+          "name": "setGracePeriod",
+          "roles": [],
+          "selector": "0x4222ddb6",
+          "signature": "setGracePeriod(uint32)()"
+        },
+        "0x44349f3b": {
+          "canonicalSignature": "sendOhm(uint32,address,uint256)",
+          "name": "sendOhm",
+          "roles": [],
+          "selector": "0x44349f3b",
+          "signature": "sendOhm(uint32,address,uint256)()"
+        },
+        "0x4fdf5d1d": {
+          "canonicalSignature": "rescue(address,address)",
+          "name": "rescue",
+          "roles": [],
+          "selector": "0x4fdf5d1d",
+          "signature": "rescue(address,address)()"
+        },
+        "0x5e067734": {
+          "canonicalSignature": "validateSetConfigurator(address)",
+          "name": "validateSetConfigurator",
+          "roles": [],
+          "selector": "0x5e067734",
+          "signature": "validateSetConfigurator(address)()"
+        },
+        "0x5e15f9b4": {
+          "canonicalSignature": "receivable(uint32)",
+          "name": "receivable",
+          "roles": [],
+          "selector": "0x5e15f9b4",
+          "signature": "receivable(uint32)(uint256,uint256)"
+        },
+        "0x6aa633b6": {
+          "canonicalSignature": "isEnabled()",
+          "name": "isEnabled",
+          "roles": [],
+          "selector": "0x6aa633b6",
+          "signature": "isEnabled()(bool)"
+        },
+        "0x6be00aec": {
+          "canonicalSignature": "sendable(uint32)",
+          "name": "sendable",
+          "roles": [],
+          "selector": "0x6be00aec",
+          "signature": "sendable(uint32)(uint256,uint256)"
+        },
+        "0x7382f13b": {
+          "canonicalSignature": "reEnable()",
+          "name": "reEnable",
+          "roles": [],
+          "selector": "0x7382f13b",
+          "signature": "reEnable()()"
+        },
+        "0x8da5cb5b": {
+          "canonicalSignature": "owner()",
+          "name": "owner",
+          "roles": [],
+          "selector": "0x8da5cb5b",
+          "signature": "owner()(address)"
+        },
+        "0x8fc925aa": {
+          "canonicalSignature": "disable(bytes)",
+          "name": "disable",
+          "roles": [],
+          "selector": "0x8fc925aa",
+          "signature": "disable(bytes)()"
+        },
+        "0x90646b4a": {
+          "canonicalSignature": "setGateway(address)",
+          "name": "setGateway",
+          "roles": [],
+          "selector": "0x90646b4a",
+          "signature": "setGateway(address)()"
+        },
+        "0x9f5f86ae": {
+          "canonicalSignature": "setConfigurator(address)",
+          "name": "setConfigurator",
+          "roles": [],
+          "selector": "0x9f5f86ae",
+          "signature": "setConfigurator(address)()"
+        },
+        "0xa06db7dc": {
+          "canonicalSignature": "gracePeriod()",
+          "name": "gracePeriod",
+          "roles": [],
+          "selector": "0xa06db7dc",
+          "signature": "gracePeriod()(uint32)"
+        },
+        "0xa6c41fec": {
+          "canonicalSignature": "OHM()",
+          "name": "OHM",
+          "roles": [],
+          "selector": "0xa6c41fec",
+          "signature": "OHM()(address)"
+        },
+        "0xb7452dd5": {
+          "canonicalSignature": "lastTransitionAt()",
+          "name": "lastTransitionAt",
+          "roles": [],
+          "selector": "0xb7452dd5",
+          "signature": "lastTransitionAt()(uint48)"
+        },
+        "0xbc8ec4ec": {
+          "canonicalSignature": "setReEnabler(address)",
+          "name": "setReEnabler",
+          "roles": [],
+          "selector": "0xbc8ec4ec",
+          "signature": "setReEnabler(address)()"
+        },
+        "0xf070be2f": {
+          "canonicalSignature": "estimateSendFee(uint32,address,uint256)",
+          "name": "estimateSendFee",
+          "roles": [],
+          "selector": "0xf070be2f",
+          "signature": "estimateSendFee(uint32,address,uint256)(tuple)"
+        },
+        "0xf2fde38b": {
+          "canonicalSignature": "transferOwnership(address)",
+          "name": "transferOwnership",
+          "roles": [],
+          "selector": "0xf2fde38b",
+          "signature": "transferOwnership(address)()"
+        },
+        "0xffa1ad74": {
+          "canonicalSignature": "VERSION()",
+          "name": "VERSION",
+          "roles": [],
+          "selector": "0xffa1ad74",
+          "signature": "VERSION()(uint8,uint8)"
+        }
+      },
+      "roleToFunctions": {}
     }
   },
   "11155111": {
@@ -69362,6 +70659,228 @@
           "roles": [],
           "selector": "0xffa1ad74",
           "signature": "VERSION()(uint8,uint8)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0x0db48fa20894273cf6bb559644d63713e98fe67b": {
+      "addressGetters": ["staking"],
+      "functionSelectors": {
+        "0x0c7d3931": {
+          "canonicalSignature": "triggerRebase()",
+          "name": "triggerRebase",
+          "roles": [],
+          "selector": "0x0c7d3931",
+          "signature": "triggerRebase()()"
+        },
+        "0x4cf088d9": {
+          "canonicalSignature": "staking()",
+          "name": "staking",
+          "roles": [],
+          "selector": "0x4cf088d9",
+          "signature": "staking()(address)"
+        },
+        "0xe4fc6b6d": {
+          "canonicalSignature": "distribute()",
+          "name": "distribute",
+          "roles": [],
+          "selector": "0xe4fc6b6d",
+          "signature": "distribute()()"
+        },
+        "0xe7187e8a": {
+          "canonicalSignature": "retrieveBounty()",
+          "name": "retrieveBounty",
+          "roles": [],
+          "selector": "0xe7187e8a",
+          "signature": "retrieveBounty()(uint256)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0x0f7f33f915b29476ca2b2606c8a3e06a5fc7e896": {
+      "addressGetters": ["approved", "sOHM"],
+      "functionSelectors": {
+        "0x06fdde03": {
+          "canonicalSignature": "name()",
+          "name": "name",
+          "roles": [],
+          "selector": "0x06fdde03",
+          "signature": "name()(string)"
+        },
+        "0x095ea7b3": {
+          "canonicalSignature": "approve(address,uint256)",
+          "name": "approve",
+          "roles": [],
+          "selector": "0x095ea7b3",
+          "signature": "approve(address,uint256)(bool)"
+        },
+        "0x0cdfebfa": {
+          "canonicalSignature": "checkpoints(address,uint256)",
+          "name": "checkpoints",
+          "roles": [],
+          "selector": "0x0cdfebfa",
+          "signature": "checkpoints(address,uint256)(uint256,uint256)"
+        },
+        "0x1068361f": {
+          "canonicalSignature": "migrate(address,address)",
+          "name": "migrate",
+          "roles": [],
+          "selector": "0x1068361f",
+          "signature": "migrate(address,address)()"
+        },
+        "0x15079925": {
+          "canonicalSignature": "sOHM()",
+          "name": "sOHM",
+          "roles": [],
+          "selector": "0x15079925",
+          "signature": "sOHM()(address)"
+        },
+        "0x18160ddd": {
+          "canonicalSignature": "totalSupply()",
+          "name": "totalSupply",
+          "roles": [],
+          "selector": "0x18160ddd",
+          "signature": "totalSupply()(uint256)"
+        },
+        "0x19d40b08": {
+          "canonicalSignature": "approved()",
+          "name": "approved",
+          "roles": [],
+          "selector": "0x19d40b08",
+          "signature": "approved()(address)"
+        },
+        "0x23b872dd": {
+          "canonicalSignature": "transferFrom(address,address,uint256)",
+          "name": "transferFrom",
+          "roles": [],
+          "selector": "0x23b872dd",
+          "signature": "transferFrom(address,address,uint256)(bool)"
+        },
+        "0x2986c0e5": {
+          "canonicalSignature": "index()",
+          "name": "index",
+          "roles": [],
+          "selector": "0x2986c0e5",
+          "signature": "index()(uint256)"
+        },
+        "0x2c678c64": {
+          "canonicalSignature": "migrated()",
+          "name": "migrated",
+          "roles": [],
+          "selector": "0x2c678c64",
+          "signature": "migrated()(bool)"
+        },
+        "0x313ce567": {
+          "canonicalSignature": "decimals()",
+          "name": "decimals",
+          "roles": [],
+          "selector": "0x313ce567",
+          "signature": "decimals()(uint8)"
+        },
+        "0x39509351": {
+          "canonicalSignature": "increaseAllowance(address,uint256)",
+          "name": "increaseAllowance",
+          "roles": [],
+          "selector": "0x39509351",
+          "signature": "increaseAllowance(address,uint256)(bool)"
+        },
+        "0x40c10f19": {
+          "canonicalSignature": "mint(address,uint256)",
+          "name": "mint",
+          "roles": [],
+          "selector": "0x40c10f19",
+          "signature": "mint(address,uint256)()"
+        },
+        "0x587cde1e": {
+          "canonicalSignature": "delegates(address)",
+          "name": "delegates",
+          "roles": [],
+          "selector": "0x587cde1e",
+          "signature": "delegates(address)(address)"
+        },
+        "0x5c19a95c": {
+          "canonicalSignature": "delegate(address)",
+          "name": "delegate",
+          "roles": [],
+          "selector": "0x5c19a95c",
+          "signature": "delegate(address)()"
+        },
+        "0x66a5236c": {
+          "canonicalSignature": "balanceTo(uint256)",
+          "name": "balanceTo",
+          "roles": [],
+          "selector": "0x66a5236c",
+          "signature": "balanceTo(uint256)(uint256)"
+        },
+        "0x6fcfff45": {
+          "canonicalSignature": "numCheckpoints(address)",
+          "name": "numCheckpoints",
+          "roles": [],
+          "selector": "0x6fcfff45",
+          "signature": "numCheckpoints(address)(uint256)"
+        },
+        "0x70a08231": {
+          "canonicalSignature": "balanceOf(address)",
+          "name": "balanceOf",
+          "roles": [],
+          "selector": "0x70a08231",
+          "signature": "balanceOf(address)(uint256)"
+        },
+        "0x782d6fe1": {
+          "canonicalSignature": "getPriorVotes(address,uint256)",
+          "name": "getPriorVotes",
+          "roles": [],
+          "selector": "0x782d6fe1",
+          "signature": "getPriorVotes(address,uint256)(uint256)"
+        },
+        "0x95d89b41": {
+          "canonicalSignature": "symbol()",
+          "name": "symbol",
+          "roles": [],
+          "selector": "0x95d89b41",
+          "signature": "symbol()(string)"
+        },
+        "0x9dc29fac": {
+          "canonicalSignature": "burn(address,uint256)",
+          "name": "burn",
+          "roles": [],
+          "selector": "0x9dc29fac",
+          "signature": "burn(address,uint256)()"
+        },
+        "0xa457c2d7": {
+          "canonicalSignature": "decreaseAllowance(address,uint256)",
+          "name": "decreaseAllowance",
+          "roles": [],
+          "selector": "0xa457c2d7",
+          "signature": "decreaseAllowance(address,uint256)(bool)"
+        },
+        "0xa8248768": {
+          "canonicalSignature": "balanceFrom(uint256)",
+          "name": "balanceFrom",
+          "roles": [],
+          "selector": "0xa8248768",
+          "signature": "balanceFrom(uint256)(uint256)"
+        },
+        "0xa9059cbb": {
+          "canonicalSignature": "transfer(address,uint256)",
+          "name": "transfer",
+          "roles": [],
+          "selector": "0xa9059cbb",
+          "signature": "transfer(address,uint256)(bool)"
+        },
+        "0xb4b5ea57": {
+          "canonicalSignature": "getCurrentVotes(address)",
+          "name": "getCurrentVotes",
+          "roles": [],
+          "selector": "0xb4b5ea57",
+          "signature": "getCurrentVotes(address)(uint256)"
+        },
+        "0xdd62ed3e": {
+          "canonicalSignature": "allowance(address,address)",
+          "name": "allowance",
+          "roles": [],
+          "selector": "0xdd62ed3e",
+          "signature": "allowance(address,address)(uint256)"
         }
       },
       "roleToFunctions": {}
@@ -72467,6 +73986,89 @@
       },
       "roleToFunctions": {}
     },
+    "0x4b0bba51ce44175a9766f7e55e3d122a9f4be78e": {
+      "addressGetters": ["executor"],
+      "functionSelectors": {
+        "0x000dd95d": {
+          "canonicalSignature": "moduleDependents(bytes5,uint256)",
+          "name": "moduleDependents",
+          "roles": [],
+          "selector": "0x000dd95d",
+          "signature": "moduleDependents(bytes5,uint256)(address)"
+        },
+        "0x03c02f42": {
+          "canonicalSignature": "getDependentIndex(bytes5,address)",
+          "name": "getDependentIndex",
+          "roles": [],
+          "selector": "0x03c02f42",
+          "signature": "getDependentIndex(bytes5,address)(uint256)"
+        },
+        "0x5af099c9": {
+          "canonicalSignature": "activePolicies(uint256)",
+          "name": "activePolicies",
+          "roles": [],
+          "selector": "0x5af099c9",
+          "signature": "activePolicies(uint256)(address)"
+        },
+        "0x63a6e3b5": {
+          "canonicalSignature": "getPolicyIndex(address)",
+          "name": "getPolicyIndex",
+          "roles": [],
+          "selector": "0x63a6e3b5",
+          "signature": "getPolicyIndex(address)(uint256)"
+        },
+        "0xae5f76fa": {
+          "canonicalSignature": "getKeycodeForModule(address)",
+          "name": "getKeycodeForModule",
+          "roles": [],
+          "selector": "0xae5f76fa",
+          "signature": "getKeycodeForModule(address)(bytes5)"
+        },
+        "0xb4dc00b4": {
+          "canonicalSignature": "getModuleForKeycode(bytes5)",
+          "name": "getModuleForKeycode",
+          "roles": [],
+          "selector": "0xb4dc00b4",
+          "signature": "getModuleForKeycode(bytes5)(address)"
+        },
+        "0xc34c08e5": {
+          "canonicalSignature": "executor()",
+          "name": "executor",
+          "roles": [],
+          "selector": "0xc34c08e5",
+          "signature": "executor()(address)"
+        },
+        "0xc4d1f8f1": {
+          "canonicalSignature": "executeAction(uint8,address)",
+          "name": "executeAction",
+          "roles": [],
+          "selector": "0xc4d1f8f1",
+          "signature": "executeAction(uint8,address)()"
+        },
+        "0xdbb61ee7": {
+          "canonicalSignature": "allKeycodes(uint256)",
+          "name": "allKeycodes",
+          "roles": [],
+          "selector": "0xdbb61ee7",
+          "signature": "allKeycodes(uint256)(bytes5)"
+        },
+        "0xe52223bb": {
+          "canonicalSignature": "isPolicyActive(address)",
+          "name": "isPolicyActive",
+          "roles": [],
+          "selector": "0xe52223bb",
+          "signature": "isPolicyActive(address)(bool)"
+        },
+        "0xf166d9eb": {
+          "canonicalSignature": "modulePermissions(bytes5,address,bytes4)",
+          "name": "modulePermissions",
+          "roles": [],
+          "selector": "0xf166d9eb",
+          "signature": "modulePermissions(bytes5,address,bytes4)(bool)"
+        }
+      },
+      "roleToFunctions": {}
+    },
     "0x5261fba7b50aa22b19b9edf939b771d109de991f": {
       "functionSelectors": {
         "0x01ffc9a7": {
@@ -75110,6 +76712,648 @@
           "signature": "VERSION()(uint8,uint8)"
         }
       },
+      "roleToFunctions": {}
+    },
+    "0x7aee38dbb5465a05ee809d00d1c34db76f8c5b72": {
+      "addressGetters": ["gOHM", "stakingContract", "treasury"],
+      "functionSelectors": {
+        "0x058ecdb4": {
+          "canonicalSignature": "rebase(uint256,uint256)",
+          "name": "rebase",
+          "roles": [],
+          "selector": "0x058ecdb4",
+          "signature": "rebase(uint256,uint256)(uint256)"
+        },
+        "0x06fdde03": {
+          "canonicalSignature": "name()",
+          "name": "name",
+          "roles": [],
+          "selector": "0x06fdde03",
+          "signature": "name()(string)"
+        },
+        "0x095be818": {
+          "canonicalSignature": "toG(uint256)",
+          "name": "toG",
+          "roles": [],
+          "selector": "0x095be818",
+          "signature": "toG(uint256)(uint256)"
+        },
+        "0x095ea7b3": {
+          "canonicalSignature": "approve(address,uint256)",
+          "name": "approve",
+          "roles": [],
+          "selector": "0x095ea7b3",
+          "signature": "approve(address,uint256)(bool)"
+        },
+        "0x0cd30585": {
+          "canonicalSignature": "gOHM()",
+          "name": "gOHM",
+          "roles": [],
+          "selector": "0x0cd30585",
+          "signature": "gOHM()(address)"
+        },
+        "0x18160ddd": {
+          "canonicalSignature": "totalSupply()",
+          "name": "totalSupply",
+          "roles": [],
+          "selector": "0x18160ddd",
+          "signature": "totalSupply()(uint256)"
+        },
+        "0x1bd39674": {
+          "canonicalSignature": "gonsForBalance(uint256)",
+          "name": "gonsForBalance",
+          "roles": [],
+          "selector": "0x1bd39674",
+          "signature": "gonsForBalance(uint256)(uint256)"
+        },
+        "0x23b872dd": {
+          "canonicalSignature": "transferFrom(address,address,uint256)",
+          "name": "transferFrom",
+          "roles": [],
+          "selector": "0x23b872dd",
+          "signature": "transferFrom(address,address,uint256)(bool)"
+        },
+        "0x245c0e99": {
+          "canonicalSignature": "setgOHM(address)",
+          "name": "setgOHM",
+          "roles": [],
+          "selector": "0x245c0e99",
+          "signature": "setgOHM(address)()"
+        },
+        "0x2986c0e5": {
+          "canonicalSignature": "index()",
+          "name": "index",
+          "roles": [],
+          "selector": "0x2986c0e5",
+          "signature": "index()(uint256)"
+        },
+        "0x313ce567": {
+          "canonicalSignature": "decimals()",
+          "name": "decimals",
+          "roles": [],
+          "selector": "0x313ce567",
+          "signature": "decimals()(uint8)"
+        },
+        "0x3644e515": {
+          "canonicalSignature": "DOMAIN_SEPARATOR()",
+          "name": "DOMAIN_SEPARATOR",
+          "roles": [],
+          "selector": "0x3644e515",
+          "signature": "DOMAIN_SEPARATOR()(bytes32)"
+        },
+        "0x39509351": {
+          "canonicalSignature": "increaseAllowance(address,uint256)",
+          "name": "increaseAllowance",
+          "roles": [],
+          "selector": "0x39509351",
+          "signature": "increaseAllowance(address,uint256)(bool)"
+        },
+        "0x40a5737f": {
+          "canonicalSignature": "setIndex(uint256)",
+          "name": "setIndex",
+          "roles": [],
+          "selector": "0x40a5737f",
+          "signature": "setIndex(uint256)()"
+        },
+        "0x485cc955": {
+          "canonicalSignature": "initialize(address,address)",
+          "name": "initialize",
+          "roles": [],
+          "selector": "0x485cc955",
+          "signature": "initialize(address,address)()"
+        },
+        "0x61d027b3": {
+          "canonicalSignature": "treasury()",
+          "name": "treasury",
+          "roles": [],
+          "selector": "0x61d027b3",
+          "signature": "treasury()(address)"
+        },
+        "0x70a08231": {
+          "canonicalSignature": "balanceOf(address)",
+          "name": "balanceOf",
+          "roles": [],
+          "selector": "0x70a08231",
+          "signature": "balanceOf(address)(uint256)"
+        },
+        "0x73c69eb7": {
+          "canonicalSignature": "rebases(uint256)",
+          "name": "rebases",
+          "roles": [],
+          "selector": "0x73c69eb7",
+          "signature": "rebases(uint256)(uint256,uint256,uint256,uint256,uint256,uint256,uint256)"
+        },
+        "0x7965d56d": {
+          "canonicalSignature": "balanceForGons(uint256)",
+          "name": "balanceForGons",
+          "roles": [],
+          "selector": "0x7965d56d",
+          "signature": "balanceForGons(uint256)(uint256)"
+        },
+        "0x7ecebe00": {
+          "canonicalSignature": "nonces(address)",
+          "name": "nonces",
+          "roles": [],
+          "selector": "0x7ecebe00",
+          "signature": "nonces(address)(uint256)"
+        },
+        "0x9358928b": {
+          "canonicalSignature": "circulatingSupply()",
+          "name": "circulatingSupply",
+          "roles": [],
+          "selector": "0x9358928b",
+          "signature": "circulatingSupply()(uint256)"
+        },
+        "0x95d89b41": {
+          "canonicalSignature": "symbol()",
+          "name": "symbol",
+          "roles": [],
+          "selector": "0x95d89b41",
+          "signature": "symbol()(string)"
+        },
+        "0xa457c2d7": {
+          "canonicalSignature": "decreaseAllowance(address,uint256)",
+          "name": "decreaseAllowance",
+          "roles": [],
+          "selector": "0xa457c2d7",
+          "signature": "decreaseAllowance(address,uint256)(bool)"
+        },
+        "0xa9059cbb": {
+          "canonicalSignature": "transfer(address,uint256)",
+          "name": "transfer",
+          "roles": [],
+          "selector": "0xa9059cbb",
+          "signature": "transfer(address,uint256)(bool)"
+        },
+        "0xae5c6cd3": {
+          "canonicalSignature": "changeDebt(uint256,address,bool)",
+          "name": "changeDebt",
+          "roles": [],
+          "selector": "0xae5c6cd3",
+          "signature": "changeDebt(uint256,address,bool)()"
+        },
+        "0xb8fbd533": {
+          "canonicalSignature": "fromG(uint256)",
+          "name": "fromG",
+          "roles": [],
+          "selector": "0xb8fbd533",
+          "signature": "fromG(uint256)(uint256)"
+        },
+        "0xc4ef1c4c": {
+          "canonicalSignature": "debtBalances(address)",
+          "name": "debtBalances",
+          "roles": [],
+          "selector": "0xc4ef1c4c",
+          "signature": "debtBalances(address)(uint256)"
+        },
+        "0xd505accf": {
+          "canonicalSignature": "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)",
+          "name": "permit",
+          "roles": [],
+          "selector": "0xd505accf",
+          "signature": "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)()"
+        },
+        "0xdd62ed3e": {
+          "canonicalSignature": "allowance(address,address)",
+          "name": "allowance",
+          "roles": [],
+          "selector": "0xdd62ed3e",
+          "signature": "allowance(address,address)(uint256)"
+        },
+        "0xee99205c": {
+          "canonicalSignature": "stakingContract()",
+          "name": "stakingContract",
+          "roles": [],
+          "selector": "0xee99205c",
+          "signature": "stakingContract()(address)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0x7e655891ce813887613ee4eef0b9610f7a243144": {
+      "addressGetters": [
+        "CD_AUCTIONEER",
+        "CD_FACILITY",
+        "DEPOSIT_MANAGER",
+        "EMISSION_MANAGER",
+        "HEART",
+        "OPERATOR",
+        "REDEMPTION_VAULT",
+        "RESERVE_MIGRATOR",
+        "RESERVE_WRAPPER",
+        "SUSDS",
+        "USDS",
+        "YIELD_REPURCHASE_FACILITY",
+        "owner"
+      ],
+      "functionSelectors": {
+        "0x04e5dbfb": {
+          "canonicalSignature": "EM_TICK_SIZE()",
+          "name": "EM_TICK_SIZE",
+          "roles": [],
+          "selector": "0x04e5dbfb",
+          "signature": "EM_TICK_SIZE()(uint256)"
+        },
+        "0x075ed645": {
+          "canonicalSignature": "CDA_INITIAL_TICK_SIZE_BASE()",
+          "name": "CDA_INITIAL_TICK_SIZE_BASE",
+          "roles": [],
+          "selector": "0x075ed645",
+          "signature": "CDA_INITIAL_TICK_SIZE_BASE()(uint256)"
+        },
+        "0x085021a2": {
+          "canonicalSignature": "RESERVE_MIGRATOR()",
+          "name": "RESERVE_MIGRATOR",
+          "roles": [],
+          "selector": "0x085021a2",
+          "signature": "RESERVE_MIGRATOR()(address)"
+        },
+        "0x0e163a5b": {
+          "canonicalSignature": "EM_BASE_EMISSIONS_RATE()",
+          "name": "EM_BASE_EMISSIONS_RATE",
+          "roles": [],
+          "selector": "0x0e163a5b",
+          "signature": "EM_BASE_EMISSIONS_RATE()(uint256)"
+        },
+        "0x0f15f4c0": {
+          "canonicalSignature": "activate()",
+          "name": "activate",
+          "roles": [],
+          "selector": "0x0f15f4c0",
+          "signature": "activate()()"
+        },
+        "0x19026381": {
+          "canonicalSignature": "CDA_MINIMUM_BID()",
+          "name": "CDA_MINIMUM_BID",
+          "roles": [],
+          "selector": "0x19026381",
+          "signature": "CDA_MINIMUM_BID()(uint256)"
+        },
+        "0x24357799": {
+          "canonicalSignature": "PERIOD_2M()",
+          "name": "PERIOD_2M",
+          "roles": [],
+          "selector": "0x24357799",
+          "signature": "PERIOD_2M()(uint8)"
+        },
+        "0x24c5037a": {
+          "canonicalSignature": "CDA_INITIAL_TICK_STEP_MULTIPLIER()",
+          "name": "CDA_INITIAL_TICK_STEP_MULTIPLIER",
+          "roles": [],
+          "selector": "0x24c5037a",
+          "signature": "CDA_INITIAL_TICK_STEP_MULTIPLIER()(uint24)"
+        },
+        "0x37a9c983": {
+          "canonicalSignature": "DEPOSIT_MANAGER()",
+          "name": "DEPOSIT_MANAGER",
+          "roles": [],
+          "selector": "0x37a9c983",
+          "signature": "DEPOSIT_MANAGER()(address)"
+        },
+        "0x40a9b2d3": {
+          "canonicalSignature": "CD_AUCTIONEER()",
+          "name": "CD_AUCTIONEER",
+          "roles": [],
+          "selector": "0x40a9b2d3",
+          "signature": "CD_AUCTIONEER()(address)"
+        },
+        "0x455d4213": {
+          "canonicalSignature": "EM_RESTART_TIMEFRAME()",
+          "name": "EM_RESTART_TIMEFRAME",
+          "roles": [],
+          "selector": "0x455d4213",
+          "signature": "EM_RESTART_TIMEFRAME()(uint48)"
+        },
+        "0x467e8f16": {
+          "canonicalSignature": "CDA_INITIAL_MIN_PRICE()",
+          "name": "CDA_INITIAL_MIN_PRICE",
+          "roles": [],
+          "selector": "0x467e8f16",
+          "signature": "CDA_INITIAL_MIN_PRICE()(uint256)"
+        },
+        "0x47585a51": {
+          "canonicalSignature": "USDS_MAX_CAPACITY()",
+          "name": "USDS_MAX_CAPACITY",
+          "roles": [],
+          "selector": "0x47585a51",
+          "signature": "USDS_MAX_CAPACITY()(uint256)"
+        },
+        "0x4a8c1fb4": {
+          "canonicalSignature": "isActivated()",
+          "name": "isActivated",
+          "roles": [],
+          "selector": "0x4a8c1fb4",
+          "signature": "isActivated()(bool)"
+        },
+        "0x4f64db77": {
+          "canonicalSignature": "USDS_MIN_DEPOSIT()",
+          "name": "USDS_MIN_DEPOSIT",
+          "roles": [],
+          "selector": "0x4f64db77",
+          "signature": "USDS_MIN_DEPOSIT()(uint256)"
+        },
+        "0x5b83b174": {
+          "canonicalSignature": "RESERVE_WRAPPER()",
+          "name": "RESERVE_WRAPPER",
+          "roles": [],
+          "selector": "0x5b83b174",
+          "signature": "RESERVE_WRAPPER()(address)"
+        },
+        "0x619a8477": {
+          "canonicalSignature": "EM_MIN_PRICE_SCALAR()",
+          "name": "EM_MIN_PRICE_SCALAR",
+          "roles": [],
+          "selector": "0x619a8477",
+          "signature": "EM_MIN_PRICE_SCALAR()(uint256)"
+        },
+        "0x63b2a300": {
+          "canonicalSignature": "CD_NAME()",
+          "name": "CD_NAME",
+          "roles": [],
+          "selector": "0x63b2a300",
+          "signature": "CD_NAME()(string)"
+        },
+        "0x8da5cb5b": {
+          "canonicalSignature": "owner()",
+          "name": "owner",
+          "roles": [],
+          "selector": "0x8da5cb5b",
+          "signature": "owner()(address)"
+        },
+        "0x919209e2": {
+          "canonicalSignature": "CDA_INITIAL_TICK_SIZE()",
+          "name": "CDA_INITIAL_TICK_SIZE",
+          "roles": [],
+          "selector": "0x919209e2",
+          "signature": "CDA_INITIAL_TICK_SIZE()(uint256)"
+        },
+        "0x983d2737": {
+          "canonicalSignature": "OPERATOR()",
+          "name": "OPERATOR",
+          "roles": [],
+          "selector": "0x983d2737",
+          "signature": "OPERATOR()(address)"
+        },
+        "0x9ad2cd34": {
+          "canonicalSignature": "CDA_AUCTION_TRACKING_PERIOD()",
+          "name": "CDA_AUCTION_TRACKING_PERIOD",
+          "roles": [],
+          "selector": "0x9ad2cd34",
+          "signature": "CDA_AUCTION_TRACKING_PERIOD()(uint8)"
+        },
+        "0x9aead207": {
+          "canonicalSignature": "CDA_INITIAL_TARGET()",
+          "name": "CDA_INITIAL_TARGET",
+          "roles": [],
+          "selector": "0x9aead207",
+          "signature": "CDA_INITIAL_TARGET()(uint256)"
+        },
+        "0x9b1385d0": {
+          "canonicalSignature": "SUSDS()",
+          "name": "SUSDS",
+          "roles": [],
+          "selector": "0x9b1385d0",
+          "signature": "SUSDS()(address)"
+        },
+        "0xa4cf9aa3": {
+          "canonicalSignature": "REDEMPTION_VAULT()",
+          "name": "REDEMPTION_VAULT",
+          "roles": [],
+          "selector": "0xa4cf9aa3",
+          "signature": "REDEMPTION_VAULT()(address)"
+        },
+        "0xa5a6cbe4": {
+          "canonicalSignature": "CD_FACILITY()",
+          "name": "CD_FACILITY",
+          "roles": [],
+          "selector": "0xa5a6cbe4",
+          "signature": "CD_FACILITY()(address)"
+        },
+        "0xacf19f9a": {
+          "canonicalSignature": "YIELD_REPURCHASE_FACILITY()",
+          "name": "YIELD_REPURCHASE_FACILITY",
+          "roles": [],
+          "selector": "0xacf19f9a",
+          "signature": "YIELD_REPURCHASE_FACILITY()(address)"
+        },
+        "0xb10dcd0c": {
+          "canonicalSignature": "PERIOD_1M()",
+          "name": "PERIOD_1M",
+          "roles": [],
+          "selector": "0xb10dcd0c",
+          "signature": "PERIOD_1M()(uint8)"
+        },
+        "0xb7baa8c7": {
+          "canonicalSignature": "EM_BACKING()",
+          "name": "EM_BACKING",
+          "roles": [],
+          "selector": "0xb7baa8c7",
+          "signature": "EM_BACKING()(uint256)"
+        },
+        "0xb928bf55": {
+          "canonicalSignature": "EM_MINIMUM_PREMIUM()",
+          "name": "EM_MINIMUM_PREMIUM",
+          "roles": [],
+          "selector": "0xb928bf55",
+          "signature": "EM_MINIMUM_PREMIUM()(uint256)"
+        },
+        "0xc8ef95ae": {
+          "canonicalSignature": "USDS()",
+          "name": "USDS",
+          "roles": [],
+          "selector": "0xc8ef95ae",
+          "signature": "USDS()(address)"
+        },
+        "0xcb1ba3b1": {
+          "canonicalSignature": "HEART()",
+          "name": "HEART",
+          "roles": [],
+          "selector": "0xcb1ba3b1",
+          "signature": "HEART()(address)"
+        },
+        "0xcbcbb507": {
+          "canonicalSignature": "EMISSION_MANAGER()",
+          "name": "EMISSION_MANAGER",
+          "roles": [],
+          "selector": "0xcbcbb507",
+          "signature": "EMISSION_MANAGER()(address)"
+        },
+        "0xdc358541": {
+          "canonicalSignature": "PERIOD_3M()",
+          "name": "PERIOD_3M",
+          "roles": [],
+          "selector": "0xdc358541",
+          "signature": "PERIOD_3M()(uint8)"
+        },
+        "0xf1a497d0": {
+          "canonicalSignature": "RECLAIM_RATE()",
+          "name": "RECLAIM_RATE",
+          "roles": [],
+          "selector": "0xf1a497d0",
+          "signature": "RECLAIM_RATE()(uint16)"
+        },
+        "0xf2fde38b": {
+          "canonicalSignature": "transferOwnership(address)",
+          "name": "transferOwnership",
+          "roles": [],
+          "selector": "0xf2fde38b",
+          "signature": "transferOwnership(address)()"
+        },
+        "0xfd3a9ea7": {
+          "canonicalSignature": "EM_BOND_MARKET_CAPACITY_SCALAR()",
+          "name": "EM_BOND_MARKET_CAPACITY_SCALAR",
+          "roles": [],
+          "selector": "0xfd3a9ea7",
+          "signature": "EM_BOND_MARKET_CAPACITY_SCALAR()(uint256)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0x81057bef097462957b9388d8dcb7d4ab0699cadb": {
+      "addressGetters": [
+        "authority",
+        "governor",
+        "guardian",
+        "newGovernor",
+        "newGuardian",
+        "newPolicy",
+        "newVault",
+        "policy",
+        "vault"
+      ],
+      "functionSelectors": {
+        "0x0505c8c9": {
+          "canonicalSignature": "policy()",
+          "name": "policy",
+          "roles": [],
+          "selector": "0x0505c8c9",
+          "signature": "policy()(address)"
+        },
+        "0x0c340a24": {
+          "canonicalSignature": "governor()",
+          "name": "governor",
+          "roles": [],
+          "selector": "0x0c340a24",
+          "signature": "governor()(address)"
+        },
+        "0x19859847": {
+          "canonicalSignature": "newGuardian()",
+          "name": "newGuardian",
+          "roles": [],
+          "selector": "0x19859847",
+          "signature": "newGuardian()(address)"
+        },
+        "0x1afe8714": {
+          "canonicalSignature": "pushGuardian(address,bool)",
+          "name": "pushGuardian",
+          "roles": [],
+          "selector": "0x1afe8714",
+          "signature": "pushGuardian(address,bool)()"
+        },
+        "0x215e92bc": {
+          "canonicalSignature": "pullVault()",
+          "name": "pullVault",
+          "roles": [],
+          "selector": "0x215e92bc",
+          "signature": "pullVault()()"
+        },
+        "0x3bf90c28": {
+          "canonicalSignature": "newPolicy()",
+          "name": "newPolicy",
+          "roles": [],
+          "selector": "0x3bf90c28",
+          "signature": "newPolicy()(address)"
+        },
+        "0x452a9320": {
+          "canonicalSignature": "guardian()",
+          "name": "guardian",
+          "roles": [],
+          "selector": "0x452a9320",
+          "signature": "guardian()(address)"
+        },
+        "0x52759694": {
+          "canonicalSignature": "pushGovernor(address,bool)",
+          "name": "pushGovernor",
+          "roles": [],
+          "selector": "0x52759694",
+          "signature": "pushGovernor(address,bool)()"
+        },
+        "0x54e3d703": {
+          "canonicalSignature": "pushPolicy(address,bool)",
+          "name": "pushPolicy",
+          "roles": [],
+          "selector": "0x54e3d703",
+          "signature": "pushPolicy(address,bool)()"
+        },
+        "0x5beede08": {
+          "canonicalSignature": "pullPolicy()",
+          "name": "pullPolicy",
+          "roles": [],
+          "selector": "0x5beede08",
+          "signature": "pullPolicy()()"
+        },
+        "0x6fe72c14": {
+          "canonicalSignature": "pushVault(address,bool)",
+          "name": "pushVault",
+          "roles": [],
+          "selector": "0x6fe72c14",
+          "signature": "pushVault(address,bool)()"
+        },
+        "0x7a9e5e4b": {
+          "canonicalSignature": "setAuthority(address)",
+          "name": "setAuthority",
+          "roles": [],
+          "selector": "0x7a9e5e4b",
+          "signature": "setAuthority(address)()"
+        },
+        "0x88aaf0c8": {
+          "canonicalSignature": "newVault()",
+          "name": "newVault",
+          "roles": [],
+          "selector": "0x88aaf0c8",
+          "signature": "newVault()(address)"
+        },
+        "0x8fd20577": {
+          "canonicalSignature": "newGovernor()",
+          "name": "newGovernor",
+          "roles": [],
+          "selector": "0x8fd20577",
+          "signature": "newGovernor()(address)"
+        },
+        "0xbe11f1dd": {
+          "canonicalSignature": "pullGuardian()",
+          "name": "pullGuardian",
+          "roles": [],
+          "selector": "0xbe11f1dd",
+          "signature": "pullGuardian()()"
+        },
+        "0xbf7e214f": {
+          "canonicalSignature": "authority()",
+          "name": "authority",
+          "roles": [],
+          "selector": "0xbf7e214f",
+          "signature": "authority()(address)"
+        },
+        "0xd8a04212": {
+          "canonicalSignature": "pullGovernor()",
+          "name": "pullGovernor",
+          "roles": [],
+          "selector": "0xd8a04212",
+          "signature": "pullGovernor()()"
+        },
+        "0xfbfa77cf": {
+          "canonicalSignature": "vault()",
+          "name": "vault",
+          "roles": [],
+          "selector": "0xfbfa77cf",
+          "signature": "vault()(address)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0x81e6e5ba12a11ceed3e8bfe825b56ae9b7260691": {
+      "addressGetters": [],
+      "functionSelectors": {},
       "roleToFunctions": {}
     },
     "0x84785e392bfd02f97a9b84f85d86dec11933ef81": {
@@ -79265,6 +81509,166 @@
       },
       "roleToFunctions": {}
     },
+    "0xbc2778f2f24864d35d806aa968a1db445988a5e9": {
+      "addressGetters": ["OHM", "authority", "distributor", "gOHM", "sOHM"],
+      "functionSelectors": {
+        "0x0cd30585": {
+          "canonicalSignature": "gOHM()",
+          "name": "gOHM",
+          "roles": [],
+          "selector": "0x0cd30585",
+          "signature": "gOHM()(address)"
+        },
+        "0x15079925": {
+          "canonicalSignature": "sOHM()",
+          "name": "sOHM",
+          "roles": [],
+          "selector": "0x15079925",
+          "signature": "sOHM()(address)"
+        },
+        "0x20138641": {
+          "canonicalSignature": "supplyInWarmup()",
+          "name": "supplyInWarmup",
+          "roles": [],
+          "selector": "0x20138641",
+          "signature": "supplyInWarmup()(uint256)"
+        },
+        "0x2986c0e5": {
+          "canonicalSignature": "index()",
+          "name": "index",
+          "roles": [],
+          "selector": "0x2986c0e5",
+          "signature": "index()(uint256)"
+        },
+        "0x39f47693": {
+          "canonicalSignature": "unwrap(address,uint256)",
+          "name": "unwrap",
+          "roles": [],
+          "selector": "0x39f47693",
+          "signature": "unwrap(address,uint256)(uint256)"
+        },
+        "0x6746f4c2": {
+          "canonicalSignature": "warmupInfo(address)",
+          "name": "warmupInfo",
+          "roles": [],
+          "selector": "0x6746f4c2",
+          "signature": "warmupInfo(address)(uint256,uint256,uint256,bool)"
+        },
+        "0x75619ab5": {
+          "canonicalSignature": "setDistributor(address)",
+          "name": "setDistributor",
+          "roles": [],
+          "selector": "0x75619ab5",
+          "signature": "setDistributor(address)()"
+        },
+        "0x7a9e5e4b": {
+          "canonicalSignature": "setAuthority(address)",
+          "name": "setAuthority",
+          "roles": [],
+          "selector": "0x7a9e5e4b",
+          "signature": "setAuthority(address)()"
+        },
+        "0x900cf0cf": {
+          "canonicalSignature": "epoch()",
+          "name": "epoch",
+          "roles": [],
+          "selector": "0x900cf0cf",
+          "signature": "epoch()(uint256,uint256,uint256,uint256)"
+        },
+        "0x9238d592": {
+          "canonicalSignature": "setWarmupLength(uint256)",
+          "name": "setWarmupLength",
+          "roles": [],
+          "selector": "0x9238d592",
+          "signature": "setWarmupLength(uint256)()"
+        },
+        "0x92fd2daf": {
+          "canonicalSignature": "claim(address,bool)",
+          "name": "claim",
+          "roles": [],
+          "selector": "0x92fd2daf",
+          "signature": "claim(address,bool)(uint256)"
+        },
+        "0x9483c1d7": {
+          "canonicalSignature": "secondsToNextEpoch()",
+          "name": "secondsToNextEpoch",
+          "roles": [],
+          "selector": "0x9483c1d7",
+          "signature": "secondsToNextEpoch()(uint256)"
+        },
+        "0x990966d5": {
+          "canonicalSignature": "unstake(address,uint256,bool,bool)",
+          "name": "unstake",
+          "roles": [],
+          "selector": "0x990966d5",
+          "signature": "unstake(address,uint256,bool,bool)(uint256)"
+        },
+        "0xa6c41fec": {
+          "canonicalSignature": "OHM()",
+          "name": "OHM",
+          "roles": [],
+          "selector": "0xa6c41fec",
+          "signature": "OHM()(address)"
+        },
+        "0xaf14052c": {
+          "canonicalSignature": "rebase()",
+          "name": "rebase",
+          "roles": [],
+          "selector": "0xaf14052c",
+          "signature": "rebase()(uint256)"
+        },
+        "0xbf376c7a": {
+          "canonicalSignature": "wrap(address,uint256)",
+          "name": "wrap",
+          "roles": [],
+          "selector": "0xbf376c7a",
+          "signature": "wrap(address,uint256)(uint256)"
+        },
+        "0xbf7e214f": {
+          "canonicalSignature": "authority()",
+          "name": "authority",
+          "roles": [],
+          "selector": "0xbf7e214f",
+          "signature": "authority()(address)"
+        },
+        "0xbfe10928": {
+          "canonicalSignature": "distributor()",
+          "name": "distributor",
+          "roles": [],
+          "selector": "0xbfe10928",
+          "signature": "distributor()(address)"
+        },
+        "0xd866c9d8": {
+          "canonicalSignature": "stake(address,uint256,bool,bool)",
+          "name": "stake",
+          "roles": [],
+          "selector": "0xd866c9d8",
+          "signature": "stake(address,uint256,bool,bool)(uint256)"
+        },
+        "0xdeac361a": {
+          "canonicalSignature": "warmupPeriod()",
+          "name": "warmupPeriod",
+          "roles": [],
+          "selector": "0xdeac361a",
+          "signature": "warmupPeriod()(uint256)"
+        },
+        "0xf3d86e4a": {
+          "canonicalSignature": "forfeit()",
+          "name": "forfeit",
+          "roles": [],
+          "selector": "0xf3d86e4a",
+          "signature": "forfeit()(uint256)"
+        },
+        "0xff9413d8": {
+          "canonicalSignature": "toggleLock()",
+          "name": "toggleLock",
+          "roles": [],
+          "selector": "0xff9413d8",
+          "signature": "toggleLock()()"
+        }
+      },
+      "roleToFunctions": {}
+    },
     "0xc14156af3bf6c11b1c40c8f51f64ba5496870126": {
       "functionSelectors": {
         "0x01ffc9a7": {
@@ -80236,6 +82640,194 @@
           "roles": [],
           "selector": "0xffa1ad74",
           "signature": "VERSION()(uint8,uint8)"
+        }
+      },
+      "roleToFunctions": {}
+    },
+    "0xcfe75cca2b7a9354f7c25e889b1216f977dec6a5": {
+      "addressGetters": ["OHM", "getCCIPRouter", "getRouter", "owner"],
+      "functionSelectors": {
+        "0x01ffc9a7": {
+          "canonicalSignature": "supportsInterface(bytes4)",
+          "name": "supportsInterface",
+          "roles": [],
+          "selector": "0x01ffc9a7",
+          "signature": "supportsInterface(bytes4)(bool)"
+        },
+        "0x0c8cc51f": {
+          "canonicalSignature": "getTrustedRemoteSVM(uint64)",
+          "name": "getTrustedRemoteSVM",
+          "roles": [],
+          "selector": "0x0c8cc51f",
+          "signature": "getTrustedRemoteSVM(uint64)(tuple)"
+        },
+        "0x0c959556": {
+          "canonicalSignature": "enable(bytes)",
+          "name": "enable",
+          "roles": [],
+          "selector": "0x0c959556",
+          "signature": "enable(bytes)()"
+        },
+        "0x107e9356": {
+          "canonicalSignature": "unsetTrustedRemoteSVM(uint64)",
+          "name": "unsetTrustedRemoteSVM",
+          "roles": [],
+          "selector": "0x107e9356",
+          "signature": "unsetTrustedRemoteSVM(uint64)()"
+        },
+        "0x1f88609a": {
+          "canonicalSignature": "getGasLimit(uint64)",
+          "name": "getGasLimit",
+          "roles": [],
+          "selector": "0x1f88609a",
+          "signature": "getGasLimit(uint64)(uint32)"
+        },
+        "0x2e22d0a3": {
+          "canonicalSignature": "getFailedMessage(bytes32)",
+          "name": "getFailedMessage",
+          "roles": [],
+          "selector": "0x2e22d0a3",
+          "signature": "getFailedMessage(bytes32)(tuple)"
+        },
+        "0x46a90ec9": {
+          "canonicalSignature": "setTrustedRemoteEVM(uint64,address)",
+          "name": "setTrustedRemoteEVM",
+          "roles": [],
+          "selector": "0x46a90ec9",
+          "signature": "setTrustedRemoteEVM(uint64,address)()"
+        },
+        "0x51cff8d9": {
+          "canonicalSignature": "withdraw(address)",
+          "name": "withdraw",
+          "roles": [],
+          "selector": "0x51cff8d9",
+          "signature": "withdraw(address)()"
+        },
+        "0x588cbd0e": {
+          "canonicalSignature": "getCCIPRouter()",
+          "name": "getCCIPRouter",
+          "roles": [],
+          "selector": "0x588cbd0e",
+          "signature": "getCCIPRouter()(address)"
+        },
+        "0x629e0f87": {
+          "canonicalSignature": "setTrustedRemoteSVM(uint64,bytes32)",
+          "name": "setTrustedRemoteSVM",
+          "roles": [],
+          "selector": "0x629e0f87",
+          "signature": "setTrustedRemoteSVM(uint64,bytes32)()"
+        },
+        "0x6aa633b6": {
+          "canonicalSignature": "isEnabled()",
+          "name": "isEnabled",
+          "roles": [],
+          "selector": "0x6aa633b6",
+          "signature": "isEnabled()(bool)"
+        },
+        "0x6e48a135": {
+          "canonicalSignature": "getFeeEVM(uint64,address,uint256)",
+          "name": "getFeeEVM",
+          "roles": [],
+          "selector": "0x6e48a135",
+          "signature": "getFeeEVM(uint64,address,uint256)(uint256)"
+        },
+        "0x85572ffb": {
+          "canonicalSignature": "ccipReceive((bytes32,uint64,bytes,bytes,(address,uint256)[]))",
+          "name": "ccipReceive",
+          "roles": [],
+          "selector": "0x85572ffb",
+          "signature": "ccipReceive(tuple)()"
+        },
+        "0x8da5cb5b": {
+          "canonicalSignature": "owner()",
+          "name": "owner",
+          "roles": [],
+          "selector": "0x8da5cb5b",
+          "signature": "owner()(address)"
+        },
+        "0x8fc925aa": {
+          "canonicalSignature": "disable(bytes)",
+          "name": "disable",
+          "roles": [],
+          "selector": "0x8fc925aa",
+          "signature": "disable(bytes)()"
+        },
+        "0xa6c41fec": {
+          "canonicalSignature": "OHM()",
+          "name": "OHM",
+          "roles": [],
+          "selector": "0xa6c41fec",
+          "signature": "OHM()(address)"
+        },
+        "0xab97aca2": {
+          "canonicalSignature": "unsetTrustedRemoteEVM(uint64)",
+          "name": "unsetTrustedRemoteEVM",
+          "roles": [],
+          "selector": "0xab97aca2",
+          "signature": "unsetTrustedRemoteEVM(uint64)()"
+        },
+        "0xb0c90856": {
+          "canonicalSignature": "getFeeSVM(uint64,bytes32,uint256)",
+          "name": "getFeeSVM",
+          "roles": [],
+          "selector": "0xb0c90856",
+          "signature": "getFeeSVM(uint64,bytes32,uint256)(uint256)"
+        },
+        "0xb0f479a1": {
+          "canonicalSignature": "getRouter()",
+          "name": "getRouter",
+          "roles": [],
+          "selector": "0xb0f479a1",
+          "signature": "getRouter()(address)"
+        },
+        "0xb15b1876": {
+          "canonicalSignature": "getTrustedRemoteEVM(uint64)",
+          "name": "getTrustedRemoteEVM",
+          "roles": [],
+          "selector": "0xb15b1876",
+          "signature": "getTrustedRemoteEVM(uint64)(tuple)"
+        },
+        "0xb8ea0fd3": {
+          "canonicalSignature": "sendToSVM(uint64,bytes32,uint256)",
+          "name": "sendToSVM",
+          "roles": [],
+          "selector": "0xb8ea0fd3",
+          "signature": "sendToSVM(uint64,bytes32,uint256)(bytes32)"
+        },
+        "0xc22a666a": {
+          "canonicalSignature": "sendToEVM(uint64,address,uint256)",
+          "name": "sendToEVM",
+          "roles": [],
+          "selector": "0xc22a666a",
+          "signature": "sendToEVM(uint64,address,uint256)(bytes32)"
+        },
+        "0xc26bb9f5": {
+          "canonicalSignature": "setGasLimit(uint64,uint32)",
+          "name": "setGasLimit",
+          "roles": [],
+          "selector": "0xc26bb9f5",
+          "signature": "setGasLimit(uint64,uint32)()"
+        },
+        "0xe4ca8754": {
+          "canonicalSignature": "retryFailedMessage(bytes32)",
+          "name": "retryFailedMessage",
+          "roles": [],
+          "selector": "0xe4ca8754",
+          "signature": "retryFailedMessage(bytes32)()"
+        },
+        "0xf2fde38b": {
+          "canonicalSignature": "transferOwnership(address)",
+          "name": "transferOwnership",
+          "roles": [],
+          "selector": "0xf2fde38b",
+          "signature": "transferOwnership(address)()"
+        },
+        "0xfd02fa50": {
+          "canonicalSignature": "receiveMessage((bytes32,uint64,bytes,bytes,(address,uint256)[]))",
+          "name": "receiveMessage",
+          "roles": [],
+          "selector": "0xfd02fa50",
+          "signature": "receiveMessage(tuple)()"
         }
       },
       "roleToFunctions": {}
@@ -81633,6 +84225,272 @@
       },
       "roleToFunctions": {}
     },
+    "0xef64bab08c3431bbc527b063354b95d1c5b549b0": {
+      "addressGetters": [
+        "CD_AUCTIONEER",
+        "DEPOSIT_MANAGER",
+        "POSITION_NFT",
+        "SUSDS",
+        "USDS",
+        "owner",
+        "yieldRecipient"
+      ],
+      "functionSelectors": {
+        "0x01ffc9a7": {
+          "canonicalSignature": "supportsInterface(bytes4)",
+          "name": "supportsInterface",
+          "roles": [],
+          "selector": "0x01ffc9a7",
+          "signature": "supportsInterface(bytes4)(bool)"
+        },
+        "0x08028236": {
+          "canonicalSignature": "getAccruedYieldShares()",
+          "name": "getAccruedYieldShares",
+          "roles": [],
+          "selector": "0x08028236",
+          "signature": "getAccruedYieldShares()(uint256)"
+        },
+        "0x0c959556": {
+          "canonicalSignature": "enable(bytes)",
+          "name": "enable",
+          "roles": [],
+          "selector": "0x0c959556",
+          "signature": "enable(bytes)()"
+        },
+        "0x0e316c26": {
+          "canonicalSignature": "getExecutionPrice(uint8,uint256)",
+          "name": "getExecutionPrice",
+          "roles": [],
+          "selector": "0x0e316c26",
+          "signature": "getExecutionPrice(uint8,uint256)(uint256)"
+        },
+        "0x0fa55805": {
+          "canonicalSignature": "sweepYield()",
+          "name": "sweepYield",
+          "roles": [],
+          "selector": "0x0fa55805",
+          "signature": "sweepYield()(uint256)"
+        },
+        "0x150b7a02": {
+          "canonicalSignature": "onERC721Received(address,address,uint256,bytes)",
+          "name": "onERC721Received",
+          "roles": [],
+          "selector": "0x150b7a02",
+          "signature": "onERC721Received(address,address,uint256,bytes)(bytes4)"
+        },
+        "0x224cb5d0": {
+          "canonicalSignature": "getRemaining(uint256)",
+          "name": "getRemaining",
+          "roles": [],
+          "selector": "0x224cb5d0",
+          "signature": "getRemaining(uint256)(uint256,uint256)"
+        },
+        "0x2a58b330": {
+          "canonicalSignature": "nextOrderId()",
+          "name": "nextOrderId",
+          "roles": [],
+          "selector": "0x2a58b330",
+          "signature": "nextOrderId()(uint256)"
+        },
+        "0x2fdc19a2": {
+          "canonicalSignature": "getAccruedYield()",
+          "name": "getAccruedYield",
+          "roles": [],
+          "selector": "0x2fdc19a2",
+          "signature": "getAccruedYield()(uint256)"
+        },
+        "0x37a9c983": {
+          "canonicalSignature": "DEPOSIT_MANAGER()",
+          "name": "DEPOSIT_MANAGER",
+          "roles": [],
+          "selector": "0x37a9c983",
+          "signature": "DEPOSIT_MANAGER()(address)"
+        },
+        "0x38cb1816": {
+          "canonicalSignature": "canFillOrder(uint256,uint256)",
+          "name": "canFillOrder",
+          "roles": [],
+          "selector": "0x38cb1816",
+          "signature": "canFillOrder(uint256,uint256)(bool,string,uint256)"
+        },
+        "0x3f247095": {
+          "canonicalSignature": "receiptTokens(uint8)",
+          "name": "receiptTokens",
+          "roles": [],
+          "selector": "0x3f247095",
+          "signature": "receiptTokens(uint8)(address)"
+        },
+        "0x40a9b2d3": {
+          "canonicalSignature": "CD_AUCTIONEER()",
+          "name": "CD_AUCTIONEER",
+          "roles": [],
+          "selector": "0x40a9b2d3",
+          "signature": "CD_AUCTIONEER()(address)"
+        },
+        "0x45cf012d": {
+          "canonicalSignature": "setYieldRecipient(address)",
+          "name": "setYieldRecipient",
+          "roles": [],
+          "selector": "0x45cf012d",
+          "signature": "setYieldRecipient(address)()"
+        },
+        "0x514fcac7": {
+          "canonicalSignature": "cancelOrder(uint256)",
+          "name": "cancelOrder",
+          "roles": [],
+          "selector": "0x514fcac7",
+          "signature": "cancelOrder(uint256)()"
+        },
+        "0x61807e59": {
+          "canonicalSignature": "getOrdersForUser(address)",
+          "name": "getOrdersForUser",
+          "roles": [],
+          "selector": "0x61807e59",
+          "signature": "getOrdersForUser(address)(uint256[])"
+        },
+        "0x62c54b4a": {
+          "canonicalSignature": "getFillableOrders(uint8,uint256,uint256)",
+          "name": "getFillableOrders",
+          "roles": [],
+          "selector": "0x62c54b4a",
+          "signature": "getFillableOrders(uint8,uint256,uint256)(uint256[])"
+        },
+        "0x6aa633b6": {
+          "canonicalSignature": "isEnabled()",
+          "name": "isEnabled",
+          "roles": [],
+          "selector": "0x6aa633b6",
+          "signature": "isEnabled()(bool)"
+        },
+        "0x715018a6": {
+          "canonicalSignature": "renounceOwnership()",
+          "name": "renounceOwnership",
+          "roles": [],
+          "selector": "0x715018a6",
+          "signature": "renounceOwnership()()"
+        },
+        "0x766f0cd1": {
+          "canonicalSignature": "createOrder(uint8,uint256,uint256,uint256,uint256)",
+          "name": "createOrder",
+          "roles": [],
+          "selector": "0x766f0cd1",
+          "signature": "createOrder(uint8,uint256,uint256,uint256,uint256)(uint256)"
+        },
+        "0x7c854ec7": {
+          "canonicalSignature": "POSITION_NFT()",
+          "name": "POSITION_NFT",
+          "roles": [],
+          "selector": "0x7c854ec7",
+          "signature": "POSITION_NFT()(address)"
+        },
+        "0x8da5cb5b": {
+          "canonicalSignature": "owner()",
+          "name": "owner",
+          "roles": [],
+          "selector": "0x8da5cb5b",
+          "signature": "owner()(address)"
+        },
+        "0x8fc925aa": {
+          "canonicalSignature": "disable(bytes)",
+          "name": "disable",
+          "roles": [],
+          "selector": "0x8fc925aa",
+          "signature": "disable(bytes)()"
+        },
+        "0x9b1385d0": {
+          "canonicalSignature": "SUSDS()",
+          "name": "SUSDS",
+          "roles": [],
+          "selector": "0x9b1385d0",
+          "signature": "SUSDS()(address)"
+        },
+        "0xaa8e7cad": {
+          "canonicalSignature": "calculateIncentive(uint256,uint256)",
+          "name": "calculateIncentive",
+          "roles": [],
+          "selector": "0xaa8e7cad",
+          "signature": "calculateIncentive(uint256,uint256)(uint256,uint256)"
+        },
+        "0xb8806752": {
+          "canonicalSignature": "previewFillOrder(uint256,uint256)",
+          "name": "previewFillOrder",
+          "roles": [],
+          "selector": "0xb8806752",
+          "signature": "previewFillOrder(uint256,uint256)(bool,string,uint256,uint256)"
+        },
+        "0xc0dc483f": {
+          "canonicalSignature": "totalUsdsOwed()",
+          "name": "totalUsdsOwed",
+          "roles": [],
+          "selector": "0xc0dc483f",
+          "signature": "totalUsdsOwed()(uint256)"
+        },
+        "0xc37dfc5b": {
+          "canonicalSignature": "fillOrder(uint256,uint256)",
+          "name": "fillOrder",
+          "roles": [],
+          "selector": "0xc37dfc5b",
+          "signature": "fillOrder(uint256,uint256)(uint256,uint256,uint256)"
+        },
+        "0xc8ef95ae": {
+          "canonicalSignature": "USDS()",
+          "name": "USDS",
+          "roles": [],
+          "selector": "0xc8ef95ae",
+          "signature": "USDS()(address)"
+        },
+        "0xcc4c5b64": {
+          "canonicalSignature": "yieldRecipient()",
+          "name": "yieldRecipient",
+          "roles": [],
+          "selector": "0xcc4c5b64",
+          "signature": "yieldRecipient()(address)"
+        },
+        "0xd09ef241": {
+          "canonicalSignature": "getOrder(uint256)",
+          "name": "getOrder",
+          "roles": [],
+          "selector": "0xd09ef241",
+          "signature": "getOrder(uint256)(tuple)"
+        },
+        "0xd802fa1d": {
+          "canonicalSignature": "removeDepositPeriod(uint8)",
+          "name": "removeDepositPeriod",
+          "roles": [],
+          "selector": "0xd802fa1d",
+          "signature": "removeDepositPeriod(uint8)()"
+        },
+        "0xf2fde38b": {
+          "canonicalSignature": "transferOwnership(address)",
+          "name": "transferOwnership",
+          "roles": [],
+          "selector": "0xf2fde38b",
+          "signature": "transferOwnership(address)()"
+        },
+        "0xf4d86c52": {
+          "canonicalSignature": "addDepositPeriod(uint8,address)",
+          "name": "addDepositPeriod",
+          "roles": [],
+          "selector": "0xf4d86c52",
+          "signature": "addDepositPeriod(uint8,address)()"
+        },
+        "0xfb005fdb": {
+          "canonicalSignature": "getFillableOrders(uint8)",
+          "name": "getFillableOrders",
+          "roles": [],
+          "selector": "0xfb005fdb",
+          "signature": "getFillableOrders(uint8)(uint256[])"
+        },
+        "0xffa1ad74": {
+          "canonicalSignature": "VERSION()",
+          "name": "VERSION",
+          "roles": [],
+          "selector": "0xffa1ad74",
+          "signature": "VERSION()(uint8,uint8)"
+        }
+      },
+      "roleToFunctions": {}
+    },
     "0xef928e9ed1083636e34230543d4ad3b6270fa986": {
       "addressGetters": ["getTokenRenderer", "kernel"],
       "deploymentDiscovery": {
@@ -82160,6 +85018,271 @@
         "creationBlock": "9578176",
         "sourceUrl": "https://sourcify.dev/server/v2/contract/11155111/0xef928e9ed1083636e34230543d4ad3b6270fa986?fields=metadata,sources,sourceIds,runtimeBytecode.onchainBytecode,runtimeBytecode.sourceMap,runtimeBytecode.immutableReferences,deployment.blockNumber,compilation.language,proxyResolution",
         "version": "ordinary-runtime-v1"
+      },
+      "roleToFunctions": {}
+    },
+    "0xf166375e8ee42565f93e244c606b8c09b9f67dbc": {
+      "addressGetters": [
+        "getRateLimitAdmin",
+        "getRebalancer",
+        "getRmnProxy",
+        "getRouter",
+        "getToken",
+        "owner"
+      ],
+      "functionSelectors": {
+        "0x01ffc9a7": {
+          "canonicalSignature": "supportsInterface(bytes4)",
+          "name": "supportsInterface",
+          "roles": [],
+          "selector": "0x01ffc9a7",
+          "signature": "supportsInterface(bytes4)(bool)"
+        },
+        "0x0a861f2a": {
+          "canonicalSignature": "withdrawLiquidity(uint256)",
+          "name": "withdrawLiquidity",
+          "roles": [],
+          "selector": "0x0a861f2a",
+          "signature": "withdrawLiquidity(uint256)()"
+        },
+        "0x181f5a77": {
+          "canonicalSignature": "typeAndVersion()",
+          "name": "typeAndVersion",
+          "roles": [],
+          "selector": "0x181f5a77",
+          "signature": "typeAndVersion()(string)"
+        },
+        "0x21df0da7": {
+          "canonicalSignature": "getToken()",
+          "name": "getToken",
+          "roles": [],
+          "selector": "0x21df0da7",
+          "signature": "getToken()(address)"
+        },
+        "0x240028e8": {
+          "canonicalSignature": "isSupportedToken(address)",
+          "name": "isSupportedToken",
+          "roles": [],
+          "selector": "0x240028e8",
+          "signature": "isSupportedToken(address)(bool)"
+        },
+        "0x24f65ee7": {
+          "canonicalSignature": "getTokenDecimals()",
+          "name": "getTokenDecimals",
+          "roles": [],
+          "selector": "0x24f65ee7",
+          "signature": "getTokenDecimals()(uint8)"
+        },
+        "0x39077537": {
+          "canonicalSignature": "releaseOrMint((bytes,uint64,address,uint256,address,bytes,bytes,bytes))",
+          "name": "releaseOrMint",
+          "roles": [],
+          "selector": "0x39077537",
+          "signature": "releaseOrMint(tuple)(tuple)"
+        },
+        "0x432a6ba3": {
+          "canonicalSignature": "getRebalancer()",
+          "name": "getRebalancer",
+          "roles": [],
+          "selector": "0x432a6ba3",
+          "signature": "getRebalancer()(address)"
+        },
+        "0x4c5ef0ed": {
+          "canonicalSignature": "isRemotePool(uint64,bytes)",
+          "name": "isRemotePool",
+          "roles": [],
+          "selector": "0x4c5ef0ed",
+          "signature": "isRemotePool(uint64,bytes)(bool)"
+        },
+        "0x54c8a4f3": {
+          "canonicalSignature": "applyAllowListUpdates(address[],address[])",
+          "name": "applyAllowListUpdates",
+          "roles": [],
+          "selector": "0x54c8a4f3",
+          "signature": "applyAllowListUpdates(address[],address[])()"
+        },
+        "0x62ddd3c4": {
+          "canonicalSignature": "addRemotePool(uint64,bytes)",
+          "name": "addRemotePool",
+          "roles": [],
+          "selector": "0x62ddd3c4",
+          "signature": "addRemotePool(uint64,bytes)()"
+        },
+        "0x66320087": {
+          "canonicalSignature": "transferLiquidity(address,uint256)",
+          "name": "transferLiquidity",
+          "roles": [],
+          "selector": "0x66320087",
+          "signature": "transferLiquidity(address,uint256)()"
+        },
+        "0x6cfd1553": {
+          "canonicalSignature": "setRebalancer(address)",
+          "name": "setRebalancer",
+          "roles": [],
+          "selector": "0x6cfd1553",
+          "signature": "setRebalancer(address)()"
+        },
+        "0x6d3d1a58": {
+          "canonicalSignature": "getRateLimitAdmin()",
+          "name": "getRateLimitAdmin",
+          "roles": [],
+          "selector": "0x6d3d1a58",
+          "signature": "getRateLimitAdmin()(address)"
+        },
+        "0x79ba5097": {
+          "canonicalSignature": "acceptOwnership()",
+          "name": "acceptOwnership",
+          "roles": [],
+          "selector": "0x79ba5097",
+          "signature": "acceptOwnership()()"
+        },
+        "0x7d54534e": {
+          "canonicalSignature": "setRateLimitAdmin(address)",
+          "name": "setRateLimitAdmin",
+          "roles": [],
+          "selector": "0x7d54534e",
+          "signature": "setRateLimitAdmin(address)()"
+        },
+        "0x8926f54f": {
+          "canonicalSignature": "isSupportedChain(uint64)",
+          "name": "isSupportedChain",
+          "roles": [],
+          "selector": "0x8926f54f",
+          "signature": "isSupportedChain(uint64)(bool)"
+        },
+        "0x8da5cb5b": {
+          "canonicalSignature": "owner()",
+          "name": "owner",
+          "roles": [],
+          "selector": "0x8da5cb5b",
+          "signature": "owner()(address)"
+        },
+        "0x962d4020": {
+          "canonicalSignature": "setChainRateLimiterConfigs(uint64[],(bool,uint128,uint128)[],(bool,uint128,uint128)[])",
+          "name": "setChainRateLimiterConfigs",
+          "roles": [],
+          "selector": "0x962d4020",
+          "signature": "setChainRateLimiterConfigs(uint64[],tuple[],tuple[])()"
+        },
+        "0x9a4575b9": {
+          "canonicalSignature": "lockOrBurn((bytes,uint64,address,uint256,address))",
+          "name": "lockOrBurn",
+          "roles": [],
+          "selector": "0x9a4575b9",
+          "signature": "lockOrBurn(tuple)(tuple)"
+        },
+        "0xa42a7b8b": {
+          "canonicalSignature": "getRemotePools(uint64)",
+          "name": "getRemotePools",
+          "roles": [],
+          "selector": "0xa42a7b8b",
+          "signature": "getRemotePools(uint64)(bytes[])"
+        },
+        "0xa7cd63b7": {
+          "canonicalSignature": "getAllowList()",
+          "name": "getAllowList",
+          "roles": [],
+          "selector": "0xa7cd63b7",
+          "signature": "getAllowList()(address[])"
+        },
+        "0xacfecf91": {
+          "canonicalSignature": "removeRemotePool(uint64,bytes)",
+          "name": "removeRemotePool",
+          "roles": [],
+          "selector": "0xacfecf91",
+          "signature": "removeRemotePool(uint64,bytes)()"
+        },
+        "0xaf58d59f": {
+          "canonicalSignature": "getCurrentInboundRateLimiterState(uint64)",
+          "name": "getCurrentInboundRateLimiterState",
+          "roles": [],
+          "selector": "0xaf58d59f",
+          "signature": "getCurrentInboundRateLimiterState(uint64)(tuple)"
+        },
+        "0xb0f479a1": {
+          "canonicalSignature": "getRouter()",
+          "name": "getRouter",
+          "roles": [],
+          "selector": "0xb0f479a1",
+          "signature": "getRouter()(address)"
+        },
+        "0xb7946580": {
+          "canonicalSignature": "getRemoteToken(uint64)",
+          "name": "getRemoteToken",
+          "roles": [],
+          "selector": "0xb7946580",
+          "signature": "getRemoteToken(uint64)(bytes)"
+        },
+        "0xbb98546b": {
+          "canonicalSignature": "canAcceptLiquidity()",
+          "name": "canAcceptLiquidity",
+          "roles": [],
+          "selector": "0xbb98546b",
+          "signature": "canAcceptLiquidity()(bool)"
+        },
+        "0xc0d78655": {
+          "canonicalSignature": "setRouter(address)",
+          "name": "setRouter",
+          "roles": [],
+          "selector": "0xc0d78655",
+          "signature": "setRouter(address)()"
+        },
+        "0xc4bffe2b": {
+          "canonicalSignature": "getSupportedChains()",
+          "name": "getSupportedChains",
+          "roles": [],
+          "selector": "0xc4bffe2b",
+          "signature": "getSupportedChains()(uint64[])"
+        },
+        "0xc75eea9c": {
+          "canonicalSignature": "getCurrentOutboundRateLimiterState(uint64)",
+          "name": "getCurrentOutboundRateLimiterState",
+          "roles": [],
+          "selector": "0xc75eea9c",
+          "signature": "getCurrentOutboundRateLimiterState(uint64)(tuple)"
+        },
+        "0xcf7401f3": {
+          "canonicalSignature": "setChainRateLimiterConfig(uint64,(bool,uint128,uint128),(bool,uint128,uint128))",
+          "name": "setChainRateLimiterConfig",
+          "roles": [],
+          "selector": "0xcf7401f3",
+          "signature": "setChainRateLimiterConfig(uint64,tuple,tuple)()"
+        },
+        "0xdc0bd971": {
+          "canonicalSignature": "getRmnProxy()",
+          "name": "getRmnProxy",
+          "roles": [],
+          "selector": "0xdc0bd971",
+          "signature": "getRmnProxy()(address)"
+        },
+        "0xe0351e13": {
+          "canonicalSignature": "getAllowListEnabled()",
+          "name": "getAllowListEnabled",
+          "roles": [],
+          "selector": "0xe0351e13",
+          "signature": "getAllowListEnabled()(bool)"
+        },
+        "0xe8a1da17": {
+          "canonicalSignature": "applyChainUpdates(uint64[],(uint64,bytes[],bytes,(bool,uint128,uint128),(bool,uint128,uint128))[])",
+          "name": "applyChainUpdates",
+          "roles": [],
+          "selector": "0xe8a1da17",
+          "signature": "applyChainUpdates(uint64[],tuple[])()"
+        },
+        "0xeb521a4c": {
+          "canonicalSignature": "provideLiquidity(uint256)",
+          "name": "provideLiquidity",
+          "roles": [],
+          "selector": "0xeb521a4c",
+          "signature": "provideLiquidity(uint256)()"
+        },
+        "0xf2fde38b": {
+          "canonicalSignature": "transferOwnership(address)",
+          "name": "transferOwnership",
+          "roles": [],
+          "selector": "0xf2fde38b",
+          "signature": "transferOwnership(address)()"
+        }
       },
       "roleToFunctions": {}
     },

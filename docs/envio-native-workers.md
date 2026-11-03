@@ -39,3 +39,11 @@ The initial worker-profile scout reused the old Robinhood benchmark's eight-seco
 The initial one-slot-per-worker policy left the fifth permitted metadata slot unused. The revised policy gives the unique Ethereum worker two starts/second and every other worker one. Envio 3.14.1 assigns each chain once and starts at most four workers, so the total is at most five starts/second per metadata service. Unknown worker metadata retains one slot. This is an explicit preference for mainnet bootstrap, not a general workload allocator.
 
 The IPC regression first rejected the old one-slot allocation, then passed at the 499/500 ms boundary. An added fractional-clock/early-wakeup case caught premature admission; the implementation now rounds waits upward and rechecks the monotonic deadline after every wakeup. All three metadata regressions and the full nine-step validation passed. The earlier cold scouts remain evidence for the original allocation; a new replay measures this revision separately.
+
+## Private-proxy timeout milestone
+
+The client previously inherited viem 2.57.7's 10-second HTTP deadline, including response-body reading. The private proxy permits 20 seconds per upstream attempt and 45 seconds for network recovery. The client now explicitly permits 50 seconds so it does not cancel the proxy before that configured recovery window finishes. Six client attempts, ten active requests, 256 queued requests, batching and the default 50-credit proxy budget remain unchanged.
+
+A real local HTTP fixture flushes headers and completes its body after eleven seconds. Before the change it observed two requests; afterward it observes one. This is 50% fewer HTTP attempts in that deliberately slow-response fixture, not a whole-indexer speed claim. A separate stalled-body fixture accelerates only the configured 50-second timer and verifies six attempts, identifiable sanitized exhaustion and recovery on a subsequent healthy request. Existing RPC queue, revert and reader-boundary checks also passed.
+
+One exhausted call can now take roughly five minutes plus backoff and queue waiting. The attempt count and queue size are bounded; total queue waiting time is not. The mismatch is a confirmed mechanism for avoidable cancellation, but it does not identify the cause of the observed replay failures.

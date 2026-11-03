@@ -106,7 +106,10 @@ export function getPublicClient(chainId: number): PublicClient<Transport> {
   if (!url?.trim()) throw new Error(`Missing ENVIO_RPC_URL_${chainId}`);
   const client = createPublicClient({
     transport: (options) => {
-      const proxy = http(url, { batch: true, retryCount: 0 })(options);
+      // Let the private proxy finish its 45-second network recovery window.
+      const proxy = http(url, { batch: true, retryCount: 0, timeout: 50_000 })(
+        options
+      );
       return createTransport({
         key: "private-proxy",
         name: "Private RPC proxy",

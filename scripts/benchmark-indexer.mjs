@@ -38,6 +38,7 @@ export const nativeWorkerRanges = [
   { chainId: 10, start: 158_450_000, end: 158_470_000 },
 ];
 const nativeProtocol = "protocol-visualizer-native-workers-v2";
+const capacityProtocol = "protocol-visualizer-native-capacity-v1";
 const queuedProtocol = "protocol-visualizer-indexer-queued-benchmark-v2";
 const image = "protocol-visualizer/rpc-cache:local";
 const pgImage = "postgres:17-alpine";
@@ -92,10 +93,12 @@ export function parseOptions(args) {
           "provider-profile",
           "oracle-ref",
           "native-workers",
+          "rpc-credits",
         ].map((name) => [name, { type: "string" }])
       ),
       "install-deps": { type: "boolean", default: false },
       "queued-admission": { type: "boolean", default: false },
+      "compare-capacity": { type: "boolean", default: false },
     },
     strict: true,
     allowPositionals: false,
@@ -105,6 +108,11 @@ export function parseOptions(args) {
       values["native-workers"] === undefined
         ? undefined
         : Number(values["native-workers"]),
+    rpcCredits:
+      values["rpc-credits"] === undefined
+        ? undefined
+        : Number(values["rpc-credits"]),
+    compareCapacity: values["compare-capacity"],
     ref: values.ref ?? "HEAD",
     runs: Number(values.runs ?? 3),
     output: values.output ?? defaultOutput,
@@ -125,6 +133,9 @@ export function parseOptions(args) {
         values.end !== undefined ||
         result.oracleRef ||
         result.queuedAdmission)) ||
+    (result.rpcCredits !== undefined &&
+      (!result.nativeWorkers || ![50, 100].includes(result.rpcCredits))) ||
+    (result.compareCapacity && !result.compare) ||
     !Number.isSafeInteger(result.runs) ||
     result.runs < 1 ||
     result.runs > 10 ||
@@ -257,7 +268,9 @@ export function summarize(runs) {
 export function resultProblems(result) {
   const reasons = [];
   if (
-    ![protocol, queuedProtocol, nativeProtocol].includes(result.protocol) ||
+    ![protocol, queuedProtocol, nativeProtocol, capacityProtocol].includes(
+      result.protocol
+    ) ||
     result.schemaVersion !== 1
   )
     reasons.push("protocol mismatch");
@@ -279,7 +292,9 @@ export function resultProblems(result) {
     workload.rpcMode !== "fallback"
   )
     reasons.push("invalid workload descriptor");
-  const nativeRun = result.protocol === nativeProtocol;
+  const nativeRun = [nativeProtocol, capacityProtocol].includes(
+    result.protocol
+  );
   if (
     nativeRun &&
     (digest(workload?.chains ?? null) !== digest(nativeWorkerRanges) ||
@@ -311,7 +326,9 @@ export function resultProblems(result) {
   )
     reasons.push("invalid admission profile");
   if (
-    fixture?.aggregateCreditsPerSecond !== 50 ||
+    !(result.protocol === capacityProtocol ? [50, 100] : [50]).includes(
+      fixture?.aggregateCreditsPerSecond
+    ) ||
     !Array.isArray(fixture.proxyNetworks) ||
     digest(fixture.proxyNetworks) !== digest(networks) ||
     ![fixture.erpcImageId, fixture.postgresImageId].every((value) =>
@@ -417,11 +434,33 @@ export function resultProblems(result) {
   return reasons;
 }
 
-export function compareResults(baseline, candidate) {
+export function compareResults(baseline, candidate, { capacity = false } = {}) {
   const reasons = [...resultProblems(baseline), ...resultProblems(candidate)];
   if (baseline.protocol !== candidate.protocol)
     reasons.push("protocol mismatch");
-  if (baseline.inputFingerprint !== candidate.inputFingerprint)
+  const comparableInputs = (result) =>
+    capacity
+      ? {
+          ...result.inputs,
+          fixture: { ...result.inputs?.fixture, aggregateCreditsPerSecond: 50 },
+        }
+      : result.inputs;
+  if (
+    capacity &&
+    (baseline.protocol !== capacityProtocol ||
+      candidate.protocol !== capacityProtocol ||
+      digest(baseline.treatment ?? null) !==
+        digest(candidate.treatment ?? null) ||
+      baseline.source?.indexerInputHash !==
+        candidate.source?.indexerInputHash ||
+      baseline.inputs?.fixture?.aggregateCreditsPerSecond !== 50 ||
+      candidate.inputs?.fixture?.aggregateCreditsPerSecond !== 100)
+  )
+    reasons.push("invalid capacity treatment");
+  if (
+    digest(comparableInputs(baseline) ?? null) !==
+    digest(comparableInputs(candidate) ?? null)
+  )
     reasons.push("workload, runtime or fixture mismatch");
   const a = baseline.runs?.[0]?.entities ?? {};
   const b = candidate.runs?.[0]?.entities ?? {};
@@ -430,7 +469,10 @@ export function compareResults(baseline, candidate) {
   for (const name of new Set([...Object.keys(a), ...Object.keys(b)])) {
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) continue;
     if (!a[name] || !b[name]) {
-      if (cacheEntities.has(name) && baseline.protocol !== nativeProtocol)
+      if (
+        cacheEntities.has(name) &&
+        ![nativeProtocol, capacityProtocol].includes(baseline.protocol)
+      )
         addedOrRemovedCaches.push(name);
       else reasons.push(`entity coverage differs: ${name}`);
     } else if (
@@ -788,7 +830,7 @@ async function collectRun(options, setup, runNumber, cancelled) {
     );
     Object.assign(proxyEnv, {
       RPC_CACHE_DATABASE_URL: `postgresql://postgres:${password}@${pg}:5432/rpc_cache`,
-      RPC_CACHE_MAX_RPS: "50",
+      RPC_CACHE_MAX_RPS: String(options.rpcCredits ?? 50),
     });
     writeFileSync(
       envPath,
@@ -1239,11 +1281,14 @@ function readProfile(path, nativeWorkers) {
 async function runBenchmark(options) {
   const output = resolve(root, options.output);
   const result = {
-    protocol: options.nativeWorkers
-      ? nativeProtocol
-      : options.queuedAdmission
-        ? queuedProtocol
-        : protocol,
+    protocol:
+      options.rpcCredits !== undefined
+        ? capacityProtocol
+        : options.nativeWorkers
+          ? nativeProtocol
+          : options.queuedAdmission
+            ? queuedProtocol
+            : protocol,
     ...(options.nativeWorkers
       ? {
           treatment: {
@@ -1467,7 +1512,7 @@ async function runBenchmark(options) {
       fixture: {
         erpcImageId,
         postgresImageId: pgImageId,
-        aggregateCreditsPerSecond: 50,
+        aggregateCreditsPerSecond: options.rpcCredits ?? 50,
         proxyNetworks: networks,
         ...(options.queuedAdmission
           ? {
@@ -1562,7 +1607,9 @@ function comparisonReport(options) {
     candidate.source?.indexerInputHash !== runtimeHash(resolveRef(options.ref))
   )
     stale.push("candidate result predates runtime changes");
-  const comparison = compareResults(baseline, candidate);
+  const comparison = compareResults(baseline, candidate, {
+    capacity: options.compareCapacity,
+  });
   if (stale.length || !comparison.compatible) {
     console.log(
       `Comparison withheld: ${[...stale, ...comparison.reasons].join("; ")}.`
@@ -1578,6 +1625,11 @@ function comparisonReport(options) {
       candidate.source.commit.slice(0, 12),
     ],
     ["Runs", baseline.runs.length, candidate.runs.length],
+    [
+      "Aggregate RPC credits/second",
+      baseline.inputs.fixture.aggregateCreditsPerSecond,
+      candidate.inputs.fixture.aggregateCreditsPerSecond,
+    ],
     [
       "Native batch size",
       baseline.source.nativeBatchSize,
@@ -1606,7 +1658,7 @@ function comparisonReport(options) {
   ])
     console.log(`| ${label} | ${a} | ${b} |`);
   console.log(
-    `\nThroughput change: ${comparison.throughputGainPercent >= 0 ? "+" : ""}${comparison.throughputGainPercent.toFixed(1)}%. Shared entity values and provenance match.`
+    `\n${options.compareCapacity ? "Capacity experiment throughput" : "Throughput"} change: ${comparison.throughputGainPercent >= 0 ? "+" : ""}${comparison.throughputGainPercent.toFixed(1)}%. Shared entity values and provenance match.`
   );
   if (comparison.addedOrRemovedCaches.length)
     console.log(
@@ -1625,7 +1677,7 @@ function comparisonReport(options) {
 export async function main(args) {
   if (args.includes("--help")) {
     console.log(
-      "Usage: pnpm benchmark:indexer [--ref HEAD] [--runs 3] [--env-file FILE] [--output FILE] [--start BLOCK --end BLOCK] [--provider-profile LABEL] [--install-deps]\nNative worker experiment: --native-workers 1|2|4 (fixed four-chain workload; PostgreSQL connection budgets 2|4|8).\nQueued recovery profile: --queued-admission [--oracle-ref BASE_COMMIT]; use scripts/benchmark-indexer-robinhood.mjs for the matched six-trial comparison.\nCompare saved results without Docker or credentials: pnpm benchmark:indexer --compare-ref BRANCH | --compare FILE\nRequires pinned Node/pnpm, installed driver dependencies, prebuilt rpc-cache/Postgres images, ENVIO_API_TOKEN, ETHERSCAN_API_KEY and all nine UPSTREAM_RPC_URL_<chain> values. Matching lockfiles reuse installed dependencies; --install-deps explicitly installs frozen dependencies in an isolated snapshot before timing. Uses fresh local containers/databases and unchanged 50-credit eRPC protection. Private logs: benchmarks/<diagnosticId>/."
+      "Usage: pnpm benchmark:indexer [--ref HEAD] [--runs 3] [--env-file FILE] [--output FILE] [--start BLOCK --end BLOCK] [--provider-profile LABEL] [--install-deps]\nNative worker experiment: --native-workers 1|2|4 (fixed four-chain workload; PostgreSQL connection budgets 2|4|8). Capacity profile: add --rpc-credits 50|100; compare with --compare FILE --compare-capacity.\nQueued recovery profile: --queued-admission [--oracle-ref BASE_COMMIT]; use scripts/benchmark-indexer-robinhood.mjs for the matched six-trial comparison.\nCompare saved results without Docker or credentials: pnpm benchmark:indexer --compare-ref BRANCH | --compare FILE\nRequires pinned Node/pnpm, installed driver dependencies, prebuilt rpc-cache/Postgres images, ENVIO_API_TOKEN, ETHERSCAN_API_KEY and all nine UPSTREAM_RPC_URL_<chain> values. Matching lockfiles reuse installed dependencies; --install-deps explicitly installs frozen dependencies in an isolated snapshot before timing. Uses fresh local containers/databases and a 50-credit eRPC default; the optional local capacity profile permits 100. Private logs: benchmarks/<diagnosticId>/."
     );
     return;
   }

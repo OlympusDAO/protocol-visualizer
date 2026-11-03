@@ -50,9 +50,15 @@ test("native worker experiment selects fixed four-chain ranges and rejects confo
   const options = parseOptions(["--native-workers", "4"]);
   assert.equal(options.nativeWorkers, 4);
   assert.equal(options.queuedAdmission, false);
+  assert.equal(
+    parseOptions(["--native-workers", "1", "--rpc-credits", "100"]).rpcCredits,
+    100
+  );
   for (const args of [
     ["--native-workers", "3"],
     ["--native-workers", "2", "--queued-admission"],
+    ["--native-workers", "1", "--rpc-credits", "101"],
+    ["--rpc-credits", "100"],
     ["--native-workers", "2", "--start", "1"],
     ["--native-workers", "2", "--oracle-ref", "HEAD"],
   ])
@@ -264,9 +270,13 @@ function result(seconds = 10) {
 }
 
 test("native comparisons require every chain, matching event counts and valid process resource evidence", () => {
-  const make = (workers) => {
+  const make = (workers, credits) => {
     const r = result();
     r.protocol = "protocol-visualizer-native-workers-v2";
+    if (credits !== undefined) {
+      r.protocol = "protocol-visualizer-native-capacity-v1";
+      r.inputs.fixture.aggregateCreditsPerSecond = credits;
+    }
     r.source.storageScope = workers === 1 ? "shared" : "per-chain";
     r.source.configHash = "e".repeat(64);
     r.treatment = { nativeWorkers: workers, pgMaxConnections: workers * 2 };
@@ -304,6 +314,21 @@ test("native comparisons require every chain, matching event counts and valid pr
     return r;
   };
   assert.equal(compareResults(make(1), make(4)).compatible, true);
+  assert.equal(compareResults(make(1, 50), make(1, 100)).compatible, false);
+  assert.equal(
+    compareResults(make(1, 50), make(1, 100), { capacity: true }).compatible,
+    true
+  );
+  assert.equal(
+    compareResults(make(1, 50), make(4, 100), { capacity: true }).compatible,
+    false
+  );
+  const changedSource = make(1, 100);
+  changedSource.source.indexerInputHash = "f".repeat(64);
+  assert.equal(
+    compareResults(make(1, 50), changedSource, { capacity: true }).compatible,
+    false
+  );
   for (const mutate of [
     (r) => r.runs[0].chainMeta.pop(),
     (r) => r.runs[0].chainMeta[1].eventsProcessed++,

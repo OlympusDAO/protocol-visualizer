@@ -92,3 +92,15 @@ The shared fixture remains one eRPC with aggregate 50-credit protection and the 
 Worker treatment stays outside the common workload fingerprint. Only the explicit `disable_default_cross_chain` declaration is excluded from the native profile's workload configuration hash, allowing the shared-storage parent as the one-process baseline. The complete source configuration hash and storage scope remain recorded. Two/four-worker configurations require native storage. Entity contents, every verification block, all selected chain completion rows and per-chain event counts must still match exactly under the existing policy-function ordering rule.
 
 The probe writes one private file per process. Acceptance requires the actual supervisor/worker counts and valid CPU/RSS records. Report **sum of process peak RSS** as an upper bound, not simultaneous peak memory. Results prove only these bounded replay windows; do not extrapolate to full-history indexing, independent restart isolation, multiple replicas or higher Alchemy account capacity.
+
+### Separate finite-capacity experiment
+
+Only when a higher local cap is authorized, add `--rpc-credits 50` or `--rpc-credits 100` to select `protocol-visualizer-native-capacity-v1`. This changes the disposable eRPC container only. Normal native-worker protocol v2 still requires 50 credits/second.
+
+```sh
+pnpm benchmark:indexer --native-workers 1 --rpc-credits 50 --ref BASE_COMMIT --env-file .env --provider-profile local-private --output benchmarks/capacity-50.json
+pnpm benchmark:indexer --native-workers 1 --rpc-credits 100 --ref BASE_COMMIT --env-file .env --provider-profile local-private --output benchmarks/capacity-100.json
+pnpm benchmark:indexer --output benchmarks/capacity-100.json --compare benchmarks/capacity-50.json --compare-capacity
+```
+
+Use the same runtime revision and worker treatment on both sides. The capacity comparison permits only the recorded 50→100 budget difference; it rejects changed runtime, worker count, images, provider profile, workload, event counts or entity contents. Ordinary comparison continues to reject unequal budgets. Do not call a capacity gain a worker speedup, change live variables, or infer that Alchemy's account allowance increased. Check capacity/error counters and whether the real client completed after retries.

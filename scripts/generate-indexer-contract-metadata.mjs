@@ -18,13 +18,13 @@ const indexerRoot = path.join(repoRoot, "apps", "indexer");
 const contractNamesPath = path.join(indexerRoot, "src", "ContractNames.ts");
 const constantsPath = path.join(indexerRoot, "src", "constants.ts");
 const cachePath = path.join(indexerRoot, "data", "contract-cache.json");
-const outputPath = path.join(
+const defaultOutputPath = path.join(
   indexerRoot,
   "src",
   "generated",
   "contract-metadata.json"
 );
-const { verifiedGetterFields } = await import(
+const { verifiedGetterFields, hasCompleteDeploymentDiscovery } = await import(
   "../apps/indexer/src/services/contracts/immutables.ts"
 );
 
@@ -52,6 +52,9 @@ const requireFromRepo = createRequire(path.join(repoRoot, "package.json"));
 const ts = requireFromRepo("@typescript/typescript6");
 
 const cliOptions = parseArgs(process.argv.slice(2));
+const outputPath = cliOptions.output
+  ? path.resolve(cliOptions.output)
+  : defaultOutputPath;
 
 function parseArgs(args) {
   const options = {
@@ -63,6 +66,8 @@ function parseArgs(args) {
     cacheOnly: false,
     verifiedSource: undefined,
     refreshGetters: false,
+    prefetchDeployments: false,
+    output: undefined,
   };
 
   for (let index = 0; index < args.length; index += 1) {
@@ -72,6 +77,15 @@ function parseArgs(args) {
     }
     if (arg === "--refresh-getters") {
       options.refreshGetters = true;
+      continue;
+    }
+    if (arg === "--prefetch-deployments") {
+      options.prefetchDeployments = true;
+      continue;
+    }
+    if (arg === "--output") {
+      index += 1;
+      options.output = readRequiredArg(args, index, arg);
       continue;
     }
     if (arg === "--verified-source") {
@@ -625,7 +639,7 @@ if (cliOptions.verifiedSource) {
       cliOptions.address,
       metadata[cliOptions.chainId][cliOptions.address]
     );
-} else if (cliOptions.refreshGetters) {
+} else if (cliOptions.refreshGetters || cliOptions.prefetchDeployments) {
   const inventory = await readJsonIfExists(
     path.join(repoRoot, "packages/protocol-config/other-contracts.json"),
     []
@@ -646,8 +660,18 @@ if (cliOptions.verifiedSource) {
         type: "external",
       });
   }
+  const activeChains = new Set(
+    [
+      ...readFileSync(path.join(indexerRoot, "config.yaml"), "utf8").matchAll(
+        /^ {2}- id: (\d+)$/gm
+      ),
+    ].map((match) => match[1])
+  );
   const selected = [...targets.values()].filter(
     (contract) =>
+      (!cliOptions.prefetchDeployments ||
+        cliOptions.chainId ||
+        activeChains.has(contract.chainId)) &&
       (!cliOptions.chainId || contract.chainId === cliOptions.chainId) &&
       (!cliOptions.address ||
         contract.normalizedAddress === cliOptions.address) &&
@@ -664,9 +688,17 @@ if (cliOptions.verifiedSource) {
     const functions = Object.values(previous?.functionSelectors ?? {});
     if (
       !cliOptions.force &&
-      previous?.immutableDeployment &&
-      Array.isArray(previous?.addressGetters) &&
-      functions.every((fn) => fn.canonicalSignature && fn.documentation?.source)
+      (previous?.immutableDeployment ||
+        hasCompleteDeploymentDiscovery(
+          previous,
+          contract.chainId,
+          contract.normalizedAddress
+        )) &&
+      (cliOptions.prefetchDeployments ||
+        (Array.isArray(previous?.addressGetters) &&
+          functions.every(
+            (fn) => fn.canonicalSignature && fn.documentation?.source
+          )))
     )
       continue;
     try {
@@ -684,10 +716,17 @@ if (cliOptions.verifiedSource) {
         previous
       );
       metadata[contract.chainId] ??= {};
-      metadata[contract.chainId][contract.normalizedAddress] = processed;
+      // Keep checkpoint getter coverage stable, but refresh function metadata as
+      // runtime enrichment would; a completion marker must not freeze old docs.
+      if (cliOptions.prefetchDeployments && previous) {
+        metadata[contract.chainId][contract.normalizedAddress] = {
+          ...processed,
+          addressGetters: previous.addressGetters,
+        };
+      } else metadata[contract.chainId][contract.normalizedAddress] = processed;
       updated++;
       console.log(
-        `Verified getters: ${contract.chainId}:${contract.normalizedAddress} ${contract.name} (${processed.addressGetters.length})`
+        `Verified metadata: ${contract.chainId}:${contract.normalizedAddress} ${contract.name} (${processed.deploymentDiscovery ? "complete discovery" : "partial discovery"})`
       );
     } catch (error) {
       unavailable++;

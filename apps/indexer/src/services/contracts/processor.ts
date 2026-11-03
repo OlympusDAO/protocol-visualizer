@@ -10,6 +10,7 @@ import { type EtherscanApi, getEtherscanApi } from "../etherscan/api";
 import type { ChainId } from "../../constants";
 import { processAbiMetadata, fetchVerifiedContractMetadata } from "./abi";
 import precomputedContractMetadata from "../../generated/contract-metadata.json";
+import { hasCompleteDeploymentDiscovery } from "./immutables";
 
 const CACHE_FILE = "./data/contract-cache.json";
 const ABI_DIR = "./data/abis";
@@ -124,7 +125,11 @@ export class ContractProcessor {
     address: string,
     previous: ProcessedContractData
   ): Promise<ProcessedContractData> {
-    if (previous.immutableDeployment) return previous;
+    if (
+      previous.immutableDeployment ||
+      hasCompleteDeploymentDiscovery(previous, this.chainId, address)
+    )
+      return previous;
     try {
       return await fetchVerifiedContractMetadata(
         this.chainId,

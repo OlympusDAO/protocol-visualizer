@@ -5,7 +5,30 @@ import {
   type Abi,
   type Hex,
 } from "viem";
-import type { ImmutableDeployment, OrdinaryDeployment } from "./types";
+import type {
+  ImmutableDeployment,
+  OrdinaryDeployment,
+  ProcessedContractData,
+} from "./types";
+
+export const deploymentDiscoveryVersion = "verified-deployment-discovery-v1";
+
+export function hasCompleteDeploymentDiscovery(
+  metadata: ProcessedContractData | undefined,
+  chainId: string | number,
+  address: string,
+  codeHash?: string
+): boolean {
+  const discovery = metadata?.deploymentDiscovery;
+  return Boolean(
+    discovery &&
+      discovery.version === deploymentDiscoveryVersion &&
+      String(discovery.chainId) === String(chainId) &&
+      discovery.address.toLowerCase() === address.toLowerCase() &&
+      /^0x[0-9a-f]{64}$/i.test(discovery.codeHash) &&
+      (codeHash === undefined || discovery.codeHash === codeHash)
+  );
+}
 
 export const verifiedGetterFields =
   "metadata,sources,sourceIds,runtimeBytecode.onchainBytecode,runtimeBytecode.sourceMap,runtimeBytecode.immutableReferences,deployment.blockNumber,compilation.language,proxyResolution";

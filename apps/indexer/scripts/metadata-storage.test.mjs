@@ -25,6 +25,14 @@ test("metadata effects round trip through Envio's native output codec", async ()
         assert.equal(effect.name, "processContractMetadataV3");
         for (const descriptors of [
           {},
+          {
+            deploymentDiscovery: {
+              chainId: deployment.chainId,
+              address: deployment.address,
+              codeHash: deployment.codeHash,
+              version: "verified-deployment-discovery-v1",
+            },
+          },
           { ordinaryDeployment: deployment },
           {
             immutableDeployment: {
@@ -46,6 +54,7 @@ test("metadata effects round trip through Envio's native output codec", async ()
             addressGetters: undefined,
             ordinaryDeployment: undefined,
             immutableDeployment: undefined,
+            deploymentDiscovery: undefined,
             ...descriptors,
           };
           const stored = codec.reverseConvertToJsonOrThrow(

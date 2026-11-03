@@ -10,7 +10,10 @@ import {
   fetchVerifiedContract,
   processVerifiedContractMetadata,
 } from "../services/contracts/abi";
-import { ordinaryRuntime } from "../services/contracts/immutables";
+import {
+  ordinaryRuntime,
+  hasCompleteDeploymentDiscovery,
+} from "../services/contracts/immutables";
 import { emptyCodeHash, readExactBytecodeHash } from "./code-cache";
 import { getPublicClient, rethrowTransientRpc } from "./rpc";
 
@@ -65,19 +68,11 @@ const discoverDeploymentEffect = createEffect(
         context.cache = false;
         return undefined;
       }
-      const provenIneligible =
-        (verified.runtimeBytecode.immutableReferences &&
-          processed.ordinaryDeployment &&
-          Object.keys(verified.runtimeBytecode.immutableReferences).length ===
-            0) ||
-        !ordinaryRuntime(verified.runtimeBytecode.onchainBytecode) ||
-        verified.proxyResolution?.isProxy === true;
-      if (!processed.immutableDeployment && !provenIneligible)
-        context.cache = false;
+      if (!processed.deploymentDiscovery) context.cache = false;
       if (
         !processed.ordinaryDeployment &&
         !processed.immutableDeployment &&
-        !provenIneligible
+        !processed.deploymentDiscovery
       )
         return undefined;
       return JSON.stringify({
@@ -140,6 +135,21 @@ async function discoverDeployment(
         requireCanonical: true,
       }));
     if (!codeHash || codeHash === emptyCodeHash) return undefined;
+    const precomputed = (
+      metadata as Record<string, Record<string, ProcessedContractData>>
+    )[input.chainId]?.[input.address.toLowerCase()];
+    if (
+      hasCompleteDeploymentDiscovery(
+        precomputed,
+        input.chainId,
+        input.address,
+        codeHash
+      )
+    )
+      return {
+        ordinaryDeployment: precomputed?.ordinaryDeployment,
+        immutableDeployment: precomputed?.immutableDeployment,
+      };
     const encoded = await context.effect(discoverDeploymentEffect, {
       chainId: input.chainId,
       address: input.address.toLowerCase() as Address,

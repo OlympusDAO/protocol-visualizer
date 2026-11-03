@@ -23,6 +23,13 @@ export interface ImmutableDeployment extends OrdinaryDeployment {
 }
 
 export interface ProcessedContractData {
+  // Conclusive discovery for this runtime, including proven ineligible code.
+  deploymentDiscovery?: {
+    chainId: number;
+    address: string;
+    codeHash: string;
+    version: string;
+  };
   ordinaryDeployment?: OrdinaryDeployment;
   immutableDeployment?: ImmutableDeployment;
   roleToFunctions: Record<string, string[]>;

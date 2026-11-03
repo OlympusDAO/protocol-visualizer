@@ -4,6 +4,7 @@ import { test } from "node:test";
 import { setImmediate as tick } from "node:timers/promises";
 import { getControlGetter } from "../src/events/effects.ts";
 import { RpcTransientFailure } from "../src/events/rpc.ts";
+import metadata from "../src/generated/contract-metadata.json";
 import proofs from "../src/generated/kernel-read-proofs.json" with {
   type: "json",
 };
@@ -14,11 +15,17 @@ const block = (number) => ({
   timestamp: String(number + 1000),
 });
 
-test("Kernel pointer failure drains a sibling deployment writer before returning", async () => {
+test("Kernel pointer failure drains a sibling deployment writer before returning", async (t) => {
   const proof = proofs.find((row) => row.getters.includes("ROLES"));
   const kernel = proofs.find(
     (row) => row.chainId === 1 && row.name === "kernel"
   );
+  // This fixture supplies its own deployment proof below, independent of prefetch.
+  const precomputed = metadata[1][kernel.address];
+  delete metadata[1][kernel.address];
+  t.after(() => {
+    metadata[1][kernel.address] = precomputed;
+  });
   const held = Promise.withResolvers();
   const writes = [];
   let settled = false;

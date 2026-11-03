@@ -90,3 +90,33 @@ The repository default eRPC budget is now 100, following the accepted capacity e
 The requested additional 50–100% improvement over the optimized baseline is not demonstrated. A promising next experiment is precomputing verified getter-discovery results for the known inventory, using the existing metadata generator, including code-hash-bound conclusive negative results. The measured cold replay still made 191 Sourcify requests (190 HTTP 200 responses and one 404). Removing safe, repeated discovery from cold startup should be measured before assuming another RPC provider will solve that bottleneck. Unknown/new contracts must retain automatic runtime discovery.
 
 Long-outage recovery is a separate remaining decision. Failed effect invocations can be retried, but handler entity writes immediately modify native in-memory tables; `withCanonicalObservation` validates headers and does not provide a handler savepoint. A simple catch/sleep/rerun wrapper is unsafe. The smallest recovery experiment is restarting a failed native process group after cooldown against the same durable database, then proving equality with an uninterrupted run. Repository Railway configuration currently permits one restart; this experiment did not change it. An independent archive-provider fallback with its own account budget is another reliability option. Neither follow-up has been implemented or deployed here.
+
+## Metadata preparation milestone
+
+The existing metadata generator now supports `--prefetch-deployments`; see the
+[preparation runbook](indexer-operations.md#prepare-metadata-before-indexing).
+It fetches Sourcify evidence ahead of indexing and bundles the processed results.
+Conclusive discovery has a versioned chain/address/runtime-hash receipt, including
+verified immutable ineligibility. Ordinary bytecode alone, unavailable sources
+and incomplete compiler proof do not authorize a negative receipt. Runtime
+negative reuse checks the observed code hash; positive lifetime reuse retains
+its canonical creation/runtime checks and original verification provenance.
+
+The preparation run refreshed 182 contracts, retained previous data for 91
+unavailable contracts and skipped one already verified contract on configured
+chains. The resulting 241 metadata entries contain 145 discovery receipts, 145
+ordinary deployment descriptors and 40 immutable deployment descriptors. These
+counts overlap. Existing checkpoint getter lists were retained; verified function
+metadata and documentation were refreshed. Four previously missing metadata
+entries were added. This is coverage evidence, not an indexing speed percentage.
+
+Regression checks demonstrate zero metadata HTTP calls across two processor
+instances for a prepared conclusive result, code/identity/version isolation,
+proxy exclusion, native effect-codec storage and retry after partial or unavailable
+source data. The CLI regression verifies that preparation preserves getter lists,
+refreshes NatSpec and canonical signatures, retains roles, skips completed
+downloads after restart and preserves the previous file after a targeted 429.
+Astra caught a metadata-enrichment loss during review; the corrected implementation
+retains the verified function metadata that runtime enrichment previously supplied.
+The existing sibling-writer fault fixture now isolates its synthetic proof from
+bundled metadata and retains both its write and drain assertions.

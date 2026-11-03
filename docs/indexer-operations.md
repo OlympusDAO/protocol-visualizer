@@ -3,6 +3,49 @@
 This runbook covers Envio startup and deliberate rebuilds.
 RPC cache deployment and storage belong in [rpc-cache.md](rpc-cache.md).
 
+## Prepare metadata before indexing
+
+Download verified metadata before building the indexer:
+
+```bash
+ETHERSCAN_MIN_REQUEST_INTERVAL_MS=1000 pnpm run indexer:metadata -- --prefetch-deployments
+```
+
+This uses Sourcify's [contract lookup API](https://docs.sourcify.dev/docs/api/),
+including compiler metadata, source files and runtime/deployment evidence. It
+requires no Etherscan key. The existing interval variable also paces this
+sequential Sourcify loop; the command above permits one request per second.
+It selects registered contracts on the configured indexer chains, including
+non-label external contracts, and writes `apps/indexer/src/generated/contract-metadata.json`.
+The image bundles that file; prepared facts do not require a database warmup.
+
+The command refreshes verified function metadata and retains role mappings and
+existing checkpoint getter lists. New metadata entries use the verified ABI.
+Use `--refresh-getters` instead when deliberately updating existing getter lists.
+Use `--chain-id <id> --address <address>` for one registered contract, `--force`
+to refresh completed discovery, or `--output <file>` to inspect a separate copy.
+For that preview, copy the bundled JSON to the output path first: a new output
+path starts from empty metadata plus any local contract cache.
+Review generated changes and run the repository validation before committing.
+Run preparation after adding registered contracts or upgrading discovery logic;
+do not make every startup depend on this download.
+
+Only conclusive discovery receives a versioned chain/address/runtime-hash
+receipt: a proven immutable deployment, ordinary code with explicitly empty
+compiler immutable references, or bytecode/proxy evidence that excludes lifetime
+reuse. Ordinary code alone does not establish immutable ineligibility. Runtime
+negative reuse requires the observed code hash to match; positive lifetime facts
+still require canonical creation and runtime verification. Reused facts retain
+their actual verification block.
+
+Unavailable sources, 404/429 responses and incomplete compiler proof never become
+permanent negative receipts. Failed refreshes preserve prior metadata. Broad
+preparation reports partial coverage; targeted unavailable refreshes fail.
+Inspect the final summary rather than treating exit zero as complete coverage.
+New or unprepared contracts retain automatic runtime discovery. These cases can
+still contact Sourcify or Etherscan, so their independent runtime limits remain.
+Raising eRPC's RPC budget does not change either metadata service's allowance.
+
 ## Normal startup
 
 The indexer runs `envio start` without a reset flag. Deployments and crash

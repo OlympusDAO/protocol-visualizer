@@ -10,6 +10,8 @@ import { waitForMetadata } from "../metadata-throttle";
 import {
   discoverImmutableDeployment,
   discoverOrdinaryDeployment,
+  ordinaryRuntime,
+  deploymentDiscoveryVersion,
   verifiedGetterFields,
   type VerifiedImmutableInput,
 } from "./immutables";
@@ -121,6 +123,22 @@ export function processVerifiedContractMetadata(
     address
   );
   if (immutableDeployment) processed.immutableDeployment = immutableDeployment;
+  // Absence alone is not a negative proof: incomplete compiler/source data can
+  // become available later. Keep precisely the runtime discovery criteria.
+  if (
+    immutableDeployment ||
+    (ordinaryDeployment &&
+      verified.runtimeBytecode.immutableReferences &&
+      Object.keys(verified.runtimeBytecode.immutableReferences).length === 0) ||
+    !ordinaryRuntime(verified.runtimeBytecode.onchainBytecode) ||
+    verified.proxyResolution?.isProxy === true
+  )
+    processed.deploymentDiscovery = {
+      chainId: Number(chainId),
+      address: address.toLowerCase(),
+      codeHash: keccak256(verified.runtimeBytecode.onchainBytecode),
+      version: deploymentDiscoveryVersion,
+    };
   return processed;
 }
 

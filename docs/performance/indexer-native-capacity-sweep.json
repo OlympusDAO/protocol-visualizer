@@ -263,5 +263,34 @@
     "Upstream outcomes recorded no rate-limit outcome; this is not proof of headroom for other traffic.",
     "Sum of process peak RSS is an upper bound, not a simultaneous process memory measurement.",
     "Three trials per cap on one workload; 200-credit timing ranges overlap those at 150."
-  ]
+  ],
+  "finalMetadataRegression": {
+    "source": {
+      "ref": "db6af44",
+      "commit": "db6af445a64a63a334a204118f1bb3d987387a08",
+      "indexerInputHash": "3d26dc6fec45acc110712308692e28d19fcf59ff29d754ad56db1fed8fb371a8",
+      "lockfileHash": "3ad3acd3125bd06c65f300904bb28cc7cad5dcef683350649d821eecf666eee2",
+      "nativeBatchSize": 5000,
+      "configHash": "de01190690563dc7bfd8d60424a618939f05e6e2f120293b3ea2c3c78722739e",
+      "dependencies": "reused-matching-lockfile",
+      "storageScope": "per-chain"
+    },
+    "aggregateCreditsPerSecond": 100,
+    "runs": 1,
+    "acceptedAdditionalPerformanceGain": false,
+    "committedSeconds": 66.611888334,
+    "blocksPerSecond": 1201.0468701750406,
+    "allTwentyTablesExactWithControls": true,
+    "comparisonCompatible": true,
+    "cleanupComplete": true,
+    "sourceRequests": 79,
+    "artifactSha256": "d675d3dc5244d5b7752ec68682bf33ade9e4c4271993f8b5622af6990984cc49",
+    "indexerImageScan": {
+      "tool": "Trivy 0.76.1",
+      "status": "passed",
+      "severities": ["MEDIUM", "HIGH", "CRITICAL"],
+      "ignoreUnfixed": true,
+      "ignoreFile": ".trivyignore"
+    }
+  }
 }

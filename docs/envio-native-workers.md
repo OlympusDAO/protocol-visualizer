@@ -339,3 +339,12 @@ boundaries. ABI preparation is repeatable across process restarts and preserves
 existing proofs without granting new ones. Fresh address observations used the
 production RPC boundary through a disposable eRPC/PostgreSQL fixture and rechecked
 canonical headers after reading; its resources were cleaned up.
+
+A final committed-source replay (`db6af44`, 100 credits, four workers) finished
+in 66.612 seconds at 1,201.0 blocks/second, with 79 source requests and exact
+equality across all 20 tables against the 100-credit controls. This single scout
+validates the final metadata artifact; it establishes no additional speed gain.
+The capacity report retains its source fingerprint and raw-artifact hash.
+The rebuilt indexer passed Trivy 0.76.1's configured medium/high/critical scan,
+with unfixed findings and existing repository ignores excluded. Temporary RPC
+credentials and all experiment-owned containers/databases were removed.

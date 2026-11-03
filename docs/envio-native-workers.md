@@ -2,6 +2,38 @@
 
 This branch starts from the RPC-read performance branch at `ac5eab8`. It tests Envio 3.14.1's built-in supervisor on fresh local databases. No preview or production storage has been migrated.
 
+## Merge preparation
+
+Preflight reviewed runtime snapshot `22c2321` against local target
+`perf/indexer-rpc-reads` at `ac5eab8`. The target is an ancestor, so the proposed
+local merge can fast-forward without conflicts. On 2026-11-03 the remote target
+was `002988c`, one commit behind the local target; the existing unpublished
+`ac5eab8` throttling/failover test commit must be included in a later publication
+review. Recheck both refs before merging. This preparation does not merge the
+branches, publish a PR, or deploy services.
+
+Closeout reviews found no actionable blockers: CodeRabbit's fresh committed
+review reported zero findings; Codex Auto Review, Astra and Ponytail also passed.
+The runtime source retains its successful nine-step validation and configured
+indexer-image scan. Additional pre-merge integration checks passed:
+
+- Native PostgreSQL seed, chain-isolated rollback and process reload: 2.08 seconds
+  on a new disposable server/database.
+- Actual patched eRPC/PostgreSQL integration: 79.27 seconds, including nine
+  dependency-reader/revert cases, bounded HTTP/JSON-RPC 429 recovery and
+  exhaustion, primary-provider failover, mixed-method/chain aggregate admission,
+  restart persistence and private-error checks. The mixed fixture admitted 20
+  items under its 20-credit budget and rejected the other 140. No live providers
+  were used; database-reset checks were explicitly disabled.
+
+Deployment is a separate step. Use a fresh/shadow database and reindex; retain
+the old binary and old database together for rollback. The default two-connection
+budget still selects one process. Four workers require eight worker connections
+plus capacity for the supervisor and other consumers. Keep the finite 100-credit
+default and one supervisor; separate replicas need coordinated budgets. Confirm
+resource use and sustained progress on the actual deployment allocation before
+cutting consumers over. None of these operational changes was performed here.
+
 ## Storage milestone
 
 All 20 entities use Envio's native per-chain storage. Envio supplies the physical `chainId` column, partitions and composite identity. Handlers no longer supply or filter that column. Existing chain-prefixed IDs and external snapshot fields remain unchanged.

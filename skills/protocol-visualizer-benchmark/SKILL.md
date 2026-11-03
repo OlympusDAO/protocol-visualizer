@@ -105,3 +105,5 @@ pnpm benchmark:indexer --ref BASE_COMMIT --output benchmarks/capacity-100.json -
 ```
 
 Use the same runtime revision and worker treatment on both sides. The capacity comparison permits only the recorded 50→100 budget difference; it rejects changed runtime, worker count, images, provider profile, workload, event counts or entity contents. Ordinary comparison continues to reject unequal budgets. Do not call a capacity gain a worker speedup, change live variables, or infer that Alchemy's account allowance increased. Check capacity/error counters and whether the real client completed after retries.
+
+For a worker comparison at an approved 100-credit cap, use `--rpc-credits 100` on both sides and ordinary `--compare`, without `--compare-capacity`. Hold the source revision and prepared metadata fixed while varying `--native-workers`. This measures worker configuration, including its database and metadata-admission differences; it does not isolate the schema migration against an older shared-storage revision.

@@ -159,3 +159,48 @@ patched-eRPC/Postgres integration passed with reset checks disabled, and both
 indexer/RPC images passed the existing Trivy policies. Astra and Ponytail reviewed
 the implementation and resulting metadata. No live variables, deployments, existing
 databases or published branches were changed.
+
+## Confirmed native worker comparison
+
+The [worker confirmation report](performance/indexer-native-worker-comparison.json)
+compares one native process with four native workers at the same 100-credit cap.
+Both use commit `5c09aa2`, the same prepared metadata and the same four-chain
+80,004-block workload. Scouts tested one, two and four processing groups; all
+three had equal entity contents. The two-worker scout reached 942.3 blocks/second,
+versus 892.7 for one and 1,190.0 for four. These scouts selected four for repeated
+confirmation; their timings are excluded from the confirmation medians.
+
+Six fresh cold trials ran in 1/4/4/1/1/4 order, three per configuration:
+
+| Median metric | One process | Four workers plus supervisor |
+| --- | ---: | ---: |
+| Committed seconds | 84.480 | 68.000 |
+| Blocks/second | 947.0 | 1,176.5 |
+| Process CPU seconds | 15.14 | 20.93 |
+| Sum of process peak RSS, MiB | 373.4 | 1,099.6 |
+| Proxy RPC items | 5,541 | 5,609 |
+| Upstream requests | 3,731 | 3,733 |
+| Sourcify requests | 79 | 79 |
+
+Four workers delivered **24.2% higher throughput and 19.5% less elapsed time**.
+All 20 entity tables matched exactly across all six trials, including verification
+provenance and cache contents. All four chains completed with equal event counters.
+Each trial made 78 successful Sourcify requests and one 404; none recorded a
+Sourcify 429. The real clients completed despite local proxy capacity rejections;
+no upstream rate-limit or cancellation outcome was recorded. All disposable
+resources were cleaned.
+
+This compares complete native configurations: PostgreSQL worker-pool capacity
+changes from two to eight connections, and metadata admission changes with worker
+assignment. A supervisor can use an additional database connection. CPU and memory
+cost increase; RSS is the sum of separate process peaks, not simultaneous memory.
+The host has 12 logical CPUs. This does not establish performance under Railway's
+one-CPU/two-GB limit, warm state or full history, or isolate the storage migration
+against the historical shared-schema parent. Etherscan changes and downloads were
+excluded from the frozen runtime and timing interval.
+
+Deployment defaults remain unchanged. Selecting four workers requires
+`ENVIO_PG_MAX_CONNECTIONS=8` and a fresh database with this branch's native storage
+schema. Existing shared-schema databases were not migrated. One supervisor still
+owns the workers' shared failure boundary, and all workers share the same eRPC
+account budget.

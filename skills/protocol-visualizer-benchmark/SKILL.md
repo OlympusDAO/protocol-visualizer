@@ -74,3 +74,21 @@ Preserve the rest of the PR description. Update the existing benchmark section r
 Use repository-relative artifact links and portable commands in PR text. Omit personal filesystem paths, private environment-file locations and diagnostic paths.
 
 If the task forbids PR writes, prepare the comparison locally and report its location. This skill does not authorize a push, PR creation/update or deployment beyond the user's current instructions. If no valid baseline can be produced, state that limitation in the proposed PR text instead of inventing a gain.
+
+## Native worker comparison
+
+Use `--native-workers 1`, `2` or `4` for the separate `protocol-visualizer-native-workers-v1` profile. It fixes four 20,001-block ranges: Ethereum 26,240,000–26,260,000; Arbitrum 516,540,000–516,560,000; Base 52,850,000–52,870,000; Optimism 158,450,000–158,470,000. The command rejects custom ranges and the Ethereum-only getter oracle in this mode.
+
+```sh
+pnpm benchmark:indexer --native-workers 1 --ref BASE_COMMIT --env-file .env --provider-profile local-private --output benchmarks/native-parent.json
+pnpm benchmark:indexer --native-workers 4 --env-file .env --provider-profile local-private --output benchmarks/native-four.json
+pnpm benchmark:indexer --output benchmarks/native-four.json --compare benchmarks/native-parent.json
+```
+
+Start with single-run scouts for 1/2/4 configurations. Confirm any proposed winner with repeated alternating baseline/candidate trials. Do not run builds or other replay trials concurrently.
+
+The shared fixture remains one eRPC with aggregate 50-credit protection and the same bounded admission/recovery adapter. PostgreSQL budgets are 2/4/8 connections; Envio selects one process, two workers or four workers respectively. Multiple workers add a supervisor process. This is a coupled configuration comparison, not a constant-database-concurrency experiment. Metadata limits also vary as documented in [the experiment](../../docs/envio-native-workers.md).
+
+Worker treatment stays outside the common workload fingerprint. Only the explicit `disable_default_cross_chain` declaration is excluded from the native profile's workload configuration hash, allowing the shared-storage parent as the one-process baseline. The complete source configuration hash and storage scope remain recorded. Two/four-worker configurations require native storage. Entity contents, every verification block, all selected chain completion rows and per-chain event counts must still match exactly under the existing policy-function ordering rule.
+
+The probe writes one private file per process. Acceptance requires the actual supervisor/worker counts and valid CPU/RSS records. Report **sum of process peak RSS** as an upper bound, not simultaneous peak memory. Results prove only these bounded replay windows; do not extrapolate to full-history indexing, independent restart isolation, multiple replicas or higher Alchemy account capacity.

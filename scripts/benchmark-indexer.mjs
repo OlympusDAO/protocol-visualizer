@@ -8,6 +8,7 @@ import {
   mkdtempSync,
   openSync,
   readFileSync,
+  readdirSync,
   realpathSync,
   renameSync,
   rmSync,
@@ -30,6 +31,13 @@ const cacheEntities = new Set([
   "KernelReadEpoch",
 ]);
 const protocol = "protocol-visualizer-indexer-benchmark-v1";
+export const nativeWorkerRanges = [
+  { chainId: 1, start: 26_240_000, end: 26_260_000 },
+  { chainId: 42161, start: 516_540_000, end: 516_560_000 },
+  { chainId: 8453, start: 52_850_000, end: 52_870_000 },
+  { chainId: 10, start: 158_450_000, end: 158_470_000 },
+];
+const nativeProtocol = "protocol-visualizer-native-workers-v1";
 const queuedProtocol = "protocol-visualizer-indexer-queued-benchmark-v2";
 const image = "protocol-visualizer/rpc-cache:local";
 const pgImage = "postgres:17-alpine";
@@ -83,6 +91,7 @@ export function parseOptions(args) {
           "end",
           "provider-profile",
           "oracle-ref",
+          "native-workers",
         ].map((name) => [name, { type: "string" }])
       ),
       "install-deps": { type: "boolean", default: false },
@@ -92,6 +101,10 @@ export function parseOptions(args) {
     allowPositionals: false,
   });
   const result = {
+    nativeWorkers:
+      values["native-workers"] === undefined
+        ? undefined
+        : Number(values["native-workers"]),
     ref: values.ref ?? "HEAD",
     runs: Number(values.runs ?? 3),
     output: values.output ?? defaultOutput,
@@ -99,13 +112,19 @@ export function parseOptions(args) {
     compareRef: values["compare-ref"],
     envFile: values["env-file"],
     installDeps: values["install-deps"],
-    queuedAdmission: values["queued-admission"],
+    queuedAdmission:
+      values["queued-admission"] || values["native-workers"] !== undefined,
     oracleRef: values["oracle-ref"],
     start: Number(values.start ?? 26_240_000),
     end: Number(values.end ?? 26_290_000),
     providerProfile: values["provider-profile"] ?? "unspecified",
   };
   if (
+    (result.nativeWorkers !== undefined &&
+      (![1, 2, 4].includes(result.nativeWorkers) ||
+        values.start !== undefined ||
+        values.end !== undefined ||
+        result.oracleRef)) ||
     !Number.isSafeInteger(result.runs) ||
     result.runs < 1 ||
     result.runs > 10 ||
@@ -121,40 +140,49 @@ export function parseOptions(args) {
   return result;
 }
 
-export function fixtureConfig(text, start, end) {
-  if (
-    !Number.isSafeInteger(start) ||
-    !Number.isSafeInteger(end) ||
-    start < 1 ||
-    end < start
-  )
-    throw new BenchmarkFailure("invalid_range");
+export function fixtureConfig(
+  text,
+  start,
+  end,
+  ranges = [{ chainId: 1, start, end }]
+) {
   const parts = text.split("\nchains:\n");
   if (parts.length !== 2)
     throw new BenchmarkFailure("unsupported_chain_config");
   const sections = parts[1].split(/(?=^ {2}- id: )/m);
-  const matches = sections.filter((section) => /^ {2}- id: 1\s/.test(section));
-  if (matches.length !== 1)
-    throw new BenchmarkFailure("missing_ethereum_chain");
-  let chain = matches[0];
-  if (
-    (chain.match(/^ {4}start_block: \d+$/gm) ?? []).length !== 1 ||
-    !chain.includes(`\${ENVIO_RPC_URL_1}`) ||
-    (chain.match(/^ {8}for: /gm) ?? []).length !== 1
-  )
-    throw new BenchmarkFailure("unsupported_ethereum_config");
-  chain = chain
-    .replace(/^ {4}end_block: .*\n/gm, "")
-    .replace(
-      /^ {4}start_block: \d+$/m,
-      `    start_block: ${start}\n    end_block: ${end}`
+  const selected = ranges.map(({ chainId, start, end }) => {
+    if (
+      !Number.isSafeInteger(start) ||
+      !Number.isSafeInteger(end) ||
+      start < 1 ||
+      end < start
     )
-    .replace(
-      /^ {8}start_block: (\d+)$/gm,
-      (_, number) => `        start_block: ${Math.max(start, Number(number))}`
+      throw new BenchmarkFailure("invalid_range");
+    const matches = sections.filter(
+      (section) => section.match(/^ {2}- id: (\d+)\s/)?.[1] === String(chainId)
+    );
+    if (matches.length !== 1)
+      throw new BenchmarkFailure("missing_fixture_chain");
+    const chain = matches[0];
+    if (
+      (chain.match(/^ {4}start_block: \d+$/gm) ?? []).length !== 1 ||
+      !chain.includes(`\${ENVIO_RPC_URL_${chainId}}`) ||
+      (chain.match(/^ {8}for: /gm) ?? []).length !== 1
     )
-    .replace(/^ {8}for: .*$/m, "        for: fallback");
-  return `${parts[0]}\nchains:\n${chain}`;
+      throw new BenchmarkFailure("unsupported_fixture_config");
+    return chain
+      .replace(/^ {4}end_block: .*\n/gm, "")
+      .replace(
+        /^ {4}start_block: \d+$/m,
+        `    start_block: ${start}\n    end_block: ${end}`
+      )
+      .replace(
+        /^ {8}start_block: (\d+)$/gm,
+        (_, number) => `        start_block: ${Math.max(start, Number(number))}`
+      )
+      .replace(/^ {8}for: .*$/m, "        for: fallback");
+  });
+  return `${parts[0]}\nchains:\n${selected.join("")}`;
 }
 
 export function entityDigests(name, rows) {
@@ -220,7 +248,8 @@ export function summarize(runs) {
     stateConsistent: runs.every(
       (run) =>
         digest(state(run)) === digest(state(first)) &&
-        run.meta?.eventsProcessed === first.meta?.eventsProcessed
+        run.meta?.eventsProcessed === first.meta?.eventsProcessed &&
+        digest(run.chainMeta ?? null) === digest(first.chainMeta ?? null)
     ),
   };
 }
@@ -228,7 +257,7 @@ export function summarize(runs) {
 export function resultProblems(result) {
   const reasons = [];
   if (
-    ![protocol, queuedProtocol].includes(result.protocol) ||
+    ![protocol, queuedProtocol, nativeProtocol].includes(result.protocol) ||
     result.schemaVersion !== 1
   )
     reasons.push("protocol mismatch");
@@ -250,9 +279,28 @@ export function resultProblems(result) {
     workload.rpcMode !== "fallback"
   )
     reasons.push("invalid workload descriptor");
+  const nativeRun = result.protocol === nativeProtocol;
+  if (
+    nativeRun &&
+    (digest(workload?.chains ?? null) !== digest(nativeWorkerRanges) ||
+      ![1, 2, 4].includes(result.treatment?.nativeWorkers) ||
+      result.treatment.pgMaxConnections !==
+        result.treatment.nativeWorkers * 2 ||
+      !["shared", "per-chain"].includes(result.source?.storageScope) ||
+      (result.treatment.nativeWorkers > 1 &&
+        result.source.storageScope !== "per-chain") ||
+      !/^[a-f0-9]{64}$/.test(result.source?.configHash ?? ""))
+  )
+    reasons.push("invalid native worker treatment");
+  const totalBlocks = nativeRun
+    ? nativeWorkerRanges.reduce(
+        (sum, range) => sum + range.end - range.start + 1,
+        0
+      )
+    : workload?.end - workload?.start + 1;
   const fixture = result.inputs?.fixture;
   if (
-    (result.protocol === queuedProtocol) !==
+    [queuedProtocol, nativeProtocol].includes(result.protocol) !==
       Boolean(fixture?.queuedAdmission) ||
     (fixture?.queuedAdmission &&
       (!/^[a-f0-9]{64}$/.test(fixture.queuedAdmission.implementation ?? "") ||
@@ -290,7 +338,7 @@ export function resultProblems(result) {
   else {
     for (const run of result.runs) {
       if (
-        result.protocol === queuedProtocol &&
+        [queuedProtocol, nativeProtocol].includes(result.protocol) &&
         (!["requests", "capacityRetries", "exhausted"].every(
           (key) =>
             Number.isSafeInteger(run.admission?.[key]) &&
@@ -301,17 +349,31 @@ export function resultProblems(result) {
       )
         reasons.push("missing or exhausted admission evidence");
       if (
+        nativeRun &&
+        (run.chainMeta?.length !== nativeWorkerRanges.length ||
+          !nativeWorkerRanges.every((range) => {
+            const meta = run.chainMeta?.find(
+              (row) => row.chainId === range.chainId
+            );
+            return (
+              meta?.startBlock === range.start &&
+              meta?.endBlock === range.end &&
+              meta?.progressBlock === range.end &&
+              meta?.isReady === true &&
+              Number.isSafeInteger(meta.eventsProcessed) &&
+              meta.eventsProcessed >= 0
+            );
+          }) ||
+          !validNativeProfile(run.profile, result.treatment?.nativeWorkers))
+      )
+        reasons.push("incomplete native worker evidence");
+      if (
         !Number.isFinite(run.committedSeconds) ||
         run.committedSeconds <= 0 ||
         !Number.isFinite(run.blocksPerSecond) ||
         run.blocksPerSecond <= 0 ||
-        Math.abs(
-          run.blocksPerSecond -
-            (result.inputs?.workload?.end -
-              result.inputs?.workload?.start +
-              1) /
-              run.committedSeconds
-        ) > 1e-8 ||
+        Math.abs(run.blocksPerSecond - totalBlocks / run.committedSeconds) >
+          1e-8 ||
         run.exitCode !== 0 ||
         run.meta?.progressBlock !== result.inputs?.workload?.end ||
         run.meta?.startBlock !== result.inputs?.workload?.start ||
@@ -368,7 +430,8 @@ export function compareResults(baseline, candidate) {
   for (const name of new Set([...Object.keys(a), ...Object.keys(b)])) {
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) continue;
     if (!a[name] || !b[name]) {
-      if (cacheEntities.has(name)) addedOrRemovedCaches.push(name);
+      if (cacheEntities.has(name) && baseline.protocol !== nativeProtocol)
+        addedOrRemovedCaches.push(name);
       else reasons.push(`entity coverage differs: ${name}`);
     } else if (
       a[name].count !== b[name].count ||
@@ -379,7 +442,9 @@ export function compareResults(baseline, candidate) {
   }
   if (
     baseline.runs?.[0]?.meta?.eventsProcessed !==
-    candidate.runs?.[0]?.meta?.eventsProcessed
+      candidate.runs?.[0]?.meta?.eventsProcessed ||
+    digest(baseline.runs?.[0]?.chainMeta ?? null) !==
+      digest(candidate.runs?.[0]?.chainMeta ?? null)
   )
     reasons.push("processed event counts differ");
   return {
@@ -796,6 +861,12 @@ async function collectRun(options, setup, runNumber, cancelled) {
       ENVIO_PG_PASSWORD: password,
       ENVIO_PG_DATABASE: "indexer",
       ENVIO_PG_SSL_MODE: "false",
+      ...(options.nativeWorkers
+        ? {
+            ENVIO_PG_MAX_CONNECTIONS: String(options.nativeWorkers * 2),
+            PV_BENCHMARK_NATIVE_WORKERS: "true",
+          }
+        : {}),
       ENVIO_INDEXER_PORT: String(metricsPort),
       ENVIO_THROTTLE_CHAIN_METADATA_INTERVAL_MILLIS: "500",
       LOG_STRATEGY: "ecs-console",
@@ -809,7 +880,7 @@ async function collectRun(options, setup, runNumber, cancelled) {
         ])
       ),
     };
-    const metadataCode = `const C=await import(${JSON.stringify(pathToFileURL(join(source, "apps/indexer/node_modules/envio/src/Config.res.mjs")).href)});const c=C.load();console.log(JSON.stringify({batchSize:c.batchSize,entities:c.userEntities.map(e=>e.name)}));`;
+    const metadataCode = `const C=await import(${JSON.stringify(pathToFileURL(join(source, "apps/indexer/node_modules/envio/src/Config.res.mjs")).href)});const c=C.load();console.log(JSON.stringify({batchSize:c.batchSize,entities:c.userEntities.map(e=>e.name),defaultCrossChain:c.defaultCrossChain}));`;
     const metadata = JSON.parse(
       command(
         process.execPath,
@@ -825,6 +896,10 @@ async function collectRun(options, setup, runNumber, cancelled) {
     )
       throw new BenchmarkFailure("batch_size_changed");
     setup.source.nativeBatchSize = metadata.batchSize;
+    if (options.nativeWorkers)
+      setup.source.storageScope = metadata.defaultCrossChain
+        ? "shared"
+        : "per-chain";
     const indexerLog = join(logs, "indexer.private.log");
     logFd = openSync(indexerLog, "w", 0o600);
     const started = performance.now();
@@ -851,6 +926,23 @@ async function collectRun(options, setup, runNumber, cancelled) {
       });
     });
     let meta;
+    let chainMeta;
+    const ranges = options.nativeWorkers
+      ? nativeWorkerRanges
+      : [{ chainId: 1, start: options.start, end: options.end }];
+    const readMeta = () =>
+      database.unsafe(
+        'SELECT "chainId", "startBlock", "endBlock", "progressBlock", "eventsProcessed", "isReady" FROM _meta ORDER BY "chainId"'
+      );
+    const complete = () =>
+      ranges.every((range) =>
+        chainMeta?.some(
+          (row) =>
+            row.chainId === range.chainId &&
+            row.progressBlock === range.end &&
+            row.isReady === true
+        )
+      );
     let committedSeconds;
     let envioMetrics = "";
     let lastUpdate = 0;
@@ -865,12 +957,10 @@ async function collectRun(options, setup, runNumber, cancelled) {
         if (response.ok) envioMetrics = await response.text();
       } catch {}
       try {
-        const rows = await database.unsafe(
-          'SELECT "startBlock", "endBlock", "progressBlock", "eventsProcessed", "isReady" FROM _meta WHERE "chainId"=1'
-        );
-        if (rows.length) meta = rows[0];
+        chainMeta = await readMeta();
+        meta = chainMeta.find((row) => row.chainId === 1);
       } catch {}
-      if (meta?.progressBlock === options.end && committedSeconds === undefined)
+      if (complete() && committedSeconds === undefined)
         committedSeconds = (performance.now() - started) / 1000;
       if (child.exitCode !== null || child.signalCode !== null) break;
       if (
@@ -889,15 +979,13 @@ async function collectRun(options, setup, runNumber, cancelled) {
     if (child.exitCode === null && child.signalCode === null)
       throw new BenchmarkFailure("indexer_timeout");
     const finished = await exit;
-    const finalMeta = await database.unsafe(
-      'SELECT "startBlock", "endBlock", "progressBlock", "eventsProcessed", "isReady" FROM _meta WHERE "chainId"=1'
-    );
-    meta = finalMeta[0];
-    if (meta?.progressBlock === options.end && committedSeconds === undefined)
+    chainMeta = await readMeta();
+    meta = chainMeta.find((row) => row.chainId === 1);
+    if (complete() && committedSeconds === undefined)
       committedSeconds = (performance.now() - started) / 1000;
     if (
       finished.code !== 0 ||
-      meta?.progressBlock !== options.end ||
+      !complete() ||
       meta.isReady !== true ||
       committedSeconds === undefined
     )
@@ -942,6 +1030,7 @@ async function collectRun(options, setup, runNumber, cancelled) {
     writeFileSync(join(logs, "state.private.json"), JSON.stringify(state), {
       mode: 0o600,
     });
+    const profile = readProfile(profilePath, options.nativeWorkers);
     writeFileSync(
       join(logs, "completed.private.json"),
       JSON.stringify({
@@ -949,7 +1038,7 @@ async function collectRun(options, setup, runNumber, cancelled) {
         meta,
         rpc,
         entities,
-        profile: JSON.parse(readFileSync(profilePath, "utf8")),
+        profile,
       }),
       { mode: 0o600 }
     );
@@ -1012,7 +1101,10 @@ async function collectRun(options, setup, runNumber, cancelled) {
     }
     const record = {
       committedSeconds,
-      blocksPerSecond: (options.end - options.start + 1) / committedSeconds,
+      blocksPerSecond:
+        ranges.reduce((sum, range) => sum + range.end - range.start + 1, 0) /
+        committedSeconds,
+      ...(options.nativeWorkers ? { chainMeta } : {}),
       exitCode: finished.code,
       meta,
       source: sourceEvidence,
@@ -1025,7 +1117,7 @@ async function collectRun(options, setup, runNumber, cancelled) {
       entities,
       ...(admission ? { admission: { ...admission.stats } } : {}),
       ...(audit ? { audit } : {}),
-      profile: JSON.parse(readFileSync(profilePath, "utf8")),
+      profile,
     };
     console.log(
       `Run ${runNumber}/${options.runs}: ${record.blocksPerSecond.toFixed(1)} committed blocks/s`
@@ -1085,10 +1177,81 @@ async function collectRun(options, setup, runNumber, cancelled) {
   }
 }
 
+function validNativeProfile(profile, workers) {
+  const rows = profile?.processes;
+  if (
+    !Array.isArray(rows) ||
+    rows.length !== (workers === 1 ? 1 : workers + 1) ||
+    profile.processCount !== rows.length ||
+    profile.workerCount !== (workers === 1 ? 0 : workers) ||
+    rows.filter((row) => row.nativeWorker === true).length !==
+      profile.workerCount
+  )
+    return false;
+  return (
+    rows.every(
+      (row) =>
+        typeof row.nativeWorker === "boolean" &&
+        [row.cpuMicroseconds?.user, row.cpuMicroseconds?.system].every(
+          (n) => Number.isFinite(n) && n >= 0
+        ) &&
+        Number.isFinite(row.maxRssKilobytes) &&
+        row.maxRssKilobytes > 0
+    ) &&
+    profile.cpuMicroseconds ===
+      rows.reduce(
+        (sum, row) =>
+          sum + row.cpuMicroseconds.user + row.cpuMicroseconds.system,
+        0
+      ) &&
+    profile.sumProcessPeakRssKilobytes ===
+      rows.reduce((sum, row) => sum + row.maxRssKilobytes, 0)
+  );
+}
+
+function readProfile(path, nativeWorkers) {
+  if (!nativeWorkers) return JSON.parse(readFileSync(path, "utf8"));
+  const prefix = `${basename(path)}.`;
+  const processes = readdirSync(dirname(path))
+    .filter((name) => name.startsWith(prefix))
+    .map((name) => JSON.parse(readFileSync(join(dirname(path), name), "utf8")));
+  const workerCount = processes.filter((row) => row.nativeWorker).length;
+  if (
+    workerCount !== (nativeWorkers === 1 ? 0 : nativeWorkers) ||
+    processes.length !== (nativeWorkers === 1 ? 1 : nativeWorkers + 1)
+  )
+    throw new BenchmarkFailure("native_process_count_mismatch");
+  return {
+    processCount: processes.length,
+    workerCount,
+    cpuMicroseconds: processes.reduce(
+      (sum, row) => sum + row.cpuMicroseconds.user + row.cpuMicroseconds.system,
+      0
+    ),
+    sumProcessPeakRssKilobytes: processes.reduce(
+      (sum, row) => sum + row.maxRssKilobytes,
+      0
+    ),
+    processes,
+  };
+}
+
 async function runBenchmark(options) {
   const output = resolve(root, options.output);
   const result = {
-    protocol: options.queuedAdmission ? queuedProtocol : protocol,
+    protocol: options.nativeWorkers
+      ? nativeProtocol
+      : options.queuedAdmission
+        ? queuedProtocol
+        : protocol,
+    ...(options.nativeWorkers
+      ? {
+          treatment: {
+            nativeWorkers: options.nativeWorkers,
+            pgMaxConnections: options.nativeWorkers * 2,
+          },
+        }
+      : {}),
     schemaVersion: 1,
     status: "running",
     generatedAt: new Date().toISOString(),
@@ -1154,8 +1317,14 @@ async function runBenchmark(options) {
     const config = fixtureConfig(
       `${git("show", `${commit}:apps/indexer/config.yaml`)}\n`,
       options.start,
-      options.end
+      options.end,
+      options.nativeWorkers ? nativeWorkerRanges : undefined
     );
+    if (
+      options.nativeWorkers > 1 &&
+      !/^disable_default_cross_chain: true$/m.test(config)
+    )
+      throw new BenchmarkFailure("native_storage_required");
     const handler = git("show", `${commit}:apps/indexer/src/EventHandlers.ts`);
     result.source.configHash = bytesDigest(config);
     if (
@@ -1281,10 +1450,17 @@ async function runBenchmark(options) {
       },
       workload: {
         chainId: 1,
-        start: options.start,
-        end: options.end,
+        start: options.nativeWorkers
+          ? nativeWorkerRanges[0].start
+          : options.start,
+        end: options.nativeWorkers ? nativeWorkerRanges[0].end : options.end,
+        ...(options.nativeWorkers ? { chains: nativeWorkerRanges } : {}),
         checkpointInterval: 10_000,
-        configHash: workloadConfigHash(config),
+        configHash: workloadConfigHash(
+          options.nativeWorkers
+            ? config.replace(/^disable_default_cross_chain:.*\n/gm, "")
+            : config
+        ),
         eventSource: "HyperSync",
         rpcMode: "fallback",
       },
@@ -1449,7 +1625,7 @@ function comparisonReport(options) {
 export async function main(args) {
   if (args.includes("--help")) {
     console.log(
-      "Usage: pnpm benchmark:indexer [--ref HEAD] [--runs 3] [--env-file FILE] [--output FILE] [--start BLOCK --end BLOCK] [--provider-profile LABEL] [--install-deps]\nQueued recovery profile: --queued-admission [--oracle-ref BASE_COMMIT]; use scripts/benchmark-indexer-robinhood.mjs for the matched six-trial comparison.\nCompare saved results without Docker or credentials: pnpm benchmark:indexer --compare-ref BRANCH | --compare FILE\nRequires pinned Node/pnpm, installed driver dependencies, prebuilt rpc-cache/Postgres images, ENVIO_API_TOKEN, ETHERSCAN_API_KEY and all nine UPSTREAM_RPC_URL_<chain> values. Matching lockfiles reuse installed dependencies; --install-deps explicitly installs frozen dependencies in an isolated snapshot before timing. Uses fresh local containers/databases and unchanged 50-credit eRPC protection. Private logs: benchmarks/<diagnosticId>/."
+      "Usage: pnpm benchmark:indexer [--ref HEAD] [--runs 3] [--env-file FILE] [--output FILE] [--start BLOCK --end BLOCK] [--provider-profile LABEL] [--install-deps]\nNative worker experiment: --native-workers 1|2|4 (fixed four-chain workload; PostgreSQL connection budgets 2|4|8).\nQueued recovery profile: --queued-admission [--oracle-ref BASE_COMMIT]; use scripts/benchmark-indexer-robinhood.mjs for the matched six-trial comparison.\nCompare saved results without Docker or credentials: pnpm benchmark:indexer --compare-ref BRANCH | --compare FILE\nRequires pinned Node/pnpm, installed driver dependencies, prebuilt rpc-cache/Postgres images, ENVIO_API_TOKEN, ETHERSCAN_API_KEY and all nine UPSTREAM_RPC_URL_<chain> values. Matching lockfiles reuse installed dependencies; --install-deps explicitly installs frozen dependencies in an isolated snapshot before timing. Uses fresh local containers/databases and unchanged 50-credit eRPC protection. Private logs: benchmarks/<diagnosticId>/."
     );
     return;
   }

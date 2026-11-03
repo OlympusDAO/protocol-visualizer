@@ -19,6 +19,7 @@ import {
   entityDigests,
   fixtureConfig,
   installedLockMatches,
+  nativeWorkerRanges,
   parseOptions,
   proxyMetrics,
   summarize,
@@ -44,6 +45,39 @@ chains:
   - id: 42161
     start_block: 3
 `;
+
+test("native worker experiment selects fixed four-chain ranges and rejects confounded options", () => {
+  const options = parseOptions(["--native-workers", "4"]);
+  assert.equal(options.nativeWorkers, 4);
+  assert.equal(options.queuedAdmission, true);
+  for (const args of [
+    ["--native-workers", "3"],
+    ["--native-workers", "2", "--start", "1"],
+    ["--native-workers", "2", "--oracle-ref", "HEAD"],
+  ])
+    assert.throws(() => parseOptions(args), /invalid_arguments/);
+  const config = readFileSync(
+    new URL("../apps/indexer/config.yaml", import.meta.url),
+    "utf8"
+  );
+  const ranges = [
+    { chainId: 1, start: 26_240_000, end: 26_260_000 },
+    { chainId: 42161, start: 516_540_000, end: 516_560_000 },
+    { chainId: 8453, start: 52_850_000, end: 52_870_000 },
+    { chainId: 10, start: 158_450_000, end: 158_470_000 },
+  ];
+  const fixture = fixtureConfig(config, 1, 2, ranges);
+  assert.deepEqual(
+    fixture.match(/^ {2}- id: \d+/gm),
+    ranges.map(({ chainId }) => `  - id: ${chainId}`)
+  );
+  for (const { chainId, start, end } of ranges) {
+    assert.ok(fixture.includes(`\${ENVIO_RPC_URL_${chainId}}`));
+    assert.ok(
+      fixture.includes(`    start_block: ${start}\n    end_block: ${end}`)
+    );
+  }
+});
 
 test("dependency reuse rejects missing or stale installed lockfiles", () => {
   const directory = mkdtempSync(join(tmpdir(), "pv-benchmark-deps-"));
@@ -227,6 +261,72 @@ function result(seconds = 10) {
     summary: summarize([run]),
   };
 }
+
+test("native comparisons require every chain, matching event counts and valid process resource evidence", () => {
+  const make = (workers) => {
+    const r = result();
+    r.protocol = "protocol-visualizer-native-workers-v1";
+    r.source.storageScope = workers === 1 ? "shared" : "per-chain";
+    r.source.configHash = "e".repeat(64);
+    r.treatment = { nativeWorkers: workers, pgMaxConnections: workers * 2 };
+    r.inputs.workload = {
+      ...r.inputs.workload,
+      ...nativeWorkerRanges[0],
+      chains: nativeWorkerRanges,
+    };
+    r.inputs.fixture.queuedAdmission = {
+      implementation: "d".repeat(64),
+      active: 32,
+      waiting: 256,
+      maxInFlight: 1024,
+      deadlineMilliseconds: 8000,
+    };
+    r.inputFingerprint = digest(r.inputs);
+    const run = r.runs[0];
+    run.chainMeta = nativeWorkerRanges.map(({ chainId, start, end }) => ({
+      chainId,
+      startBlock: start,
+      endBlock: end,
+      progressBlock: end,
+      isReady: true,
+      eventsProcessed: 5,
+    }));
+    run.meta = run.chainMeta[0];
+    run.blocksPerSecond = 80004 / run.committedSeconds;
+    run.admission = { requests: 20, capacityRetries: 0, exhausted: 0 };
+    const count = workers === 1 ? 1 : workers + 1;
+    run.profile = {
+      processCount: count,
+      workerCount: workers === 1 ? 0 : workers,
+      cpuMicroseconds: count * 3,
+      sumProcessPeakRssKilobytes: count * 100,
+      processes: Array.from({ length: count }, (_, index) => ({
+        nativeWorker: index > 0,
+        cpuMicroseconds: { user: 1, system: 2 },
+        maxRssKilobytes: 100,
+      })),
+    };
+    r.summary = summarize(r.runs);
+    return r;
+  };
+  assert.equal(compareResults(make(1), make(4)).compatible, true);
+  for (const mutate of [
+    (r) => r.runs[0].chainMeta.pop(),
+    (r) => r.runs[0].chainMeta[1].eventsProcessed++,
+    (r) => r.runs[0].chainMeta[1].progressBlock--,
+    (r) => r.runs[0].profile.workerCount--,
+    (r) => (r.runs[0].profile.processes[0].nativeWorker = true),
+    (r) => (r.runs[0].profile.processes[1].cpuMicroseconds.user = NaN),
+    (r) => (r.runs[0].profile.processes[1].maxRssKilobytes = 0),
+    (r) => r.runs[0].profile.cpuMicroseconds++,
+    (r) => r.runs[0].profile.sumProcessPeakRssKilobytes++,
+  ]) {
+    const changed = make(4);
+    mutate(changed);
+    changed.summary = summarize(changed.runs);
+    assert.equal(compareResults(make(1), changed).compatible, false);
+  }
+});
 
 test("queued protocol rejects missing, malformed and exhausted recovery evidence", () => {
   const make = () => {

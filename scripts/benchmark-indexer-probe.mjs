@@ -1,3 +1,4 @@
+/* biome-ignore-all lint/suspicious/noUndeclaredEnvVars: standalone benchmark instrumentation runs outside Turbo. */
 import { writeFileSync } from "node:fs";
 
 const started = performance.now();
@@ -18,7 +19,6 @@ let active = 0;
 
 globalThis.fetch = async (input, options) => {
   const url = new URL(input instanceof Request ? input.url : input);
-  // biome-ignore lint/suspicious/noUndeclaredEnvVars: standalone benchmark, outside Turbo caching.
   const rpc = url.origin === process.env.PV_BENCHMARK_RPC_ORIGIN;
   const source = url.origin === "https://sourcify.dev";
   if (!rpc && !source) return originalFetch(input, options);
@@ -66,8 +66,13 @@ process.on("exit", () => {
   stats.elapsedMilliseconds = performance.now() - started;
   stats.cpuMicroseconds = process.cpuUsage(cpu);
   stats.maxRssKilobytes = process.resourceUsage().maxRSS;
-  // biome-ignore lint/suspicious/noUndeclaredEnvVars: standalone benchmark output, outside Turbo caching.
-  writeFileSync(process.env.PV_BENCHMARK_PROBE_OUTPUT, JSON.stringify(stats), {
+  const native = process.env.PV_BENCHMARK_NATIVE_WORKERS === "true";
+  stats.nativeWorker = Boolean(
+    process.channel && process.env.ENVIO_INTERNAL_WORKER
+  );
+  const destination =
+    process.env.PV_BENCHMARK_PROBE_OUTPUT + (native ? `.${process.pid}` : "");
+  writeFileSync(destination, JSON.stringify(stats), {
     mode: 0o600,
   });
 });

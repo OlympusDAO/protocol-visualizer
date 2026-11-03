@@ -98,7 +98,11 @@ No startup error automatically resets the database.
 database before you start. The separate RPC cache database remains intact.
 
 The package command uses [Railway SSH](https://docs.railway.com/cli/ssh).
-It runs Node directly because the distroless image has no shell, `pnpm`, or `npx`.
+It runs Node directly; the image does not include `pnpm` or `npx`.
+Railway SSH also requires a shell to launch that command. The indexer retains
+its pinned distroless Node runtime and non-root user, with one BusyBox executable
+copied from a digest-pinned official distroless image to provide `/bin/sh`.
+This adds shell access and BusyBox's compiled applets, not a package manager.
 The deployed image must include the reset control script and updated startup wrapper.
 
 ### Prepare
@@ -175,6 +179,7 @@ Local process fixtures check complete ingestion shutdown before migration,
 restart after success, maintenance after failure, and concurrent reset rejection.
 The Railway command test uses a fake CLI to check explicit environment selection.
 The actual distroless image runs the official reset command against disposable
-Postgres and fixture Hasura responses. These checks do not validate live SSH transport.
-No live SSH session, deployment, variable change, or database reset was performed.
+Postgres and fixture Hasura responses. A separate image check executes Node through
+`/bin/sh` in a running container and verifies the pinned Node version and non-root
+UID. These local checks do not validate live Railway SSH transport.
 No arbitrary cursor SQL or partial historical replay is part of this procedure.

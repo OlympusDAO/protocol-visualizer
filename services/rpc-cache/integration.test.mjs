@@ -104,6 +104,37 @@ async function eventually(check, message) {
 }
 
 // Kept outside tests/*.test.mjs so regular builds do not require Docker.
+test("indexer image supports a non-root administrative shell", () => {
+  const name = `pv-indexer-shell-${process.pid}-${Date.now()}`;
+  try {
+    docker(
+      "run",
+      "-d",
+      "--name",
+      name,
+      "protocol-visualizer/indexer:local",
+      "-e",
+      "setInterval(() => {}, 1000)"
+    );
+    const result = JSON.parse(
+      docker(
+        "exec",
+        name,
+        "/bin/sh",
+        "-c",
+        "exec /nodejs/bin/node -e 'console.log(JSON.stringify({node:process.version,uid:process.getuid()}))'"
+      )
+    );
+    assert.equal(
+      result.node,
+      `v${readFileSync(new URL("../../.node-version", import.meta.url), "utf8").trim()}`
+    );
+    assert.equal(result.uid, 65532);
+  } finally {
+    docker("rm", "-f", name);
+  }
+});
+
 test("pinned eRPC read-through persistence, finality, isolation and safe errors", {
   timeout: 300_000,
 }, async () => {

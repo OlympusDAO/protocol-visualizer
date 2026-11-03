@@ -10,7 +10,7 @@ Deployment reuse now validates the handler's chain scope rather than expecting a
 
 All 15 existing effects explicitly retain shared scope. Their inputs already include chain identity; this preserves their cache table identity and avoids accidentally multiplying effect limits within one process.
 
-Metadata HTTP admission is separate from RPC admission. Etherscan and Sourcify each retain five starts/second in an ordinary process. Native workers reserve one start/second each, conservatively allowing at most four across Envio's pinned maximum of four workers. Admission measures from actual release so overdue timers cannot bunch up after a stall. Retries reacquire admission. This protection assumes one supervisor, not multiple replicas.
+Metadata HTTP admission is separate from RPC admission. Etherscan and Sourcify each retain five starts/second in an ordinary process. Native workers reserve one start/second each; the unique worker assigned Ethereum receives a second start/second. Across Envio's pinned maximum of four workers this uses at most five starts/second. Unrecognized worker metadata retains the one-slot share. Admission measures from actual release so overdue timers cannot bunch up after a stall. Retries reacquire admission. This protection assumes one supervisor, not multiple replicas.
 
 This schema change requires a fresh database/reindex. Do not point it at an existing shared-schema database or apply ad hoc DDL. Default PostgreSQL connection capacity remains unchanged, so this milestone alone does not enable multiple workers in deployment.
 
@@ -33,3 +33,9 @@ Worker groups share a failure boundary: one failed worker stops its siblings. Th
 Storage milestone validation: all nine ordered repository checks passed, including all four application images. The native 429/late-fork atomicity test passed in 68.9 seconds. The expanded PostgreSQL restart/rollback test passed in 3.8 seconds. Astra reviewed correctness; Ponytail's simplification removed the redundant per-instance Etherscan limiter. These are correctness measurements, not indexing-speed results.
 
 The initial worker-profile scout reused the old Robinhood benchmark's eight-second capacity adapter. Its indexer completed, but adapter exhaustion invalidated the result. Native protocol v2 removes that compatibility adapter: both the performance parent and native variants already own production retries. No timing from the failed adapter-backed scout is accepted or compared to direct-path runs. HyperSync, the 50-credit cap and observation cadence remain unchanged. Proxy capacity/outcome counters and per-process HTTP status counts record throttling without provider text or URLs.
+
+## Metadata allocation milestone
+
+The initial one-slot-per-worker policy left the fifth permitted metadata slot unused. The revised policy gives the unique Ethereum worker two starts/second and every other worker one. Envio 3.14.1 assigns each chain once and starts at most four workers, so the total is at most five starts/second per metadata service. Unknown worker metadata retains one slot. This is an explicit preference for mainnet bootstrap, not a general workload allocator.
+
+The IPC regression first rejected the old one-slot allocation, then passed at the 499/500 ms boundary. An added fractional-clock/early-wakeup case caught premature admission; the implementation now rounds waits upward and rechecks the monotonic deadline after every wakeup. All three metadata regressions and the full nine-step validation passed. The earlier cold scouts remain evidence for the original allocation; a new replay measures this revision separately.

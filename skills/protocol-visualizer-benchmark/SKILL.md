@@ -100,7 +100,7 @@ Only when a higher local cap is authorized, add `--rpc-credits 50` or `--rpc-cre
 ```sh
 pnpm benchmark:indexer --native-workers 1 --rpc-credits 50 --ref BASE_COMMIT --env-file .env --provider-profile local-private --output benchmarks/capacity-50.json
 pnpm benchmark:indexer --native-workers 1 --rpc-credits 100 --ref BASE_COMMIT --env-file .env --provider-profile local-private --output benchmarks/capacity-100.json
-pnpm benchmark:indexer --output benchmarks/capacity-100.json --compare benchmarks/capacity-50.json --compare-capacity
+pnpm benchmark:indexer --ref BASE_COMMIT --output benchmarks/capacity-100.json --compare benchmarks/capacity-50.json --compare-capacity
 ```
 
 Use the same runtime revision and worker treatment on both sides. The capacity comparison permits only the recorded 50→100 budget difference; it rejects changed runtime, worker count, images, provider profile, workload, event counts or entity contents. Ordinary comparison continues to reject unequal budgets. Do not call a capacity gain a worker speedup, change live variables, or infer that Alchemy's account allowance increased. Check capacity/error counters and whether the real client completed after retries.

@@ -54,3 +54,54 @@ test("a native worker with IPC reserves metadata at one start per second", async
   assert.equal(times.length, 2);
   assert.ok(times[1] - times[0] >= 950);
 });
+
+test("the unique Ethereum worker can use the fifth metadata slot without releasing early", async () => {
+  const moduleUrl = new URL(
+    "../src/services/metadata-throttle.ts",
+    import.meta.url
+  ).href;
+  const code = `import {mock} from "node:test";import {syncBuiltinESMExports} from "node:module";import {setImmediate} from "node:timers/promises";import {waitForMetadata} from ${JSON.stringify(moduleUrl)};
+    let clock=0;mock.method(performance,"now",()=>clock);mock.timers.enable({apis:["setTimeout"]});syncBuiltinESMExports();
+    await waitForMetadata("sourcify");let done=false;void waitForMetadata("sourcify").then(()=>{done=true});await setImmediate();
+    clock=499;mock.timers.tick(499);await setImmediate();const early=done;
+    clock=500;mock.timers.tick(1);await setImmediate();
+    clock=600.75;let rounded=false;void waitForMetadata("sourcify").then(()=>{rounded=true});await setImmediate();
+    clock=999.5;mock.timers.tick(400);await setImmediate();const roundedEarly=rounded;
+    clock=1000;mock.timers.tick(1);await setImmediate();process.send({early,done,roundedEarly,rounded});mock.timers.reset();mock.restoreAll();process.disconnect();`;
+  const child = spawn(
+    process.execPath,
+    [
+      "--import",
+      fileURLToPath(new URL("./register-typescript.mjs", import.meta.url)),
+      "--input-type=module",
+      "-e",
+      code,
+    ],
+    {
+      env: {
+        ENVIO_INTERNAL_WORKER: JSON.stringify({
+          chainIds: [1, 10],
+          holdRealtime: true,
+          isDev: false,
+        }),
+      },
+      stdio: ["ignore", "ignore", "ignore", "ipc"],
+      timeout: 5000,
+    }
+  );
+  let result;
+  child.on("message", (message) => {
+    result = message;
+  });
+  const exit = await new Promise((accept, reject) => {
+    child.on("error", reject);
+    child.on("exit", accept);
+  });
+  assert.equal(exit, 0);
+  assert.deepEqual(result, {
+    early: false,
+    done: true,
+    roundedEarly: false,
+    rounded: true,
+  });
+});

@@ -20,6 +20,7 @@ Reuse a completed result only when its runtime-input fingerprint still matches t
 - Provide `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY` and all nine `UPSTREAM_RPC_URL_<chain>` variables through the environment or a private `--env-file`. Use a nonsecret `--provider-profile` label to identify equivalent provider conditions. Do not fetch or change live variables automatically.
 - Benchmark committed snapshots. The runner exports a ref without switching branches or modifying the original worktree. Matching dependencies can be reused; `--install-deps` performs an isolated frozen install when the target lockfile differs. Never silently run a ref against another ref's dependencies.
 - Keep builds, other benchmarks and heavy tests out of the timing interval. The runner creates and cleans only its own disposable containers, databases and source copies; never reset an existing database to prepare a benchmark.
+- For metadata preparation changes, commit the generated artifact before replay and record preparation coverage and its separate cost. Do not download metadata concurrently with replay; allow source-service quota windows to recover before controls. Record metadata HTTP statuses. Refreshed documentation or proof provenance can change stored state; keep strict comparison withheld when equality fails, even if fresh oracles validate the differences.
 
 ## Run and compare
 

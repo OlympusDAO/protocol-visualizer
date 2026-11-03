@@ -120,3 +120,42 @@ Astra caught a metadata-enrichment loss during review; the corrected implementat
 retains the verified function metadata that runtime enrichment previously supplied.
 The existing sibling-writer fault fixture now isolates its synthetic proof from
 bundled metadata and retains both its write and drain assertions.
+
+### Cold replay and correctness checks
+
+The [metadata scout report](performance/indexer-metadata-prefetch-comparison.json)
+records one cold replay per revision, using the same 80,004 blocks, four native
+workers and 100-credit cap. Both completed and cleaned their disposable databases.
+Baseline `0a32e13` took 90.629 seconds (882.8 blocks/second); prepared candidate
+`4c624d2` took 65.409 seconds (1,223.1 blocks/second).
+
+**No like-for-like speedup percentage is accepted.** The strict comparator found
+three unequal tables, so repeated timing stopped. Seventeen other tables matched
+exactly. All 755 relationship values, holders, outcomes and `indexedThrough` boundaries
+matched. One immutable relationship used its creation verification for provenance
+and seed; one Arbitrum authority relationship gained source context and target-code
+evidence. Nine verified-deployment records were added; four have bundled ordinary
+descriptors and five were discovered dynamically. Aggregate counters cannot explain
+each dynamic discovery's success.
+
+Fresh independent reads through a new disposable private proxy verified all nine
+additional deployment records: canonical creation/requested headers, empty parent
+code, matching ordinary runtime at creation and at the replay checkpoint. Both
+differing relationships passed fresh getter and target-code checks. The immutable
+factory getter retained its compiler/source proof and matched at creation and the
+checkpoint. Canonical headers were checked again after reads. These checks support
+the differing facts; they do not make the physical stored states identical.
+
+Sourcify requests fell from 191 to 79, **58.6% fewer in this pair**. The baseline
+recorded 179 HTTP 200, one 404 and eleven 429 responses; the candidate recorded
+78 HTTP 200 and one 404. Preparation preceded the control, and the source service's
+quota history was not controlled. Neither zero future 429s nor a causal timing gain
+is established. Proxy requests were 5,447 versus 5,578; upstream requests were 3,734
+versus 3,707. This is not evidence of RPC billing savings. One-time preparation
+cost was outside the timer and was not measured; warm-state speed was not measured.
+
+The corrected milestone passed all nine ordered validation steps. The rebuilt
+patched-eRPC/Postgres integration passed with reset checks disabled, and both
+indexer/RPC images passed the existing Trivy policies. Astra and Ponytail reviewed
+the implementation and resulting metadata. No live variables, deployments, existing
+databases or published branches were changed.

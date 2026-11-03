@@ -254,3 +254,46 @@ worker confirmation data. Its own databases and proxy were cleaned. This single
 run checks the final artifact; it does not establish an additional performance
 gain. Its source fingerprint and raw-artifact hash are recorded separately in the
 worker comparison report.
+
+## 100 / 150 / 200 credit confirmation
+
+The [capacity sweep report](performance/indexer-native-capacity-sweep.json)
+compares nine cold replays at frozen commit `ed38d46`, in
+100/150/200/200/100/150/150/200/100 order. Each indexed the same 80,004 blocks
+with four native workers, eight PostgreSQL connections, new indexer and proxy
+databases, real HyperSync and private RPC. Observation intervals stayed unchanged.
+All 20 stored tables, including verification provenance, match across all nine
+runs; event counts and completed chain ranges also match. Every fixture cleaned up.
+
+| Median of three trials | 100 credits/s | 150 credits/s | 200 credits/s |
+| --- | ---: | ---: | ---: |
+| Committed seconds | 68.736 | 62.462 | 60.003 |
+| Blocks/second | 1,163.9 | 1,280.8 | 1,333.3 |
+| Throughput gain against 100 | — | 10.04% | 14.55% |
+| Proxy RPC items | 5,644 | 5,583 | 5,541 |
+| Upstream RPC items, including housekeeping | 3,731 | 3,733 | 3,731 |
+| Local eRPC budget rejections | 103 | 42 | 0 |
+| Total process CPU seconds | 20.87 | 19.54 | 20.13 |
+| Sum of process peak RSS, MiB | 1,108.2 | 1,124.5 | 1,161.0 |
+
+The higher budget reduced local rejection/retry pressure rather than materially
+changing upstream request volume. Every run completed; upstream outcome counters
+recorded successes, empty results and 44 execution reverts, with no rate-limit
+outcome. Local budget rejections are not Alchemy rejections. These counters do not
+establish unused account capacity or a billing reduction. Each eRPC credit counts
+one RPC item; Alchemy charges method-dependent compute units across the account.
+
+The 200-credit median is 4.10% faster than 150, but its third trial was slower
+than every 150 trial. Retain the 100-credit repository default. A representative
+holdout workload and shared-provider capacity checks should precede adopting a
+higher operational cap. No live settings changed. These results describe a local
+12-logical-CPU host, not the Railway allocation or a full historical reindex.
+The frozen source excludes the subsequent label-only exclusions, Sepolia address
+correction and Blockscout ABI import. Do not combine this percentage with older
+worker or Robinhood comparisons as if they were one matched experiment.
+
+The sweep profile passed 15 focused benchmark checks and all nine ordered
+repository validation steps before these trials. Astra independently verified
+the comparisons and stored-state equality; Ponytail reviewed the implementation
+and reporting scope. Raw diagnostics remain outside tracked source; the compact
+report retains their hashes, inputs and individual trial timings.

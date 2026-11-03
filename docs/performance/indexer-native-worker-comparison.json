@@ -371,5 +371,29 @@
     "HyperSync and private RPC were real; disposable eRPC and Postgres images and provider profile were identical. No provider allowance or billing was measured.",
     "The 1/2/4 scouts selected four for confirmation. Only three fresh trials per configuration in the alternating confirmation enter the headline medians.",
     "No live variables, deployments, existing databases or published branch refs were changed. Etherscan fallback edits/downloads were excluded from the frozen runtime and timing interval."
-  ]
+  ],
+  "postEtherscanRegressionScout": {
+    "source": {
+      "ref": "ca8cd2e",
+      "commit": "ca8cd2eb113c1c984e2fc74c09845ca5d2109d9c",
+      "indexerInputHash": "372fe35116df1ba324124b7836db321fd370d006cc08b0b605fd207256dfa0fc",
+      "lockfileHash": "3ad3acd3125bd06c65f300904bb28cc7cad5dcef683350649d821eecf666eee2",
+      "nativeBatchSize": 5000,
+      "configHash": "de01190690563dc7bfd8d60424a618939f05e6e2f120293b3ea2c3c78722739e",
+      "dependencies": "reused-matching-lockfile",
+      "storageScope": "per-chain"
+    },
+    "committedSeconds": 67.666508667,
+    "blocksPerSecond": 1182.3278838533724,
+    "nativeWorkers": 4,
+    "aggregateCreditsPerSecond": 100,
+    "exactMatchingTables": 20,
+    "sourcifyRequests": 79,
+    "cleanupComplete": true,
+    "performanceAcceptance": "Single-run regression only; no additional speedup accepted",
+    "artifact": {
+      "path": "benchmarks/workers-post-etherscan-smoke.json",
+      "sha256": "8b902b4ade00eb0f5a6f22924d9eed889ecd80ec744c6db264ddb48c48fbc947"
+    }
+  }
 }

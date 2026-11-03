@@ -233,8 +233,8 @@ The ordinary Etherscan preparation path now obtains ABI and source from one
 conservative proof preservation, missing-ABI enrichment, bounded quota/network
 recovery and exhaustion, response-body timeout recovery, malformed responses,
 credential redaction, no-key/getter-only gating, authentication batch shutdown
-and terminal daily quotas. No worker or RPC-capacity result includes
-these source-preparation changes; no additional indexing gain is claimed here.
+and terminal daily quotas. The confirmed worker and RPC-capacity comparisons
+exclude these source-preparation changes; no additional indexing gain is claimed here.
 
 The expanded ABI inventory also exposed two missing enablement subscriptions:
 Arbitrum Sepolia `LZCrossChainBridge` (V2 `Transition`) and Sepolia
@@ -245,3 +245,12 @@ are retained, and the addresses now join the corresponding HyperSync subscriptio
 The existing capability/subscription consistency regression rejected the omission
 and passes after this configuration fix. Neither chain is part of the four-chain
 worker benchmark.
+
+The final Etherscan/configuration commit `ca8cd2e` passed the full ordered
+nine-step validation and indexer image scan. A subsequent four-worker regression
+replay completed the same 80,004 blocks in 67.667 seconds (1,182.3 blocks/second),
+with 79 Sourcify requests and exact equality across all 20 tables against the
+worker confirmation data. Its own databases and proxy were cleaned. This single
+run checks the final artifact; it does not establish an additional performance
+gain. Its source fingerprint and raw-artifact hash are recorded separately in the
+worker comparison report.

@@ -54,10 +54,24 @@ test("native worker experiment selects fixed four-chain ranges and rejects confo
     parseOptions(["--native-workers", "1", "--rpc-credits", "100"]).rpcCredits,
     100
   );
+  for (const cap of [100, 150, 200])
+    assert.equal(
+      parseOptions([
+        "--capacity-sweep",
+        "--native-workers",
+        "4",
+        "--rpc-credits",
+        String(cap),
+      ]).rpcCredits,
+      cap
+    );
   for (const args of [
     ["--native-workers", "3"],
     ["--native-workers", "2", "--queued-admission"],
     ["--native-workers", "1", "--rpc-credits", "101"],
+    ["--native-workers", "4", "--rpc-credits", "150"],
+    ["--capacity-sweep", "--native-workers", "4", "--rpc-credits", "201"],
+    ["--capacity-sweep", "--native-workers", "1", "--rpc-credits", "150"],
     ["--rpc-credits", "100"],
     ["--native-workers", "2", "--start", "1"],
     ["--native-workers", "2", "--oracle-ref", "HEAD"],
@@ -327,6 +341,53 @@ test("native comparisons require every chain, matching event counts and valid pr
   changedSource.source.indexerInputHash = "f".repeat(64);
   assert.equal(
     compareResults(make(1, 50), changedSource, { capacity: true }).compatible,
+    false
+  );
+  const sweep = (cap) => {
+    const r = make(4, 100);
+    r.protocol = "protocol-visualizer-native-capacity-sweep-v2";
+    r.inputs.fixture.aggregateCreditsPerSecond = cap;
+    r.inputFingerprint = digest(r.inputs);
+    return r;
+  };
+  for (const [a, b] of [
+    [100, 150],
+    [100, 200],
+    [150, 200],
+  ]) {
+    assert.equal(compareResults(sweep(a), sweep(b)).compatible, false);
+    assert.equal(
+      compareResults(sweep(a), sweep(b), { capacity: true }).compatible,
+      true
+    );
+  }
+  for (const mutate of [
+    (r) => (r.source.indexerInputHash = "f".repeat(64)),
+    (r) => (r.treatment.nativeWorkers = 2),
+    (r) => {
+      r.runs[0].entities.Contract = entityDigests("Contract", [
+        { id: "a", value: "changed" },
+      ]);
+      r.summary = summarize(r.runs);
+    },
+    (r) => {
+      r.inputs.fixture.aggregateCreditsPerSecond = 201;
+      r.inputFingerprint = digest(r.inputs);
+    },
+  ]) {
+    const changed = sweep(200);
+    mutate(changed);
+    assert.equal(
+      compareResults(sweep(100), changed, { capacity: true }).compatible,
+      false
+    );
+  }
+  assert.equal(
+    compareResults(sweep(200), sweep(100), { capacity: true }).compatible,
+    false
+  );
+  assert.equal(
+    compareResults(make(4, 50), sweep(100), { capacity: true }).compatible,
     false
   );
   for (const mutate of [

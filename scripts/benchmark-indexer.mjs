@@ -39,6 +39,7 @@ export const nativeWorkerRanges = [
 ];
 const nativeProtocol = "protocol-visualizer-native-workers-v2";
 const capacityProtocol = "protocol-visualizer-native-capacity-v1";
+const capacitySweepProtocol = "protocol-visualizer-native-capacity-sweep-v2";
 const queuedProtocol = "protocol-visualizer-indexer-queued-benchmark-v2";
 const image = "protocol-visualizer/rpc-cache:local";
 const pgImage = "postgres:17-alpine";
@@ -99,6 +100,7 @@ export function parseOptions(args) {
       "install-deps": { type: "boolean", default: false },
       "queued-admission": { type: "boolean", default: false },
       "compare-capacity": { type: "boolean", default: false },
+      "capacity-sweep": { type: "boolean", default: false },
     },
     strict: true,
     allowPositionals: false,
@@ -113,6 +115,7 @@ export function parseOptions(args) {
         ? undefined
         : Number(values["rpc-credits"]),
     compareCapacity: values["compare-capacity"],
+    capacitySweep: values["capacity-sweep"],
     ref: values.ref ?? "HEAD",
     runs: Number(values.runs ?? 3),
     output: values.output ?? defaultOutput,
@@ -134,7 +137,13 @@ export function parseOptions(args) {
         result.oracleRef ||
         result.queuedAdmission)) ||
     (result.rpcCredits !== undefined &&
-      (!result.nativeWorkers || ![50, 100].includes(result.rpcCredits))) ||
+      (!result.nativeWorkers ||
+        !(result.capacitySweep ? [100, 150, 200] : [50, 100]).includes(
+          result.rpcCredits
+        ))) ||
+    (result.capacitySweep &&
+      (result.nativeWorkers !== 4 ||
+        ![100, 150, 200].includes(result.rpcCredits))) ||
     (result.compareCapacity && !result.compare) ||
     !Number.isSafeInteger(result.runs) ||
     result.runs < 1 ||
@@ -268,9 +277,13 @@ export function summarize(runs) {
 export function resultProblems(result) {
   const reasons = [];
   if (
-    ![protocol, queuedProtocol, nativeProtocol, capacityProtocol].includes(
-      result.protocol
-    ) ||
+    ![
+      protocol,
+      queuedProtocol,
+      nativeProtocol,
+      capacityProtocol,
+      capacitySweepProtocol,
+    ].includes(result.protocol) ||
     result.schemaVersion !== 1
   )
     reasons.push("protocol mismatch");
@@ -292,9 +305,11 @@ export function resultProblems(result) {
     workload.rpcMode !== "fallback"
   )
     reasons.push("invalid workload descriptor");
-  const nativeRun = [nativeProtocol, capacityProtocol].includes(
-    result.protocol
-  );
+  const nativeRun = [
+    nativeProtocol,
+    capacityProtocol,
+    capacitySweepProtocol,
+  ].includes(result.protocol);
   if (
     nativeRun &&
     (digest(workload?.chains ?? null) !== digest(nativeWorkerRanges) ||
@@ -307,6 +322,11 @@ export function resultProblems(result) {
       !/^[a-f0-9]{64}$/.test(result.source?.configHash ?? ""))
   )
     reasons.push("invalid native worker treatment");
+  if (
+    result.protocol === capacitySweepProtocol &&
+    result.treatment?.nativeWorkers !== 4
+  )
+    reasons.push("invalid capacity sweep worker treatment");
   const totalBlocks = nativeRun
     ? nativeWorkerRanges.reduce(
         (sum, range) => sum + range.end - range.start + 1,
@@ -326,9 +346,13 @@ export function resultProblems(result) {
   )
     reasons.push("invalid admission profile");
   if (
-    !(result.protocol === capacityProtocol ? [50, 100] : [50]).includes(
-      fixture?.aggregateCreditsPerSecond
-    ) ||
+    !(
+      result.protocol === capacitySweepProtocol
+        ? [100, 150, 200]
+        : result.protocol === capacityProtocol
+          ? [50, 100]
+          : [50]
+    ).includes(fixture?.aggregateCreditsPerSecond) ||
     !Array.isArray(fixture.proxyNetworks) ||
     digest(fixture.proxyNetworks) !== digest(networks) ||
     ![fixture.erpcImageId, fixture.postgresImageId].every((value) =>
@@ -442,19 +466,31 @@ export function compareResults(baseline, candidate, { capacity = false } = {}) {
     capacity
       ? {
           ...result.inputs,
-          fixture: { ...result.inputs?.fixture, aggregateCreditsPerSecond: 50 },
+          fixture: {
+            ...result.inputs?.fixture,
+            aggregateCreditsPerSecond:
+              result.protocol === capacitySweepProtocol ? 100 : 50,
+          },
         }
       : result.inputs;
+  const baselineCap = baseline.inputs?.fixture?.aggregateCreditsPerSecond;
+  const candidateCap = candidate.inputs?.fixture?.aggregateCreditsPerSecond;
+  const validCapacityPair =
+    (baseline.protocol === capacityProtocol &&
+      candidate.protocol === capacityProtocol &&
+      baselineCap === 50 &&
+      candidateCap === 100) ||
+    (baseline.protocol === capacitySweepProtocol &&
+      candidate.protocol === capacitySweepProtocol &&
+      [100, 150].includes(baselineCap) &&
+      [150, 200].includes(candidateCap) &&
+      baselineCap < candidateCap);
   if (
     capacity &&
-    (baseline.protocol !== capacityProtocol ||
-      candidate.protocol !== capacityProtocol ||
+    (!validCapacityPair ||
       digest(baseline.treatment ?? null) !==
         digest(candidate.treatment ?? null) ||
-      baseline.source?.indexerInputHash !==
-        candidate.source?.indexerInputHash ||
-      baseline.inputs?.fixture?.aggregateCreditsPerSecond !== 50 ||
-      candidate.inputs?.fixture?.aggregateCreditsPerSecond !== 100)
+      baseline.source?.indexerInputHash !== candidate.source?.indexerInputHash)
   )
     reasons.push("invalid capacity treatment");
   if (
@@ -471,7 +507,9 @@ export function compareResults(baseline, candidate, { capacity = false } = {}) {
     if (!a[name] || !b[name]) {
       if (
         cacheEntities.has(name) &&
-        ![nativeProtocol, capacityProtocol].includes(baseline.protocol)
+        ![nativeProtocol, capacityProtocol, capacitySweepProtocol].includes(
+          baseline.protocol
+        )
       )
         addedOrRemovedCaches.push(name);
       else reasons.push(`entity coverage differs: ${name}`);
@@ -1281,8 +1319,9 @@ function readProfile(path, nativeWorkers) {
 async function runBenchmark(options) {
   const output = resolve(root, options.output);
   const result = {
-    protocol:
-      options.rpcCredits !== undefined
+    protocol: options.capacitySweep
+      ? capacitySweepProtocol
+      : options.rpcCredits !== undefined
         ? capacityProtocol
         : options.nativeWorkers
           ? nativeProtocol
@@ -1676,6 +1715,9 @@ function comparisonReport(options) {
 
 export async function main(args) {
   if (args.includes("--help")) {
+    console.log(
+      "Finite cap sweep: --capacity-sweep --native-workers 4 --rpc-credits 100|150|200; compare ordered caps with --compare FILE --compare-capacity. This uses a separate v2 protocol."
+    );
     console.log(
       "Usage: pnpm benchmark:indexer [--ref HEAD] [--runs 3] [--env-file FILE] [--output FILE] [--start BLOCK --end BLOCK] [--provider-profile LABEL] [--install-deps]\nNative worker experiment: --native-workers 1|2|4 (fixed four-chain workload; PostgreSQL connection budgets 2|4|8). Capacity profile: add --rpc-credits 50|100; compare with --compare FILE --compare-capacity.\nQueued recovery profile: --queued-admission [--oracle-ref BASE_COMMIT]; use scripts/benchmark-indexer-robinhood.mjs for the matched six-trial comparison.\nCompare saved results without Docker or credentials: pnpm benchmark:indexer --compare-ref BRANCH | --compare FILE\nRequires pinned Node/pnpm, installed driver dependencies, prebuilt rpc-cache/Postgres images, ENVIO_API_TOKEN, ETHERSCAN_API_KEY and all nine UPSTREAM_RPC_URL_<chain> values. Matching lockfiles reuse installed dependencies; --install-deps explicitly installs frozen dependencies in an isolated snapshot before timing. Uses fresh local containers/databases and a 50-credit eRPC default; the optional local capacity profile permits 100. Private logs: benchmarks/<diagnosticId>/."
     );

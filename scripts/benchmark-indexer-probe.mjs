@@ -8,6 +8,7 @@ const stats = {
   rpcEnvelopes: 0,
   rpcItems: 0,
   rpcMethods: {},
+  rpcHttpStatuses: {},
   batchSizes: {},
   rpcPeakEnvelopes: 0,
   rpcFetchMilliseconds: 0,
@@ -45,6 +46,9 @@ globalThis.fetch = async (input, options) => {
   const before = performance.now();
   try {
     const response = await originalFetch(input, options);
+    if (rpc)
+      stats.rpcHttpStatuses[response.status] =
+        (stats.rpcHttpStatuses[response.status] ?? 0) + 1;
     if (source)
       stats.sourceStatuses[response.status] =
         (stats.sourceStatuses[response.status] ?? 0) + 1;

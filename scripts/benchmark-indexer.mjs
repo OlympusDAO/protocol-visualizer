@@ -37,7 +37,7 @@ export const nativeWorkerRanges = [
   { chainId: 8453, start: 52_850_000, end: 52_870_000 },
   { chainId: 10, start: 158_450_000, end: 158_470_000 },
 ];
-const nativeProtocol = "protocol-visualizer-native-workers-v1";
+const nativeProtocol = "protocol-visualizer-native-workers-v2";
 const queuedProtocol = "protocol-visualizer-indexer-queued-benchmark-v2";
 const image = "protocol-visualizer/rpc-cache:local";
 const pgImage = "postgres:17-alpine";
@@ -112,8 +112,7 @@ export function parseOptions(args) {
     compareRef: values["compare-ref"],
     envFile: values["env-file"],
     installDeps: values["install-deps"],
-    queuedAdmission:
-      values["queued-admission"] || values["native-workers"] !== undefined,
+    queuedAdmission: values["queued-admission"],
     oracleRef: values["oracle-ref"],
     start: Number(values.start ?? 26_240_000),
     end: Number(values.end ?? 26_290_000),
@@ -124,7 +123,8 @@ export function parseOptions(args) {
       (![1, 2, 4].includes(result.nativeWorkers) ||
         values.start !== undefined ||
         values.end !== undefined ||
-        result.oracleRef)) ||
+        result.oracleRef ||
+        result.queuedAdmission)) ||
     !Number.isSafeInteger(result.runs) ||
     result.runs < 1 ||
     result.runs > 10 ||
@@ -300,7 +300,7 @@ export function resultProblems(result) {
     : workload?.end - workload?.start + 1;
   const fixture = result.inputs?.fixture;
   if (
-    [queuedProtocol, nativeProtocol].includes(result.protocol) !==
+    (result.protocol === queuedProtocol) !==
       Boolean(fixture?.queuedAdmission) ||
     (fixture?.queuedAdmission &&
       (!/^[a-f0-9]{64}$/.test(fixture.queuedAdmission.implementation ?? "") ||
@@ -338,7 +338,7 @@ export function resultProblems(result) {
   else {
     for (const run of result.runs) {
       if (
-        [queuedProtocol, nativeProtocol].includes(result.protocol) &&
+        result.protocol === queuedProtocol &&
         (!["requests", "capacityRetries", "exhausted"].every(
           (key) =>
             Number.isSafeInteger(run.admission?.[key]) &&

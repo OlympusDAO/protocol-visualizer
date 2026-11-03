@@ -49,9 +49,10 @@ chains:
 test("native worker experiment selects fixed four-chain ranges and rejects confounded options", () => {
   const options = parseOptions(["--native-workers", "4"]);
   assert.equal(options.nativeWorkers, 4);
-  assert.equal(options.queuedAdmission, true);
+  assert.equal(options.queuedAdmission, false);
   for (const args of [
     ["--native-workers", "3"],
+    ["--native-workers", "2", "--queued-admission"],
     ["--native-workers", "2", "--start", "1"],
     ["--native-workers", "2", "--oracle-ref", "HEAD"],
   ])
@@ -265,7 +266,7 @@ function result(seconds = 10) {
 test("native comparisons require every chain, matching event counts and valid process resource evidence", () => {
   const make = (workers) => {
     const r = result();
-    r.protocol = "protocol-visualizer-native-workers-v1";
+    r.protocol = "protocol-visualizer-native-workers-v2";
     r.source.storageScope = workers === 1 ? "shared" : "per-chain";
     r.source.configHash = "e".repeat(64);
     r.treatment = { nativeWorkers: workers, pgMaxConnections: workers * 2 };
@@ -273,13 +274,6 @@ test("native comparisons require every chain, matching event counts and valid pr
       ...r.inputs.workload,
       ...nativeWorkerRanges[0],
       chains: nativeWorkerRanges,
-    };
-    r.inputs.fixture.queuedAdmission = {
-      implementation: "d".repeat(64),
-      active: 32,
-      waiting: 256,
-      maxInFlight: 1024,
-      deadlineMilliseconds: 8000,
     };
     r.inputFingerprint = digest(r.inputs);
     const run = r.runs[0];

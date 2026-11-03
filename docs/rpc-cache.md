@@ -235,7 +235,9 @@ request. Network retries can sweep the provider list again for other transient
 errors; they are not simply a fixed number of physical upstream calls.
 
 The indexer's production transport makes up to six private-proxy attempts with
-exponential backoff and jitter. These are application getter retries, separate
+exponential backoff and jitter. Its 50-second HTTP deadline, including body
+reading, allows eRPC's 45-second network recovery window to finish. Six exhausted
+attempts can take about five minutes plus backoff and queue waiting. These are application getter retries, separate
 from Envio's ingestion retries. They do not currently honor `Retry-After`.
 If every eligible provider remains unavailable, exhaustion propagates through
 reader catches and fails the handler. Envio must not commit an incomplete

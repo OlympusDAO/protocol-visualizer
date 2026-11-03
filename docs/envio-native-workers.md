@@ -42,8 +42,51 @@ The IPC regression first rejected the old one-slot allocation, then passed at th
 
 ## Private-proxy timeout milestone
 
-The client previously inherited viem 2.57.7's 10-second HTTP deadline, including response-body reading. The private proxy permits 20 seconds per upstream attempt and 45 seconds for network recovery. The client now explicitly permits 50 seconds so it does not cancel the proxy before that configured recovery window finishes. Six client attempts, ten active requests, 256 queued requests, batching and the default 50-credit proxy budget remain unchanged.
+The client previously inherited viem 2.57.7's 10-second HTTP deadline, including response-body reading. The private proxy permits 20 seconds per upstream attempt and 45 seconds for network recovery. The client now explicitly permits 50 seconds so it does not cancel the proxy before that configured recovery window finishes. Six client attempts, ten active requests and 256 queued requests per process, batching and the default 50-credit proxy budget remain unchanged.
 
 A real local HTTP fixture flushes headers and completes its body after eleven seconds. Before the change it observed two requests; afterward it observes one. This is 50% fewer HTTP attempts in that deliberately slow-response fixture, not a whole-indexer speed claim. A separate stalled-body fixture accelerates only the configured 50-second timer and verifies six attempts, identifiable sanitized exhaustion and recovery on a subsequent healthy request. Existing RPC queue, revert and reader-boundary checks also passed.
 
 One exhausted call can now take roughly five minutes plus backoff and queue waiting. The attempt count and queue size are bounded; total queue waiting time is not. The mismatch is a confirmed mechanism for avoidable cancellation, but it does not identify the cause of the observed replay failures.
+
+## Measured results
+
+The accepted comparison is **50 versus 100 eRPC unit credits on the same revised four-worker source**, not this branch versus its parent. The [compact machine-readable report](performance/indexer-native-capacity-comparison.json) records source/image identities, raw-artifact hashes, rejected experiments and equality checks. Detailed diagnostics remain under the existing ignored `benchmarks/` directory.
+
+Six cold local trials ran in 50/100/100/50/50/100 order at commit `967bce4`, with real HyperSync and private RPC services. Each replay indexed the same 80,004 blocks across Ethereum, Arbitrum, Base and Optimism. Every trial used new indexer and eRPC databases, four native workers plus one supervisor, eight PostgreSQL connections and unchanged 10,000/100 observation intervals. The actual provider account allowance was not changed or measured.
+
+| Metric, median of three trials | 50 credits/second | 100 credits/second |
+| --- | ---: | ---: |
+| Committed elapsed seconds | 104.925 | 84.634 |
+| Committed blocks/second | 762.5 | 945.3 |
+| Proxy RPC items | 5,712 | 5,557 |
+| Upstream RPC items, including housekeeping | 3,759 | 3,731 |
+| Total process CPU seconds | 24.14 | 17.68 |
+| Sum of process peak RSS, MiB | 1,121.2 | 1,040.0 |
+| Sourcify HTTP requests | 191 | 191 |
+
+The 100-credit treatment delivered **24.0% higher throughput and 19.3% less elapsed time**. All six runs completed. All 20 entity tables had identical exact digests, including cache contents and verification provenance; no policy-function ordering exception was needed. All four chains reached their endpoints with equal Envio progress/event counters. There were 151 verified-deployment rows. No upstream `rate_limited` or `cancelled` outcome was recorded in these six trials. This does not establish the private account's limit or guarantee availability during sustained overload. RPC-item differences are not a provider-billing measurement.
+
+The original worker scouts, before timeout alignment and with one metadata slot per worker, were:
+
+| Configuration | Seconds | Blocks/second |
+| --- | ---: | ---: |
+| Performance parent `ac5eab8`, one shared-storage process | 126.989 | 630.0 |
+| Native storage, one processing group | 140.277 | 570.3 |
+| Native storage, two workers | 178.521 | 448.1 |
+| Native storage, four workers | 147.936 | 540.8 |
+
+Giving Ethereum the spare metadata slot produced two four-worker scouts at 106.319 and 103.514 seconds, still with the old client deadline. Their successful final data matched the parent. However, the subsequent matched parent confirmation stopped with `RpcTransientFailure`, as did one earlier 100-credit parent trial. The parent also failed at 50 credits, so those failures cannot be attributed to the higher cap alone. They remain recorded, not silently discarded. **No confirmed parent-branch speedup percentage is claimed.** Earlier scouts do not validate the final timeout revision.
+
+The successful shared-process parent scout used about 304 MiB of peak RSS, versus about 1,065 MiB summed across the original four-worker configuration, including its supervisor. Native worker groups therefore have a material memory/startup cost. PostgreSQL connections and metadata allocation also change with worker treatment. These local windows do not establish performance under Railway's one-CPU/two-GB limit, full-history indexing, warm persisted state or live deployment.
+
+## Validation and remaining decisions
+
+The final code passed the ordered nine-step validation, including all four required application image builds. The real patched-eRPC/PostgreSQL integration passed in 79 seconds with database-reset checks explicitly disabled. It verified nine revert/privacy cases through viem and the production dependency reader, HTTP/JSON-RPC 429 recovery, six-attempt exhaustion, primary-to-secondary failover, terminal reverts, cache restart persistence and the aggregate mixed-method/chain budget. Trivy passed the indexer image, RPC cache image and Dockerfile checks at the repository's medium/high/critical thresholds, using existing ignore policy.
+
+Astra advised each implementation stage; Ponytail checked simplification. Completed source reviews left no actionable findings. The later HTTP timeout fix and its tests have a separate completed review. All commits are unsigned local milestones. The original performance and Robinhood branch refs, live settings, existing databases and PRs were not changed.
+
+The default eRPC budget remains 50. Adaptive eRPC tuning remains disabled. Its pinned per-upstream tuners do not coordinate modifications to a shared account budget; the default one-minute/five-percent adjustment is not a substitute for a validated account-wide controller. Alchemy throughput is finite and account-wide; more keys within one account do not add capacity. See [eRPC rate limits](https://docs.erpc.cloud/config/rate-limiters) and [Alchemy throughput](https://www.alchemy.com/docs/reference/throughput).
+
+The requested additional 50–100% improvement over the optimized baseline is not demonstrated. A promising next experiment is precomputing verified getter-discovery results for the known inventory, using the existing metadata generator, including code-hash-bound conclusive negative results. The measured cold replay still made 191 Sourcify requests (190 HTTP 200 responses and one 404). Removing safe, repeated discovery from cold startup should be measured before assuming another RPC provider will solve that bottleneck. Unknown/new contracts must retain automatic runtime discovery.
+
+Long-outage recovery is a separate remaining decision. Failed effect invocations can be retried, but handler entity writes immediately modify native in-memory tables; `withCanonicalObservation` validates headers and does not provide a handler savepoint. A simple catch/sleep/rerun wrapper is unsafe. The smallest recovery experiment is restarting a failed native process group after cooldown against the same durable database, then proving equality with an uninterrupted run. Repository Railway configuration currently permits one restart; this experiment did not change it. An independent archive-provider fallback with its own account budget is another reliability option. Neither follow-up has been implemented or deployed here.

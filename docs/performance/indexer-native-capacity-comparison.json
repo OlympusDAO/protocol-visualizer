@@ -1,0 +1,328 @@
+{
+  "protocol": "protocol-visualizer-native-capacity-comparison-v1",
+  "generatedAt": "2026-11-03T05:44:00.486Z",
+  "status": "accepted",
+  "source": {
+    "ref": "967bce4633ddf8dc297590ae6061e82d205ae290",
+    "commit": "967bce4633ddf8dc297590ae6061e82d205ae290",
+    "indexerInputHash": "5189336f7a831c580de3f590a43a25ef059694ac35b95d02b507331853648e27",
+    "lockfileHash": "3ad3acd3125bd06c65f300904bb28cc7cad5dcef683350649d821eecf666eee2",
+    "nativeBatchSize": 5000,
+    "configHash": "de01190690563dc7bfd8d60424a618939f05e6e2f120293b3ea2c3c78722739e",
+    "dependencies": "reused-matching-lockfile",
+    "storageScope": "per-chain"
+  },
+  "workload": {
+    "chainId": 1,
+    "start": 26240000,
+    "end": 26260000,
+    "chains": [
+      {
+        "chainId": 1,
+        "start": 26240000,
+        "end": 26260000
+      },
+      {
+        "chainId": 42161,
+        "start": 516540000,
+        "end": 516560000
+      },
+      {
+        "chainId": 8453,
+        "start": 52850000,
+        "end": 52870000
+      },
+      {
+        "chainId": 10,
+        "start": 158450000,
+        "end": 158470000
+      }
+    ],
+    "checkpointInterval": 10000,
+    "configHash": "9e1aa1726158257a7e7013b2b606b3a4a15b4c59d5d9dc3973db8c8c2cee03f7",
+    "eventSource": "HyperSync",
+    "rpcMode": "fallback"
+  },
+  "measurement": {
+    "order": [50, 100, 100, 50, 50, 100],
+    "freshDatabasesPerTrial": true,
+    "eventSource": "HyperSync",
+    "nativeWorkers": 4,
+    "processesPerTrial": 5,
+    "pgMaxConnections": 8,
+    "defaultBudgetUnchanged": 50,
+    "privateAlchemyAllowanceMeasured": false,
+    "privateProxyHttpTimeoutSeconds": 50,
+    "proxyNetworkTimeoutSeconds": 45,
+    "activeRpcRequestsPerProcess": 10,
+    "queuedRpcRequestsPerProcess": 256,
+    "clientAttempts": 6,
+    "realtimeObservationInterval": 100
+  },
+  "inputIdentity": {
+    "driverHash": "97fa8dae25bfb295172997cb5364e4229c06741648c331c4f4f68fb54576fe8a",
+    "probeHash": "4b3bcbeebbba9181d54e497135e39a0eea346fcc181a99195660f946100a4bfa",
+    "erpcImageId": "sha256:bda008e8ccf92d8c9a6d40030be61b9ca4d1c51ba8ff3f8fb46aacf25153507f",
+    "postgresImageId": "sha256:9355df27b2506973cfc421408623435f15298511c2cdadc502b7aa580efe611f",
+    "providerProfile": "alchemy-shared-capacity",
+    "runtime": {
+      "node": "24.22.1",
+      "pnpm": "11.28.7",
+      "platform": "darwin",
+      "arch": "arm64",
+      "logicalCpus": 12
+    }
+  },
+  "treatments": {
+    "50": {
+      "runs": 3,
+      "committedSeconds": [
+        109.621117209, 104.92457483300001, 101.44714412500001
+      ],
+      "blocksPerSecond": [
+        729.8228848321899, 762.49058075609, 788.6274245573791
+      ],
+      "medianCommittedSeconds": 104.92457483300001,
+      "medianBlocksPerSecond": 762.49058075609,
+      "medianProxyRpcItems": 5712,
+      "medianUpstreamRpcItems": 3759,
+      "medianCpuSeconds": 24.139379,
+      "medianSumProcessPeakRssMiB": 1121.1875,
+      "observedRateLimitedOutcomes": [0, 0, 0],
+      "observedCancelledOutcomes": [0, 0, 0],
+      "aggregateArtifact": {
+        "path": "benchmarks/native-fixed-capacity-50-aggregate.json",
+        "sha256": "7c0a3f5fbbd09d2c2f502c143164d54c2dc1686958ea350568a55bb3bd8fb3dd"
+      },
+      "rawArtifacts": [
+        {
+          "path": "benchmarks/native-fixed-capacity-50-1.json",
+          "sha256": "e16848dfe2d93689f33be5aaca06450bd64bfaac56a88fd5ca857d43efdfa4fc",
+          "diagnosticId": "indexer-e07e6e2f-698c-4afe-b0b7-375526d69fd4"
+        },
+        {
+          "path": "benchmarks/native-fixed-capacity-50-2.json",
+          "sha256": "71e04f75cbfd0d00c92c5fb9331d71c24a483afa1efbd71aad33855e547a7e9c",
+          "diagnosticId": "indexer-038e78a7-ce44-45b3-a165-57a08e6b7b56"
+        },
+        {
+          "path": "benchmarks/native-fixed-capacity-50-3.json",
+          "sha256": "b2321a55feba0ac07732af2a54c5c1352b0febfa06359e29cbefb16878e71cce",
+          "diagnosticId": "indexer-8b9b0f8f-ad18-4d5c-b001-0f8d978234d0"
+        }
+      ],
+      "medianSourcifyHttpRequests": 191,
+      "sourcifyHttpResponsesPerTrial": {
+        "200": 190,
+        "404": 1
+      }
+    },
+    "100": {
+      "runs": 3,
+      "committedSeconds": [84.63360295799998, 84.21257529100001, 85.905321125],
+      "blocksPerSecond": [
+        945.2982881953229, 950.024384405095, 931.3043587088971
+      ],
+      "medianCommittedSeconds": 84.63360295799998,
+      "medianBlocksPerSecond": 945.2982881953229,
+      "medianProxyRpcItems": 5557,
+      "medianUpstreamRpcItems": 3731,
+      "medianCpuSeconds": 17.680447,
+      "medianSumProcessPeakRssMiB": 1039.96875,
+      "observedRateLimitedOutcomes": [0, 0, 0],
+      "observedCancelledOutcomes": [0, 0, 0],
+      "aggregateArtifact": {
+        "path": "benchmarks/native-fixed-capacity-100-aggregate.json",
+        "sha256": "79545dc7f9c79722a651ac4fb16916f207fa3edef9659b29563f81e42ed7fa14"
+      },
+      "rawArtifacts": [
+        {
+          "path": "benchmarks/native-fixed-capacity-100-1.json",
+          "sha256": "284dc1cc99968ad836507fa5d35fe2ab19115ac358808fcaa286a77c5d27b153",
+          "diagnosticId": "indexer-f00a755f-7a15-4199-bfec-6390bc4f8f29"
+        },
+        {
+          "path": "benchmarks/native-fixed-capacity-100-2.json",
+          "sha256": "f048cd1369de94d938b33c5c0e278cbd64fd939db43f0b407d060d2512ae37ca",
+          "diagnosticId": "indexer-a533de86-a916-405e-a066-250003c08357"
+        },
+        {
+          "path": "benchmarks/native-fixed-capacity-100-3.json",
+          "sha256": "975b63271ed292129e98465b24d85b03c05faff2eee7661147148cec82103bbd",
+          "diagnosticId": "indexer-1aa8f980-8e1b-408a-94c0-f6e8eb1279d4"
+        }
+      ],
+      "medianSourcifyHttpRequests": 191,
+      "sourcifyHttpResponsesPerTrial": {
+        "200": 190,
+        "404": 1
+      }
+    }
+  },
+  "comparison": {
+    "compatible": true,
+    "reasons": [],
+    "addedOrRemovedCaches": [],
+    "orderingOnly": [],
+    "throughputGainPercent": 23.975077470197693,
+    "timeReductionPercent": 19.338626730006325
+  },
+  "equivalence": {
+    "entityTables": 20,
+    "allExactDigestsEqual": true,
+    "stateDigest": "2ea266d5b1f478ced15791e1a7a7e221d9c0db7fabd4dacf2ff4d431f8919581",
+    "chainMeta": [
+      {
+        "chainId": 1,
+        "startBlock": 26240000,
+        "endBlock": 26260000,
+        "progressBlock": 26260000,
+        "eventsProcessed": 213,
+        "isReady": true
+      },
+      {
+        "chainId": 10,
+        "startBlock": 158450000,
+        "endBlock": 158470000,
+        "progressBlock": 158470000,
+        "eventsProcessed": 206,
+        "isReady": true
+      },
+      {
+        "chainId": 8453,
+        "startBlock": 52850000,
+        "endBlock": 52870000,
+        "progressBlock": 52870000,
+        "eventsProcessed": 210,
+        "isReady": true
+      },
+      {
+        "chainId": 42161,
+        "startBlock": 516540000,
+        "endBlock": 516560000,
+        "progressBlock": 516560000,
+        "eventsProcessed": 209,
+        "isReady": true
+      }
+    ],
+    "verifiedDeploymentRows": 151
+  },
+  "limitations": [
+    "This compares 50 versus 100 unit credits on the same revised four-worker source, not the actual parent branch.",
+    "The earlier matched parent-versus-worker confirmation was interrupted by RpcTransientFailure; no confirmed parent-branch percentage is claimed.",
+    "The tested code has a 50-second private-proxy deadline; prior 10-second runs are separate.",
+    "This is a bounded four-chain cold local replay using real services, not a full replay or deployed result.",
+    "Provider internal caches and other account traffic are not controlled.",
+    "The sum of process peak RSS is an upper bound, not simultaneous peak memory.",
+    "No recorded upstream rate_limited outcome does not establish the account limit or uninterrupted recovery during sustained outages.",
+    "The default budget, Railway settings, original worktrees and deployed databases remain unchanged."
+  ],
+  "earlierScouts": [
+    {
+      "label": "parent",
+      "status": "scout",
+      "sourceCommit": "ac5eab8b8506500159ebf7a4e452df6532672d11",
+      "protocol": "protocol-visualizer-native-workers-v2",
+      "workers": 1,
+      "creditsPerSecond": 50,
+      "clientTimeoutSeconds": 10,
+      "seconds": 126.98905595800001,
+      "blocksPerSecond": 630.0070458548829,
+      "artifact": "benchmarks/native-parent-v2-scout.json",
+      "sha256": "84cc061a86bc3127fd2ab68d0dcb0a5e8c6cabba02d246784b221d1a3d852821"
+    },
+    {
+      "label": "one",
+      "status": "scout",
+      "sourceCommit": "c992b1133016c9ea9ddc52d2f7015fa26f17da30",
+      "protocol": "protocol-visualizer-native-workers-v2",
+      "workers": 1,
+      "creditsPerSecond": 50,
+      "clientTimeoutSeconds": 10,
+      "seconds": 140.276531792,
+      "blocksPerSecond": 570.3306103876931,
+      "artifact": "benchmarks/native-one-v2-scout.json",
+      "sha256": "a4d631dc5831ce707e3d5df7dbc9f216d5b5b5d4c3be83f17c08aa4514abfba5"
+    },
+    {
+      "label": "two",
+      "status": "scout",
+      "sourceCommit": "c992b1133016c9ea9ddc52d2f7015fa26f17da30",
+      "protocol": "protocol-visualizer-native-workers-v2",
+      "workers": 2,
+      "creditsPerSecond": 50,
+      "clientTimeoutSeconds": 10,
+      "seconds": 178.52070500000002,
+      "blocksPerSecond": 448.1496978179645,
+      "artifact": "benchmarks/native-two-v2-scout.json",
+      "sha256": "b1cc763d611aba08365f5cb7189ffba6bd784d4c0a04712952cbdabbba807a9f"
+    },
+    {
+      "label": "four",
+      "status": "scout",
+      "sourceCommit": "c992b1133016c9ea9ddc52d2f7015fa26f17da30",
+      "protocol": "protocol-visualizer-native-workers-v2",
+      "workers": 4,
+      "creditsPerSecond": 50,
+      "clientTimeoutSeconds": 10,
+      "seconds": 147.935966625,
+      "blocksPerSecond": 540.8015496515502,
+      "artifact": "benchmarks/native-four-v2-scout.json",
+      "sha256": "3d834b67fbd80c06bab2c1f362883a213e5940ae14cfed53443e95084778d433"
+    },
+    {
+      "label": "revised-metadata-four",
+      "status": "scout",
+      "sourceCommit": "b259e008d15f222ff350a19ec9676ddbb39da42a",
+      "protocol": "protocol-visualizer-native-capacity-v1",
+      "workers": 4,
+      "creditsPerSecond": 50,
+      "clientTimeoutSeconds": 10,
+      "seconds": 106.318881583,
+      "blocksPerSecond": 752.4909856914103,
+      "artifact": "benchmarks/native-revised-four-scout.json",
+      "sha256": "db38be3d482cb9456172e4dafe65edcc750d0de9f8aca5fbfd12d050352fb7f3"
+    },
+    {
+      "label": "revised-metadata-four",
+      "status": "scout",
+      "sourceCommit": "b259e008d15f222ff350a19ec9676ddbb39da42a",
+      "protocol": "protocol-visualizer-native-capacity-v1",
+      "workers": 4,
+      "creditsPerSecond": 50,
+      "clientTimeoutSeconds": 10,
+      "seconds": 103.514303125,
+      "blocksPerSecond": 772.8786997038483,
+      "artifact": "benchmarks/native-confirmation-native-2.json",
+      "sha256": "3b260420961e241f2d4eb779e844f3b0d01065d4b5736d2dc5ad4eba569cf8f4"
+    }
+  ],
+  "excludedFailedExperiments": [
+    {
+      "artifact": "benchmarks/native-parent-scout.json",
+      "sha256": "5656cbb1924652a213f7b9f0ff5ae55852ca6c8a36a813116f2f4224126c55d0",
+      "status": "failed",
+      "failure": "admission_recovery_exhausted",
+      "sanitizedTransientFailureObserved": false,
+      "cleanupComplete": true
+    },
+    {
+      "artifact": "benchmarks/native-capacity-100-2.json",
+      "sha256": "2c0feddbc0609d2ef93296eb95d4d080c24ba771c9ba0673cd8ff1c3a83c7324",
+      "status": "failed",
+      "failure": "indexer_did_not_complete",
+      "sanitizedTransientFailureObserved": true,
+      "cleanupComplete": true
+    },
+    {
+      "artifact": "benchmarks/native-confirmation-parent-4.json",
+      "sha256": "60376cce3cfb0ab4e02e73b284c3e11a6404ae39918c20f1fd327da54164bfa5",
+      "status": "failed",
+      "failure": "indexer_did_not_complete",
+      "sanitizedTransientFailureObserved": true,
+      "cleanupComplete": true
+    }
+  ],
+  "comparisonSubject": "50 versus 100 eRPC unit credits on the same revised four-worker source",
+  "parentBranchComparisonStatus": "withheld: the matched confirmation did not complete"
+}

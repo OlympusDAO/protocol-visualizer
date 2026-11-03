@@ -2,11 +2,14 @@
 // Only uniquely named containers/networks created here are removed.
 import assert from "node:assert/strict";
 import { execFile, execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import http from "node:http";
 import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import "../../apps/indexer/scripts/register-typescript.mjs";
 import { test } from "node:test";
-import { promisify } from "node:util";
+import { inspect, promisify } from "node:util";
 const runFile = promisify(execFile);
 const requireIndexer = createRequire(
   new URL("../../apps/indexer/package.json", import.meta.url)
@@ -102,12 +105,19 @@ async function eventually(check, message) {
 
 // Kept outside tests/*.test.mjs so regular builds do not require Docker.
 test("pinned eRPC read-through persistence, finality, isolation and safe errors", {
-  timeout: 240_000,
+  timeout: 300_000,
 }, async () => {
   const prefix = `pv-rpc-test-${process.pid}-${Date.now()}`;
   const counts = new Map();
   const admissions = [];
   let recoveryFailures = 1;
+  const throttleFailures = new Map([
+    ["0x4291", 1],
+    ["0x4292", 2],
+    ["0x4293", 2],
+  ]);
+  const throttleKernel = `0x${"e1".repeat(20)}`;
+  const scratch = mkdtempSync(join(tmpdir(), "pv-rpc-throttle-"));
   let unknownFinality = true;
   const upstream = http.createServer(async (req, res) => {
     let raw = "";
@@ -118,15 +128,39 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
       return;
     }
     const chainId = Number(req.url.split("/")[1]);
+    const provider = req.url.includes("/secondary/") ? "secondary" : "primary";
+    let httpThrottled = false;
     const respond = (rpc) => {
       const key = keyFor([chainId, rpc.method, rpc.params]);
       admissions.push({
         second: Math.floor(Date.now() / 1000),
         chainId,
         method: rpc.method,
+        provider,
+        key,
       });
       counts.set(key, (counts.get(key) || 0) + 1);
       const params = rpc.params || [];
+      const data = params[0]?.data;
+      if (
+        rpc.method === "eth_call" &&
+        ((throttleFailures.get(data) ?? 0) > 0 ||
+          params[0]?.to?.toLowerCase() === throttleKernel ||
+          (data === "0xfade" && provider === "primary"))
+      ) {
+        if (throttleFailures.has(data))
+          throttleFailures.set(data, throttleFailures.get(data) - 1);
+        httpThrottled = data !== "0x4293";
+        return {
+          jsonrpc: "2.0",
+          id: rpc.id,
+          error: {
+            code: 429,
+            message:
+              "Too Many Requests: throughput exceeded fixture-url-secret",
+          },
+        };
+      }
       if (rpc.method === "eth_call" && params[0]?.data === "0xdddd")
         return null;
       let result;
@@ -237,6 +271,10 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
       return;
     }
     res.setHeader("content-type", "application/json");
+    if (httpThrottled) {
+      res.statusCode = 429;
+      res.setHeader("retry-after", "1");
+    }
     res.end(JSON.stringify(response));
   });
   await new Promise((resolve) => upstream.listen(0, "0.0.0.0", resolve));
@@ -540,9 +578,139 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
       `Production dependency reader passed ${dependencyCases.length} proxy/viem cases and capacity recovery in ${Date.now() - probeStart} ms.`
     );
 
+    const throttleParams = (data) => [{ ...call[0], data }, "0x107"];
+    const rawThrottle = throttleParams("0x4291");
+    const rawBefore = count(1, "eth_call", rawThrottle);
+    assert((await rpc(1, "eth_call", rawThrottle)).body.error);
+    assert.equal(count(1, "eth_call", rawThrottle), rawBefore + 1);
+    // The failed response was not cached: the identical call reaches the now
+    // healthy provider; only its successful result becomes a cache hit.
+    await cachedPair(1, "eth_call", rawThrottle);
+    for (const data of ["0x4292", "0x4293"]) {
+      const params = throttleParams(data);
+      const before = count(1, "eth_call", params);
+      assert.equal(
+        await production.request({ method: "eth_call", params }),
+        "0x1234"
+      );
+      assert.equal(count(1, "eth_call", params), before + 3);
+      assert.equal((await rpc(1, "eth_call", params)).cached, "HIT");
+      assert.equal(count(1, "eth_call", params), before + 3);
+    }
+    const exhausted = async (client) => {
+      const input = {
+        kernel: throttleKernel,
+        keycode: "MINTR",
+        blockNumber: 256n,
+        blockHash: `0x${"ab".repeat(32)}`,
+      };
+      await assert.rejects(
+        readPinnedModuleDependencies(client, input),
+        (error) => {
+          assert.equal(error.name, "RpcTransientFailure");
+          assert.doesNotMatch(
+            inspect(error, { depth: 12 }),
+            /fixture-url-secret|fixture-query-secret|https?:|Too Many Requests/
+          );
+          return true;
+        }
+      );
+    };
+    const exhaustionStart = admissions.length;
+    await exhausted(production);
+    assert.equal(
+      admissions
+        .slice(exhaustionStart)
+        .filter((item) => item.method === "eth_call").length,
+      6
+    );
+    console.log(
+      "429 fixture: raw proxy rejects once; HTTP/JSON-RPC recovery each takes 3 admissions; dependency exhaustion takes 6 and propagates safely."
+    );
+
     // Stop the unlimited test instance so all counted admissions below belong
     // to one finite aggregate budget, including its background pollers/retries.
     docker("stop", erpc);
+    const multiConfig = join(scratch, "erpc.js");
+    const source = readFileSync(new URL("./erpc.js", import.meta.url), "utf8");
+    assert.equal(source.split("export default {").length, 2);
+    writeFileSync(
+      multiConfig,
+      `${source.replace("export default {", "const config = {")}
+const primary = config.projects[0].upstreams[0];
+config.projects[0].upstreams = [
+  { ...primary, id: "a-primary", routing: { probe: "off" } },
+  { ...primary, id: "b-secondary", endpoint: primary.endpoint.replace("/fixture-url-secret", "/secondary/fixture-url-secret"), routing: { probe: "off" } },
+];
+config.projects[0].networks = [{ architecture: "evm", evm: { chainId: 1 } }];
+// Deterministic test ordering, not the production health/latency policy.
+config.projects[0].networkDefaults.selectionPolicy = {
+  evalFunc: (upstreams) => upstreams.sortBy((upstream) => upstream.id === "a-primary" ? 0 : 1),
+};
+export default config;
+`
+    );
+    const multi = `${prefix}-multi`;
+    docker(
+      "run",
+      "-d",
+      "--name",
+      multi,
+      "--network",
+      prefix,
+      "--add-host",
+      "host.docker.internal:host-gateway",
+      "-p",
+      "127.0.0.1::4000",
+      "-v",
+      `${multiConfig}:/etc/erpc/throttle-test.js:ro`,
+      ...env,
+      image,
+      "/erpc-server",
+      "/etc/erpc/throttle-test.js"
+    );
+    created.push(multi);
+    base = `http://127.0.0.1:${docker("port", multi, "4000/tcp").split(":").at(-1)}`;
+    await eventually(health, "multi-provider eRPC did not start");
+    const failoverParams = throttleParams("0xfade");
+    const failoverStart = admissions.length;
+    assert.equal(
+      (await rpc(1, "eth_call", failoverParams)).body.result,
+      "0x1234"
+    );
+    assert.deepEqual(
+      admissions
+        .slice(failoverStart)
+        .filter((item) => item.key === keyFor([1, "eth_call", failoverParams]))
+        .map((item) => item.provider),
+      ["primary", "secondary"]
+    );
+    const multiChain = 999972;
+    process.env[`ENVIO_RPC_URL_${multiChain}`] = `${base}/pv/evm/1`;
+    const multiStart = admissions.length;
+    await exhausted(getPublicClient(multiChain));
+    const exhaustedCalls = admissions
+      .slice(multiStart)
+      .filter((item) => item.method === "eth_call");
+    assert.equal(exhaustedCalls.length, 12);
+    for (const provider of ["primary", "secondary"])
+      assert.equal(
+        exhaustedCalls.filter((item) => item.provider === provider).length,
+        6
+      );
+    const revertParams = [{ ...call[0], data: "0xabcd" }];
+    const revertStart = admissions.length;
+    assert((await rpc(1, "eth_estimateGas", revertParams)).body.error);
+    assert.equal(
+      admissions
+        .slice(revertStart)
+        .filter((item) => item.method === "eth_estimateGas").length,
+      1
+    );
+    console.log(
+      "Two-provider fixture: one raw request fails over primary→secondary; both throttled yield 6 attempts/provider; EVM revert is not retried."
+    );
+    docker("stop", multi);
     const limited = `${prefix}-limited`;
     const budget = 20;
     docker(
@@ -760,5 +928,6 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
       docker("network", "rm", prefix);
     } catch {}
     await new Promise((resolve) => upstream.close(resolve));
+    rmSync(scratch, { recursive: true, force: true });
   }
 });

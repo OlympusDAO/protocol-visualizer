@@ -112,22 +112,22 @@ UPSTREAM_RPC_URL_84532=<Base Sepolia archive provider URL>
 
 Optional: `RPC_CACHE_MAX_RPS=50`. Configure backups and check the database
 connection before consumer cutover.
-This request limit applies **per RPC method**, shared by all nine providers on
-each eRPC instance, including polling. At the default value, all chains share
-50 `eth_getLogs` requests per second; `eth_call` has a separate 50-request allowance.
-It is not a combined 50-request cap across methods. A busy chain can consume
-the shared allowance for a method and throttle other chains using that method.
+This limit is one **aggregate** unit-credit pool across all methods and all nine
+chains on each eRPC instance, including polling and retries. Every method costs
+one unit in this configuration. It is not an Alchemy compute-unit allowance.
+A busy chain can consume the pool and throttle other chains.
 Per-chain budgets would multiply the possible total usage; confirm the provider
 account's allowance before changing that policy.
 Start with **one replica**; multiple replicas multiply the provider budget.
 Tune it to the provider account's actual allowance. Cache hits do not spend this
 budget. eRPC polls state every 30 seconds, including idle chains. Finality may
-lag and reduce hit rate; this is conservative. Retries have two sequential
-network attempts and one attempt per upstream; empty and pending retries are
-disabled. No hedging, consensus fan-out, or public provider fallbacks are
-configured. Add approved failover providers only inside eRPC, with their own
-budgets. Envio may still retry its own failed ingestion requests; the proxy
-owns the provider budget and retries for each request.
+lag and reduce hit rate; this is conservative. Requests allow two sequential
+network attempts, each able to visit eligible upstreams; each visit has no
+additional upstream retries. Empty and pending retries are disabled.
+No hedging, consensus fan-out, or public provider fallbacks are
+configured. Add approved failover providers only inside eRPC, with budgets
+shared by provider account rather than multiplied per chain or worker.
+Additional keys on the same Alchemy account do not add throughput capacity.
 
 After cache verification, IaC supplies all nine `ENVIO_RPC_URL_<chainId>` variables on `indexer`:
 
@@ -215,8 +215,69 @@ remain available to callers.
 HyperSync remains the indexer's event source when `ENVIO_API_TOKEN` is set and
 `ENVIO_RPC_MODE` is empty/`fallback`. eRPC serves JSON-RPC only. No new HyperSync
 or provider credentials belong on the publisher, monitor, or frontend. Existing
-Envio handler clients require their configured endpoint and perform no viem
-retry or public fallback; `ENVIO_RPC_URL_FALLBACK_*` is no longer used.
+Envio handler clients require their configured endpoint and use bounded viem
+recovery for transient failures. They have no public fallback;
+`ENVIO_RPC_URL_FALLBACK_*` is no longer used.
+
+## Throttling and provider selection
+
+There is currently one configured upstream per chain. The pinned eRPC release
+supports multiple providers. Its default policy filters unhealthy providers,
+ranks them by latency, and keeps a sticky primary. It supports fallback tiers
+and custom selection policies; successful requests are not round-robin balanced
+by default. See the [pinned selection policy](https://github.com/erpc/erpc/blob/0.5.0/internal/policy/default_policy.js).
+The default policy can also probe excluded providers in the background; those
+requests consume upstream capacity. The deterministic fixture disables probes.
+
+For a throttled upstream, eRPC tries another eligible provider within the same
+request. It avoids immediately retrying that exhausted provider again in that
+request. Network retries can sweep the provider list again for other transient
+errors; they are not simply a fixed number of physical upstream calls.
+
+The indexer's production transport makes up to six private-proxy attempts with
+exponential backoff and jitter. These are application getter retries, separate
+from Envio's ingestion retries. They do not currently honor `Retry-After`.
+If every eligible provider remains unavailable, exhaustion propagates through
+reader catches and fails the handler. Envio must not commit an incomplete
+checkpoint; continued service then depends on restarting/resuming that process.
+This is bounded recovery, not a guarantee of uninterrupted indexing.
+
+Run controlled throttling checks with the repository-pinned runtime:
+
+```sh
+RPC_CACHE_TEST_SKIP_RESET=1 pnpm test:rpc-cache
+```
+
+The fixture uses real patched eRPC/PostgreSQL containers and local HTTP providers.
+It checks HTTP/JSON-RPC 429 recovery, successful-response caching, exhaustion
+through the production dependency reader, two-provider failover, terminal EVM
+reverts and error privacy. The two-provider ordering is deterministic test
+configuration, not the production selection policy. Native Envio memory-store
+tests separately check that exhausted HTTP 429 leaves staged entity state
+uncommitted and the same block can resume after recovery.
+
+| Controlled case | Observed provider calls |
+|---|---:|
+| Two HTTP or JSON-RPC 429 failures, then recovery | 3 |
+| One persistently throttled provider | 6; reader throws |
+| Primary throttled, secondary healthy; one proxy request | 1 per provider |
+| Both providers persistently throttled | 6 per provider; reader throws |
+| EVM revert with two providers available | 1; no retry or failover |
+
+Separate bounded probes of Alchemy's documented public low-throughput test app
+on November 3, 2026 used eight concurrent requests and no user credentials:
+
+- All 201 balance reads returned HTTP 200, including 160 reads in 623 ms.
+- A heavier-method burst of 27 `eth_getBlockReceipts` reads for genesis produced
+  16 successes and 11 HTTP/JSON-RPC 429 responses. The burst stopped after
+  detecting throttling; already-running requests account for the final count.
+- One further receipt read succeeded after a 10-second cooldown. The responses
+  did not include `Retry-After`.
+
+This reproduces real provider throttling and recovery on the public test app;
+it does not measure the private account's allowance. The deterministic fixtures
+separately establish the patched proxy and indexer retry behaviour. See
+[Alchemy's throughput documentation](https://www.alchemy.com/docs/reference/throughput).
 
 ## Indexer resets and cache persistence
 

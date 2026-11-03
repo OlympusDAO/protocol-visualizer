@@ -23,8 +23,10 @@ const encode = (types, values) =>
     values
   );
 
-test("native Envio rejects a late fork without committing handler entities, then retries the same block", async () => {
+test("native Envio rejects exhausted HTTP 429 and a late fork without committing entities, then resumes the same block", async () => {
   let phase;
+  let throttled = true;
+  let throttleCalls = 0;
   let fork = true;
   let flipped = false;
   let pinnedCalls = 0;
@@ -35,12 +37,26 @@ test("native Envio rejects a late fork without committing handler entities, then
   const server = http.createServer(async (req, res) => {
     let raw = "";
     for await (const part of req) raw += part;
+    let httpThrottled = false;
     const reply = (rpc) => {
       let result;
       let error;
       if (rpc.method === "eth_getBlockByNumber") {
         if (Number(BigInt(rpc.params[0])) === height && phase) {
           phase.headers++;
+          if (!phase.preload && phase.headers >= 2 && throttled) {
+            throttleCalls++;
+            phase.throttled = true;
+            httpThrottled = true;
+            return {
+              jsonrpc: "2.0",
+              id: rpc.id,
+              error: {
+                code: 429,
+                message: "Too Many Requests fixture-provider-secret",
+              },
+            };
+          }
           if (!phase.preload && phase.headers === 2) {
             nativeFinalChecks++;
             if (fork) flipped = true;
@@ -104,11 +120,11 @@ test("native Envio rejects a late fork without committing handler entities, then
     };
     const payload = JSON.parse(raw);
     res.setHeader("content-type", "application/json");
-    res.end(
-      JSON.stringify(
-        Array.isArray(payload) ? payload.map(reply) : reply(payload)
-      )
-    );
+    const response = Array.isArray(payload)
+      ? payload.map(reply)
+      : reply(payload);
+    if (httpThrottled) res.statusCode = 429;
+    res.end(JSON.stringify(response));
   });
   await new Promise((done) => server.listen(0, "127.0.0.1", done));
   const url = `http://127.0.0.1:${server.address().port}`;
@@ -175,6 +191,19 @@ test("native Envio rejects a late fork without committing handler entities, then
         },
       });
     await assert.rejects(processBlock(), (error) => {
+      assert.match(String(error), /Indexer RPC temporarily unavailable/);
+      assert.doesNotMatch(String(error), /fixture-provider-secret|http:/);
+      return true;
+    });
+    assert.equal(throttleCalls, 6);
+    assert.equal(invocations.find((call) => call.throttled)?.headers, 7);
+    assert.deepEqual(
+      await snapshot(),
+      before,
+      "exhausted throughput recovery must not commit a partial checkpoint"
+    );
+    throttled = false;
+    await assert.rejects(processBlock(), (error) => {
       assert.match(
         String(error),
         /Canonical observation changed or unavailable/
@@ -219,7 +248,7 @@ test("native Envio rejects a late fork without committing handler entities, then
     assert(invocations.some((call) => !call.preload));
     assert(
       invocations
-        .filter((call) => !call.preload)
+        .filter((call) => !call.preload && !call.throttled)
         .every((call) => call.headers === 2),
       "execution shares one opening header and one fresh final current-height check"
     );

@@ -15,7 +15,6 @@ enum ActionType {
 
 type Contract {
   id: ID!
-  chainId: Int! @index
   address: String! @index
   lastUpdatedTimestamp: BigInt!
   lastUpdatedBlockNumber: BigInt! @index
@@ -30,7 +29,6 @@ type Contract {
 
 type ContractEvent {
   id: ID!
-  chainId: Int! @index
   transactionHash: String! @index
   logIndex: Int!
   action: ActionType! @index
@@ -47,7 +45,6 @@ type ContractEvent {
 
 type KernelExecutor {
   id: ID!
-  chainId: Int! @index
   kernel: String! @index
   lastUpdatedTimestamp: BigInt!
   lastUpdatedBlockNumber: BigInt! @index
@@ -56,7 +53,6 @@ type KernelExecutor {
 
 type KernelExecutorEvent {
   id: ID!
-  chainId: Int! @index
   kernel: String! @index
   transactionHash: String! @index
   logIndex: Int!
@@ -67,7 +63,6 @@ type KernelExecutorEvent {
 
 type ActionExecutedEvent {
   id: ID!
-  chainId: Int! @index
   kernel: String! @index
   transactionHash: String! @index
   logIndex: Int!
@@ -79,7 +74,6 @@ type ActionExecutedEvent {
 
 type RoleEvent {
   id: ID!
-  chainId: Int! @index
   role: String! @index
   transactionHash: String! @index
   logIndex: Int!
@@ -92,13 +86,11 @@ type RoleEvent {
 
 type Role {
   id: ID!
-  chainId: Int! @index
   role: String! @index
 }
 
 type RoleAssignment {
   id: ID!
-  chainId: Int! @index
   role: String! @index
   assignee: String! @index
   assigneeName: String!
@@ -109,7 +101,6 @@ type RoleAssignment {
 
 type CurrentModule {
   id: ID!
-  chainId: Int! @index
   keycode: String! @index
   address: String! @index
   lastUpdatedTimestamp: BigInt!
@@ -118,7 +109,6 @@ type CurrentModule {
 
 type CurrentRoleAssignee {
   id: ID!
-  chainId: Int! @index
   role: String! @index
   assignee: String! @index
   assigneeName: String!
@@ -130,7 +120,6 @@ type CurrentRoleAssignee {
 # Json provenance uses {number,hash,timestamp}, all numeric values encoded as strings.
 type ContractState {
   id: ID!
-  chainId: Int! @index
   address: String! @index
   enablerCapability: String!
   enabled: Boolean
@@ -144,7 +133,6 @@ type ContractState {
 
 type ContractStateSeed {
   id: ID!
-  chainId: Int! @index
   address: String! @index
   boundary: Json!
   getter: String!
@@ -153,7 +141,6 @@ type ContractStateSeed {
 
 type ControlTransition {
   id: ID!
-  chainId: Int! @index
   address: String! @index
   kind: String! @index
   previousValue: Json
@@ -169,7 +156,6 @@ type ContractRelationship {
   callSelector: String
   callSignature: String
   id: ID!
-  chainId: Int! @index
   kind: String! @index
   source: String! @index
   target: String @index
@@ -190,14 +176,12 @@ type ContractRelationship {
 
 type ChainObservation {
   id: ID!
-  chainId: Int! @index
   indexedThrough: Json!
 }
 
 # Entity caches roll back with events. Effects alone survive rollback.
 type VerifiedDeployment {
   id: ID!
-  chainId: Int! @index
   address: String! @index
   creationBlock: BigInt!
   creationHash: String!
@@ -208,14 +192,12 @@ type VerifiedDeployment {
 
 type KernelReadEpoch {
   id: ID!
-  chainId: Int! @index
   epoch: String!
   migrated: Boolean!
 }
 
 type KernelReadCache {
   id: ID!
-  chainId: Int! @index
   epoch: String!
   result: Json!
   verifiedAt: Json!
@@ -223,7 +205,6 @@ type KernelReadCache {
 
 type HeartTasks {
   id: ID!
-  chainId: Int! @index
   address: String! @index
   tasks: Json
   seed: Json
@@ -234,7 +215,6 @@ type HeartTasks {
 
 type BridgeConfiguration {
   id: ID!
-  chainId: Int! @index
   address: String! @index
   kind: String!
   configuration: Json

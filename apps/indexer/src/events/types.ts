@@ -87,7 +87,6 @@ export type ActionType =
 
 export type ContractEntity = {
   id: string;
-  chainId: number;
   address: string;
   lastUpdatedTimestamp: bigint;
   lastUpdatedBlockNumber: bigint;
@@ -102,7 +101,6 @@ export type ContractEntity = {
 
 export type CurrentModuleEntity = {
   id: string;
-  chainId: number;
   keycode: string;
   address: string;
   lastUpdatedTimestamp: bigint;
@@ -111,7 +109,6 @@ export type CurrentModuleEntity = {
 
 export type CurrentRoleAssigneeEntity = {
   id: string;
-  chainId: number;
   role: string;
   assignee: string;
   assigneeName: string;

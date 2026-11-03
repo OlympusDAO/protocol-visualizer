@@ -34,7 +34,6 @@ export type RelationshipState = {
   callSelector?: string;
   callSignature?: string;
   id: string;
-  chainId: number;
   subject: string;
   getter: string;
   kind: string;
@@ -109,6 +108,7 @@ const poolDiscrepancy = (
 
 async function present(
   context: Context,
+  chainId: number,
   state: RelationshipState
 ): Promise<RelationshipState> {
   let status: RelationshipState["status"] = reference(state.kind)
@@ -119,7 +119,7 @@ async function present(
   if (!nonzero(state.value)) status = "unset";
   if (!reference(state.kind) && isPending(state.getter)) {
     const current = await context.ContractRelationship.get<RelationshipState>(
-      relationshipId(state.chainId, state.subject, currentGetter(state.getter))
+      relationshipId(chainId, state.subject, currentGetter(state.getter))
     );
     if (current?.value === state.value) status = "unset";
   }
@@ -197,9 +197,8 @@ async function writeField(
         event.logIndex <= previous.lastChange.logIndex))
   )
     throw new Error("relationship events must replay in canonical log order");
-  const state = await present(context, {
+  const state = await present(context, chainId, {
     id,
-    chainId,
     subject: field.address.toLowerCase(),
     getter: field.getter,
     kind: field.kind,
@@ -239,7 +238,6 @@ async function writeField(
   if (event && transitionId)
     context.ControlTransition.set({
       id: transitionId,
-      chainId,
       address: state.subject,
       kind: `relationship:${field.getter}`,
       previousValue: { address: previous?.value ?? null },
@@ -253,7 +251,6 @@ async function writeField(
   if (!event && !previous?.value)
     context.ContractStateSeed.set({
       id: `${id}:${provenance.hash}`,
-      chainId,
       address: state.subject,
       boundary: provenance,
       getter: field.getter,
@@ -265,7 +262,9 @@ async function writeField(
       relationshipId(chainId, field.address, pendingGetter)
     );
     if (pending)
-      context.ContractRelationship.set(await present(context, pending));
+      context.ContractRelationship.set(
+        await present(context, chainId, pending)
+      );
   }
 }
 const provenanceFor = (event: ControlEvent): ChangeProvenance => ({
@@ -598,7 +597,7 @@ export async function completeRelationshipBlock(
             return;
           }
           context.ContractRelationship.set({
-            ...(await present(context, state)),
+            ...(await present(context, chainId, state)),
             indexedThrough: block,
             ...(targetCode ? { targetCode } : {}),
           });
@@ -621,7 +620,6 @@ export async function completeRelationshipBlock(
         if (!state) {
           state = {
             id,
-            chainId,
             subject: field.address.toLowerCase(),
             getter: field.getter,
             kind: field.kind,
@@ -648,7 +646,7 @@ export async function completeRelationshipBlock(
             ? { ...policy, block: result.verifiedAt ?? block }
             : undefined;
         context.ContractRelationship.set({
-          ...(await present(context, state)),
+          ...(await present(context, chainId, state)),
           ...(field.callSignature
             ? { callSignature: field.callSignature }
             : {}),
@@ -704,7 +702,6 @@ export async function completeRelationshipBlock(
   if (stopped) return false;
   context.ChainObservation.set({
     id: String(chainId),
-    chainId,
     indexedThrough: block,
   });
   return true;

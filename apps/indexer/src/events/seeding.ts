@@ -22,7 +22,6 @@ export function setRole(
 ): void {
   context.Role.set({
     id: roleId(chainId, role),
-    chainId,
     role,
   });
 }
@@ -54,7 +53,6 @@ export async function ensureKernelSeeded(
       constants.creationTransactionHash,
       0
     ),
-    chainId,
     kernel: constants.address,
     transactionHash: constants.creationTransactionHash,
     logIndex: 0,
@@ -72,7 +70,6 @@ export async function ensureKernelSeeded(
       "migrateKernel",
       constants.address
     ),
-    chainId,
     transactionHash: constants.creationTransactionHash,
     logIndex: 0,
     action: "migrateKernel",
@@ -86,7 +83,6 @@ export async function ensureKernelSeeded(
 
   context.Contract.set({
     id,
-    chainId,
     address: constants.address,
     lastUpdatedTimestamp: timestamp,
     lastUpdatedBlockNumber: blockNumber,
@@ -97,7 +93,6 @@ export async function ensureKernelSeeded(
 
   context.KernelExecutor.set({
     id: kernelExecutorId(chainId, constants.address),
-    chainId,
     kernel: constants.address,
     lastUpdatedTimestamp: timestamp,
     lastUpdatedBlockNumber: blockNumber,
@@ -111,7 +106,6 @@ export async function ensureKernelSeeded(
       constants.creationTransactionHash,
       0
     ),
-    chainId,
     kernel: constants.address,
     transactionHash: constants.creationTransactionHash,
     logIndex: 0,
@@ -150,7 +144,6 @@ export async function ensureRolesAdminSeeded(
       0,
       initialAdmin
     ),
-    chainId,
     role: ROLE_ROLES_ADMIN,
     transactionHash: constants.creationTransactionHash,
     logIndex: 0,
@@ -163,7 +156,6 @@ export async function ensureRolesAdminSeeded(
 
   context.RoleAssignment.set({
     id: roleAssignmentId(chainId, ROLE_ROLES_ADMIN, initialAdmin),
-    chainId,
     role: ROLE_ROLES_ADMIN,
     assignee: initialAdmin,
     lastUpdatedTimestamp: timestamp,
@@ -174,7 +166,6 @@ export async function ensureRolesAdminSeeded(
 
   context.CurrentRoleAssignee.set({
     id,
-    chainId,
     role: ROLE_ROLES_ADMIN,
     assignee: initialAdmin,
     assigneeName,

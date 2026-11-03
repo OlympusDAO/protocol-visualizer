@@ -1,5 +1,5 @@
 import type {
-  BridgeConfiguration,
+  BridgeConfiguration as SnapshotBridgeConfiguration,
   EventProvenance,
 } from "../../../../packages/snapshot-artifacts/src/index";
 import chains from "../../../../packages/protocol-config/protocol-chains.json";
@@ -9,6 +9,8 @@ import { contractId, controlTransitionId } from "./ids";
 import type { ControlBlock } from "./control-state";
 import type { ControlEvent, EnvioContext } from "./types";
 import type { RelationshipField } from "./ownership";
+
+type BridgeConfiguration = Omit<SnapshotBridgeConfiguration, "chainId">;
 
 export type BridgeContract = {
   address: string;
@@ -51,7 +53,6 @@ const empty = (
   kind: BridgeContract["kind"]
 ): BridgeConfiguration => ({
   id: contractId(chainId, address),
-  chainId,
   address: address.toLowerCase(),
   kind,
   configuration: null,
@@ -108,7 +109,6 @@ export async function handleBridgeConfigurationEvent(
   });
   context.ControlTransition.set({
     id: transitionId,
-    chainId: event.chainId,
     address: event.srcAddress.toLowerCase(),
     kind: "bridge-configuration",
     previousValue: null,

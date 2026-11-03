@@ -99,6 +99,7 @@ const processedContractDataSchema: S.Schema<ProcessedContractData> = S.schema({
 
 const processContractMetadataEffect = createEffect(
   {
+    crossChain: true,
     name: "processContractMetadataV3",
     input: {
       chainId: S.number,
@@ -118,6 +119,7 @@ const processContractMetadataEffect = createEffect(
 
 export const readPolicyPermissionsEffect = createEffect(
   {
+    crossChain: true,
     name: "readPolicyPermissions",
     input: {
       chainId: S.number,
@@ -178,6 +180,7 @@ export const readPolicyPermissionsEffect = createEffect(
 
 export const readModuleKeycodeEffect = createEffect(
   {
+    crossChain: true,
     name: "readModuleKeycode",
     input: {
       chainId: S.number,
@@ -231,6 +234,7 @@ export const readModuleKeycodeEffect = createEffect(
 
 export const readModuleForKeycodeEffect = createEffect(
   {
+    crossChain: true,
     name: "readModuleForKeycode",
     input: {
       chainId: S.number,
@@ -273,6 +277,7 @@ export const readModuleForKeycodeEffect = createEffect(
 
 const readKernelExecutorEffect = createEffect(
   {
+    crossChain: true,
     name: "readKernelExecutor",
     input: {
       chainId: S.number,
@@ -314,6 +319,7 @@ const readKernelExecutorEffect = createEffect(
 
 const readRolesAdminEffect = createEffect(
   {
+    crossChain: true,
     name: "readRolesAdmin",
     input: {
       chainId: S.number,
@@ -494,6 +500,7 @@ export function getRolesAdmin(
 // Envio persists effect cache across rollbacks. Canonical hash is part of every input, not a process cache.
 export const readControlGetterEffect = createEffect(
   {
+    crossChain: true,
     name: "readControlGetter",
     input: {
       chainId: S.number,
@@ -680,6 +687,7 @@ export async function getControlGetter(
 
 const readModuleDependenciesEffect = createEffect(
   {
+    crossChain: true,
     name: "readModuleDependencies",
     input: {
       chainId: S.number,
@@ -760,6 +768,7 @@ export async function getModuleDependencies(
 
 const readBridgeConfigurationEffect = createEffect(
   {
+    crossChain: true,
     name: "readBridgeConfiguration",
     input: {
       chainId: S.number,
@@ -824,6 +833,7 @@ export async function getBridgeConfiguration(
 // A height's header may change on rollback. Never persist a height-only header cache.
 const readControlBlockEffect = createEffect(
   {
+    crossChain: true,
     name: "readControlBlock",
     input: { chainId: S.number, blockNumber: S.bigint },
     rateLimit: { calls: 25, per: "second" },

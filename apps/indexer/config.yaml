@@ -1,5 +1,6 @@
 # yaml-language-server: $schema=./node_modules/envio/evm.schema.json
 name: protocol-visualizer-indexer
+disable_default_cross_chain: true
 description: Olympus protocol visualizer indexer
 
 field_selection:

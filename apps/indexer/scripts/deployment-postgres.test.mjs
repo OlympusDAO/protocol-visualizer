@@ -116,10 +116,12 @@ async function runStage(stage) {
     LoadManager,
     Rollback,
     Writing,
-    EntityFilter,
     { getEffectClient },
     { readVerifiedDeploymentCode },
     { reuseKernelRead },
+    { getModuleDependencyFields, completeModuleDependencies },
+    { getObservedPoolFields },
+    { handleAuthorityEvent, relationshipId },
     { default: proofs },
   ] = await Promise.all([
     ...[
@@ -131,11 +133,13 @@ async function runStage(stage) {
       "LoadManager",
       "Rollback",
       "Writing",
-      "db/EntityFilter",
     ].map(native),
     import("../src/events/call-cache.ts"),
     import("../src/events/deployment-state.ts"),
     import("../src/events/kernel-reuse.ts"),
+    import("../src/events/module-dependencies.ts"),
+    import("../src/events/ownership-contracts.ts"),
+    import("../src/events/ownership.ts"),
     import("../src/generated/kernel-read-proofs.json", {
       with: { type: "json" },
     }),
@@ -153,13 +157,29 @@ async function runStage(stage) {
       contracts: [],
     },
   };
+  publicConfig.evm.chains.second = {
+    ...publicConfig.evm.chains.fixture,
+    id: 10,
+  };
   publicConfig.evm.contracts = {};
   publicConfig.entities = publicConfig.entities.filter((entity) =>
-    ["VerifiedDeployment", "KernelReadCache", "KernelReadEpoch"].includes(
-      entity.name
-    )
+    [
+      "VerifiedDeployment",
+      "KernelReadCache",
+      "KernelReadEpoch",
+      "ContractRelationship",
+      "ControlTransition",
+      "Contract",
+      "ChainObservation",
+      "ContractStateSeed",
+    ].includes(entity.name)
   );
   const config = Config.fromPublic(publicConfig);
+  assert.equal(
+    config.defaultCrossChain,
+    false,
+    "exercise native chain-scoped storage"
+  );
   // Synthetic checkpoints retain history; no source fetcher or fork detector runs.
   config.shouldSaveFullHistory = true;
   const persistence = PgStorage.makePersistenceFromConfig(config, undefined);
@@ -172,6 +192,12 @@ async function runStage(stage) {
       persistence,
       initial,
       {
+        10: {
+          onEventRegistrations: [],
+          onBlockRegistrations: [
+            { index: 0, name: "fixture", interval: 1, handler: async () => {} },
+          ],
+        },
         1: {
           onEventRegistrations: [],
           onBlockRegistrations: [
@@ -193,7 +219,7 @@ async function runStage(stage) {
     const proof = proofs.find((row) => row.name === "kernel");
     const getter = "moduleDependents:MINTR";
     const kernelId = `1:${proof.address}:${proof.codeHash}:${getter}:v1`;
-    const context = (checkpointId) =>
+    const context = (checkpointId, chainId = 1) =>
       UserContext.getHandlerContext({
         config,
         persistence,
@@ -202,24 +228,24 @@ async function runStage(stage) {
         checkpointId: BigInt(checkpointId),
         isPreload: false,
         isResolved: false,
-        item: { kind: 0, chainId: 1 },
-        chains: { 1: { id: 1 } },
+        item: { kind: 0, chainId },
+        chains: { 1: { id: 1 }, 10: { id: 10 } },
       });
-    const batch = (checkpointId, height) => ({
+    const batch = (checkpointId, height, chainId = 1) => ({
       totalBatchSize: 0,
       items: [],
       progressedChainsById: {
-        1: {
-          fetchState: { chainId: 1 },
+        [chainId]: {
+          fetchState: { chainId },
           progressBlockNumber: height,
           sourceBlockNumber: 20,
           totalEventsProcessed: Math.floor(height / 10),
           progressBlockTime: undefined,
         },
       },
-      history: { 1: true },
+      history: { [chainId]: true },
       checkpointIds: [BigInt(checkpointId)],
-      checkpointChainIds: [1],
+      checkpointChainIds: [chainId],
       checkpointBlockNumbers: [height],
       checkpointBlockHashes: [hash(height)],
       checkpointItemsCount: [0],
@@ -234,12 +260,78 @@ async function runStage(stage) {
           { blockHash: pin, requireCanonical: true },
         ],
       });
-    const rows = (name, ids) =>
-      persistence.storage.loadOrThrow(
-        EntityFilter.byIds(ids),
-        config.userEntitiesByName[name].table
+    const rows = async (name, ids) =>
+      (await Promise.all(ids.map((id) => context(4)[name].get(id)))).filter(
+        Boolean
       );
 
+    const pool = (chainId) => `0x${String(chainId).padStart(40, "0")}`;
+    const seedQueries = async (ctx, chainId, height) => {
+      const event = (to, logIndex, from = pool(chainId)) => ({
+        chainId,
+        srcAddress: address,
+        block: { number: height, timestamp: height + 100, hash: hash(height) },
+        transaction: { hash: hash(height) },
+        logIndex,
+        params: { from, to, _effectiveImmediately: false },
+      });
+      if (height === 10) {
+        await handleAuthorityEvent(
+          ctx,
+          event(pool(chainId), 0),
+          "governor",
+          "Pulled"
+        );
+        await handleAuthorityEvent(
+          ctx,
+          event(pool(chainId + 100), 1),
+          "governor",
+          "Pushed"
+        );
+      } else
+        await handleAuthorityEvent(
+          ctx,
+          event(pool(chainId + 100), 0),
+          "governor",
+          "Pulled"
+        );
+      ctx.Contract.set({
+        id: "same-module",
+        address,
+        name: chainId === 1 ? "MINTR" : "TRSRY",
+        contractType: "MODULE",
+        isEnabled: true,
+        lastUpdatedTimestamp: 1n,
+        lastUpdatedBlockNumber: 1n,
+      });
+      ctx.ContractRelationship.set({
+        id: "same-dependency",
+        subject: address,
+        getter: `moduleDependents:${chainId === 1 ? "MINTR" : "TRSRY"}`,
+        kind: "module-dependency",
+        value: pool(chainId),
+        source: address,
+        target: pool(chainId),
+        status: "reference",
+        provenance: block(height),
+        seed: block(height),
+        lastChange: null,
+        indexedThrough: block(height),
+        verification: { outcome: "match", block: block(height) },
+      });
+      ctx.ControlTransition.set({
+        id: "same-registration",
+        address,
+        kind: "relationship:getPool:fixture",
+        previousValue: { address: null },
+        value: { address: pool(chainId) },
+        blockNumber: BigInt(height),
+        blockHash: hash(height),
+        timestamp: 1n,
+        transactionHash: hash(height),
+        logIndex: 0,
+      });
+    };
     if (stage === "seed") {
       assert.equal(initial.cleanRun, true);
       for (const [checkpoint, height] of [
@@ -247,9 +339,9 @@ async function runStage(stage) {
         [2, 20],
       ]) {
         const ctx = context(checkpoint);
+        await seedQueries(ctx, 1, height);
         const deployment = {
           id: deploymentId,
-          chainId: 1,
           address,
           creationBlock: 1n,
           creationHash: hash(1),
@@ -259,7 +351,6 @@ async function runStage(stage) {
         };
         const kernel = {
           id: kernelId,
-          chainId: 1,
           epoch: "initial",
           result: { status: "success", value: String(checkpoint) },
           verifiedAt: block(height),
@@ -306,13 +397,112 @@ async function runStage(stage) {
         IndexerState.queueProcessedBatch(state, batch(checkpoint, height));
         await Writing.runOneWrite(state);
       }
+      // Deliberately collide IDs: chain prefixes must not be our only isolation.
+      for (const [checkpoint, height] of [
+        [1, 10],
+        [2, 20],
+      ]) {
+        const second = context(checkpoint, 10);
+        await seedQueries(second, 10, height);
+        second.VerifiedDeployment.set({
+          id: deploymentId,
+          address,
+          creationBlock: 1n,
+          creationHash: hash(1),
+          codeHash: hash(100 + checkpoint),
+          version: "ordinary-runtime-v1",
+          verifiedAt: block(1),
+        });
+        second.KernelReadCache.set({
+          id: kernelId,
+          epoch: "second",
+          result: { status: "success", value: "second" },
+          verifiedAt: block(height),
+        });
+        IndexerState.queueProcessedBatch(state, batch(checkpoint, height, 10));
+        await Writing.runOneWrite(state);
+      }
     } else {
       assert.equal(initial.cleanRun, false, "resume without resetting storage");
       const ctx = context(4);
+      const second = context(4, 10);
+      for (const chainId of [1, 10]) {
+        const scoped = context(4, chainId);
+        const keycode = chainId === 1 ? "MINTR" : "TRSRY";
+        assert.deepEqual(
+          (await getModuleDependencyFields(scoped, chainId)).map(
+            (field) => field.getter
+          ),
+          [`moduleDependents:${keycode}`]
+        );
+        const reads = [];
+        await completeModuleDependencies(
+          scoped,
+          chainId,
+          block(21),
+          [],
+          async (keycode) => {
+            reads.push(keycode);
+            return { status: "unavailable", reason: "fixture" };
+          },
+          async () => undefined
+        );
+        assert.deepEqual(reads, [keycode]);
+        const fields = await getObservedPoolFields(scoped, chainId, [
+          {
+            address,
+            getter: "getPool:fixture",
+            kind: "registered-pool",
+            startBlock: 1,
+          },
+        ]);
+        assert.deepEqual(
+          [
+            ...new Set(
+              fields
+                .filter((field) => field.kind === "pool-owner")
+                .map((field) => field.address)
+            ),
+          ],
+          [pool(chainId)]
+        );
+        await assert.rejects(
+          () => getModuleDependencyFields(scoped, chainId === 1 ? 10 : 1),
+          /chain scope/
+        );
+      }
+
+      assert.equal(
+        (await second.VerifiedDeployment.get(deploymentId)).codeHash,
+        hash(102)
+      );
+      assert.equal(
+        (await second.KernelReadCache.get(kernelId)).result.value,
+        "second"
+      );
+      assert.equal(
+        (await second.VerifiedDeployment.get(deploymentId)).chainId,
+        undefined
+      );
+      assert.equal(
+        (await ctx.VerifiedDeployment.get(deploymentId)).chainId,
+        undefined
+      );
+      for (const [store, filter] of [
+        ["VerifiedDeployment", { address: { _eq: address } }],
+        ["KernelReadCache", { epoch: { _eq: "second" } }],
+      ]) {
+        assert.equal((await second[store].getWhere(filter)).length, 1);
+        if (store === "KernelReadCache")
+          assert.equal((await ctx[store].getWhere(filter)).length, 0);
+      }
       assert.equal(await rawCall(ctx), "0x1234");
       assert.equal(rpcCalls, 0, "production raw-call effect survives restart");
       if (stage === "rollback") {
-        assert.equal(initial.chains[0].progressBlockNumber, 20);
+        assert.equal(
+          initial.chains.find((chain) => chain.id === 1).progressBlockNumber,
+          20
+        );
         assert.equal(
           (await rows("VerifiedDeployment", [deploymentId]))[0].codeHash,
           hash(2)
@@ -362,11 +552,28 @@ async function runStage(stage) {
       assert.equal(kernels.length, 1);
       assert.equal(kernels[0].result.value, "1");
       assert.deepEqual(kernels[0].verifiedAt, block(10));
+      const pendingId = (chainId) =>
+        relationshipId(chainId, address, "newGovernor");
+      const firstPending = await ctx.ContractRelationship.get(pendingId(1));
+      assert.equal(firstPending.status, "pending");
+      assert.equal(firstPending.value, pool(101));
+      assert.equal(
+        (await second.ContractRelationship.get(pendingId(10))).status,
+        "unset"
+      );
       if (stage === "check") {
-        assert.equal(initial.chains[0].progressBlockNumber, 11);
+        assert.equal(
+          initial.chains.find((chain) => chain.id === 1).progressBlockNumber,
+          11
+        );
+        assert.equal(
+          initial.chains.find((chain) => chain.id === 10).progressBlockNumber,
+          20
+        );
         assert.equal(initial.checkpointFrontier[1], 4n);
         let fallbackReads = 0;
         const codeContext = {
+          chain: ctx.chain,
           VerifiedDeployment: ctx.VerifiedDeployment,
           effect: async () => {
             fallbackReads++;

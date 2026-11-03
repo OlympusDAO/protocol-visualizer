@@ -119,8 +119,9 @@ export async function getModuleDependencyFields(
   context: EnvioContext,
   chainId: number
 ): Promise<RelationshipField[]> {
+  if (context.chain && context.chain.id !== chainId)
+    throw new Error("Dependency read chain scope mismatch");
   const rows = await context.ContractRelationship.getWhere<RelationshipState>({
-    chainId: { _eq: chainId },
     kind: { _eq: "module-dependency" },
   });
   return rows.map((row) => ({
@@ -140,8 +141,9 @@ export async function completeModuleDependencies(
   read: (keycode: string) => Promise<DependencyReadResult>,
   readBlock: (number: string) => Promise<ControlBlock | undefined>
 ) {
+  if (context.chain && context.chain.id !== chainId)
+    throw new Error("Dependency read chain scope mismatch");
   const modules = await context.Contract.getWhere<ContractEntity>({
-    chainId: { _eq: chainId },
     contractType: { _eq: "MODULE" },
   });
   const keycodes = new Set(

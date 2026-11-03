@@ -25,6 +25,7 @@ function canonical(value: unknown): unknown {
 
 export const readPinnedCallEffect = createEffect(
   {
+    crossChain: true,
     name: "readPinnedRawCall",
     input: { chainId: S.number, params: S.string },
     output: S.string,

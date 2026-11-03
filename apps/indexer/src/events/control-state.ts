@@ -14,7 +14,6 @@ export type ControlStateEntity = {
   enablementGetter?: string;
   enablementCoverage?: string;
   id: string;
-  chainId: number;
   address: string;
   enablerCapability: "unknown" | "supported" | "unsupported";
   enabled: boolean | null;
@@ -41,7 +40,6 @@ const unknownState = (
   address: string
 ): ControlStateEntity => ({
   id: contractId(chainId, address),
-  chainId,
   address: address.toLowerCase(),
   enablerCapability: "unknown",
   enabled: null,
@@ -89,7 +87,6 @@ export async function seedControlState(
     throw new Error("isEnabled seed must be boolean");
   context.ContractStateSeed.set({
     id: `${state.id}:${block.hash}:isEnabled`,
-    chainId,
     address: state.address,
     boundary: block,
     getter: "isEnabled",
@@ -136,7 +133,6 @@ export async function applyControlTransition(
   };
   context.ControlTransition.set({
     id,
-    chainId: event.chainId,
     address: state.address,
     kind,
     previousValue: { enabled: state.enabled },
@@ -171,7 +167,6 @@ export async function completeControlBlock(
   }
   context.ChainObservation.set({
     id: String(chainId),
-    chainId,
     indexedThrough: block,
   });
 }

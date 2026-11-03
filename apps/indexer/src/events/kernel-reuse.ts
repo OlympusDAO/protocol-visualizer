@@ -40,7 +40,6 @@ export async function invalidateKernelReads(
   const previous = await context.KernelReadEpoch.get<Epoch>(id);
   context.KernelReadEpoch.set({
     id,
-    chainId: event.chainId,
     epoch: `${event.block.hash}:${event.transaction.hash}:${event.logIndex}`,
     // Old Kernel active records survive migration; don't trust them again.
     migrated: previous?.migrated === true || Number(event.params.action_) === 5,
@@ -114,7 +113,6 @@ export async function reuseKernelRead<T extends Result>(
     if (runtimeHash === proof.codeHash)
       context.KernelReadCache.set({
         id,
-        chainId: input.chainId,
         epoch: generation,
         result,
         verifiedAt: result.verifiedAt ?? input.block,

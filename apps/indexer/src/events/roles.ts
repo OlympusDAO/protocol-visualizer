@@ -37,7 +37,6 @@ export async function handleRoleGranted(
       event.logIndex,
       assignee
     ),
-    chainId: event.chainId,
     role,
     transactionHash: event.transaction.hash,
     logIndex: event.logIndex,
@@ -50,7 +49,6 @@ export async function handleRoleGranted(
 
   envioContext.RoleAssignment.set({
     id: roleAssignmentId(event.chainId, role, assignee),
-    chainId: event.chainId,
     role,
     assignee,
     lastUpdatedTimestamp: timestamp,
@@ -93,7 +91,6 @@ export async function handleRoleRevoked(
       event.logIndex,
       assignee
     ),
-    chainId: event.chainId,
     role,
     transactionHash: event.transaction.hash,
     logIndex: event.logIndex,
@@ -106,7 +103,6 @@ export async function handleRoleRevoked(
 
   envioContext.RoleAssignment.set({
     id: assignmentId,
-    chainId: event.chainId,
     role,
     assignee,
     lastUpdatedTimestamp: timestamp,
@@ -146,7 +142,6 @@ export async function handleNewAdminPulled(
         event.logIndex,
         currentAssignee.assignee
       ),
-      chainId: event.chainId,
       role: ROLE_ROLES_ADMIN,
       transactionHash: event.transaction.hash,
       logIndex: event.logIndex,
@@ -163,7 +158,6 @@ export async function handleNewAdminPulled(
         ROLE_ROLES_ADMIN,
         currentAssignee.assignee
       ),
-      chainId: event.chainId,
       role: ROLE_ROLES_ADMIN,
       assignee: currentAssignee.assignee,
       lastUpdatedTimestamp: timestamp,
@@ -182,7 +176,6 @@ export async function handleNewAdminPulled(
       event.logIndex,
       newAdmin
     ),
-    chainId: event.chainId,
     role: ROLE_ROLES_ADMIN,
     transactionHash: event.transaction.hash,
     logIndex: event.logIndex,
@@ -195,7 +188,6 @@ export async function handleNewAdminPulled(
 
   envioContext.RoleAssignment.set({
     id: roleAssignmentId(event.chainId, ROLE_ROLES_ADMIN, newAdmin),
-    chainId: event.chainId,
     role: ROLE_ROLES_ADMIN,
     assignee: newAdmin,
     lastUpdatedTimestamp: timestamp,
@@ -206,7 +198,6 @@ export async function handleNewAdminPulled(
 
   envioContext.CurrentRoleAssignee.set({
     id: currentRoleAssigneeId(event.chainId, ROLE_ROLES_ADMIN),
-    chainId: event.chainId,
     role: ROLE_ROLES_ADMIN,
     assignee: newAdmin,
     assigneeName,

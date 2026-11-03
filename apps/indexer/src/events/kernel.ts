@@ -62,7 +62,6 @@ export async function handleKernelActionExecuted(
       event.transaction.hash,
       event.logIndex
     ),
-    chainId,
     kernel: event.srcAddress,
     transactionHash: event.transaction.hash,
     logIndex: event.logIndex,
@@ -110,7 +109,6 @@ export async function handleKernelActionExecuted(
           action,
           previousContract.address
         ),
-        chainId,
         transactionHash: event.transaction.hash,
         logIndex: event.logIndex,
         action,
@@ -143,7 +141,6 @@ export async function handleKernelActionExecuted(
         action,
         target
       ),
-      chainId,
       transactionHash: event.transaction.hash,
       logIndex: event.logIndex,
       action,
@@ -161,7 +158,6 @@ export async function handleKernelActionExecuted(
     envioContext.Contract.set({
       ...(existingContract ?? {
         id: contractId(chainId, target),
-        chainId,
         address: target,
         name: contractName,
         version: contractVersion,
@@ -192,7 +188,6 @@ export async function handleKernelActionExecuted(
 
     envioContext.KernelExecutor.set({
       id: kernelExecutorId(chainId, event.srcAddress),
-      chainId,
       kernel: event.srcAddress,
       lastUpdatedTimestamp: timestamp,
       lastUpdatedBlockNumber: blockNumber,
@@ -206,7 +201,6 @@ export async function handleKernelActionExecuted(
         event.transaction.hash,
         event.logIndex
       ),
-      chainId,
       kernel: event.srcAddress,
       transactionHash: event.transaction.hash,
       logIndex: event.logIndex,

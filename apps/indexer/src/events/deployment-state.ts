@@ -15,7 +15,6 @@ import { getPublicClient, rethrowTransientRpc } from "./rpc";
 
 type VerifiedDeployment = {
   id: string;
-  chainId: number;
   address: string;
   creationBlock: bigint;
   creationHash: string;
@@ -32,6 +31,8 @@ export async function readVerifiedDeploymentCode(
   readCanonicalBlock: CanonicalBlockReader = (chain, blockNumber) =>
     getPublicClient(chain).getBlock({ blockNumber })
 ): Promise<Hex | undefined> {
+  if (context.chain && context.chain.id !== chainId)
+    throw new Error("Deployment read chain scope mismatch");
   const store = context.VerifiedDeployment;
   if (!store) return readExactBytecodeHash(context, chainId, pin);
   const address = pin.address.toLowerCase();
@@ -40,7 +41,6 @@ export async function readVerifiedDeploymentCode(
   try {
     if (
       stored &&
-      stored.chainId === chainId &&
       stored.address === address &&
       ["ordinary-runtime-v1", "compiler-immutables-v1"].includes(
         stored.version
@@ -84,7 +84,6 @@ export async function readVerifiedDeploymentCode(
     if (fact?.codeHash === codeHash)
       store.set({
         id,
-        chainId,
         address,
         creationBlock: BigInt(deployment.creationBlock),
         creationHash: fact.verifiedAt.hash,

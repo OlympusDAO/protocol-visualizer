@@ -6,6 +6,7 @@ import {
   type Abi,
 } from "viem";
 import type { ProcessedContractData } from "./types";
+import { waitForMetadata } from "../metadata-throttle";
 import {
   discoverImmutableDeployment,
   discoverOrdinaryDeployment,
@@ -127,6 +128,7 @@ export async function fetchVerifiedContract(
   chainId: string | number,
   address: string
 ): Promise<Parameters<typeof processVerifiedContractMetadata>[0]> {
+  await waitForMetadata("sourcify");
   const response = await fetch(
     `https://sourcify.dev/server/v2/contract/${chainId}/${address.toLowerCase()}?fields=${verifiedGetterFields}`,
     { signal: AbortSignal.timeout(30_000) }

@@ -208,10 +208,15 @@ export async function getObservedAuthorityFields(
 }
 
 export async function getObservedPoolFields(
-  context: Pick<EnvioContext, "ContractRelationship" | "ControlTransition">,
+  context: Pick<
+    EnvioContext,
+    "ContractRelationship" | "ControlTransition" | "chain"
+  >,
   chainId: number,
   fields: RelationshipField[]
 ): Promise<RelationshipField[]> {
+  if (context.chain && context.chain.id !== chainId)
+    throw new Error("Pool read chain scope mismatch");
   const observed = new Map(
     fields.map((field) => [
       relationshipId(chainId, field.address, field.getter),
@@ -228,7 +233,6 @@ export async function getObservedPoolFields(
       value: { address: string | null };
       blockNumber: bigint;
     }>({
-      chainId: { _eq: chainId },
       address: { _eq: field.address.toLowerCase() },
       kind: { _eq: `relationship:${field.getter}` },
     });

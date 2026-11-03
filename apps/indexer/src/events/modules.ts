@@ -46,7 +46,6 @@ export async function getCurrentModuleAddress(
 
   const currentModuleEntity = {
     id,
-    chainId,
     keycode,
     address: moduleAddress,
     lastUpdatedTimestamp: 0n,
@@ -85,7 +84,6 @@ export function setCurrentModule(
 ): void {
   const currentModule = {
     id: currentModuleId(chainId, keycode),
-    chainId,
     keycode,
     address,
     lastUpdatedTimestamp: timestamp,

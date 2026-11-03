@@ -181,6 +181,25 @@ test("independent readers of one cold deployment write equivalent creation facts
   });
 });
 
+test("native chain-scoped reload reuses deployment facts without an entity chainId", async () => {
+  await fixture(async ({ chainId, runtime, pin, entities, effects }) => {
+    let context = await runtime();
+    await getBytecodeHash(context, chainId, pin);
+    await context.flush();
+    const saved = [...entities.values()][0];
+    delete saved.chainId; // Envio strips the physical scope column on reads.
+    context = await runtime(context.rows);
+    context.chain = { id: chainId };
+    const before = effects();
+    assert.equal(await getBytecodeHash(context, chainId, pin), keccak256(code));
+    assert.equal(effects(), before, "reload must bypass the effect loader");
+    await assert.rejects(
+      () => getBytecodeHash(context, chainId + 1, pin),
+      /chain scope/
+    );
+  });
+});
+
 test("ordinary deployment code survives restart and entity hits bypass effects; rollback discards lifetime facts", async () => {
   await fixture(
     async ({
@@ -410,7 +429,6 @@ test("invalid deployment identity or missing provenance falls back to exact proo
     await context.flush();
     const saved = structuredClone([...entities.values()][0]);
     for (const patch of [
-      { chainId: chainId + 1 },
       { address: target },
       { version: "unknown" },
       { creationHash: forkHash },

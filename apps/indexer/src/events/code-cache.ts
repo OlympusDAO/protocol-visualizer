@@ -13,6 +13,7 @@ export type BytecodePin = {
 };
 
 export type BytecodeContext = Pick<EffectContext, "effect"> & {
+  chain?: { id: number };
   VerifiedDeployment?: Pick<EntityStore, "get" | "set">;
 };
 
@@ -20,6 +21,7 @@ export const emptyCodeHash = keccak256("0x");
 
 export const readBytecodeHashEffect = createEffect(
   {
+    crossChain: true,
     name: "readPinnedBytecodeHash",
     input: { chainId: S.number, address: S.address, blockHash: S.string },
     output: S.optional(S.string),

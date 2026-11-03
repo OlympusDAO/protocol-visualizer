@@ -40,6 +40,7 @@ export type DeploymentFact = {
 
 const discoverDeploymentEffect = createEffect(
   {
+    crossChain: true,
     name: "discoverVerifiedOrdinaryDeploymentV2",
     input: { chainId: S.number, address: S.address, codeHash: S.string },
     output: S.optional(S.string),
@@ -161,6 +162,7 @@ const deploymentIdentity = {
 
 const verifyDeploymentEffect = createEffect(
   {
+    crossChain: true,
     name: "verifyStaticDeployment",
     input: { ...deploymentIdentity, priorHash: S.string },
     output: S.boolean,
@@ -192,6 +194,7 @@ const verifyDeploymentEffect = createEffect(
 
 const readImmutableDeploymentCallEffect = createEffect(
   {
+    crossChain: true,
     name: "readImmutableDeploymentCall",
     input: { ...deploymentIdentity, data: S.string },
     output: S.optional(S.string),

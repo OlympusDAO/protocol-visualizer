@@ -110,7 +110,8 @@ UPSTREAM_RPC_URL_421614=<Arbitrum Sepolia archive provider URL>
 UPSTREAM_RPC_URL_84532=<Base Sepolia archive provider URL>
 ```
 
-Optional: `RPC_CACHE_MAX_RPS=50`. Configure backups and check the database
+Optional: `RPC_CACHE_MAX_RPS=100` (the repository default). Existing explicit
+operator overrides remain effective. Configure backups and check the database
 connection before consumer cutover.
 This limit is one **aggregate** unit-credit pool across all methods and all nine
 chains on each eRPC instance, including polling and retries. Every method costs

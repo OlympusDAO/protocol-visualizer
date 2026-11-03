@@ -131,8 +131,12 @@ test("one finite archive credit pool covers every method and chain", () => {
   assert.equal(budget.id, "archive");
   assert.deepEqual(budget.creditUnits, { "*": 1 });
   assert.deepEqual(budget.rules, [
-    { method: "*", maxCount: 50, period: "1s", countMode: "credit" },
+    { method: "*", maxCount: 100, period: "1s", countMode: "credit" },
   ]);
+  assert.match(
+    readFileSync("docker-compose.yml", "utf8"),
+    /RPC_CACHE_MAX_RPS: \$\{RPC_CACHE_MAX_RPS:-100\}/
+  );
   assert(
     cfg.projects[0].upstreams.every(
       (upstream) => upstream.rateLimitBudget === budget.id

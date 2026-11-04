@@ -94,8 +94,9 @@ No startup error automatically resets the database.
 
 ## Reset the Railway indexer from your local machine
 
-**This operation drops and recreates the Envio schema.** Back up the Envio
-database before you start. The separate RPC cache database remains intact.
+**This operation drops and recreates the Envio schema.** Record the recovery
+choice before you start: a compatible backup or another full rebuild.
+The separate RPC cache database remains intact.
 
 The package command uses [Railway SSH](https://docs.railway.com/cli/ssh).
 It runs Node directly; the image does not include `pnpm` or `npx`.
@@ -160,6 +161,83 @@ Never configure this command as the normal start command or pre-deploy command.
 
 Use a fresh `INDEXER_DEPLOYMENT_ID` if a same-commit rebuild needs a new snapshot
 namespace. Leave the RPC cache service, database, and volume intact.
+
+## Plan a production rebuild
+
+Production resets require explicit approval for the selected database and release.
+This procedure is preparation, not authorization to reset production.
+The native per-chain schema requires a full rebuild of an existing shared schema.
+An ordinary restart does not make those schemas compatible.
+
+Before the release:
+
+1. Record the target project, production environment, Envio database and image commit.
+2. Record the previous image, service configuration and Hasura metadata for recovery.
+3. Choose recovery through a compatible database backup or another full rebuild.
+4. Record the active snapshot manifest and retain all artifacts that it references.
+5. Pause indexer autodeploys, publisher jobs and monitor jobs.
+6. Verify that no publisher job remains active before the database operation.
+7. Verify that only one indexer deployment remains active, including old deployments during a rolling release.
+
+The gateway and frontend can serve the last valid snapshot during the rebuild.
+Its block dates remain old, and freshness checks can report stale data.
+Direct Hasura consumers lose indexed data until the rebuild completes.
+Retain the snapshot bucket, manifest, Hasura service and separate eRPC storage.
+
+### Select the reset path
+
+If the target image runs with its reset control available, use the operator
+command in the preceding section. That control stops only its own process group.
+It cannot stop a second indexer deployment.
+
+If schema incompatibility prevents the target image from staying active, use a
+temporary maintenance deployment of that exact image. This path was exercised
+in PR #84. Its temporary Railway start command is:
+
+```text
+/nodejs/bin/node -e 'const http=require("node:http");http.createServer((req,res)=>{res.writeHead(req.url==="/healthz"?200:503,{"content-type":"application/json"});res.end(JSON.stringify({maintenance:true,ready:false}));}).listen(Number(process.env.PORT||9898),"::");'
+```
+
+1. Verify that the maintenance deployment uses the approved image and target database.
+2. Verify that every previous ingestion deployment stopped before the migration.
+3. Run the official setup command once through Railway SSH:
+
+   ```bash
+   railway ssh --project <project-id> --service indexer --environment <production-environment-id> -- /nodejs/bin/node /app/apps/indexer/scripts/start-envio.mjs local db-migrate setup
+   ```
+
+4. Verify that the new entity tables are empty and use the expected native per-chain schema.
+5. Restore the explicit normal start command and redeploy the approved image:
+
+   ```text
+   /nodejs/bin/node /app/apps/indexer/scripts/start-envio.mjs
+   ```
+
+The maintenance server does not provide the reset socket or run ingestion.
+Its `/healthz` response proves liveness only. Its other endpoints return 503.
+This direct SSH command does not guarantee completion after a disconnect.
+Verify migration completion and process/database state before another attempt.
+Removing a start-command override with `null` did not restore PR #84 reliably.
+Verify the effective normal command before the final deployment.
+Never retain `start -r` as the production start command.
+
+### Publish after recovery
+
+Set a unique `INDEXER_DEPLOYMENT_ID` on the snapshot publisher before its first
+post-reset publication. This prevents a same-commit rebuild from reusing the old
+snapshot namespace. Record this value with the release.
+
+Verify advancing committed block heights and block dates for all configured
+chains. Then verify indexer readiness and completed catch-up before publication.
+Resume the publisher and verify the new manifest and referenced artifacts.
+The publisher uploads the active manifest last and withholds publication while
+chains are unready. Resume monitor jobs and autodeploys after recovery.
+
+If setup fails or its completion is unknown, keep ingestion stopped and inspect
+the migration logs before another attempt. A previous image cannot safely resume
+against an incompatible new schema. Restore its compatible database and affected
+Hasura metadata, or complete another rebuild. Restarting or rolling back the image
+alone does not restore deleted data. Do not clear the eRPC cache to repair an Envio reset.
 
 ## Local Compose reset
 

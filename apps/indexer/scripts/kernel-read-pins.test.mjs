@@ -166,7 +166,8 @@ test("Kernel reads persist by hash, reject forks and missing pins, and never fal
     ]) {
       error = failure;
       runtime = await makeEffectRuntime();
-      for (const read of reads(runtime, canonical)) await assert.rejects(read());
+      for (const read of reads(runtime, canonical))
+        await assert.rejects(read());
       await runtime.flush();
       assert.equal(
         runtime.rows.size,

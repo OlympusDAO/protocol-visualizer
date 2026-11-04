@@ -155,7 +155,20 @@ provider capability gap that the previous fallback concealed; an archive-capable
 private upstream is required to resume those historical handlers. Transport
 retry/backpressure remains separate and unchanged.
 
+The getter-admission scout held eRPC at 100 credits/second and changed only the
+getter effect from 35 to 100 calls/second. The two cold runs took 26.023s and
+24.516s respectively, with identical 12-table digests, 902 proxy requests, 898
+upstream requests and no exhausted recovery. This single-pair result did not
+clear the predeclared 10% qualification threshold; it does not establish a gain.
+The getter limit is restored to 35. Bytecode remains 25/s, dependency/bridge
+effects 10/s, metadata 5/s, client admission 10 active/256 queued with six attempts,
+and eRPC 100 aggregate credits/s. No live budget was changed. The 100/s treatment
+was not retained or promoted to a worker holdout.
+
 ## Robinhood-base benchmark
+
+The earlier accepted numbers below predate the Kernel pinning follow-up. Refresh
+the comparison against the actual Robinhood base before publishing this follow-up.
 
 The [accepted generated result](performance/indexer-current-state-comparison.json)
 compares Robinhood base `9eb4755` with candidate `1178165`. Protocol v4 uses three

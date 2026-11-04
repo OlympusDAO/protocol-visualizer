@@ -426,7 +426,7 @@ export const readControlGetterEffect = createEffect(
       functionContext: S.optional(functionContextSchema),
       targetCode: S.optional(S.string),
     },
-    rateLimit: { calls: 100, per: "second" },
+    rateLimit: { calls: 35, per: "second" },
     cache: true,
   },
   async ({ input, context }) => {

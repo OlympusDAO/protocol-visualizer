@@ -355,7 +355,6 @@ export async function getCanonicalCodeHash(
   const codeHash = await getBytecodeHash(context, input.chainId, {
     address: input.address,
     blockHash: input.blockHash as Hex,
-    blockNumber: input.blockNumber,
     requireCanonical: true,
   });
   if (!codeHash || codeHash === emptyCodeHash) return undefined;

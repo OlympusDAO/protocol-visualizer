@@ -6,10 +6,7 @@ export type BytecodePin = {
   address: Address;
   blockHash: Hex;
   requireCanonical: true;
-  blockNumber?: bigint;
 };
-
-export type BytecodeContext = Pick<EffectContext, "effect">;
 
 export const emptyCodeHash = keccak256("0x");
 

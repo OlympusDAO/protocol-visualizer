@@ -110,3 +110,17 @@ replays do not establish live nine-chain speed, full-history speed or billing.
 Run the command documented in the repository benchmark skill. Keep full states,
 audits and trial results in ignored local diagnostics. Commit only the compact
 comparison report, with raw-file hashes, under `docs/performance/`.
+
+## Separate getter-admission check
+
+Before retaining a 35→100 getter-effect limit, compare the hash-pinning control
+with the one-line limit treatment under this same Ethereum workload. Hold eRPC
+at 100, bytecode/other effects, client concurrency/recovery, metadata and images
+fixed. Use three cold trials per revision in A/B, B/A, A/B order through the
+single-ref current-state driver and the same Robinhood oracle. Require exact
+equality of all 12 current entity digests and canonical manifests, no recovery
+exhaustion, at least 10% median improvement and every treatment faster than every
+control. A scout is diagnostic only. Also check the four-worker four-chain
+profile for correctness and backpressure before retaining the larger limit;
+label single-pair holdout timings as diagnostic rather than confirmed gains.
+The final PR comparison still uses the actual Robinhood base, not this control.

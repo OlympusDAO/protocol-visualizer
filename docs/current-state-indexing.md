@@ -167,11 +167,11 @@ was not retained or promoted to a worker holdout.
 
 ## Robinhood-base benchmark
 
-The earlier accepted numbers below predate the Kernel pinning follow-up. Refresh
-the comparison against the actual Robinhood base before publishing this follow-up.
+The refreshed comparison includes the Kernel hash-pinning follow-up and the
+restored 35/s getter limit.
 
 The [accepted generated result](performance/indexer-current-state-comparison.json)
-compares Robinhood base `9eb4755` with candidate `1178165`. Protocol v4 uses three
+compares Robinhood base `9eb4755` with candidate `01dc547`. Protocol v4 uses three
 cold replays per revision in A/B, B/A, A/B order over Ethereum
 26,240,000–26,290,000 inclusive: 50,001 blocks and 14 canonical logs. Both sides
 use HyperSync, one process, two PostgreSQL connections, identical images/providers,
@@ -180,16 +180,16 @@ Waiting counts toward elapsed time; independent oracle RPC happens afterward.
 
 | Median | Robinhood base | Current branch |
 | --- | ---: | ---: |
-| Committed time | 167.843s | 25.272s |
-| Blocks/second | 297.9 | 1,978.5 |
-| Requests reaching eRPC | 20,383 | 896 |
-| Upstream requests, including health probes | 10,491 | 897 |
+| Committed time | 170.550s | 25.035s |
+| Blocks/second | 293.2 | 1,997.3 |
+| Requests reaching eRPC | 20,385 | 902 |
+| Upstream requests, including health probes | 10,491 | 898 |
 
-Throughput improved **564.16% (6.64×)**; elapsed time fell **84.94%**. Requests
-reaching eRPC fell **95.60%**, and upstream requests fell **91.45%**. These are
+Throughput improved **581.26% (6.81×)**; elapsed time fell **85.32%**. Requests
+reaching eRPC fell **95.58%**, and upstream requests fell **91.44%**. These are
 whole-branch results, not separate causal estimates for each retained optimization.
-Base times were 181.619s, 167.843s and 166.869s; candidate times were 25.541s,
-24.573s and 25.272s. Every candidate was faster than every base trial.
+Base times were 169.592s, 170.866s and 170.550s; candidate times were 25.035s,
+31.218s and 24.850s. Every candidate was faster than every base trial.
 
 All six audits passed, canonical logs matched, and each revision repeated its
 exact entity contents. The candidate has 12 current tables versus the base's 17.
@@ -206,7 +206,7 @@ configured timestamp. Fresh creation and endpoint reads expose the differing
 endpoint executor and 1,200-second timestamp discrepancy. That initialization
 record is compared exactly and excluded from endpoint-state certification.
 
-No run exhausted recovery. The baseline fixture recorded 11, seven and four
+No run exhausted recovery. The baseline fixture recorded eight, nine and ten
 capacity retries; the candidate recorded none. Candidate optional proxy-capacity
 counters were absent, so this is not proof that Alchemy never throttled or had
 spare capacity. The real eRPC/Postgres tests separately exercise 429 recovery,
@@ -217,14 +217,16 @@ current-only worker or provider-billing improvements. The four-chain current-onl
 holdout was not run. Existing deployments need an explicitly approved database
 rebuild for the smaller schema; only disposable fixture databases were reset.
 
-The nine ordered validation steps, 45 focused checks, three real-image
-eRPC/Postgres integration tests and the fresh Trivy scan under the existing CI
-policy passed. Astra and Ponytail reviewed the implementation and simplification.
-Local CodeRabbit review was retried but rejected Git-provider
-authentication; its local auth-status check alone was insufficient.
+The nine ordered validation steps, Kernel rollback/hash-pinning regressions,
+three real-image eRPC/Postgres integration tests and the fresh Trivy scan under
+the existing CI policy passed. Eighteen creation-block reads across all nine
+configured chains also passed through a fresh local proxy using the actual private
+upstreams; this was a read-only provider capability check, not a live indexing benchmark. Astra and Ponytail reviewed the implementation and simplification.
+CodeRabbit was skipped at the user's request after repeated authentication failures,
+including the normal interactive CLI command. Its auth-status check alone was insufficient.
 
 The measured runtime-input fingerprint is
-`63e35286b0831d4590c4ccc4d2e817abdcd56929cf956d250ab8396a23e059b8`.
+`e160ce413ef43a7fd8c5bd83d1a0d629d56d7033f0eddfecc6c920114bd179fd`.
 Later documentation/evidence commits retain this fingerprint. The generated
 result records trial hashes and image/runtime identities. Reproduce with
 `pnpm benchmark:indexer:current --baseline 9eb4755be2904f6751a72890ecce134c4c701fef --env-file .env --provider-profile local-private`.

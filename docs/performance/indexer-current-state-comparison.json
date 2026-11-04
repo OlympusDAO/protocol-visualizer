@@ -1,10 +1,10 @@
 {
   "protocol": "protocol-visualizer-robinhood-current-state-v4",
   "status": "accepted",
-  "generatedAt": "2026-11-04T11:54:25.639Z",
+  "generatedAt": "2026-11-04T13:58:51.210Z",
   "profile": "ethereum",
   "baseline": "9eb4755be2904f6751a72890ecce134c4c701fef",
-  "candidate": "1178165b713fb29dddc3404383713ef57f69e177",
+  "candidate": "01dc5471fa3ee685b496f3b8df2ca4ab4961bf9c",
   "samples": 3,
   "inputs": {
     "driverHash": "b4b9c49f0ad814b7fcf70dac30f1a2c060f823652743ef96dfd1155a6967b4c3",
@@ -45,18 +45,18 @@
   },
   "baselineSummary": {
     "runCount": 3,
-    "medianCommittedSeconds": 167.84333325,
-    "medianBlocksPerSecond": 297.9028063362177,
-    "medianProxyRequests": 20383,
+    "medianCommittedSeconds": 170.54961308400001,
+    "medianBlocksPerSecond": 293.17568709682877,
+    "medianProxyRequests": 20385,
     "medianUpstreamRequests": 10491,
     "stateConsistent": true
   },
   "candidateSummary": {
     "runCount": 3,
-    "medianCommittedSeconds": 25.271559916999998,
-    "medianBlocksPerSecond": 1978.5482243367449,
-    "medianProxyRequests": 896,
-    "medianUpstreamRequests": 897,
+    "medianCommittedSeconds": 25.034561958,
+    "medianBlocksPerSecond": 1997.2788053526044,
+    "medianProxyRequests": 902,
+    "medianUpstreamRequests": 898,
     "stateConsistent": true
   },
   "workCounts": {
@@ -87,34 +87,34 @@
       "rowHash": "b85d8fe03ea9916b0880c89da00e49da85ae76fcda596ce2ba162830aa544ab8"
     }
   ],
-  "throughputGainPercent": 564.1589747576008,
+  "throughputGainPercent": 581.2566298149246,
   "rawFiles": {
     "baseline": [
       {
-        "path": "benchmarks/current-state-0b7b98e6-2d53-42bb-be78-1784b8885a51/baseline-1.json",
-        "sha256": "8654f250fc0ef791fb9744fb9f942f72c5eeb8e6bd1e4699128d7ca7fb52fcbb"
+        "path": "benchmarks/current-state-a9e1af78-fdfc-4097-872b-a59c15c2f5ae/baseline-1.json",
+        "sha256": "7e5c6851ee10993e5ab165c3f774c5f73e31f07dab879bd48c485678fd218a61"
       },
       {
-        "path": "benchmarks/current-state-0b7b98e6-2d53-42bb-be78-1784b8885a51/baseline-2.json",
-        "sha256": "970a883610129ca277e3dc6beda4976cd54e7e716b1af3089da3dae355f53467"
+        "path": "benchmarks/current-state-a9e1af78-fdfc-4097-872b-a59c15c2f5ae/baseline-2.json",
+        "sha256": "b8e706b038c7fffbf0542e01ab24338099e2319a610a291c09a9711099ec3cf8"
       },
       {
-        "path": "benchmarks/current-state-0b7b98e6-2d53-42bb-be78-1784b8885a51/baseline-3.json",
-        "sha256": "e6ee098f5ab1d3c6a9cff6e604480b14b25ab76c7618cd554e2ab545a9f782ac"
+        "path": "benchmarks/current-state-a9e1af78-fdfc-4097-872b-a59c15c2f5ae/baseline-3.json",
+        "sha256": "85770763f64fb413a8a65a40498df616e9a8f150ca7ebd761a433342c0697c7d"
       }
     ],
     "candidate": [
       {
-        "path": "benchmarks/current-state-0b7b98e6-2d53-42bb-be78-1784b8885a51/candidate-1.json",
-        "sha256": "b21b56afaa57e86d6137a0574d1afa0cbdd4cc585663d5f2c9ac7c4c19e770ed"
+        "path": "benchmarks/current-state-a9e1af78-fdfc-4097-872b-a59c15c2f5ae/candidate-1.json",
+        "sha256": "f8de6ea9b45e57a1cafbc0bf3d6828c537f8cd682fe6e207b8ccdb43528a8f75"
       },
       {
-        "path": "benchmarks/current-state-0b7b98e6-2d53-42bb-be78-1784b8885a51/candidate-2.json",
-        "sha256": "1199677c3e72acf14d87c8612c726e43b1a36fcdd43668c20055f9987a8378af"
+        "path": "benchmarks/current-state-a9e1af78-fdfc-4097-872b-a59c15c2f5ae/candidate-2.json",
+        "sha256": "f9ca62636d71d440a591ff396ce1291427118c02098b176cbaf701f453143171"
       },
       {
-        "path": "benchmarks/current-state-0b7b98e6-2d53-42bb-be78-1784b8885a51/candidate-3.json",
-        "sha256": "7883086d832e4eb3b4223ffd8aae00a435163c304a3b63d7ecbda8cdf7cb2a04"
+        "path": "benchmarks/current-state-a9e1af78-fdfc-4097-872b-a59c15c2f5ae/candidate-3.json",
+        "sha256": "4108a4dda9ef893d2ae5d88a39be308e6bb89664c29f7e1df7b8921985fdc3c9"
       }
     ]
   },

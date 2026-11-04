@@ -236,6 +236,13 @@ test("getterless metadata changes require unknown state or the matching latest o
     return pair;
   };
   assert.doesNotThrow(() => compareCurrentStates(base, head, ...receipts()));
+  for (const state of [base, head])
+    state.ContractRelationship[0].verification.block = block(19);
+  head.ContractRelationship[0].provenance = block(19);
+  assert.throws(() => compareCurrentStates(base, head, ...receipts()));
+  for (const state of [base, head])
+    state.ContractRelationship[0].verification.block = block(20);
+  head.ContractRelationship[0].provenance = block(20);
   head.ContractRelationship[0].seed = block(20);
   assert.throws(() => compareCurrentStates(base, head, ...receipts()));
   head.ContractRelationship[0].seed = null;

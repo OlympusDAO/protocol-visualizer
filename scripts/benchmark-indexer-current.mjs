@@ -1246,6 +1246,13 @@ export function compareCurrentStates(base, head, a, b) {
             assert.equal(old.lastChange, null);
             assert.equal(next.lastChange, null);
             same(next.provenance, next.verification.block);
+            const endpoint = b.ends.find((row) => row.chainId === next.chainId);
+            assert(endpoint);
+            same(next.provenance, {
+              number: endpoint.number,
+              hash: endpoint.hash,
+              timestamp: endpoint.timestamp,
+            });
             assert.equal(next.verification.outcome, "unavailable");
           }
           if (field === "provenance") {

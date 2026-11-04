@@ -380,3 +380,57 @@ The capacity report retains its source fingerprint and raw-artifact hash.
 The rebuilt indexer passed Trivy 0.76.1's configured medium/high/critical scan,
 with unfixed findings and existing repository ignores excluded. Temporary RPC
 credentials and all experiment-owned containers/databases were removed.
+
+## Getter effect admission: 35 versus 100 calls/second
+
+The eRPC aggregate budget is 100 credits/second. The separate Envio
+`readControlGetter` effect remains **35 calls/second**: raising it to 100 did not
+pass the matched performance test. The [comparison report](performance/indexer-getter-admission-comparison.json)
+records the sources, inputs, individual trials and artifact hashes.
+
+The fixed historical profile uses Berachain blocks 780,011–1,530,001, including
+deployment events, the 1,023,691 registry boundary and the following quiet gap.
+Each trial committed 749,991 blocks and processed 7,610 events. Three cold trials
+per variant ran in 35/100, 100/35, 35/100 order, with HyperSync, one process, two
+PostgreSQL connections and the same images, metadata and 10,000-block checkpoint
+interval. Only getter-effect admission changed. RPC concurrency stayed at 10,
+the waiting bound at 256 and attempts at six; raw-call and bytecode effects
+remained 35/s and 25/s.
+
+| Getter effect | Individual committed times | Median time | Median blocks/s |
+| --- | --- | --- | --- |
+| 35/s | 102.785, 119.714, 114.000 seconds | 114.000 seconds | 6,578.9 |
+| 100/s | 118.627, 114.865, 77.226 seconds | 114.865 seconds | 6,529.3 |
+
+Median throughput was **0.75% lower** at 100/s. The prospective gate required at
+least 10% improvement and every candidate trial faster than every control.
+Neither condition passed. The planned four-chain holdout was therefore not run;
+the candidate was reverted locally and was not deployed. The fast final trial
+does not establish a repeatable gain. Shared provider traffic and source-service
+latency remain uncontrolled, so this is not evidence that 100/s is inherently
+slower, either. The qualifying first control preceded the first candidate by
+about 37 minutes while candidate checks ran; remaining trials were consecutive.
+
+All 20 stored tables, including caches and verification provenance, matched
+exactly across all six runs. Proxy request counts were identical: 1,949 calls,
+1,914 headers and 402 bytecode reads per trial. Each trial recorded 230 execution
+reverts and no capacity-rejection or upstream rate-limit outcome. Missing optional
+rejection counters do not establish unused Alchemy account capacity. Every run
+recorded 17 metadata HTTP 404 responses. These are local replay results, not live
+provider billing or a full nine-chain backfill measurement.
+
+Sampled median getter permit waiting fell from 24.128 to 0.149 seconds, while
+raw-call waiting rose from 17.946 to 39.927 seconds. This is consistent with
+moving waiting downstream. These overlapping sampled counters can omit final
+work and must not be added as predicted wall-time savings. Median process CPU
+was 10.66 versus 10.65 seconds; median peak RSS was 251,952 versus 261,808 KiB.
+
+An initial qualification attempt failed before timing because native Envio
+rejected a future creation seed beyond the bounded replay endpoint. Both measured
+variants include the same guard to skip only seeds above a configured end block;
+unbounded live indexing is unchanged. Real-SDK tests cover bounded, exact-end and
+unbounded registration. The ordered nine-step validation, patched eRPC/PostgreSQL
+integration with live resets disabled, and configured indexer Trivy scan passed.
+The native recovery tests reject exhausted HTTP 429 and late forks without
+committing incomplete entities, then resume the same block. Astra and Ponytail
+reviewed the stage; local CodeRabbit completed with zero findings.

@@ -753,6 +753,7 @@ for (const chainId of indexer.chainIds) {
       Math.max(startBlock ?? chain.startBlock, chain.startBlock)
     )
   )) {
+    if (chain.endBlock !== undefined && boundary > chain.endBlock) continue;
     indexer.onBlock(
       {
         name: `control-seed-${chainId}-${boundary}`,

@@ -40,6 +40,20 @@ export const nativeWorkerRanges = [
 const nativeProtocol = "protocol-visualizer-native-workers-v2";
 const capacityProtocol = "protocol-visualizer-native-capacity-v1";
 const capacitySweepProtocol = "protocol-visualizer-native-capacity-sweep-v2";
+const getterHistoryProtocol = "protocol-visualizer-getter-history-v1";
+export const getterHistoryRanges = [
+  { chainId: 80094, start: 780_011, end: 1_530_001 },
+];
+const getterHistoryEntities =
+  "ActionExecutedEvent BridgeConfiguration ChainObservation Contract ContractEvent ContractRelationship ContractState ContractStateSeed ControlTransition CurrentModule CurrentRoleAssignee HeartTasks KernelExecutor KernelExecutorEvent KernelReadCache KernelReadEpoch Role RoleAssignment RoleEvent VerifiedDeployment".split(
+    " "
+  );
+const selectedRanges = (options) =>
+  options.getterHistory
+    ? getterHistoryRanges
+    : options.nativeWorkers
+      ? nativeWorkerRanges
+      : [{ chainId: 1, start: options.start, end: options.end }];
 const queuedProtocol = "protocol-visualizer-indexer-queued-benchmark-v2";
 const image = "protocol-visualizer/rpc-cache:local";
 const pgImage = "postgres:17-alpine";
@@ -101,6 +115,7 @@ export function parseOptions(args) {
       "queued-admission": { type: "boolean", default: false },
       "compare-capacity": { type: "boolean", default: false },
       "capacity-sweep": { type: "boolean", default: false },
+      "getter-history": { type: "boolean", default: false },
     },
     strict: true,
     allowPositionals: false,
@@ -108,14 +123,19 @@ export function parseOptions(args) {
   const result = {
     nativeWorkers:
       values["native-workers"] === undefined
-        ? undefined
+        ? values["getter-history"]
+          ? 1
+          : undefined
         : Number(values["native-workers"]),
     rpcCredits:
       values["rpc-credits"] === undefined
-        ? undefined
+        ? values["getter-history"]
+          ? 100
+          : undefined
         : Number(values["rpc-credits"]),
     compareCapacity: values["compare-capacity"],
     capacitySweep: values["capacity-sweep"],
+    getterHistory: values["getter-history"],
     ref: values.ref ?? "HEAD",
     runs: Number(values.runs ?? 3),
     output: values.output ?? defaultOutput,
@@ -125,11 +145,22 @@ export function parseOptions(args) {
     installDeps: values["install-deps"],
     queuedAdmission: values["queued-admission"],
     oracleRef: values["oracle-ref"],
-    start: Number(values.start ?? 26_240_000),
-    end: Number(values.end ?? 26_290_000),
+    start: Number(
+      values.start ??
+        (values["getter-history"] ? getterHistoryRanges[0].start : 26_240_000)
+    ),
+    end: Number(
+      values.end ??
+        (values["getter-history"] ? getterHistoryRanges[0].end : 26_290_000)
+    ),
     providerProfile: values["provider-profile"] ?? "unspecified",
   };
   if (
+    (result.getterHistory &&
+      (values["native-workers"] !== undefined ||
+        values["rpc-credits"] !== undefined ||
+        result.capacitySweep ||
+        result.compareCapacity)) ||
     (result.nativeWorkers !== undefined &&
       (![1, 2, 4].includes(result.nativeWorkers) ||
         values.start !== undefined ||
@@ -283,6 +314,7 @@ export function resultProblems(result) {
       nativeProtocol,
       capacityProtocol,
       capacitySweepProtocol,
+      getterHistoryProtocol,
     ].includes(result.protocol) ||
     result.schemaVersion !== 1
   )
@@ -299,7 +331,8 @@ export function resultProblems(result) {
     !Number.isSafeInteger(workload.end) ||
     workload.start < 1 ||
     workload.end < workload.start ||
-    workload.chainId !== 1 ||
+    workload.chainId !==
+      (result.protocol === getterHistoryProtocol ? 80094 : 1) ||
     workload.checkpointInterval !== 10_000 ||
     workload.eventSource !== "HyperSync" ||
     workload.rpcMode !== "fallback"
@@ -309,10 +342,15 @@ export function resultProblems(result) {
     nativeProtocol,
     capacityProtocol,
     capacitySweepProtocol,
+    getterHistoryProtocol,
   ].includes(result.protocol);
+  const expectedRanges =
+    result.protocol === getterHistoryProtocol
+      ? getterHistoryRanges
+      : nativeWorkerRanges;
   if (
     nativeRun &&
-    (digest(workload?.chains ?? null) !== digest(nativeWorkerRanges) ||
+    (digest(workload?.chains ?? null) !== digest(expectedRanges) ||
       ![1, 2, 4].includes(result.treatment?.nativeWorkers) ||
       result.treatment.pgMaxConnections !==
         result.treatment.nativeWorkers * 2 ||
@@ -323,12 +361,20 @@ export function resultProblems(result) {
   )
     reasons.push("invalid native worker treatment");
   if (
+    result.protocol === getterHistoryProtocol &&
+    (result.treatment?.nativeWorkers !== 1 ||
+      result.source?.storageScope !== "per-chain" ||
+      workload?.start !== getterHistoryRanges[0].start ||
+      workload?.end !== getterHistoryRanges[0].end)
+  )
+    reasons.push("invalid getter history treatment");
+  if (
     result.protocol === capacitySweepProtocol &&
     result.treatment?.nativeWorkers !== 4
   )
     reasons.push("invalid capacity sweep worker treatment");
   const totalBlocks = nativeRun
-    ? nativeWorkerRanges.reduce(
+    ? expectedRanges.reduce(
         (sum, range) => sum + range.end - range.start + 1,
         0
       )
@@ -349,9 +395,11 @@ export function resultProblems(result) {
     !(
       result.protocol === capacitySweepProtocol
         ? [100, 150, 200]
-        : result.protocol === capacityProtocol
-          ? [50, 100]
-          : [50]
+        : result.protocol === getterHistoryProtocol
+          ? [100]
+          : result.protocol === capacityProtocol
+            ? [50, 100]
+            : [50]
     ).includes(fixture?.aggregateCreditsPerSecond) ||
     !Array.isArray(fixture.proxyNetworks) ||
     digest(fixture.proxyNetworks) !== digest(networks) ||
@@ -391,8 +439,8 @@ export function resultProblems(result) {
         reasons.push("missing or exhausted admission evidence");
       if (
         nativeRun &&
-        (run.chainMeta?.length !== nativeWorkerRanges.length ||
-          !nativeWorkerRanges.every((range) => {
+        (run.chainMeta?.length !== expectedRanges.length ||
+          !expectedRanges.every((range) => {
             const meta = run.chainMeta?.find(
               (row) => row.chainId === range.chainId
             );
@@ -435,6 +483,26 @@ export function resultProblems(result) {
         !Object.keys(run.entities ?? {}).length
       )
         reasons.push("missing durable completion or source evidence");
+      if (result.protocol === getterHistoryProtocol) {
+        if (
+          digest(Object.keys(run.entities ?? {}).toSorted()) !==
+          digest(getterHistoryEntities.toSorted())
+        )
+          reasons.push("incomplete getter history entity coverage");
+        if (
+          !(run.effectCalls?.readControlGetter > 0) ||
+          !(run.meta?.eventsProcessed > 0)
+        )
+          reasons.push("missing getter history work evidence");
+        if (
+          getterHistoryEntities.some(
+            (name) =>
+              result.runs[0].entities?.[name]?.exact !==
+              run.entities?.[name]?.exact
+          )
+        )
+          reasons.push("getter history exact state differs between runs");
+      }
       for (const [name, row] of Object.entries(run.entities ?? {})) {
         if (
           !/^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ||
@@ -507,9 +575,12 @@ export function compareResults(baseline, candidate, { capacity = false } = {}) {
     if (!a[name] || !b[name]) {
       if (
         cacheEntities.has(name) &&
-        ![nativeProtocol, capacityProtocol, capacitySweepProtocol].includes(
-          baseline.protocol
-        )
+        ![
+          nativeProtocol,
+          capacityProtocol,
+          capacitySweepProtocol,
+          getterHistoryProtocol,
+        ].includes(baseline.protocol)
       )
         addedOrRemovedCaches.push(name);
       else reasons.push(`entity coverage differs: ${name}`);
@@ -518,7 +589,11 @@ export function compareResults(baseline, candidate, { capacity = false } = {}) {
       a[name].semantic !== b[name].semantic
     ) {
       reasons.push(`entity state differs: ${name}`);
-    } else if (a[name].exact !== b[name].exact) orderingOnly.push(name);
+    } else if (a[name].exact !== b[name].exact) {
+      if (baseline.protocol === getterHistoryProtocol)
+        reasons.push(`entity exact state differs: ${name}`);
+      else orderingOnly.push(name);
+    }
   }
   if (
     baseline.runs?.[0]?.meta?.eventsProcessed !==
@@ -1007,9 +1082,7 @@ async function collectRun(options, setup, runNumber, cancelled) {
     });
     let meta;
     let chainMeta;
-    const ranges = options.nativeWorkers
-      ? nativeWorkerRanges
-      : [{ chainId: 1, start: options.start, end: options.end }];
+    const ranges = selectedRanges(options);
     const readMeta = () =>
       database.unsafe(
         'SELECT "chainId", "startBlock", "endBlock", "progressBlock", "eventsProcessed", "isReady" FROM _meta ORDER BY "chainId"'
@@ -1038,7 +1111,7 @@ async function collectRun(options, setup, runNumber, cancelled) {
       } catch {}
       try {
         chainMeta = await readMeta();
-        meta = chainMeta.find((row) => row.chainId === 1);
+        meta = chainMeta.find((row) => row.chainId === ranges[0].chainId);
       } catch {}
       if (complete() && committedSeconds === undefined)
         committedSeconds = (performance.now() - started) / 1000;
@@ -1060,7 +1133,7 @@ async function collectRun(options, setup, runNumber, cancelled) {
       throw new BenchmarkFailure("indexer_timeout");
     const finished = await exit;
     chainMeta = await readMeta();
-    meta = chainMeta.find((row) => row.chainId === 1);
+    meta = chainMeta.find((row) => row.chainId === ranges[0].chainId);
     if (complete() && committedSeconds === undefined)
       committedSeconds = (performance.now() - started) / 1000;
     if (
@@ -1194,6 +1267,7 @@ async function collectRun(options, setup, runNumber, cancelled) {
         "envio_effect_queue_wait_seconds",
         "effect"
       ),
+      effectCalls: metric(envioMetrics, "envio_effect_call_total", "effect"),
       entities,
       ...(admission ? { admission: { ...admission.stats } } : {}),
       ...(audit ? { audit } : {}),
@@ -1319,15 +1393,17 @@ function readProfile(path, nativeWorkers) {
 async function runBenchmark(options) {
   const output = resolve(root, options.output);
   const result = {
-    protocol: options.capacitySweep
-      ? capacitySweepProtocol
-      : options.rpcCredits !== undefined
-        ? capacityProtocol
-        : options.nativeWorkers
-          ? nativeProtocol
-          : options.queuedAdmission
-            ? queuedProtocol
-            : protocol,
+    protocol: options.getterHistory
+      ? getterHistoryProtocol
+      : options.capacitySweep
+        ? capacitySweepProtocol
+        : options.rpcCredits !== undefined
+          ? capacityProtocol
+          : options.nativeWorkers
+            ? nativeProtocol
+            : options.queuedAdmission
+              ? queuedProtocol
+              : protocol,
     ...(options.nativeWorkers
       ? {
           treatment: {
@@ -1402,10 +1478,10 @@ async function runBenchmark(options) {
       `${git("show", `${commit}:apps/indexer/config.yaml`)}\n`,
       options.start,
       options.end,
-      options.nativeWorkers ? nativeWorkerRanges : undefined
+      selectedRanges(options)
     );
     if (
-      options.nativeWorkers > 1 &&
+      (options.nativeWorkers > 1 || options.getterHistory) &&
       !/^disable_default_cross_chain: true$/m.test(config)
     )
       throw new BenchmarkFailure("native_storage_required");
@@ -1533,15 +1609,11 @@ async function runBenchmark(options) {
         logicalCpus: cpus().length,
       },
       workload: {
-        chainId: 1,
-        start: options.nativeWorkers
-          ? nativeWorkerRanges[0].start
-          : options.start,
-        end: options.nativeWorkers ? nativeWorkerRanges[0].end : options.end,
-        ...(options.nativeWorkers ? { chains: nativeWorkerRanges } : {}),
+        ...selectedRanges(options)[0],
+        ...(options.nativeWorkers ? { chains: selectedRanges(options) } : {}),
         checkpointInterval: 10_000,
         configHash: workloadConfigHash(
-          options.nativeWorkers
+          options.nativeWorkers && !options.getterHistory
             ? config.replace(/^disable_default_cross_chain:.*\n/gm, "")
             : config
         ),
@@ -1605,6 +1677,16 @@ async function runBenchmark(options) {
     if (!result.summary.stateConsistent)
       throw new BenchmarkFailure("state_varied_between_runs");
     result.status = "success";
+    if (options.getterHistory) {
+      const problems = resultProblems({
+        ...result,
+        cleanupComplete: !cleanup.failed,
+      });
+      if (problems.length) {
+        result.validationProblems = problems;
+        throw new BenchmarkFailure("getter_history_contract_failed");
+      }
+    }
     console.log(
       `Median: ${result.summary.medianBlocksPerSecond.toFixed(1)} committed blocks/s; ${result.summary.medianCommittedSeconds.toFixed(3)} seconds.`
     );

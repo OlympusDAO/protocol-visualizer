@@ -18,6 +18,7 @@ import {
   digest,
   entityDigests,
   fixtureConfig,
+  getterHistoryRanges,
   installedLockMatches,
   nativeWorkerRanges,
   parseOptions,
@@ -45,6 +46,40 @@ chains:
   - id: 42161
     start_block: 3
 `;
+
+test("getter history profile fixes seeded Berachain history, one process and the 100-credit budget", () => {
+  const options = parseOptions(["--getter-history"]);
+  assert.equal(options.nativeWorkers, 1);
+  assert.equal(options.rpcCredits, 100);
+  assert.deepEqual([options.start, options.end], [780011, 1530001]);
+  for (const args of [
+    ["--start", "780011"],
+    ["--end", "1530001"],
+    ["--native-workers", "1"],
+    ["--rpc-credits", "100"],
+    ["--queued-admission"],
+    ["--capacity-sweep"],
+    ["--oracle-ref", "HEAD"],
+    ["--compare-capacity", "--compare", "baseline.json"],
+  ])
+    assert.throws(
+      () => parseOptions(["--getter-history", ...args]),
+      /invalid_arguments/
+    );
+  const text = readFileSync(
+    new URL("../apps/indexer/config.yaml", import.meta.url),
+    "utf8"
+  );
+  const fixture = fixtureConfig(
+    text,
+    options.start,
+    options.end,
+    getterHistoryRanges
+  );
+  assert.deepEqual(fixture.match(/^ {2}- id: \d+/gm), ["  - id: 80094"]);
+  assert.match(fixture, /start_block: 780011\n    end_block: 1530001/);
+  assert.match(fixture, /start_block: 1023691/);
+});
 
 test("native worker experiment selects fixed four-chain ranges and rejects confounded options", () => {
   const options = parseOptions(["--native-workers", "4"]);
@@ -327,6 +362,79 @@ test("native comparisons require every chain, matching event counts and valid pr
     r.summary = summarize(r.runs);
     return r;
   };
+  const history = () => {
+    const r = make(1, 100),
+      run = r.runs[0];
+    r.protocol = "protocol-visualizer-getter-history-v1";
+    r.source.storageScope = "per-chain";
+    r.inputs.workload = {
+      ...r.inputs.workload,
+      ...getterHistoryRanges[0],
+      chains: getterHistoryRanges,
+    };
+    r.inputFingerprint = digest(r.inputs);
+    const range = getterHistoryRanges[0];
+    run.chainMeta = [
+      {
+        chainId: range.chainId,
+        startBlock: range.start,
+        endBlock: range.end,
+        progressBlock: range.end,
+        isReady: true,
+        eventsProcessed: 5,
+      },
+    ];
+    run.meta = run.chainMeta[0];
+    run.blocksPerSecond = (range.end - range.start + 1) / run.committedSeconds;
+    run.effectCalls = { readControlGetter: 100 };
+    const names = [
+      ...readFileSync(
+        new URL("../apps/indexer/schema.graphql", import.meta.url),
+        "utf8"
+      ).matchAll(/^type (\w+) \{/gm),
+    ].map((match) => match[1]);
+    run.entities = Object.fromEntries(
+      names.map((name) => [
+        name,
+        entityDigests(name, [{ id: "fixture", value: "same" }]),
+      ])
+    );
+    r.summary = summarize(r.runs);
+    return r;
+  };
+  const candidate = history();
+  candidate.source.indexerInputHash = "f".repeat(64);
+  assert.equal(
+    compareResults(history(), candidate).compatible,
+    true,
+    "getter rate changes at fixed RPC budget remain comparable"
+  );
+  assert.equal(
+    compareResults(history(), candidate, { capacity: true }).compatible,
+    false
+  );
+  for (const mutate of [
+    (r) => delete r.runs[0].entities.VerifiedDeployment,
+    (r) => (r.runs[0].entities.ContractStateSeed.exact = "e".repeat(64)),
+    (r) => r.runs[0].chainMeta[0].progressBlock--,
+    (r) => (r.inputs.workload.chainId = 1),
+    (r) => r.inputs.workload.chains[0].end--,
+    (r) => (r.treatment.nativeWorkers = 2),
+    (r) => (r.inputs.fixture.aggregateCreditsPerSecond = 50),
+    (r) => delete r.runs[0].effectCalls,
+    (r) => (r.runs[0].meta.eventsProcessed = 0),
+    (r) => {
+      r.requestedRuns = 2;
+      r.runs.push(structuredClone(r.runs[0]));
+      r.runs[1].entities.KernelReadCache.exact = "e".repeat(64);
+    },
+  ]) {
+    const changed = structuredClone(history());
+    mutate(changed);
+    changed.inputFingerprint = digest(changed.inputs);
+    changed.summary = summarize(changed.runs);
+    assert.equal(compareResults(history(), changed).compatible, false);
+  }
   assert.equal(compareResults(make(1), make(4)).compatible, true);
   assert.equal(compareResults(make(1, 50), make(1, 100)).compatible, false);
   assert.equal(

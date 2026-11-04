@@ -113,3 +113,35 @@ For a worker comparison at an approved 100-credit cap, use `--rpc-credits 100` o
 When those higher local caps are authorized, use `--capacity-sweep --native-workers 4 --rpc-credits 100`, `150` or `200`. This selects `protocol-visualizer-native-capacity-sweep-v2`; create a fresh 100-credit control under that protocol. Existing v1 results and its 50→100 acceptance remain unchanged.
 
 Keep one committed runtime/metadata revision, the four fixed ranges, eight worker-pool connections, images and provider profile unchanged. Run three cold trials per cap in balanced sequential order: 100/150/200, 200/100/150, 150/200/100. Keep metadata downloads and heavy checks outside timing. Compare with `--compare FILE --compare-capacity`; v2 permits only ordered 100→150, 100→200 or 150→200 changes and requires identical source, worker treatment, other inputs, event counts and entity state. Retain failed trials and report provider/local throttling, retry exhaustion, CPU and memory alongside throughput. Never infer a higher Alchemy allowance from a higher proxy cap.
+
+### Getter admission during historical backfill
+
+Use `--getter-history` for `protocol-visualizer-getter-history-v1`: Berachain
+780,011–1,530,001, one process, two PostgreSQL connections and 100 aggregate
+eRPC credits/second. This includes deployment events and the 1,023,691 registry
+boundary before a historical gap. It rejects custom ranges, worker/budget
+overrides, queued admission and the Ethereum-only oracle. The non-checkpoint
+endpoint includes the same extra final observation on both revisions.
+
+```sh
+pnpm benchmark:indexer --getter-history --ref BASE_COMMIT --env-file .env --provider-profile local-private --runs 1 --output benchmarks/getter-history-control.json
+```
+
+Qualify the fixed profile with a baseline-only scout before evaluating a candidate.
+Require real events, getter-effect work, complete committed progress and all 20
+entity tables. A candidate comparison must retain exact cache and verification
+provenance, including across repeated runs; this profile grants no ordering or
+missing-cache exception. Use ordinary `--compare`, never `--compare-capacity`.
+The driver records effect invocations and queue waiting from its last successful
+metrics scrape; these counters can omit final work after that scrape.
+
+For a 35→100 getter-effect experiment, hold eRPC at 100, raw-call and bytecode
+effect budgets, client concurrency/retries, metadata and images unchanged. Run
+three cold trials per revision in A/B, B/A, A/B order with the same new driver.
+Prospective acceptance requires at least 10% median throughput improvement, every
+candidate trial faster than every control trial, exact equality of all 20 tables
+and successful recovery. Retain failed trials; do not replace them silently.
+Also run a matched three-trial-per-revision one-process four-chain holdout using
+`--native-workers 1 --rpc-credits 100`; its median may not regress by more than
+5%, and every exact table digest must match. Withhold deployment if a check fails.
+These are local bounded workloads, not proof of full nine-chain catch-up speed.

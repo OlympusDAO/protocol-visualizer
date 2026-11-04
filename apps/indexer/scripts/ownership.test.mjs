@@ -64,7 +64,7 @@ const complete = (ctx, number, fields, values) =>
     async (number) => block(Number(number))
   );
 
-test("reused relationship facts advance coverage while retaining actual RPC verification provenance", async () => {
+test("full observations retain their actual read block and ignore legacy reuse annotations", async () => {
   const ctx = context();
   const run = (number) =>
     completeRelationshipBlock(
@@ -78,9 +78,9 @@ test("reused relationship facts advance coverage while retaining actual RPC veri
   await run(5);
   await run(6);
   const result = await row(ctx, "kernel");
-  assert.deepEqual(result.verification.block, block(2));
+  assert.deepEqual(result.verification.block, block(6));
   assert.deepEqual(result.indexedThrough, block(6));
-  assert.deepEqual(result.provenance, block(2));
+  assert.deepEqual(result.provenance, block(5));
 });
 
 test("owner constructor/transfer are idempotent, ordered, zero unsets, failed verification preserves indexed state", async () => {

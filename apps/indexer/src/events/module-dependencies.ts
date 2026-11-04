@@ -32,7 +32,6 @@ export type DependencyReadResult =
       status: "success";
       module: string;
       policies: string[];
-      verifiedAt?: ControlBlock;
     }
   | { status: "unavailable"; reason: string };
 
@@ -185,7 +184,6 @@ export async function completeModuleDependencies(
                 value: result.policies.includes(address)
                   ? result.module
                   : `0x${"0".repeat(40)}`,
-                verifiedAt: result.verifiedAt,
                 functionContext: {
                   signature: "Kernel.moduleDependents(bytes5,uint256)",
                 },

@@ -146,7 +146,6 @@ async function seededReplay(ctx) {
   const entry = field(addresses[1], "owner", { eventPolicy: policy });
   await run(ctx, [entry], async () => ({
     ...success(),
-    verifiedAt: block(1),
     functionContext: {
       signature: "owner()",
       source: { codeHash, url: "https://example.invalid/source" },

@@ -171,6 +171,7 @@ export function parseOptions(args) {
     providerProfile: values["provider-profile"] ?? "unspecified",
   };
   if (
+    (result.oracleRef && !currentState) ||
     (currentState &&
       (!result.oracleRef ||
         result.nativeWorkers !== 1 ||
@@ -188,7 +189,6 @@ export function parseOptions(args) {
       (![1, 2, 4].includes(result.nativeWorkers) ||
         values.start !== undefined ||
         values.end !== undefined ||
-        (result.oracleRef && !currentState) ||
         (result.queuedAdmission && !currentState))) ||
     (result.rpcCredits !== undefined &&
       (!result.nativeWorkers ||
@@ -1278,13 +1278,8 @@ async function collectRun(options, setup, runNumber, cancelled) {
           [
             "--import",
             join(root, "apps/indexer/scripts/typescript-loader.mjs"),
-            join(
-              root,
-              options.currentState
-                ? "scripts/benchmark-indexer-current.mjs"
-                : "scripts/benchmark-indexer-audit.mjs"
-            ),
-            ...(options.currentState ? ["--audit"] : []),
+            join(root, "scripts/benchmark-indexer-current.mjs"),
+            "--audit",
             "--state",
             join(logs, "state.private.json"),
             "--output",
@@ -1613,14 +1608,7 @@ async function runBenchmark(options) {
         proofCommit: resolveRef("HEAD"),
         proofInputHash: runtimeHash(resolveRef("HEAD")),
         implementation: bytesDigest(
-          readFileSync(
-            join(
-              root,
-              options.currentState
-                ? "scripts/benchmark-indexer-current.mjs"
-                : "scripts/benchmark-indexer-audit.mjs"
-            )
-          )
+          readFileSync(join(root, "scripts/benchmark-indexer-current.mjs"))
         ),
         loaderHash: bytesDigest(
           readFileSync(join(root, "apps/indexer/scripts/typescript-loader.mjs"))
@@ -1928,7 +1916,7 @@ export async function main(args) {
       "Finite cap sweep: --capacity-sweep --native-workers 4 --rpc-credits 100|150|200; compare ordered caps with --compare FILE --compare-capacity. This uses a separate v2 protocol."
     );
     console.log(
-      "Usage: pnpm benchmark:indexer [--ref HEAD] [--runs 3] [--env-file FILE] [--output FILE] [--start BLOCK --end BLOCK] [--provider-profile LABEL] [--install-deps]\nNative worker experiment: --native-workers 1|2|4 (fixed four-chain workload; PostgreSQL connection budgets 2|4|8). Capacity profile: add --rpc-credits 50|100; compare with --compare FILE --compare-capacity.\nQueued recovery profile: --queued-admission [--oracle-ref BASE_COMMIT]; use scripts/benchmark-indexer-robinhood.mjs for the matched six-trial comparison.\nCompare saved results without Docker or credentials: pnpm benchmark:indexer --compare-ref BRANCH | --compare FILE\nRequires pinned Node/pnpm, installed driver dependencies, prebuilt rpc-cache/Postgres images, ENVIO_API_TOKEN, ETHERSCAN_API_KEY and all nine UPSTREAM_RPC_URL_<chain> values. Matching lockfiles reuse installed dependencies; --install-deps explicitly installs frozen dependencies in an isolated snapshot before timing. Uses fresh local containers/databases and a 50-credit eRPC default; the optional local capacity profile permits 100. Private logs: benchmarks/<diagnosticId>/."
+      "Usage: pnpm benchmark:indexer [--ref HEAD] [--runs 3] [--env-file FILE] [--output FILE] [--start BLOCK --end BLOCK] [--provider-profile LABEL] [--install-deps]\nNative worker experiment: --native-workers 1|2|4 (fixed four-chain workload; PostgreSQL connection budgets 2|4|8). Capacity profile: add --rpc-credits 50|100; compare with --compare FILE --compare-capacity.\nQueued recovery profile: --queued-admission. Current-state comparison: pnpm benchmark:indexer:current --baseline BASE_COMMIT; --oracle-ref is only supported with --current-state.\nCompare saved results without Docker or credentials: pnpm benchmark:indexer --compare-ref BRANCH | --compare FILE\nRequires pinned Node/pnpm, installed driver dependencies, prebuilt rpc-cache/Postgres images, ENVIO_API_TOKEN, ETHERSCAN_API_KEY and all nine UPSTREAM_RPC_URL_<chain> values. Matching lockfiles reuse installed dependencies; --install-deps explicitly installs frozen dependencies in an isolated snapshot before timing. Uses fresh local containers/databases and a 50-credit eRPC default; the optional local capacity profile permits 100. Private logs: benchmarks/<diagnosticId>/."
     );
     return;
   }

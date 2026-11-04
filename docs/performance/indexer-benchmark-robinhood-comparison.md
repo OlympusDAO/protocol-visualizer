@@ -24,11 +24,9 @@ The measured candidate `fdbaaf8` has runtime-input fingerprint `02e7efbb15e6f755
 
 The nine ordered validation steps, 17 focused benchmark checks and patched eRPC/PostgreSQL integration passed. Local integration leaves database resets disabled. CI additionally verified the disposable reset fixture after correcting its stale Docker port and cache-row baseline.
 
-```sh
-./scripts/validate.sh
-pnpm exec node scripts/benchmark-indexer-robinhood.mjs --env-file .env --provider-profile local-private --output-prefix benchmarks/indexer-benchmark-robinhood
-pnpm exec node scripts/benchmark-indexer-robinhood.mjs --check --output-prefix benchmarks/indexer-benchmark-robinhood
-cp benchmarks/indexer-benchmark-robinhood-comparison.json docs/performance/indexer-benchmark-robinhood-comparison.json
-```
+The commands used for this historical result live at tooling commit `002988c`.
+The current branch has retired that auditor and its removed-cache dependencies.
+For new measurements, use `pnpm benchmark:indexer:current`; see the
+[current-state protocol](indexer-current-state-protocol.md).
 
-Detailed baseline/candidate audits and full-state diagnostics stay under the existing ignored `benchmarks/` directory and are required for `--check`. Raw artifact SHA-256: `96c4fdabe3e2b74c4a38c12f341cfdf4f7af6641d40f47d5b588481bd86e0023` (baseline), `b60571098ead32cb9106e953d656ec14365dab15c0a2706c2d966e7bffc9f008` (candidate). The [repository skill](../../skills/protocol-visualizer-benchmark/SKILL.md) defines when to benchmark and publish comparisons.
+Detailed baseline/candidate audits and full-state diagnostics stay under the existing ignored `benchmarks/` directory and were required for the historical `--check` command. Raw artifact SHA-256: `96c4fdabe3e2b74c4a38c12f341cfdf4f7af6641d40f47d5b588481bd86e0023` (baseline), `b60571098ead32cb9106e953d656ec14365dab15c0a2706c2d966e7bffc9f008` (candidate). The [repository skill](../../skills/protocol-visualizer-benchmark/SKILL.md) defines when to benchmark and publish comparisons.

@@ -4,7 +4,6 @@ import metadata from "../generated/contract-metadata.json";
 import type { ProcessedContractData } from "../services/contracts/types";
 import type { FunctionContext } from "../../../../packages/snapshot-artifacts/src/index";
 import { emptyCodeHash, type BytecodePin } from "./code-cache";
-import type { ControlBlock } from "./control-state";
 
 export type ControlGetterInput = {
   chainId: number;
@@ -19,7 +18,6 @@ export type ControlGetterResult =
       value: string;
       functionContext?: FunctionContext;
       targetCode?: "present" | "absent";
-      verifiedAt?: ControlBlock;
     }
   | { status: "unavailable"; reason: string };
 const addressGetters = new Set([

@@ -4,7 +4,12 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { compareCurrentStates } from "../scripts/benchmark-indexer-current.mjs";
+import http from "node:http";
+import {
+  compareCurrentStates,
+  executorSeedBlock,
+  isEvmRevert,
+} from "../scripts/benchmark-indexer-current.mjs";
 import {
   currentStateEntities,
   currentStateProtocol,
@@ -24,6 +29,31 @@ const tables =
   "ActionExecutedEvent ContractEvent KernelExecutorEvent RoleEvent ContractStateSeed".split(
     " "
   );
+test("pre-window executor exemption requires the exact creation seed and no observed change", () => {
+  const constants = {
+    address,
+    creationBlockNumber: 10,
+    creationTimestamp: 110,
+  };
+  const row = {
+    kernel: address,
+    lastUpdatedBlockNumber: "10",
+    lastUpdatedTimestamp: "110",
+  };
+  assert.equal(executorSeedBlock(row, constants, 15, []), "10");
+  assert.equal(executorSeedBlock(row, constants, 10, []), null);
+  for (const changed of [
+    { ...row, lastUpdatedBlockNumber: "9" },
+    { ...row, lastUpdatedTimestamp: "111" },
+    { ...row, kernel: value },
+  ])
+    assert.throws(() => executorSeedBlock(changed, constants, 15, []));
+  assert.throws(() =>
+    executorSeedBlock(row, constants, 15, [
+      { address, event: "ActionExecuted", args: { action_: 4 } },
+    ])
+  );
+});
 function fixture() {
   const base = Object.fromEntries(
     [...currentStateEntities, ...tables].map((name) => [name, []])
@@ -67,6 +97,7 @@ const audit = (state) => ({
   events: [],
   manifestHash: digest([]),
   eventCounts: { 1: 0 },
+  initializationSeeds: [],
   coverage: [{ chainId: 1, relationships: [`${address}:owner`], keycodes: [] }],
   observations: state.ContractRelationship.map((row) => ({
     key: `${row.chainId}:${row.id}`,
@@ -195,5 +226,61 @@ test("failed campaign preflight invalidates a prior accepted output without prin
     assert.doesNotMatch(run.stdout + run.stderr, /private-input-sentinel/);
   } finally {
     rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("auditor recognizes real viem ESM reverts and rejects ordinary RPC errors", async () => {
+  let code = 3;
+  const server = http.createServer(async (req, res) => {
+    let body = "";
+    for await (const part of req) body += part;
+    const request = JSON.parse(body);
+    const reply = (rpc) => ({
+      jsonrpc: "2.0",
+      id: rpc.id,
+      error: {
+        code,
+        message: code === 3 ? "execution reverted" : "method unavailable",
+      },
+    });
+    res.setHeader("content-type", "application/json");
+    res.end(
+      JSON.stringify(
+        Array.isArray(request) ? request.map(reply) : reply(request)
+      )
+    );
+  });
+  await new Promise((done) => server.listen(0, "127.0.0.1", done));
+  const chain = 999971,
+    key = `ENVIO_RPC_URL_${chain}`,
+    previous = process.env[key];
+  process.env[key] = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const { getPublicClient } = await import(
+      "../apps/indexer/src/events/rpc.ts"
+    );
+    const client = getPublicClient(chain);
+    const abi = [
+      {
+        type: "function",
+        name: "newOwner",
+        inputs: [],
+        outputs: [{ type: "address" }],
+        stateMutability: "view",
+      },
+    ];
+    await assert.rejects(
+      client.readContract({ address, abi, functionName: "newOwner" }),
+      isEvmRevert
+    );
+    code = -32601;
+    await assert.rejects(
+      client.readContract({ address, abi, functionName: "newOwner" }),
+      (error) => !isEvmRevert(error)
+    );
+  } finally {
+    if (previous === undefined) delete process.env[key];
+    else process.env[key] = previous;
+    await new Promise((done) => server.close(done));
   }
 });

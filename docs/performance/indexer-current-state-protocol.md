@@ -1,5 +1,8 @@
 # Robinhood-base current-state benchmark protocol
 
+Protocol v2 adds explicit pre-window initialization receipts. Failed v1
+qualification remains diagnostic evidence and cannot be relabeled as accepted.
+
 Compare `feat/robinhood-chain` commit `9eb4755be2904f6751a72890ecce134c4c701fef`
 against the committed current branch. Recent performance commits are diagnostic
 controls, not the baseline for the PR speedup.
@@ -61,6 +64,16 @@ Allow only these documented differences:
 Seeded policies with unknown installation history remain unknown; do not turn
 their seed `isEnabled: false` into an assertion about actual activation. Check
 Kernel activation where history establishes it and compare unknown records exactly.
+
+A bounded cold replay omits changes before its start. A `KernelExecutor` record
+whose block and timestamp exactly match the configured Kernel creation constants
+is an initialization record, not an endpoint observation. Require its Kernel
+identity, a fresh canonical creation-block executor read, no executor-change event
+in the complete window, and exact record equality between revisions. Receipts
+include the fresh endpoint executor and exclude the seed from endpoint-verified
+coverage. Preserve the configured timestamp separately from the actual canonical
+header timestamp; existing seed metadata can differ. The summary must expose
+these discrepancies. Other pre-window role records receive no exception.
 
 All other shared business fields, rows, roles, memberships, events, scopes,
 function contexts and meaningful array order must match. Only the previously

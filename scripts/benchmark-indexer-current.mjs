@@ -25,7 +25,12 @@ import {
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(join(root, "apps/indexer/package.json"));
-const viem = require("viem");
+const viemManifest = require.resolve("viem/package.json");
+const viem = await import(
+  pathToFileURL(
+    resolve(dirname(viemManifest), require(viemManifest).exports["."].import)
+  ).href
+);
 const yaml = require(
   require.resolve("yaml", { paths: [require.resolve("envio")] })
 );
@@ -37,6 +42,33 @@ const same = (a, b, message = "unexplained current-state difference") =>
 const equal = (a, b) =>
   a === undefined || b === undefined ? a === b : digest(a) === digest(b);
 const zero = `0x${"0".repeat(40)}`;
+export const isEvmRevert = (error) =>
+  error instanceof viem.BaseError &&
+  error.walk(
+    (cause) => cause instanceof viem.ContractFunctionRevertedError
+  ) instanceof viem.ContractFunctionRevertedError;
+export function executorSeedBlock(row, constants, start, events) {
+  if (BigInt(row.lastUpdatedBlockNumber) >= BigInt(start)) return null;
+  assert.equal(
+    String(row.lastUpdatedBlockNumber),
+    String(constants.creationBlockNumber)
+  );
+  assert.equal(
+    String(row.lastUpdatedTimestamp),
+    String(constants.creationTimestamp)
+  );
+  assert.equal(row.kernel.toLowerCase(), constants.address.toLowerCase());
+  assert(
+    !events.some(
+      (event) =>
+        event.address.toLowerCase() === row.kernel.toLowerCase() &&
+        event.event === "ActionExecuted" &&
+        Number(event.args.action_) === 4
+    ),
+    "executor seed survived an observed change"
+  );
+  return String(row.lastUpdatedBlockNumber);
+}
 const hash = (path) =>
   createHash("sha256").update(readFileSync(path)).digest("hex");
 const implementationHash = hash(fileURLToPath(import.meta.url));
@@ -86,7 +118,7 @@ export async function auditCurrent(options) {
     config = yaml.parse(
       readFileSync(join(options.source, "apps/indexer/config.yaml"), "utf8")
     );
-  const { getPublicClient } = await load(
+  const { getPublicClient, rethrowTransientRpc } = await load(
     root,
     "apps/indexer/src/events/rpc.ts"
   );
@@ -112,7 +144,9 @@ export async function auditCurrent(options) {
     ends = [],
     observations = [],
     coverage = [],
-    stateObservations = [];
+    stateObservations = [],
+    initializationSeeds = [];
+  let rpcFailure;
   const block = (chain, number) => {
     const id = `${chain}:${number}`;
     if (!headers.has(id))
@@ -138,6 +172,18 @@ export async function auditCurrent(options) {
   const codeReads = new Map();
   const oracleClient = (chain) => ({
     ...getPublicClient(chain),
+    readContract: async (args) => {
+      try {
+        return await getPublicClient(chain).readContract(args);
+      } catch (error) {
+        try {
+          rethrowTransientRpc(error);
+        } catch (transient) {
+          rpcFailure = transient;
+        }
+        throw error;
+      }
+    },
     getBlock: async ({ blockNumber }) => {
       const at = await block(chain, blockNumber);
       return {
@@ -615,138 +661,145 @@ export async function auditCurrent(options) {
         )
       );
     }
-    for (const row of rows("ContractRelationship")) {
-      const result = await getter(chainId, row.subject, row.getter, end);
-      const policy = fields.find(
-        (field) => field.address === row.subject && field.getter === row.getter
-      )?.eventPolicy;
-      if (policy) {
-        const code = await oracleClient(chainId).getCode({
-          address: row.subject,
-          blockHash: end.hash,
-          requireCanonical: true,
-        });
-        assert.equal(viem.keccak256(code ?? "0x"), policy.codeHash);
-      }
-      if (result.status !== "success") {
-        // This field deliberately reports event knowledge, never a verified private value.
-        assert.equal(
-          row.getter,
-          "newOwner",
-          "unavailable required endpoint getter"
-        );
-        assert(
-          entries.some(
-            (entry) =>
-              entry.contract === "ChainlinkOwned" &&
-              entry.address === row.subject
-          )
-        );
-        assert.equal(row.verification.outcome, "unavailable");
-        await assert.rejects(
-          client.readContract({
-            address: row.subject,
-            abi: viem.parseAbi(["function newOwner() view returns (address)"]),
-            functionName: "newOwner",
+    const relationships = rows("ContractRelationship");
+    for (let offset = 0; offset < relationships.length; offset += 8) {
+      await Promise.all(
+        relationships.slice(offset, offset + 8).map(async (row) => {
+          const result = await getter(chainId, row.subject, row.getter, end);
+          const policy = fields.find(
+            (field) =>
+              field.address === row.subject && field.getter === row.getter
+          )?.eventPolicy;
+          if (policy) {
+            const code = await oracleClient(chainId).getCode({
+              address: row.subject,
+              blockHash: end.hash,
+              requireCanonical: true,
+            });
+            assert.equal(viem.keccak256(code ?? "0x"), policy.codeHash);
+          }
+          if (result.status !== "success") {
+            // This field deliberately reports event knowledge, never a verified private value.
+            assert.equal(
+              row.getter,
+              "newOwner",
+              "unavailable required endpoint getter"
+            );
+            assert(
+              entries.some(
+                (entry) =>
+                  entry.contract === "ChainlinkOwned" &&
+                  entry.address === row.subject
+              )
+            );
+            assert.equal(row.verification.outcome, "unavailable");
+            await assert.rejects(
+              client.readContract({
+                address: row.subject,
+                abi: viem.parseAbi([
+                  "function newOwner() view returns (address)",
+                ]),
+                functionName: "newOwner",
+                blockHash: end.hash,
+                requireCanonical: true,
+              }),
+              isEvmRevert,
+              "getterless exception requires an actual EVM revert"
+            );
+            const changes = events.filter(
+              (log) =>
+                log.chainId === chainId &&
+                log.address === row.subject &&
+                ["OwnershipTransferRequested", "OwnershipTransferred"].includes(
+                  log.event
+                )
+            );
+            const last = changes.at(-1);
+            if (last)
+              assert.equal(
+                row.value,
+                last.event === "OwnershipTransferred"
+                  ? zero
+                  : last.args.to.toLowerCase()
+              );
+            else
+              assert.equal(
+                row.value,
+                null,
+                "private nominee stays unknown without an observed nomination"
+              );
+            observations.push({
+              key: key(row),
+              getterless: true,
+              policy,
+              value: row.value,
+            });
+            return;
+          }
+          assert.equal(
+            row.value,
+            result.value,
+            "current relationship differs from fresh endpoint getter"
+          );
+          assert.equal(row.verification.getterValue, result.value);
+          assert(["match", "unperformed"].includes(row.verification.outcome));
+          if (rows("ChainObservation")[0].verificationVersion === 1)
+            same(
+              row.verification.block,
+              end,
+              "candidate read did not verify the endpoint"
+            );
+          if (row.verification.block) {
+            const observed = await getter(
+              chainId,
+              row.subject,
+              row.getter,
+              row.verification.block
+            );
+            assert.equal(observed.status, "success");
+            assert.equal(observed.value, row.verification.getterValue);
+          }
+          if (row.seed) {
+            const seeded = await getter(
+              chainId,
+              row.subject,
+              row.getter,
+              row.seed
+            );
+            assert.equal(seeded.status, "success");
+            const original = rows("ContractStateSeed").find(
+              (seed) =>
+                seed.address === row.subject &&
+                seed.getter === row.getter &&
+                seed.boundary.hash === row.seed.hash
+            );
+            if (original) assert.equal(seeded.value, original.value);
+          }
+          if (row.targetCode) {
+            const code = await client.getCode({
+              address: row.value,
+              blockHash: end.hash,
+              requireCanonical: true,
+            });
+            assert.equal(row.targetCode, code ? "present" : "absent");
+          }
+          const targetCode = (await oracleClient(chainId).getCode({
+            address: row.value,
             blockHash: end.hash,
             requireCanonical: true,
-          }),
-          (error) =>
-            Boolean(
-              error instanceof viem.BaseError &&
-                error.walk(
-                  (cause) => cause instanceof viem.ContractFunctionRevertedError
-                ) instanceof viem.ContractFunctionRevertedError
-            ),
-          "getterless exception requires an actual EVM revert"
-        );
-        const changes = events.filter(
-          (log) =>
-            log.chainId === chainId &&
-            log.address === row.subject &&
-            ["OwnershipTransferRequested", "OwnershipTransferred"].includes(
-              log.event
-            )
-        );
-        const last = changes.at(-1);
-        if (last)
-          assert.equal(
-            row.value,
-            last.event === "OwnershipTransferred"
-              ? zero
-              : last.args.to.toLowerCase()
-          );
-        else
-          assert.equal(
-            row.value,
-            null,
-            "private nominee stays unknown without an observed nomination"
-          );
-        observations.push({
-          key: key(row),
-          getterless: true,
-          policy,
-          value: row.value,
-        });
-        continue;
-      }
-      assert.equal(
-        row.value,
-        result.value,
-        "current relationship differs from fresh endpoint getter"
+          }))
+            ? "present"
+            : "absent";
+          observations.push({
+            key: key(row),
+            policy,
+            targetCode,
+            value: result.value,
+            verification: row.verification.block,
+            seed: row.seed,
+          });
+        })
       );
-      assert.equal(row.verification.getterValue, result.value);
-      assert(["match", "unperformed"].includes(row.verification.outcome));
-      if (rows("ChainObservation")[0].verificationVersion === 1)
-        same(
-          row.verification.block,
-          end,
-          "candidate read did not verify the endpoint"
-        );
-      if (row.verification.block) {
-        const observed = await getter(
-          chainId,
-          row.subject,
-          row.getter,
-          row.verification.block
-        );
-        assert.equal(observed.status, "success");
-        assert.equal(observed.value, row.verification.getterValue);
-      }
-      if (row.seed) {
-        const seeded = await getter(chainId, row.subject, row.getter, row.seed);
-        assert.equal(seeded.status, "success");
-        const original = rows("ContractStateSeed").find(
-          (seed) =>
-            seed.address === row.subject &&
-            seed.getter === row.getter &&
-            seed.boundary.hash === row.seed.hash
-        );
-        if (original) assert.equal(seeded.value, original.value);
-      }
-      if (row.targetCode) {
-        const code = await client.getCode({
-          address: row.value,
-          blockHash: end.hash,
-          requireCanonical: true,
-        });
-        assert.equal(row.targetCode, code ? "present" : "absent");
-      }
-      const targetCode = (await oracleClient(chainId).getCode({
-        address: row.value,
-        blockHash: end.hash,
-        requireCanonical: true,
-      }))
-        ? "present"
-        : "absent";
-      observations.push({
-        key: key(row),
-        policy,
-        targetCode,
-        value: result.value,
-        verification: row.verification.block,
-        seed: row.seed,
-      });
     }
     for (const code of new Set(
       rows("ContractRelationship")
@@ -780,7 +833,13 @@ export async function auditCurrent(options) {
         end
       );
       assert.equal(result.status, "success");
-      assert.equal(result.value, String(row.enabled));
+      assert.equal(
+        row.enablementGetter === "isShutdown"
+          ? result.value === "false"
+          : result.value === "true",
+        row.enabled
+      );
+      assert.equal(result.value, row.verification.getterValue);
       if (row.seed) {
         const seeded = await getter(
           chainId,
@@ -815,7 +874,21 @@ export async function auditCurrent(options) {
         end
       );
       assert.equal(result.status, "success");
-      same(JSON.parse(result.value), row.tasks);
+      same(
+        JSON.parse(result.value),
+        row.tasks.map(({ address, selector }) => ({ address, selector }))
+      );
+      same(JSON.parse(result.value), JSON.parse(row.verification.getterValue));
+      for (const task of row.tasks) {
+        assert(
+          Object.keys(task).every((key) =>
+            ["address", "selector", "signature"].includes(key)
+          ),
+          "unknown task annotation"
+        );
+        if (task.signature)
+          assert.equal(viem.toFunctionSelector(task.signature), task.selector);
+      }
       if (row.seed) {
         const seeded = await getter(
           chainId,
@@ -948,14 +1021,40 @@ export async function auditCurrent(options) {
       assert.equal(granted, row.isGranted);
     }
     for (const row of rows("KernelExecutor")) {
+      const seededAt = executorSeedBlock(
+        row,
+        getKernelConstants(chainId),
+        chain.start_block,
+        chainEvents
+      );
+      const at = seededAt ? await block(chainId, seededAt) : end;
       const result = await client.readContract({
         address: row.kernel,
         abi: viem.parseAbi(["function executor() view returns(address)"]),
         functionName: "executor",
-        blockHash: end.hash,
+        blockHash: at.hash,
         requireCanonical: true,
       });
-      assert.equal(result.toLowerCase(), row.executor);
+      assert.equal(result.toLowerCase(), row.executor.toLowerCase());
+      if (seededAt) {
+        const endpoint = await client.readContract({
+          address: row.kernel,
+          abi: viem.parseAbi(["function executor() view returns(address)"]),
+          functionName: "executor",
+          blockHash: end.hash,
+          requireCanonical: true,
+        });
+        initializationSeeds.push({
+          table: "KernelExecutor",
+          key: key(row),
+          block: at,
+          configuredTimestamp: String(row.lastUpdatedTimestamp),
+          value: result.toLowerCase(),
+          endpoint: { block: end, value: endpoint.toLowerCase() },
+          endpointVerified: false,
+          rowHash: digest(row),
+        });
+      }
     }
     for (const row of rows("CurrentModule")) {
       const result = await client.readContract({
@@ -988,6 +1087,7 @@ export async function auditCurrent(options) {
       "canonicality changed during audit"
     );
   }
+  if (rpcFailure) throw rpcFailure;
   return {
     protocol: currentStateProtocol,
     identity: options.identity,
@@ -1002,9 +1102,10 @@ export async function auditCurrent(options) {
     ),
     manifestHash: digest(events),
     events,
-    observations,
+    observations: observations.sort((a, b) => a.key.localeCompare(b.key)),
     coverage,
     stateObservations,
+    initializationSeeds,
   };
 }
 
@@ -1053,6 +1154,7 @@ export function compareCurrentStates(base, head, a, b) {
         );
   }
   same(a.coverage, b.coverage);
+  same(a.initializationSeeds, b.initializationSeeds);
   same(a.ends, b.ends);
   same(a.manifestHash, b.manifestHash);
   same(a.eventCounts, b.eventCounts);
@@ -1415,6 +1517,7 @@ async function campaignWork(options) {
     inputs: a.inputs,
     baselineSummary: a.summary,
     candidateSummary: b.summary,
+    initializationSeeds: a.runs[0].audit.initializationSeeds,
     throughputGainPercent: gain,
     rawFiles: Object.fromEntries(
       Object.entries(files).map(([side, paths]) => [
@@ -1429,6 +1532,7 @@ async function campaignWork(options) {
       "Equal current-state contract, deliberately fewer historical observations and archive records.",
       "Local cold bounded replays; no live nine-chain or provider billing claim.",
       "Oracle RPC runs after timing and is excluded from measured request counts.",
+      "Pre-window Kernel executor initialization records are checked at creation and retained exactly; their endpoint executor and configured timestamp discrepancies are disclosed separately, not certified as current state.",
     ],
   };
   writeResult(

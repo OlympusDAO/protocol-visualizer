@@ -18,6 +18,8 @@ if (process.argv[2] === "worker") {
   });
   setInterval(() => {}, 1000);
 } else if (process.argv[2] === "start") {
+  if (Number(process.env.RESET_FIXTURE_START_CODE))
+    process.exit(Number(process.env.RESET_FIXTURE_START_CODE));
   writeFileSync(running, String(process.pid));
   const worker = spawn(
     process.execPath,

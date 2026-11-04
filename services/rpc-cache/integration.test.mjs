@@ -2,6 +2,7 @@
 // Only uniquely named containers/networks created here are removed.
 import assert from "node:assert/strict";
 import { execFile, execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import http from "node:http";
 import { createRequire } from "node:module";
@@ -892,6 +893,165 @@ export default config;
           ],
           { encoding: "utf8", timeout: 120_000 }
         );
+      const sql = (query) =>
+        docker(
+          "exec",
+          envioPg,
+          "psql",
+          "-U",
+          "postgres",
+          "-v",
+          "ON_ERROR_STOP=1",
+          "-Atc",
+          query
+        );
+      const databaseHash = () =>
+        createHash("sha256")
+          .update(
+            docker(
+              "exec",
+              envioPg,
+              "pg_dump",
+              "-U",
+              "postgres",
+              "--no-owner",
+              "--no-privileges"
+            ).replace(/^\\(?:un)?restrict .*$/gm, "")
+          )
+          .digest("hex");
+      sql(
+        "CREATE ROLE reset_reader LOGIN PASSWORD 'fixture'; GRANT USAGE ON SCHEMA public TO reset_reader"
+      );
+      const checkStorage = async (expected, password = "fixture") => {
+        const before = databaseHash();
+        let status = 0,
+          output = "";
+        try {
+          const result = await runFile(
+            "docker",
+            [
+              "run",
+              "--rm",
+              "--network",
+              prefix,
+              ...indexerEnv,
+              "-e",
+              `ENVIO_PG_HOST=${envioPg}`,
+              "-e",
+              "ENVIO_PG_PORT=5432",
+              "-e",
+              "ENVIO_PG_DATABASE=postgres",
+              "-e",
+              "ENVIO_PG_USER=reset_reader",
+              "-e",
+              `ENVIO_PG_PASSWORD=${password}`,
+              "-e",
+              "ENVIO_PG_SSL_MODE=prefer",
+              "-e",
+              "HASURA_GRAPHQL_ROLE=admin",
+              "-e",
+              "ENVIO_THROTTLE_CHAIN_METADATA_INTERVAL_MILLIS=500",
+              "-e",
+              "ENVIO_THROTTLE_PRUNE_STALE_DATA_INTERVAL_MILLIS=30000",
+              "protocol-visualizer/indexer:local",
+              "scripts/check-envio-storage.mjs",
+              "start",
+            ],
+            { encoding: "utf8", timeout: 45_000 }
+          );
+          output = result.stdout + result.stderr;
+        } catch (error) {
+          status = error.code;
+          output = error.stdout + error.stderr;
+        }
+        assert.equal(status, expected, output);
+        assert(
+          !output.includes("fixture-private-password"),
+          "compatibility errors leaked credentials"
+        );
+        assert.equal(
+          databaseHash(),
+          before,
+          "compatibility check modified its database"
+        );
+      };
+      await checkStorage(0); // Empty storage: normal initialization remains allowed.
+      await reset();
+      sql("GRANT SELECT ON ALL TABLES IN SCHEMA public TO reset_reader");
+      await checkStorage(0); // Compatible metadata, using a SELECT-only role.
+      await checkStorage(1, "fixture-private-password");
+      sql(
+        `UPDATE public.envio_info SET config = jsonb_set(config::jsonb, '{chainIdMode}', '"fixture-incompatible"')::text`
+      );
+      await checkStorage(78);
+      const waitingIndexer = `${prefix}-indexer`;
+      const beforeStartup = databaseHash();
+      docker(
+        "run",
+        "-d",
+        "--name",
+        waitingIndexer,
+        "--network",
+        prefix,
+        "--add-host",
+        "host.docker.internal:host-gateway",
+        "-p",
+        "127.0.0.1::9898",
+        ...indexerEnv,
+        "-e",
+        "PORT=9898",
+        "protocol-visualizer/indexer:local"
+      );
+      created.push(waitingIndexer);
+      const waitingPort = docker("port", waitingIndexer, "9898/tcp")
+        .split(":")
+        .at(-1);
+      await eventually(
+        () =>
+          docker("logs", waitingIndexer).includes(
+            "Envio storage is incompatible."
+          ),
+        "Incompatible indexer did not remain available for reset"
+      );
+      for (const [route, status] of [
+        ["healthz", 200],
+        ["ready", 503],
+        ["metrics", 503],
+      ])
+        assert.equal(
+          (await fetch(`http://127.0.0.1:${waitingPort}/${route}`)).status,
+          status
+        );
+      assert.equal(
+        databaseHash(),
+        beforeStartup,
+        "Incompatible startup changed stored data"
+      );
+      const operatorReset = await runFile(
+        "docker",
+        [
+          "exec",
+          waitingIndexer,
+          "/nodejs/bin/node",
+          "/app/apps/indexer/scripts/reset-envio.mjs",
+        ],
+        { encoding: "utf8", timeout: 120_000 }
+      );
+      assert.match(
+        operatorReset.stdout,
+        /Envio migration completed. Envio restarted inside the existing container/
+      );
+      docker("stop", waitingIndexer);
+      sql("GRANT SELECT ON ALL TABLES IN SCHEMA public TO reset_reader");
+      await checkStorage(0);
+      console.log(
+        "Actual indexer image waited on incompatible schema without writes, accepted its operator reset and launched normal ingestion without another deployment."
+      );
+      sql("DROP TABLE public.envio_info");
+      await checkStorage(78); // Older storage without native compatibility metadata.
+      console.log(
+        "Native storage preflight: empty/compatible/incompatible/legacy/auth cases passed; SELECT-only role and database hashes verified no writes."
+      );
       await reset();
       docker(
         "exec",

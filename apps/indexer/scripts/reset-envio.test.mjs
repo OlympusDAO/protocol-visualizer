@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   copyFileSync,
   existsSync,
@@ -38,8 +39,15 @@ function command(child) {
   return { child, done, output: () => output };
 }
 
-for (const migrationCode of [0, 17]) {
-  test(`reset stops ingestion before migration and resumes only after success (exit ${migrationCode})`, {
+for (const { checkCode, migrationCode, startCode } of [
+  { checkCode: 0, migrationCode: 0 },
+  { checkCode: 0, migrationCode: 17 },
+  { checkCode: 78, migrationCode: 0 },
+  { checkCode: 78, migrationCode: 17 },
+  { checkCode: 1, migrationCode: 0 },
+  { checkCode: 0, migrationCode: 0, startCode: 23 },
+]) {
+  test(`explicit reset lifecycle (storage ${checkCode}, migration ${migrationCode}, start ${startCode ?? 0})`, {
     timeout: 20_000,
   }, async () => {
     const root = realpathSync(
@@ -56,6 +64,10 @@ for (const migrationCode of [0, 17]) {
     writeFileSync(migrationBlocked, "");
     for (const file of ["start-envio.mjs", "reset-envio.mjs"])
       copyFileSync(new URL(file, import.meta.url), join(scripts, file));
+    writeFileSync(
+      join(scripts, "check-envio-storage.mjs"),
+      `process.exit(${checkCode});`
+    );
     copyFileSync(
       new URL("fixtures/reset-envio.mjs", import.meta.url),
       join(app, "node_modules/envio/bin.mjs")
@@ -77,6 +89,7 @@ for (const migrationCode of [0, 17]) {
       ENVIO_INDEXER_PORT: String(port),
       RESET_FIXTURE_ROOT: root,
       RESET_FIXTURE_MIGRATION_CODE: String(migrationCode),
+      RESET_FIXTURE_START_CODE: String(startCode ?? 0),
     };
     for (const id of [1, 10, 42161, 8453, 80094, 4663, 11155111, 421614, 84532])
       env[`ENVIO_RPC_URL_${id}`] = "http://fixture.invalid";
@@ -89,11 +102,50 @@ for (const migrationCode of [0, 17]) {
       })
     );
     try {
-      await until(() => {
-        assert.equal(wrapper.child.exitCode, null, wrapper.output());
-        return existsSync(running) && existsSync(workerRunning);
-      });
-      const oldPid = readFileSync(running, "utf8");
+      if (checkCode === 1 || startCode) {
+        const result = await wrapper.done;
+        assert.equal(
+          result.code,
+          checkCode === 1 ? 1 : startCode,
+          result.output
+        );
+        assert(
+          !existsSync(migrated),
+          "ordinary failures must never reset storage"
+        );
+        return;
+      }
+      // The control socket appears only after compatibility checking completes.
+      await until(() =>
+        existsSync(
+          join(
+            "/tmp",
+            `pv-envio-${createHash("sha256")
+              .update(app)
+              .digest("hex")
+              .slice(0, 12)}.sock`
+          )
+        )
+      );
+      if (checkCode === 78) {
+        assert.equal(
+          (await fetch(`http://127.0.0.1:${port}/ready`)).status,
+          503
+        );
+        assert(!existsSync(running) && !existsSync(workerRunning));
+        assert(
+          !existsSync(migrated),
+          "incompatibility must not automatically reset"
+        );
+      } else {
+        await until(() => {
+          assert.equal(wrapper.child.exitCode, null, wrapper.output());
+          return existsSync(running) && existsSync(workerRunning);
+        });
+      }
+      const oldPid = existsSync(running)
+        ? readFileSync(running, "utf8")
+        : undefined;
       const resetting = command(
         spawn(process.execPath, [join(scripts, "reset-envio.mjs")], {
           cwd: "/",

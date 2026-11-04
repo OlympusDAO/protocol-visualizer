@@ -6,7 +6,7 @@ import type {
   CurrentModuleEntity,
   EnvioContext,
 } from "./types";
-import { readModuleForKeycodeEffect } from "./effects";
+import { getModuleForKeycode } from "./effects";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -16,7 +16,8 @@ export async function getCurrentModuleAddress(
   kernelAddress: Address,
   blockNumber: bigint,
   chainId: number,
-  context: EnvioContext
+  context: EnvioContext,
+  blockHash: string
 ): Promise<Address | null> {
   const id = currentModuleId(chainId, keycode);
   const currentModule =
@@ -25,12 +26,14 @@ export async function getCurrentModuleAddress(
     return currentModule.address as Address;
   }
 
-  const moduleAddress = await context.effect(readModuleForKeycodeEffect, {
+  const moduleAddress = await getModuleForKeycode(
+    context,
     chainId,
     kernelAddress,
     keycodeHex,
     blockNumber,
-  });
+    blockHash
+  );
 
   if (moduleAddress === ZERO_ADDRESS) {
     return null;

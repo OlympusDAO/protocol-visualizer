@@ -38,7 +38,8 @@ test("module lookup follows rolled-back entities and isolates indexer contexts",
       original,
       51n,
       chainId,
-      context
+      context,
+      `0x${"ab".repeat(32)}`
     );
   assert.equal(await lookup(first), original);
   const second = store();

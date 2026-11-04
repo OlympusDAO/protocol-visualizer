@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { after, before, test } from "node:test";
+import http from "node:http";
 import { getKernelConstants } from "../src/constants.ts";
 import { parsePolicyPermissions } from "../src/events/contractParsing.ts";
 import { handleKernelActionExecuted } from "../src/events/kernel.ts";
@@ -8,6 +9,41 @@ import {
   seedCoreContracts,
 } from "../src/events/kernel-history.ts";
 import { processAbiMetadata } from "../src/services/contracts/abi.ts";
+
+const hash = `0x${"ab".repeat(32)}`;
+let server;
+const previousRpc = process.env.ENVIO_RPC_URL_1;
+before(async () => {
+  server = http.createServer(async (req, res) => {
+    let body = "";
+    for await (const part of req) body += part;
+    const reply = ({ id, method, params }) => {
+      assert.equal(method, "eth_getBlockByNumber");
+      return {
+        jsonrpc: "2.0",
+        id,
+        result: {
+          number: params[0],
+          hash,
+          timestamp: "0x100",
+          transactions: [],
+        },
+      };
+    };
+    const input = JSON.parse(body);
+    res.setHeader("content-type", "application/json");
+    res.end(
+      JSON.stringify(Array.isArray(input) ? input.map(reply) : reply(input))
+    );
+  });
+  await new Promise((done) => server.listen(0, "127.0.0.1", done));
+  process.env.ENVIO_RPC_URL_1 = `http://127.0.0.1:${server.address().port}`;
+});
+after(async () => {
+  if (previousRpc === undefined) delete process.env.ENVIO_RPC_URL_1;
+  else process.env.ENVIO_RPC_URL_1 = previousRpc;
+  await new Promise((done) => server.close(done));
+});
 
 test("permission labels use canonical inputs rather than appending return types", async () => {
   const metadata = processAbiMetadata([
@@ -30,15 +66,12 @@ test("permission labels use canonical inputs rather than appending return types"
     },
     effect: async (_effect, input) =>
       input.policyAddress
-        ? {
-            permissions: [
-              {
-                keycode: "0x4d494e5452",
-                funcSelector: Object.keys(metadata.functionSelectors)[0],
-              },
-            ],
-            usedLatestFallback: false,
-          }
+        ? [
+            {
+              keycode: "0x4d494e5452",
+              funcSelector: Object.keys(metadata.functionSelectors)[0],
+            },
+          ]
         : metadata,
   };
   const permissions = await parsePolicyPermissions(
@@ -48,7 +81,8 @@ test("permission labels use canonical inputs rather than appending return types"
     contract.name,
     BigInt(contract.startBlock + 1),
     1,
-    context
+    context,
+    hash
   );
   assert.equal(permissions[0].function, "mintOhm(address,uint256)");
 });
@@ -126,9 +160,7 @@ test("activation and removal events retain prior installation independently of c
   };
   const context = Object.fromEntries(["Contract"].map((key) => [key, store()]));
   context.effect = async (_effect, input) =>
-    input.policyAddress
-      ? { permissions: [], usedLatestFallback: false }
-      : { roleToFunctions: {}, functionSelectors: {} };
+    input.policyAddress ? [] : { roleToFunctions: {}, functionSelectors: {} };
   const kernel = getKernelConstants(1).address;
   context.Contract.set({ id: `1:${kernel.toLowerCase()}` });
   const contract = getCoreContracts(1).find(
@@ -150,7 +182,7 @@ test("activation and removal events retain prior installation independently of c
       {
         chainId: 1,
         srcAddress: kernel,
-        block: { number: contract.startBlock + 1, timestamp: 1790000001 },
+        block: { number: contract.startBlock + 1, timestamp: 1790000001, hash },
         transaction: { hash: `0xtx${action}` },
         logIndex: action,
         params: { action_: action, target_: contract.address },

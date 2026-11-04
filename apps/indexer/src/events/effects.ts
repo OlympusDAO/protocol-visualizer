@@ -9,7 +9,11 @@ import { ContractProcessor } from "../services/contracts/processor";
 import type { ProcessedContractData } from "../services/contracts/types";
 import type { BridgeReadResult } from "./bridge-config";
 import { readPinnedBridgeConfiguration } from "./bridge-reads";
-import type { CanonicalBlockReader } from "./canonical-observation";
+import {
+  CanonicalObservationChanged,
+  withCanonicalObservation,
+  type CanonicalBlockReader,
+} from "./canonical-observation";
 import { emptyCodeHash, getBytecodeHash } from "./code-cache";
 import {
   type ControlGetterInput,
@@ -22,23 +26,11 @@ import {
   type DependencyReadResult,
   readPinnedModuleDependencies,
 } from "./module-dependencies";
-import {
-  getPublicClient,
-  isHistoricalStateUnavailable,
-  rethrowTransientRpc,
-} from "./rpc";
-import type {
-  EnvioContext,
-  RequestedPolicyPermission,
-  RequestedPolicyPermissionsResult,
-} from "./types";
+import { getPublicClient, rethrowTransientRpc } from "./rpc";
+import type { EnvioContext, RequestedPolicyPermission } from "./types";
 
 const contractProcessors = new Map<number, ContractProcessor>();
 const processedContracts = new Map<string, Promise<ProcessedContractData>>();
-const requestedPolicyPermissions = new Map<
-  string,
-  Promise<readonly RequestedPolicyPermission[]>
->();
 
 const requestedPolicyPermissionSchema = S.schema({
   keycode: S.string,
@@ -95,244 +87,157 @@ const processContractMetadataEffect = createEffect(
     )
 );
 
-export const readPolicyPermissionsEffect = createEffect(
+const resolveCreationHash = Symbol("resolveCreationHash");
+
+async function withPinnedRead<T>(
+  chainId: number,
+  blockNumber: bigint,
+  expectedHash: string | typeof resolveCreationHash,
+  read: (blockHash: Hex) => Promise<T>
+): Promise<T> {
+  if (
+    typeof blockNumber !== "bigint" ||
+    (expectedHash !== resolveCreationHash && typeof expectedHash !== "string")
+  )
+    throw new CanonicalObservationChanged();
+  let result!: T;
+  await withCanonicalObservation(chainId, blockNumber, async ({ block }) => {
+    if (
+      expectedHash !== resolveCreationHash &&
+      block.hash !== expectedHash.toLowerCase()
+    )
+      throw new CanonicalObservationChanged();
+    result = await read(block.hash as Hex);
+    return true;
+  });
+  return result;
+}
+
+const readPolicyPermissionsEffect = createEffect(
   {
     crossChain: true,
-    name: "readPolicyPermissions",
+    name: "readPolicyPermissionsAtHashV1",
     input: {
       chainId: S.number,
       policyAddress: S.address,
       blockNumber: S.bigint,
+      blockHash: S.string,
     },
-    output: {
-      permissions: S.array(requestedPolicyPermissionSchema),
-      usedLatestFallback: S.boolean,
-    },
+    output: S.array(requestedPolicyPermissionSchema),
     rateLimit: { calls: 25, per: "second" },
     cache: true,
   },
-  async ({ input, context }): Promise<RequestedPolicyPermissionsResult> => {
-    try {
-      const permissions = await getPublicClient(input.chainId).readContract({
-        abi: PolicyAbi,
-        address: input.policyAddress,
-        functionName: "requestPermissions",
-        args: [],
-        blockNumber: input.blockNumber,
-      });
-
-      return {
-        permissions: permissions.map((permission) => ({
-          keycode: permission.keycode,
-          funcSelector: permission.funcSelector,
-        })),
-        usedLatestFallback: false,
-      };
-    } catch (error) {
-      if (!isHistoricalStateUnavailable(error)) {
-        throw error;
-      }
-
-      context.cache = false;
-      context.log.warn(
-        `Historical requestPermissions unavailable for ${input.policyAddress} on chain ${input.chainId} at block ${input.blockNumber}; retrying at latest block`
-      );
-
-      const permissions = await getPublicClient(input.chainId).readContract({
-        abi: PolicyAbi,
-        address: input.policyAddress,
-        functionName: "requestPermissions",
-        args: [],
-      });
-
-      return {
-        permissions: permissions.map((permission) => ({
-          keycode: permission.keycode,
-          funcSelector: permission.funcSelector,
-        })),
-        usedLatestFallback: true,
-      };
-    }
+  async ({ input }) => {
+    const permissions = await getPublicClient(input.chainId).readContract({
+      abi: PolicyAbi,
+      address: input.policyAddress,
+      functionName: "requestPermissions",
+      blockHash: input.blockHash as Hex,
+      requireCanonical: true,
+    });
+    return permissions.map(({ keycode, funcSelector }) => ({
+      keycode,
+      funcSelector,
+    }));
   }
 );
 
-export const readModuleKeycodeEffect = createEffect(
+const readModuleKeycodeEffect = createEffect(
   {
     crossChain: true,
-    name: "readModuleKeycode",
+    name: "readModuleKeycodeAtHashV1",
     input: {
       chainId: S.number,
       moduleAddress: S.address,
       blockNumber: S.bigint,
+      blockHash: S.string,
     },
-    output: {
-      keycode: S.string,
-      usedLatestFallback: S.boolean,
-    },
+    output: S.string,
     rateLimit: { calls: 25, per: "second" },
     cache: true,
   },
-  async ({
-    input,
-    context,
-  }): Promise<{ keycode: Hex; usedLatestFallback: boolean }> => {
-    try {
-      return {
-        keycode: await getPublicClient(input.chainId).readContract({
-          abi: ModuleAbi,
-          address: input.moduleAddress,
-          functionName: "KEYCODE",
-          args: [],
-          blockNumber: input.blockNumber,
-        }),
-        usedLatestFallback: false,
-      };
-    } catch (error) {
-      if (!isHistoricalStateUnavailable(error)) {
-        throw error;
-      }
-
-      context.cache = false;
-      context.log.warn(
-        `Historical KEYCODE unavailable for ${input.moduleAddress} on chain ${input.chainId} at block ${input.blockNumber}; retrying at latest block`
-      );
-
-      return {
-        keycode: await getPublicClient(input.chainId).readContract({
-          abi: ModuleAbi,
-          address: input.moduleAddress,
-          functionName: "KEYCODE",
-          args: [],
-        }),
-        usedLatestFallback: true,
-      };
-    }
-  }
+  ({ input }) =>
+    getPublicClient(input.chainId).readContract({
+      abi: ModuleAbi,
+      address: input.moduleAddress,
+      functionName: "KEYCODE",
+      blockHash: input.blockHash as Hex,
+      requireCanonical: true,
+    })
 );
 
-export const readModuleForKeycodeEffect = createEffect(
+const readModuleForKeycodeEffect = createEffect(
   {
     crossChain: true,
-    name: "readModuleForKeycode",
+    name: "readModuleForKeycodeAtHashV1",
     input: {
       chainId: S.number,
       kernelAddress: S.address,
       keycodeHex: S.string,
       blockNumber: S.bigint,
+      blockHash: S.string,
     },
     output: S.address,
     rateLimit: { calls: 25, per: "second" },
     cache: true,
   },
-  async ({ input, context }) => {
-    try {
-      return await getPublicClient(input.chainId).readContract({
-        abi: KernelAbi,
-        address: input.kernelAddress,
-        functionName: "getModuleForKeycode",
-        args: [input.keycodeHex as Hex],
-        blockNumber: input.blockNumber,
-      });
-    } catch (error) {
-      if (!isHistoricalStateUnavailable(error)) {
-        throw error;
-      }
-
-      context.cache = false;
-      context.log.warn(
-        `Historical getModuleForKeycode unavailable for ${input.kernelAddress} on chain ${input.chainId} at block ${input.blockNumber}; retrying at latest block`
-      );
-
-      return getPublicClient(input.chainId).readContract({
-        abi: KernelAbi,
-        address: input.kernelAddress,
-        functionName: "getModuleForKeycode",
-        args: [input.keycodeHex as Hex],
-      });
-    }
-  }
+  ({ input }) =>
+    getPublicClient(input.chainId).readContract({
+      abi: KernelAbi,
+      address: input.kernelAddress,
+      functionName: "getModuleForKeycode",
+      args: [input.keycodeHex as Hex],
+      blockHash: input.blockHash as Hex,
+      requireCanonical: true,
+    })
 );
 
 const readKernelExecutorEffect = createEffect(
   {
     crossChain: true,
-    name: "readKernelExecutor",
+    name: "readKernelExecutorAtHashV1",
     input: {
       chainId: S.number,
       kernelAddress: S.address,
-      blockNumber: S.optional(S.bigint),
+      blockNumber: S.bigint,
+      blockHash: S.string,
     },
     output: S.address,
     rateLimit: { calls: 25, per: "second" },
     cache: true,
   },
-  async ({ input, context }) => {
-    try {
-      return await getPublicClient(input.chainId).readContract({
-        abi: KernelAbi,
-        address: input.kernelAddress,
-        functionName: "executor",
-        args: [],
-        ...(input.blockNumber ? { blockNumber: input.blockNumber } : {}),
-      });
-    } catch (error) {
-      if (!input.blockNumber || !isHistoricalStateUnavailable(error)) {
-        throw error;
-      }
-
-      context.cache = false;
-      context.log.warn(
-        `Historical executor unavailable for ${input.kernelAddress} on chain ${input.chainId} at block ${input.blockNumber}; retrying at latest block`
-      );
-
-      return getPublicClient(input.chainId).readContract({
-        abi: KernelAbi,
-        address: input.kernelAddress,
-        functionName: "executor",
-        args: [],
-      });
-    }
-  }
+  ({ input }) =>
+    getPublicClient(input.chainId).readContract({
+      abi: KernelAbi,
+      address: input.kernelAddress,
+      functionName: "executor",
+      blockHash: input.blockHash as Hex,
+      requireCanonical: true,
+    })
 );
 
 const readRolesAdminEffect = createEffect(
   {
     crossChain: true,
-    name: "readRolesAdmin",
+    name: "readRolesAdminAtHashV1",
     input: {
       chainId: S.number,
       rolesAdminAddress: S.address,
-      blockNumber: S.optional(S.bigint),
+      blockNumber: S.bigint,
+      blockHash: S.string,
     },
     output: S.address,
     rateLimit: { calls: 25, per: "second" },
     cache: true,
   },
-  async ({ input, context }) => {
-    try {
-      return await getPublicClient(input.chainId).readContract({
-        abi: RolesAdminAbi,
-        address: input.rolesAdminAddress,
-        functionName: "admin",
-        ...(input.blockNumber ? { blockNumber: input.blockNumber } : {}),
-      });
-    } catch (error) {
-      if (!input.blockNumber || !isHistoricalStateUnavailable(error)) {
-        throw error;
-      }
-
-      context.cache = false;
-      context.log.warn(
-        `Historical RolesAdmin admin unavailable for ${input.rolesAdminAddress} on chain ${input.chainId} at block ${input.blockNumber}; retrying at latest block`
-      );
-
-      return getPublicClient(input.chainId).readContract({
-        abi: RolesAdminAbi,
-        address: input.rolesAdminAddress,
-        functionName: "admin",
-      });
-    }
-  }
+  ({ input }) =>
+    getPublicClient(input.chainId).readContract({
+      abi: RolesAdminAbi,
+      address: input.rolesAdminAddress,
+      functionName: "admin",
+      blockHash: input.blockHash as Hex,
+      requireCanonical: true,
+    })
 );
 
 function getContractProcessor(chainId: number): ContractProcessor {
@@ -413,60 +318,93 @@ export function getRequestedPolicyPermissions(
   context: EnvioContext,
   chainId: number,
   policyAddress: Address,
-  blockNumber: bigint
+  blockNumber: bigint,
+  blockHash: string
 ): Promise<readonly RequestedPolicyPermission[]> {
-  const cacheKey = `${chainId}:${normalizeAddress(policyAddress)}:${blockNumber.toString()}`;
-  const cached = requestedPolicyPermissions.get(cacheKey);
-  if (cached) {
-    return cached;
-  }
-
-  const permissions = context
-    .effect(readPolicyPermissionsEffect, {
+  return withPinnedRead(chainId, blockNumber, blockHash, (hash) =>
+    context.effect(readPolicyPermissionsEffect, {
       chainId,
       policyAddress,
       blockNumber,
+      blockHash: hash,
     })
-    .then((result) => {
-      if (result.usedLatestFallback) {
-        requestedPolicyPermissions.delete(cacheKey);
-      }
+  ) as Promise<readonly RequestedPolicyPermission[]>;
+}
 
-      return result.permissions as RequestedPolicyPermission[];
+export function getModuleKeycode(
+  context: EnvioContext,
+  chainId: number,
+  moduleAddress: Address,
+  blockNumber: bigint,
+  blockHash: string
+): Promise<Hex> {
+  return withPinnedRead(chainId, blockNumber, blockHash, (hash) =>
+    context.effect(readModuleKeycodeEffect, {
+      chainId,
+      moduleAddress,
+      blockNumber,
+      blockHash: hash,
     })
-    .catch((error) => {
-      requestedPolicyPermissions.delete(cacheKey);
-      throw error;
-    });
-  requestedPolicyPermissions.set(cacheKey, permissions);
+  ) as Promise<Hex>;
+}
 
-  return permissions;
+export function getModuleForKeycode(
+  context: EnvioContext,
+  chainId: number,
+  kernelAddress: Address,
+  keycodeHex: Hex,
+  blockNumber: bigint,
+  blockHash: string
+): Promise<Address> {
+  return withPinnedRead(chainId, blockNumber, blockHash, (hash) =>
+    context.effect(readModuleForKeycodeEffect, {
+      chainId,
+      kernelAddress,
+      keycodeHex,
+      blockNumber,
+      blockHash: hash,
+    })
+  );
 }
 
 export function getKernelExecutor(
   context: EnvioContext,
   kernelAddress: Address,
   chainId: number,
-  blockNumber?: bigint
+  blockNumber: bigint
 ): Promise<Address> {
-  return context.effect(readKernelExecutorEffect, {
+  return withPinnedRead(
     chainId,
-    kernelAddress,
     blockNumber,
-  });
+    resolveCreationHash,
+    (blockHash) =>
+      context.effect(readKernelExecutorEffect, {
+        chainId,
+        kernelAddress,
+        blockNumber,
+        blockHash,
+      })
+  );
 }
 
 export function getRolesAdmin(
   context: EnvioContext,
   rolesAdminAddress: Address,
   chainId: number,
-  blockNumber?: bigint
+  blockNumber: bigint
 ): Promise<Address> {
-  return context.effect(readRolesAdminEffect, {
+  return withPinnedRead(
     chainId,
-    rolesAdminAddress,
     blockNumber,
-  });
+    resolveCreationHash,
+    (blockHash) =>
+      context.effect(readRolesAdminEffect, {
+        chainId,
+        rolesAdminAddress,
+        blockNumber,
+        blockHash,
+      })
+  );
 }
 
 // Envio persists effect cache across rollbacks. Canonical hash is part of every input, not a process cache.

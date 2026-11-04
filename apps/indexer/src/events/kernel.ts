@@ -35,7 +35,8 @@ export async function handleKernelActionExecuted(
     target,
     chainId,
     blockNumber,
-    envioContext
+    envioContext,
+    event.block.hash
   );
   const contractVersion = getContractVersion(target, chainId) ?? undefined;
   const previousContract =
@@ -57,7 +58,8 @@ export async function handleKernelActionExecuted(
           contractName,
           blockNumber,
           chainId,
-          envioContext
+          envioContext,
+          event.block.hash
         ),
         parsePolicyFunctions(
           actionInt,

@@ -28,11 +28,6 @@ export type RequestedPolicyPermission = {
   funcSelector: Hex;
 };
 
-export type RequestedPolicyPermissionsResult = {
-  permissions: RequestedPolicyPermission[];
-  usedLatestFallback: boolean;
-};
-
 export type PolicyPermission = {
   keycode: string;
   function: string;
@@ -51,7 +46,7 @@ export type ControlEvent = BaseEvent & {
   block: { number: number; timestamp: number; hash: string };
 };
 
-export type KernelActionExecutedEvent = BaseEvent & {
+export type KernelActionExecutedEvent = ControlEvent & {
   params: { action_: bigint; target_: Address };
 };
 

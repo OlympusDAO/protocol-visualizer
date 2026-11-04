@@ -137,6 +137,24 @@ again. Publisher freshness/canonical checks withhold stale publication. A quiet,
 nonaligned tip can also wait for the next 100-block callback. These are freshness
 delays, not evidence that an older cached value becomes a new RPC observation.
 
+## Kernel rollback follow-up
+
+A focused follow-up reproduced an inherited rollback bug in the process-local
+current-module map. Envio restored the canonical entity, but the map returned the
+discarded fork's module. Module lookups now use native entity reads directly.
+
+Five Kernel/policy effects now persist by canonical block hash, including creation
+seeds. Event-derived reads must match the event hash; all reads pass opening and
+closing canonical checks. Versioned effect names isolate old height-only cache
+entries. The permissions process cache and historical-to-latest fallbacks are
+removed. Missing or invalid KEYCODE cannot create an `UNKNOWN` module identity.
+
+Required reads now fail closed if the provider lacks the requested archive state
+or EIP-1898 hash support. They do not substitute latest state. This can expose a
+provider capability gap that the previous fallback concealed; an archive-capable
+private upstream is required to resume those historical handlers. Transport
+retry/backpressure remains separate and unchanged.
+
 ## Robinhood-base benchmark
 
 The [accepted generated result](performance/indexer-current-state-comparison.json)

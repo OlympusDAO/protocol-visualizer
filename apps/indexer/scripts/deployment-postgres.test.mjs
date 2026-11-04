@@ -43,14 +43,12 @@ async function runStage(stage) {
     ENVIO_PG_SSL_MODE: "false",
     LOG_LEVEL: "warn",
   });
-  let rpcCalls = 0;
   const server = http.createServer(async (request, response) => {
     let raw = "";
     for await (const chunk of request) raw += chunk;
     const reply = (rpc) => {
       let result;
       if (rpc.method === "eth_call") {
-        rpcCalls++;
         result = "0x1234";
       } else if (rpc.method === "eth_getCode") {
         result = rpc.params[1].blockHash === hash(0) ? "0x" : deploymentCode;
@@ -116,7 +114,6 @@ async function runStage(stage) {
     LoadManager,
     Rollback,
     Writing,
-    { getEffectClient },
     { readVerifiedDeploymentCode },
     { reuseKernelRead },
     { getModuleDependencyFields, completeModuleDependencies },
@@ -134,7 +131,6 @@ async function runStage(stage) {
       "Rollback",
       "Writing",
     ].map(native),
-    import("../src/events/call-cache.ts"),
     import("../src/events/deployment-state.ts"),
     import("../src/events/kernel-reuse.ts"),
     import("../src/events/module-dependencies.ts"),
@@ -252,14 +248,6 @@ async function runStage(stage) {
       checkpointEventsProcessed: [1],
       registeredAddresses: [],
     });
-    const rawCall = (ctx, pin = hash(20)) =>
-      getEffectClient(ctx, 1).request({
-        method: "eth_call",
-        params: [
-          { to: address, data: "0x12345678" },
-          { blockHash: pin, requireCanonical: true },
-        ],
-      });
     const rows = async (name, ids) =>
       (await Promise.all(ids.map((id) => context(4)[name].get(id)))).filter(
         Boolean
@@ -391,8 +379,6 @@ async function runStage(stage) {
             id: `${deploymentId}:new`,
           });
           ctx.KernelReadCache.set({ ...kernel, id: `${kernelId}:new` });
-          assert.equal(await rawCall(ctx), "0x1234");
-          assert.equal(rpcCalls, 1);
         }
         IndexerState.queueProcessedBatch(state, batch(checkpoint, height));
         await Writing.runOneWrite(state);
@@ -496,8 +482,6 @@ async function runStage(stage) {
         if (store === "KernelReadCache")
           assert.equal((await ctx[store].getWhere(filter)).length, 0);
       }
-      assert.equal(await rawCall(ctx), "0x1234");
-      assert.equal(rpcCalls, 0, "production raw-call effect survives restart");
       if (stage === "rollback") {
         assert.equal(
           initial.chains.find((chain) => chain.id === 1).progressBlockNumber,
@@ -653,12 +637,6 @@ async function runStage(stage) {
           freshKernelReads,
           1,
           "reject an orphaned stored Kernel anchor"
-        );
-        assert.equal(await rawCall(ctx, hash(11)), "0x1234");
-        assert.equal(
-          rpcCalls,
-          1,
-          "replacement block hash has a distinct effect key"
         );
       }
     }

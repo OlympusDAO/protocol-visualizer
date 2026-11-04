@@ -10,7 +10,6 @@ import { ContractProcessor } from "../services/contracts/processor";
 import type { ProcessedContractData } from "../services/contracts/types";
 import type { BridgeReadResult } from "./bridge-config";
 import { readPinnedBridgeConfiguration } from "./bridge-reads";
-import { getEffectClient } from "./call-cache";
 import { emptyCodeHash, getBytecodeHash } from "./code-cache";
 import {
   type ControlGetterInput,
@@ -530,7 +529,7 @@ export const readControlGetterEffect = createEffect(
   },
   async ({ input, context }) => {
     const result = await readHashBoundControlGetter(
-      getEffectClient(context, input.chainId),
+      getPublicClient(input.chainId),
       input,
       undefined,
       (pin) =>
@@ -715,7 +714,7 @@ const readModuleDependenciesEffect = createEffect(
   },
   async ({ input, context }) => {
     const result = await readPinnedModuleDependencies(
-      getEffectClient(context, input.chainId),
+      getPublicClient(input.chainId),
       input
     );
     if (result.status === "unavailable") context.cache = false;
@@ -796,7 +795,7 @@ const readBridgeConfigurationEffect = createEffect(
   },
   async ({ input, context }) => {
     const result = await readPinnedBridgeConfiguration(
-      getEffectClient(context, input.chainId),
+      getPublicClient(input.chainId),
       input,
       (pin) => getBytecodeHash(context, input.chainId, pin)
     );

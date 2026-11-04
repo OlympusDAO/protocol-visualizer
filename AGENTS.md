@@ -20,6 +20,8 @@ If a command fails, stop and report the first failure with actionable context.
 
 For indexing or RPC performance changes, use the [Protocol Visualizer benchmark skill](skills/protocol-visualizer-benchmark/SKILL.md). `pnpm benchmark:indexer` writes the standard branch result to `docs/performance/indexer-benchmark.json`; `pnpm benchmark:indexer:compare BASE_REF` compares current results. Follow the skill's criteria for when to run and include comparisons in an authorized branch PR. Local-only tasks prepare evidence without publishing it.
 
+After removing historical sweeps/archive entities, use `pnpm benchmark:indexer:current --baseline BASE_REF --env-file .env --provider-profile LABEL`. It writes the current-state comparison to `docs/performance/indexer-current-state-comparison.json`. Use the actual PR base ref; recent optimization commits are diagnostic controls.
+
 ## Runtime Version Rules
 
 - Node version must align across `package.json` (`engines.node`), `.nvmrc`, `.node-version`, GitHub Actions setup, and Dockerfiles.

@@ -40,6 +40,12 @@ export const nativeWorkerRanges = [
 const nativeProtocol = "protocol-visualizer-native-workers-v2";
 const capacityProtocol = "protocol-visualizer-native-capacity-v1";
 const capacitySweepProtocol = "protocol-visualizer-native-capacity-sweep-v2";
+export const currentStateProtocol =
+  "protocol-visualizer-robinhood-current-state-v1";
+export const currentStateEntities =
+  "BridgeConfiguration ChainObservation Contract ContractRelationship ContractState ControlTransition CurrentModule CurrentRoleAssignee HeartTasks KernelExecutor Role RoleAssignment".split(
+    " "
+  );
 const getterHistoryProtocol = "protocol-visualizer-getter-history-v1";
 export const getterHistoryRanges = [
   { chainId: 80094, start: 780_011, end: 1_530_001 },
@@ -48,12 +54,17 @@ const getterHistoryEntities =
   "ActionExecutedEvent BridgeConfiguration ChainObservation Contract ContractEvent ContractRelationship ContractState ContractStateSeed ControlTransition CurrentModule CurrentRoleAssignee HeartTasks KernelExecutor KernelExecutorEvent KernelReadCache KernelReadEpoch Role RoleAssignment RoleEvent VerifiedDeployment".split(
     " "
   );
+const currentEthereumRange = [
+  { chainId: 1, start: 26_240_000, end: 26_290_000 },
+];
 const selectedRanges = (options) =>
-  options.getterHistory
-    ? getterHistoryRanges
-    : options.nativeWorkers
-      ? nativeWorkerRanges
-      : [{ chainId: 1, start: options.start, end: options.end }];
+  options.currentState && !options.currentHoldout
+    ? currentEthereumRange
+    : options.getterHistory
+      ? getterHistoryRanges
+      : options.nativeWorkers
+        ? nativeWorkerRanges
+        : [{ chainId: 1, start: options.start, end: options.end }];
 const queuedProtocol = "protocol-visualizer-indexer-queued-benchmark-v2";
 const image = "protocol-visualizer/rpc-cache:local";
 const pgImage = "postgres:17-alpine";
@@ -116,26 +127,31 @@ export function parseOptions(args) {
       "compare-capacity": { type: "boolean", default: false },
       "capacity-sweep": { type: "boolean", default: false },
       "getter-history": { type: "boolean", default: false },
+      "current-state": { type: "boolean", default: false },
     },
     strict: true,
     allowPositionals: false,
   });
+  const currentState = values["current-state"];
+  const getterHistory = values["getter-history"];
   const result = {
+    currentState,
+    currentHoldout: currentState && values["native-workers"] !== undefined,
     nativeWorkers:
       values["native-workers"] === undefined
-        ? values["getter-history"]
+        ? getterHistory || currentState
           ? 1
           : undefined
         : Number(values["native-workers"]),
     rpcCredits:
       values["rpc-credits"] === undefined
-        ? values["getter-history"]
+        ? getterHistory || currentState
           ? 100
           : undefined
         : Number(values["rpc-credits"]),
     compareCapacity: values["compare-capacity"],
     capacitySweep: values["capacity-sweep"],
-    getterHistory: values["getter-history"],
+    getterHistory,
     ref: values.ref ?? "HEAD",
     runs: Number(values.runs ?? 3),
     output: values.output ?? defaultOutput,
@@ -143,19 +159,26 @@ export function parseOptions(args) {
     compareRef: values["compare-ref"],
     envFile: values["env-file"],
     installDeps: values["install-deps"],
-    queuedAdmission: values["queued-admission"],
+    queuedAdmission: values["queued-admission"] || currentState,
     oracleRef: values["oracle-ref"],
     start: Number(
       values.start ??
-        (values["getter-history"] ? getterHistoryRanges[0].start : 26_240_000)
+        (getterHistory ? getterHistoryRanges[0].start : 26_240_000)
     ),
     end: Number(
-      values.end ??
-        (values["getter-history"] ? getterHistoryRanges[0].end : 26_290_000)
+      values.end ?? (getterHistory ? getterHistoryRanges[0].end : 26_290_000)
     ),
     providerProfile: values["provider-profile"] ?? "unspecified",
   };
   if (
+    (currentState &&
+      (!result.oracleRef ||
+        result.nativeWorkers !== 1 ||
+        result.rpcCredits !== 100 ||
+        result.compareCapacity ||
+        result.capacitySweep ||
+        values["queued-admission"] ||
+        values["getter-history"])) ||
     (result.getterHistory &&
       (values["native-workers"] !== undefined ||
         values["rpc-credits"] !== undefined ||
@@ -165,8 +188,8 @@ export function parseOptions(args) {
       (![1, 2, 4].includes(result.nativeWorkers) ||
         values.start !== undefined ||
         values.end !== undefined ||
-        result.oracleRef ||
-        result.queuedAdmission)) ||
+        (result.oracleRef && !currentState) ||
+        (result.queuedAdmission && !currentState))) ||
     (result.rpcCredits !== undefined &&
       (!result.nativeWorkers ||
         !(result.capacitySweep ? [100, 150, 200] : [50, 100]).includes(
@@ -307,6 +330,8 @@ export function summarize(runs) {
 
 export function resultProblems(result) {
   const reasons = [];
+  const current = result.protocol === currentStateProtocol;
+  const history = result.protocol === getterHistoryProtocol;
   if (
     ![
       protocol,
@@ -315,6 +340,7 @@ export function resultProblems(result) {
       capacityProtocol,
       capacitySweepProtocol,
       getterHistoryProtocol,
+      currentStateProtocol,
     ].includes(result.protocol) ||
     result.schemaVersion !== 1
   )
@@ -331,9 +357,8 @@ export function resultProblems(result) {
     !Number.isSafeInteger(workload.end) ||
     workload.start < 1 ||
     workload.end < workload.start ||
-    workload.chainId !==
-      (result.protocol === getterHistoryProtocol ? 80094 : 1) ||
-    workload.checkpointInterval !== 10_000 ||
+    workload.chainId !== (history ? 80094 : 1) ||
+    workload.checkpointInterval !== (current ? null : 10_000) ||
     workload.eventSource !== "HyperSync" ||
     workload.rpcMode !== "fallback"
   )
@@ -343,10 +368,12 @@ export function resultProblems(result) {
     capacityProtocol,
     capacitySweepProtocol,
     getterHistoryProtocol,
+    currentStateProtocol,
   ].includes(result.protocol);
-  const expectedRanges =
-    result.protocol === getterHistoryProtocol
-      ? getterHistoryRanges
+  const expectedRanges = history
+    ? getterHistoryRanges
+    : current && workload?.chains?.length === 1
+      ? currentEthereumRange
       : nativeWorkerRanges;
   if (
     nativeRun &&
@@ -381,7 +408,7 @@ export function resultProblems(result) {
     : workload?.end - workload?.start + 1;
   const fixture = result.inputs?.fixture;
   if (
-    (result.protocol === queuedProtocol) !==
+    (result.protocol === queuedProtocol || current) !==
       Boolean(fixture?.queuedAdmission) ||
     (fixture?.queuedAdmission &&
       (!/^[a-f0-9]{64}$/.test(fixture.queuedAdmission.implementation ?? "") ||
@@ -395,7 +422,7 @@ export function resultProblems(result) {
     !(
       result.protocol === capacitySweepProtocol
         ? [100, 150, 200]
-        : result.protocol === getterHistoryProtocol
+        : result.protocol === getterHistoryProtocol || current
           ? [100]
           : result.protocol === capacityProtocol
             ? [50, 100]
@@ -427,7 +454,7 @@ export function resultProblems(result) {
   else {
     for (const run of result.runs) {
       if (
-        result.protocol === queuedProtocol &&
+        (result.protocol === queuedProtocol || current) &&
         (!["requests", "capacityRetries", "exhausted"].every(
           (key) =>
             Number.isSafeInteger(run.admission?.[key]) &&
@@ -483,6 +510,39 @@ export function resultProblems(result) {
         !Object.keys(run.entities ?? {}).length
       )
         reasons.push("missing durable completion or source evidence");
+      if (current) {
+        const expected =
+          result.source?.observationSchedule === "historical-checkpoints"
+            ? getterHistoryEntities.filter((name) => !cacheEntities.has(name))
+            : currentStateEntities;
+        if (
+          digest(Object.keys(run.entities ?? {}).toSorted()) !==
+          digest(expected.toSorted())
+        )
+          reasons.push("incomplete current-state entity coverage");
+        if (
+          !["historical-checkpoints", "current-endpoint"].includes(
+            result.source?.observationSchedule
+          ) ||
+          result.treatment?.nativeWorkers !== 1 ||
+          result.inputs?.fixture?.aggregateCreditsPerSecond !== 100 ||
+          run.audit?.protocol !== currentStateProtocol ||
+          run.audit?.stateHash !==
+            digest(
+              Object.fromEntries(
+                Object.entries(run.entities ?? {}).map(([name, row]) => [
+                  name,
+                  row.exact,
+                ])
+              )
+            ) ||
+          !run.chainMeta?.every(
+            (meta) =>
+              run.audit?.eventCounts?.[meta.chainId] === meta.eventsProcessed
+          )
+        )
+          reasons.push("missing current-state audit evidence");
+      }
       if (result.protocol === getterHistoryProtocol) {
         if (
           digest(Object.keys(run.entities ?? {}).toSorted()) !==
@@ -528,6 +588,11 @@ export function resultProblems(result) {
 
 export function compareResults(baseline, candidate, { capacity = false } = {}) {
   const reasons = [...resultProblems(baseline), ...resultProblems(candidate)];
+  if (
+    baseline.protocol === currentStateProtocol ||
+    candidate.protocol === currentStateProtocol
+  )
+    reasons.push("use the audited current-state comparison command");
   if (baseline.protocol !== candidate.protocol)
     reasons.push("protocol mismatch");
   const comparableInputs = (result) =>
@@ -1209,7 +1274,13 @@ async function collectRun(options, setup, runNumber, cancelled) {
           [
             "--import",
             join(root, "apps/indexer/scripts/typescript-loader.mjs"),
-            join(root, "scripts/benchmark-indexer-audit.mjs"),
+            join(
+              root,
+              options.currentState
+                ? "scripts/benchmark-indexer-current.mjs"
+                : "scripts/benchmark-indexer-audit.mjs"
+            ),
+            ...(options.currentState ? ["--audit"] : []),
             "--state",
             join(logs, "state.private.json"),
             "--output",
@@ -1393,17 +1464,19 @@ function readProfile(path, nativeWorkers) {
 async function runBenchmark(options) {
   const output = resolve(root, options.output);
   const result = {
-    protocol: options.getterHistory
-      ? getterHistoryProtocol
-      : options.capacitySweep
-        ? capacitySweepProtocol
-        : options.rpcCredits !== undefined
-          ? capacityProtocol
-          : options.nativeWorkers
-            ? nativeProtocol
-            : options.queuedAdmission
-              ? queuedProtocol
-              : protocol,
+    protocol: options.currentState
+      ? currentStateProtocol
+      : options.getterHistory
+        ? getterHistoryProtocol
+        : options.capacitySweep
+          ? capacitySweepProtocol
+          : options.rpcCredits !== undefined
+            ? capacityProtocol
+            : options.nativeWorkers
+              ? nativeProtocol
+              : options.queuedAdmission
+                ? queuedProtocol
+                : protocol,
     ...(options.nativeWorkers
       ? {
           treatment: {
@@ -1487,11 +1560,41 @@ async function runBenchmark(options) {
       throw new BenchmarkFailure("native_storage_required");
     const handler = git("show", `${commit}:apps/indexer/src/EventHandlers.ts`);
     result.source.configHash = bytesDigest(config);
-    if (
-      !/name: `control-checkpoint-\$\{chainId\}`[\s\S]{0,400}_every: 10_000/.test(
+    const historical =
+      /name: `control-checkpoint-\$\{chainId\}`[\s\S]{0,400}_every: 10_000/.test(
         handler
+      );
+    if (options.currentState) {
+      if (
+        !historical &&
+        !(
+          handler.includes("createLiveObservation") &&
+          handler.includes("FULL_VERIFICATION_VERSION")
+        )
       )
-    )
+        throw new BenchmarkFailure("unknown_current_state_schedule");
+      result.source.observationSchedule = historical
+        ? "historical-checkpoints"
+        : "current-endpoint";
+      const functionalMetadata = JSON.parse(
+        git(
+          "show",
+          `${commit}:apps/indexer/src/generated/contract-metadata.json`
+        )
+      );
+      for (const contracts of Object.values(functionalMetadata))
+        for (const contract of Object.values(contracts))
+          for (const field of [
+            "ordinaryDeployment",
+            "immutableDeployment",
+            "deploymentDiscovery",
+          ])
+            delete contract[field];
+      result.source.functionalMetadataHash = digest(functionalMetadata);
+      result.source.transportHash = bytesDigest(
+        git("show", `${commit}:apps/indexer/src/events/rpc.ts`)
+      );
+    } else if (!historical)
       throw new BenchmarkFailure("checkpoint_protocol_changed");
     temporary = mkdtempSync(join(tmpdir(), "pv-indexer-benchmark-source-"));
     const archive = join(temporary, "source.tar");
@@ -1506,7 +1609,14 @@ async function runBenchmark(options) {
         proofCommit: resolveRef("HEAD"),
         proofInputHash: runtimeHash(resolveRef("HEAD")),
         implementation: bytesDigest(
-          readFileSync(join(root, "scripts/benchmark-indexer-audit.mjs"))
+          readFileSync(
+            join(
+              root,
+              options.currentState
+                ? "scripts/benchmark-indexer-current.mjs"
+                : "scripts/benchmark-indexer-audit.mjs"
+            )
+          )
         ),
         loaderHash: bytesDigest(
           readFileSync(join(root, "apps/indexer/scripts/typescript-loader.mjs"))
@@ -1611,12 +1721,25 @@ async function runBenchmark(options) {
       workload: {
         ...selectedRanges(options)[0],
         ...(options.nativeWorkers ? { chains: selectedRanges(options) } : {}),
-        checkpointInterval: 10_000,
-        configHash: workloadConfigHash(
-          options.nativeWorkers && !options.getterHistory
-            ? config.replace(/^disable_default_cross_chain:.*\n/gm, "")
-            : config
-        ),
+        checkpointInterval: options.currentState ? null : 10_000,
+        ...(options.currentState
+          ? {
+              baselineConfigHash: workloadConfigHash(
+                fixtureConfig(
+                  `${git("show", `${resolveRef(options.oracleRef)}:apps/indexer/config.yaml`)}\n`,
+                  options.start,
+                  options.end,
+                  selectedRanges(options)
+                )
+              ),
+            }
+          : {
+              configHash: workloadConfigHash(
+                options.nativeWorkers && !options.getterHistory
+                  ? config.replace(/^disable_default_cross_chain:.*\n/gm, "")
+                  : config
+              ),
+            }),
         eventSource: "HyperSync",
         rpcMode: "fallback",
       },
@@ -1677,7 +1800,7 @@ async function runBenchmark(options) {
     if (!result.summary.stateConsistent)
       throw new BenchmarkFailure("state_varied_between_runs");
     result.status = "success";
-    if (options.getterHistory) {
+    if (options.getterHistory || options.currentState) {
       const problems = resultProblems({
         ...result,
         cleanupComplete: !cleanup.failed,

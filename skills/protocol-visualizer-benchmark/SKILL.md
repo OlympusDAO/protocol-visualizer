@@ -145,3 +145,30 @@ Also run a matched three-trial-per-revision one-process four-chain holdout using
 `--native-workers 1 --rpc-credits 100`; its median may not regress by more than
 5%, and every exact table digest must match. Withhold deployment if a check fails.
 These are local bounded workloads, not proof of full nine-chain catch-up speed.
+
+## Current-state branch versus Robinhood base
+
+When historical sweeps/archive entities are removed, use the separate
+[current-state acceptance protocol](../../docs/performance/indexer-current-state-protocol.md).
+The PR baseline is the actual Robinhood base, not a recent optimization commit.
+Old exact-table protocols remain unchanged.
+
+```sh
+pnpm benchmark:indexer:current --baseline 9eb4755be2904f6751a72890ecce134c4c701fef --env-file .env --provider-profile local-private --scout --output benchmarks/current-qualification.json
+pnpm benchmark:indexer:current --baseline 9eb4755be2904f6751a72890ecce134c4c701fef --env-file .env --provider-profile local-private
+```
+
+The second command runs three cold trials per revision in alternating order and
+writes the compact standard comparison to
+`docs/performance/indexer-current-state-comparison.json`. Private trials, states
+and audits remain in `benchmarks/`. The command writes running/failed status before
+work, so an interrupted or failed campaign cannot retain an older accepted result.
+Use `--profile four-chain --output benchmarks/current-four-chain.json` for the
+one-process holdout. Keep the same refs, images, provider profile and 100-credit
+cap; do not build or run other heavy checks while timing.
+
+For single-ref diagnostics use the existing driver with `--current-state
+--oracle-ref BASE --runs 1 --output benchmarks/current-scout.json`. Such a scout
+is not a PR percentage. Include the accepted base/current comparison, its exact
+refs, recovery profile, request counts and current-state/history caveat in an
+otherwise authorized PR update. Local-only work prepares evidence without publishing.

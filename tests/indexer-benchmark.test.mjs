@@ -854,6 +854,9 @@ else fs.writeFileSync(${JSON.stringify(installLog)}, JSON.stringify({cwd:process
         fileURLToPath(
           new URL("../scripts/benchmark-indexer.mjs", import.meta.url)
         ),
+        "--current-state",
+        "--oracle-ref",
+        "HEAD",
         "--install-deps",
         "--runs",
         "1",

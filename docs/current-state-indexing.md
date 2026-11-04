@@ -95,6 +95,11 @@ image import fixture uses development configuration defaults; the separate
 controlled startup/reset integration exercises the deployed image configuration.
 These fixtures do not establish live nine-chain throughput.
 
+The final performance comparison uses the actual Robinhood base `9eb4755`, not
+the recent optimization commits. That base has 17 entities; this milestone has
+12 (29.4% fewer). The 20-to-12 count above describes the preceding performance
+iteration. Earlier raw-call scouts remain diagnostic only.
+
 Performance evidence for this milestone is pending the separate current-state
 benchmark. The old exact-20-table profile remains unchanged and cannot certify
 this intentional schema/observation-policy change.

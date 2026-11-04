@@ -8,6 +8,7 @@ import http from "node:http";
 import {
   compareCurrentStates,
   executorSeedBlock,
+  scheduledBlockCount,
   isEvmRevert,
 } from "../scripts/benchmark-indexer-current.mjs";
 import {
@@ -29,6 +30,18 @@ const tables =
   "ActionExecutedEvent ContractEvent KernelExecutorEvent RoleEvent ContractStateSeed".split(
     " "
   );
+test("native processed counts include scheduled callbacks as well as unique logs", () => {
+  const chain = { start_block: 26240000, end_block: 26290000 };
+  const baseline = [
+    { interval: 100 },
+    { interval: 10000 },
+    { startBlock: chain.start_block, endBlock: chain.start_block, interval: 1 },
+    { startBlock: chain.end_block, endBlock: chain.end_block, interval: 1 },
+  ];
+  assert.equal(scheduledBlockCount(baseline, chain), 509);
+  assert.equal(scheduledBlockCount(baseline.slice(2), chain), 2);
+  assert.throws(() => scheduledBlockCount([{ interval: 0 }], chain));
+});
 test("pre-window executor exemption requires the exact creation seed and no observed change", () => {
   const constants = {
     address,

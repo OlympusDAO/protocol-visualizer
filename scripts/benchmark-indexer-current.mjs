@@ -69,6 +69,22 @@ export function executorSeedBlock(row, constants, start, events) {
   );
   return String(row.lastUpdatedBlockNumber);
 }
+export function scheduledBlockCount(registrations, chain) {
+  return registrations.reduce((total, registration) => {
+    const start = registration.startBlock ?? chain.start_block;
+    const end = Math.min(
+      registration.endBlock ?? chain.end_block,
+      chain.end_block
+    );
+    assert(
+      Number.isSafeInteger(registration.interval) && registration.interval > 0
+    );
+    return (
+      total +
+      (end < start ? 0 : Math.floor((end - start) / registration.interval) + 1)
+    );
+  }, 0);
+}
 const hash = (path) =>
   createHash("sha256").update(readFileSync(path)).digest("hex");
 const implementationHash = hash(fileURLToPath(import.meta.url));
@@ -118,6 +134,18 @@ export async function auditCurrent(options) {
     config = yaml.parse(
       readFileSync(join(options.source, "apps/indexer/config.yaml"), "utf8")
     );
+  const native = (name) =>
+    import(
+      new URL(`./src/${name}.res.mjs`, pathToFileURL(require.resolve("envio")))
+    );
+  const [Config, Handlers] = await Promise.all([
+    native("Config"),
+    native("HandlerRegister"),
+  ]);
+  const nativeConfig = Config.load();
+  Handlers.startRegistration(nativeConfig);
+  await load(options.source, "apps/indexer/src/EventHandlers.ts");
+  const registrations = Handlers.finishRegistration(nativeConfig);
   const { getPublicClient, rethrowTransientRpc } = await load(
     root,
     "apps/indexer/src/events/rpc.ts"
@@ -1097,7 +1125,20 @@ export async function auditCurrent(options) {
     eventCounts: Object.fromEntries(
       config.chains.map((chain) => [
         chain.id,
-        events.filter((event) => event.chainId === chain.id).length,
+        new Set(
+          events
+            .filter((event) => event.chainId === chain.id)
+            .map((event) => `${event.blockHash}:${event.logIndex}`)
+        ).size,
+      ])
+    ),
+    blockCallbacks: Object.fromEntries(
+      config.chains.map((chain) => [
+        chain.id,
+        scheduledBlockCount(
+          registrations[chain.id].onBlockRegistrations,
+          chain
+        ),
       ])
     ),
     manifestHash: digest(events),
@@ -1383,7 +1424,14 @@ export function checkCurrentPair(baseline, candidate) {
     baseline.runs[0].audit,
     candidate.runs[0].audit
   );
-  same(baseline.runs[0].chainMeta, candidate.runs[0].chainMeta);
+  same(
+    baseline.runs[0].chainMeta.map(
+      ({ eventsProcessed, ...progress }) => progress
+    ),
+    candidate.runs[0].chainMeta.map(
+      ({ eventsProcessed, ...progress }) => progress
+    )
+  );
   return changes;
 }
 async function campaignWork(options) {
@@ -1517,6 +1565,11 @@ async function campaignWork(options) {
     inputs: a.inputs,
     baselineSummary: a.summary,
     candidateSummary: b.summary,
+    workCounts: {
+      canonicalLogs: a.runs[0].audit.eventCounts,
+      baselineBlockCallbacks: a.runs[0].audit.blockCallbacks,
+      candidateBlockCallbacks: b.runs[0].audit.blockCallbacks,
+    },
     initializationSeeds: a.runs[0].audit.initializationSeeds,
     throughputGainPercent: gain,
     rawFiles: Object.fromEntries(
@@ -1529,7 +1582,7 @@ async function campaignWork(options) {
       ])
     ),
     caveats: [
-      "Equal current-state contract, deliberately fewer historical observations and archive records.",
+      "Audited getter/state equivalence with separately disclosed initialization seeds; deliberately fewer historical observations, block callbacks and archive records.",
       "Local cold bounded replays; no live nine-chain or provider billing claim.",
       "Oracle RPC runs after timing and is excluded from measured request counts.",
       "Pre-window Kernel executor initialization records are checked at creation and retained exactly; their endpoint executor and configured timestamp discrepancies are disclosed separately, not certified as current state.",

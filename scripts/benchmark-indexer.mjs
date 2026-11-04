@@ -41,7 +41,7 @@ const nativeProtocol = "protocol-visualizer-native-workers-v2";
 const capacityProtocol = "protocol-visualizer-native-capacity-v1";
 const capacitySweepProtocol = "protocol-visualizer-native-capacity-sweep-v2";
 export const currentStateProtocol =
-  "protocol-visualizer-robinhood-current-state-v2";
+  "protocol-visualizer-robinhood-current-state-v3";
 export const currentStateEntities =
   "BridgeConfiguration ChainObservation Contract ContractRelationship ContractState ControlTransition CurrentModule CurrentRoleAssignee HeartTasks KernelExecutor Role RoleAssignment".split(
     " "
@@ -538,7 +538,11 @@ export function resultProblems(result) {
             ) ||
           !run.chainMeta?.every(
             (meta) =>
-              run.audit?.eventCounts?.[meta.chainId] === meta.eventsProcessed
+              Number.isSafeInteger(run.audit?.eventCounts?.[meta.chainId]) &&
+              Number.isSafeInteger(run.audit?.blockCallbacks?.[meta.chainId]) &&
+              run.audit.eventCounts[meta.chainId] +
+                run.audit.blockCallbacks[meta.chainId] ===
+                meta.eventsProcessed
           )
         )
           reasons.push("missing current-state audit evidence");

@@ -1,14 +1,16 @@
 # Robinhood-base current-state benchmark protocol
 
-Protocol v2 adds explicit pre-window initialization receipts. Failed v1
-qualification remains diagnostic evidence and cannot be relabeled as accepted.
+Protocol v3 distinguishes native processed-item counts from canonical log counts;
+v2 added explicit pre-window initialization receipts. Failed v1/v2 qualification
+remains diagnostic evidence and cannot be relabeled as accepted.
 
 Compare `feat/robinhood-chain` commit `9eb4755be2904f6751a72890ecce134c4c701fef`
 against the committed current branch. Recent performance commits are diagnostic
 controls, not the baseline for the PR speedup.
 
 The primary workload is Ethereum 26,240,000–26,290,000 inclusive. Use three cold
-trials per revision in A/B, B/A, A/B order after a baseline-only qualification.
+trials per revision in A/B, B/A, A/B order. The first baseline trial must pass
+qualification before the first candidate starts; it also counts as trial A1.
 The optional four-chain holdout uses the existing fixed native-worker ranges,
 one process and two PostgreSQL connections. Both revisions use identical pinned
 runtimes, dependencies, immutable proxy/database images and a finite aggregate
@@ -28,7 +30,11 @@ Do not describe these runs as equal historical work or weaken older protocols.
 Record actual source/config/transport/metadata hashes. The common workload records
 the baseline configuration hash; each source retains its own actual configuration
 hash. Added subscriptions or dynamic registrations must produce the same canonical
-event manifest and native event counts, or the comparison fails.
+event manifest, or the comparison fails. Envio's native processed-item counter
+also includes scheduled block callbacks. Load each source's real native handler
+registrations after timing and require its native counter to equal unique
+canonical logs plus independently counted scheduled callbacks. Callback totals
+can differ because removing historical callbacks is part of the change.
 
 Require exact repeatability within each revision and complete durable endpoint
 progress. After timing, run baseline production readers directly against the

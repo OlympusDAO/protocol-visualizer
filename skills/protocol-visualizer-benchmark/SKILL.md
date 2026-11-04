@@ -158,7 +158,9 @@ pnpm benchmark:indexer:current --baseline 9eb4755be2904f6751a72890ecce134c4c701f
 pnpm benchmark:indexer:current --baseline 9eb4755be2904f6751a72890ecce134c4c701fef --env-file .env --provider-profile local-private
 ```
 
-The second command runs three cold trials per revision in alternating order and
+`--scout` is an optional extra baseline diagnostic. The full campaign qualifies
+its first baseline trial before starting any candidate, so a separate scout is
+not required. The second command runs three cold trials per revision in alternating order and
 writes the compact standard comparison to
 `docs/performance/indexer-current-state-comparison.json`. Private trials, states
 and audits remain in `benchmarks/`. The command writes running/failed status before

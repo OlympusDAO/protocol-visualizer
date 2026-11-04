@@ -100,6 +100,100 @@ the recent optimization commits. That base has 17 entities; this milestone has
 12 (29.4% fewer). The 20-to-12 count above describes the preceding performance
 iteration. Earlier raw-call scouts remain diagnostic only.
 
-Performance evidence for this milestone is pending the separate current-state
-benchmark. The old exact-20-table profile remains unchanged and cannot certify
-this intentional schema/observation-policy change.
+The accepted Robinhood-base comparison below measures this intentional
+schema/observation-policy change. The old exact-20-table profile remains unchanged
+and cannot certify current-only indexing.
+
+## Simplification review before publication
+
+Astra reviewed correctness and Ponytail reviewed unnecessary complexity. The
+follow-up removes 2,566 net lines: unused compiler-proof fixtures, the superseded
+Robinhood auditor/comparator, and obsolete `verifiedAt` plumbing. The retired
+auditor imported removed caching modules. Its historical results and source refs
+remain available; new comparisons use the current-state command.
+
+Fresh getter and dependency results can no longer supply an older verification
+block. Full observations record their actual block. The regression check also
+rejects the effect of an injected legacy reuse annotation.
+
+| Decision | Reason and remaining cost |
+| --- | --- |
+| Remove cross-block immutable/deployment and Kernel reuse | Current-only verification removes most repeated sweeps. Deployment lifetime, custom proxy and event-invalidation assumptions no longer justify a separate reuse system. New contracts receive fresh reads; immutable detection is no longer a runtime optimization. |
+| Remove the raw-call effect layer | eRPC and existing domain effects already cache calls. The earlier scout recorded a small traffic increase after deletion; maintenance simplicity justified keeping the smaller path. |
+| Keep block-hash bytecode/domain effects | Their cache identity and opening/closing canonical checks protect against forks. Failures do not become reusable successful observations. |
+| Keep bounded RPC recovery and HTTP batching | They cap private-proxy pressure and prevent exhausted capacity reads from being committed as missing values. Long outages can still exhaust recovery and require restart. |
+| Keep the two-subject scheduler | It overlaps independent I/O while preserving same-address ordering and draining sibling work on failure. No generic worker scheduler is added. |
+| Keep ownership dialects and proof provenance | OZ, Solmate and Chainlink have different pending-owner semantics; some nominees have no public getter. This is now correctness/provenance code, not a getter-saving claim. Readable getters are checked at every full observation. |
+| Keep metadata prefetch/cache and admission | Source-service quotas remain independent of RPC capacity. Metadata admission depends on Envio's internal worker description and the pinned maximum of four workers. Recheck that compatibility on Envio upgrades or topology changes. |
+
+The static review found no demonstrated correctness blocker in the retained
+runtime. It did not attribute the whole-branch timing gain to individual retained
+optimizations. Earlier worker gains used historical sweeps; they do not establish
+a current-only worker benefit. The matched primary replay uses one process.
+
+One remaining liveness limit is a deep head regression below the remembered live
+eligibility threshold. Verification can wait until callbacks reach that threshold
+again. Publisher freshness/canonical checks withhold stale publication. A quiet,
+nonaligned tip can also wait for the next 100-block callback. These are freshness
+delays, not evidence that an older cached value becomes a new RPC observation.
+
+## Robinhood-base benchmark
+
+The [accepted generated result](performance/indexer-current-state-comparison.json)
+compares Robinhood base `9eb4755` with candidate `1178165`. Protocol v4 uses three
+cold replays per revision in A/B, B/A, A/B order over Ethereum
+26,240,000–26,290,000 inclusive: 50,001 blocks and 14 canonical logs. Both sides
+use HyperSync, one process, two PostgreSQL connections, identical images/providers,
+100 aggregate eRPC credits/second and the same bounded queued-recovery fixture.
+Waiting counts toward elapsed time; independent oracle RPC happens afterward.
+
+| Median | Robinhood base | Current branch |
+| --- | ---: | ---: |
+| Committed time | 167.843s | 25.272s |
+| Blocks/second | 297.9 | 1,978.5 |
+| Requests reaching eRPC | 20,383 | 896 |
+| Upstream requests, including health probes | 10,491 | 897 |
+
+Throughput improved **564.16% (6.64×)**; elapsed time fell **84.94%**. Requests
+reaching eRPC fell **95.60%**, and upstream requests fell **91.45%**. These are
+whole-branch results, not separate causal estimates for each retained optimization.
+Base times were 181.619s, 167.843s and 166.869s; candidate times were 25.541s,
+24.573s and 25.272s. Every candidate was faster than every base trial.
+
+All six audits passed, canonical logs matched, and each revision repeated its
+exact entity contents. The candidate has 12 current tables versus the base's 17.
+Native processed counts differ intentionally: 509 scheduled callbacks plus 14
+logs on the base, versus two callbacks plus 14 logs on the candidate. Getter
+observations, seeds and archive work are deliberately reduced; this is not equal
+historical work. The [protocol](performance/indexer-current-state-protocol.md)
+defines the narrow provenance differences that passed independent checks.
+
+The audit checked 579 relationships, including two explicitly unavailable private
+Chainlink nominees supported only by observed events or an unknown null value.
+One pre-window Kernel executor record retains its creation-time value and
+configured timestamp. Fresh creation and endpoint reads expose the differing
+endpoint executor and 1,200-second timestamp discrepancy. That initialization
+record is compared exactly and excluded from endpoint-state certification.
+
+No run exhausted recovery. The baseline fixture recorded 11, seven and four
+capacity retries; the candidate recorded none. Candidate optional proxy-capacity
+counters were absent, so this is not proof that Alchemy never throttled or had
+spare capacity. The real eRPC/Postgres tests separately exercise 429 recovery,
+exhaustion, two-provider failover, reverts and aggregate mixed-method budgeting.
+
+This bounded cold fixture does not establish full-history, live nine-chain,
+current-only worker or provider-billing improvements. The four-chain current-only
+holdout was not run. Existing deployments need an explicitly approved database
+rebuild for the smaller schema; only disposable fixture databases were reset.
+
+The nine ordered validation steps, 45 focused checks, three real-image
+eRPC/Postgres integration tests and the fresh Trivy scan under the existing CI
+policy passed. Astra and Ponytail reviewed the implementation and simplification.
+Local CodeRabbit review was attempted twice but rejected Git-provider
+authentication; its local auth-status check alone was insufficient.
+
+The measured runtime-input fingerprint is
+`63e35286b0831d4590c4ccc4d2e817abdcd56929cf956d250ab8396a23e059b8`.
+Later documentation/evidence commits retain this fingerprint. The generated
+result records trial hashes and image/runtime identities. Reproduce with
+`pnpm benchmark:indexer:current --baseline 9eb4755be2904f6751a72890ecce134c4c701fef --env-file .env --provider-profile local-private`.

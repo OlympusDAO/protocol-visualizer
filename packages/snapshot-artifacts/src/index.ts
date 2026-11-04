@@ -1,4 +1,8 @@
 export const SCHEMA_VERSION = "1.1.0" as const;
+export {
+  FULL_VERIFICATION_VERSION,
+  OBSERVATION_BLOCK_INTERVAL,
+} from "./observation-constants.js";
 export type SnapshotSchemaVersion = "1.0.0" | typeof SCHEMA_VERSION;
 
 export function isSupportedSchemaVersion(
@@ -90,6 +94,7 @@ export type ContractRelationship = {
 export type ChainObservation = {
   chainId: number;
   indexedThrough: BlockObservation;
+  verificationVersion?: number;
 };
 export type PeriodicTask = {
   address: string;
@@ -850,6 +855,7 @@ export const protocolSnapshotSchema = {
       properties: {
         chainId: { type: "integer" },
         indexedThrough: { $ref: "#/$defs/block" },
+        verificationVersion: { type: "integer", minimum: 1 },
       },
     },
     jsonValue: true,

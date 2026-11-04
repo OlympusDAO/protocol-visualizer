@@ -136,6 +136,33 @@ test("indexer image supports a non-root administrative shell", () => {
   }
 });
 
+test("indexer image loads every handler and its runtime imports offline", () => {
+  const result = docker(
+    "run",
+    "--rm",
+    "--network=none",
+    "-e",
+    "NODE_ENV=development",
+    "-e",
+    "ENVIO_HASURA=false",
+    "-e",
+    "ENVIO_API_TOKEN=fixture",
+    "-e",
+    "ENVIO_RPC_MODE=fallback",
+    ...ids.flatMap((chain) => [
+      "-e",
+      `ENVIO_RPC_URL_${chain}=http://127.0.0.1:1`,
+    ]),
+    "protocol-visualizer/indexer:local",
+    "--import",
+    "./scripts/typescript-loader.mjs",
+    "--input-type=module",
+    "-e",
+    'globalThis.fetch=()=>{throw Error("Handler registration must remain offline");}; await import("./src/EventHandlers.ts"); console.log("Handlers loaded");'
+  );
+  assert.equal(result, "Handlers loaded");
+});
+
 test("pinned eRPC read-through persistence, finality, isolation and safe errors", {
   timeout: 300_000,
 }, async () => {

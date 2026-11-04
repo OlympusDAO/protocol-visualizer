@@ -4,15 +4,6 @@ enum ContractType {
   POLICY
 }
 
-enum ActionType {
-  installModule
-  upgradeModule
-  activatePolicy
-  deactivatePolicy
-  changeExecutor
-  migrateKernel
-}
-
 type Contract {
   id: ID!
   address: String! @index
@@ -27,61 +18,12 @@ type Contract {
   policyFunctions: Json
 }
 
-type ContractEvent {
-  id: ID!
-  transactionHash: String! @index
-  logIndex: Int!
-  action: ActionType! @index
-  address: String! @index
-  timestamp: BigInt!
-  blockNumber: BigInt! @index
-  name: String!
-  version: String
-  contractType: ContractType!
-  isEnabled: Boolean!
-  policyPermissions: Json
-  policyFunctions: Json
-}
-
 type KernelExecutor {
   id: ID!
   kernel: String! @index
   lastUpdatedTimestamp: BigInt!
   lastUpdatedBlockNumber: BigInt! @index
   executor: String! @index
-}
-
-type KernelExecutorEvent {
-  id: ID!
-  kernel: String! @index
-  transactionHash: String! @index
-  logIndex: Int!
-  timestamp: BigInt!
-  blockNumber: BigInt! @index
-  executor: String! @index
-}
-
-type ActionExecutedEvent {
-  id: ID!
-  kernel: String! @index
-  transactionHash: String! @index
-  logIndex: Int!
-  timestamp: BigInt!
-  blockNumber: BigInt! @index
-  action: ActionType! @index
-  target: String! @index
-}
-
-type RoleEvent {
-  id: ID!
-  role: String! @index
-  transactionHash: String! @index
-  logIndex: Int!
-  assignee: String! @index
-  timestamp: BigInt!
-  blockNumber: BigInt! @index
-  assigneeName: String!
-  isGranted: Boolean! @index
 }
 
 type Role {
@@ -131,14 +73,6 @@ type ContractState {
   enablementCoverage: String
 }
 
-type ContractStateSeed {
-  id: ID!
-  address: String! @index
-  boundary: Json!
-  getter: String!
-  value: String!
-}
-
 type ControlTransition {
   id: ID!
   address: String! @index
@@ -177,30 +111,7 @@ type ContractRelationship {
 type ChainObservation {
   id: ID!
   indexedThrough: Json!
-}
-
-# Entity caches roll back with events. Effects alone survive rollback.
-type VerifiedDeployment {
-  id: ID!
-  address: String! @index
-  creationBlock: BigInt!
-  creationHash: String!
-  codeHash: String!
-  version: String!
-  verifiedAt: Json!
-}
-
-type KernelReadEpoch {
-  id: ID!
-  epoch: String!
-  migrated: Boolean!
-}
-
-type KernelReadCache {
-  id: ID!
-  epoch: String!
-  result: Json!
-  verifiedAt: Json!
+  verificationVersion: Int!
 }
 
 type HeartTasks {

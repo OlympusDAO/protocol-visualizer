@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
 import { readFileSync } from "node:fs";
+import { test } from "node:test";
 import {
-  handleEnablementEvent,
   completeEnablementBlock,
+  handleEnablementEvent,
 } from "../src/events/enabler.ts";
 import {
   getEnablerCapability,
@@ -21,12 +21,10 @@ const makeStore = () => {
 };
 const makeContext = () =>
   Object.fromEntries(
-    [
-      "ContractState",
-      "ContractStateSeed",
-      "ControlTransition",
-      "ChainObservation",
-    ].map((key) => [key, makeStore()])
+    ["ContractState", "ControlTransition", "ChainObservation"].map((key) => [
+      key,
+      makeStore(),
+    ])
   );
 const event = (logIndex, params = {}) => ({
   chainId: 1,
@@ -242,7 +240,6 @@ test("a new contract boundary checks existing chain anchors before seeding or ad
     async (number) => ({ ...block, number })
   );
   assert.equal(await context.ContractState.get(`1:${added}`), undefined);
-  assert.equal(context.ContractStateSeed.rows.size, 0);
   assert.equal(context.ChainObservation.rows.size, 0);
   assert.equal(
     (await context.ContractState.get(`1:${address}`)).verification.outcome,

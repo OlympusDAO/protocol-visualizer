@@ -9,68 +9,51 @@ const codec = await import(
     paths: [require.resolve("envio")],
   })
 );
-
-test("metadata effects round trip through Envio's native output codec", async () => {
-  const deployment = {
-    chainId: 1,
-    address: `0x${"12".repeat(20)}`,
-    creationBlock: "123",
-    codeHash: `0x${"34".repeat(32)}`,
-    version: "fixture",
-    sourceUrl: "https://sourcify.dev/",
+test("verified ABI metadata round trips through native effect persistence", async () => {
+  const output = {
+    roleToFunctions: { admin: ["owner"] },
+    functionSelectors: {
+      "0x8da5cb5b": {
+        name: "owner",
+        selector: "0x8da5cb5b",
+        signature: "owner()(address)",
+        canonicalSignature: "owner()",
+        roles: ["admin"],
+        documentation: {
+          signature: "owner()",
+          notice: "Current owner",
+          source: {
+            url: "https://sourcify.dev/",
+            codeHash: `0x${"34".repeat(32)}`,
+            match: "exact",
+          },
+        },
+      },
+    },
+    addressGetters: ["owner"],
   };
   await getProcessedContract(
     {
       effect: async (effect) => {
+        if (effect.name === "readControlBlock") return undefined;
         assert.equal(effect.name, "processContractMetadataV3");
-        for (const descriptors of [
-          {},
-          {
-            deploymentDiscovery: {
-              chainId: deployment.chainId,
-              address: deployment.address,
-              codeHash: deployment.codeHash,
-              version: "verified-deployment-discovery-v1",
-            },
-          },
-          { ordinaryDeployment: deployment },
-          {
-            immutableDeployment: {
-              ...deployment,
-              immutableGetters: { token: "0" },
-            },
-          },
-          {
-            ordinaryDeployment: deployment,
-            immutableDeployment: {
-              ...deployment,
-              immutableGetters: { token: "0" },
-            },
-          },
-        ]) {
-          const output = {
-            roleToFunctions: {},
-            functionSelectors: {},
-            addressGetters: undefined,
-            ordinaryDeployment: undefined,
-            immutableDeployment: undefined,
-            deploymentDiscovery: undefined,
-            ...descriptors,
-          };
-          const stored = codec.reverseConvertToJsonOrThrow(
-            output,
-            effect.storageMeta.outputSchema
-          );
-          assert.deepEqual(
-            codec.parseOrThrow(stored, effect.storageMeta.outputSchema),
-            output
-          );
-        }
-        return { roleToFunctions: {}, functionSelectors: {} };
+        const stored = codec.reverseConvertToJsonOrThrow(
+          output,
+          effect.storageMeta.outputSchema
+        );
+        assert.deepEqual(
+          JSON.parse(
+            JSON.stringify(
+              codec.parseOrThrow(stored, effect.storageMeta.outputSchema)
+            )
+          ),
+          output
+        );
+        return output;
       },
     },
     1,
-    deployment.address,
+    `0x${"12".repeat(20)}`,
     "codec fixture",
     123n
   );

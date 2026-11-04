@@ -4,9 +4,9 @@ import type { ControlBlock } from "./control-state";
 import { contractId, controlTransitionId } from "./ids";
 import {
   getOwnershipEventPolicy,
+  type OwnershipEventPolicy,
   policyCoversEvent,
   policyCoversGetter,
-  type OwnershipEventPolicy,
 } from "./ownership-policy";
 import type { ControlEvent, EnvioContext } from "./types";
 
@@ -57,13 +57,7 @@ export type RelationshipState = {
   targetCode?: "present" | "absent";
   scope?: { registry?: string; token?: string };
 };
-type Context = Pick<
-  EnvioContext,
-  | "ContractRelationship"
-  | "ContractStateSeed"
-  | "ControlTransition"
-  | "ChainObservation"
->;
+type Context = Pick<EnvioContext, "ContractRelationship" | "ControlTransition">;
 type RelationshipEvent = ControlEvent & { params: Record<string, unknown> };
 const zero = `0x${"0".repeat(40)}`;
 const nonzero = (value: string | null | undefined) =>
@@ -247,14 +241,6 @@ async function writeField(
       timestamp: BigInt(event.block.timestamp),
       transactionHash: event.transaction.hash,
       logIndex: event.logIndex,
-    });
-  if (!event && !previous?.value)
-    context.ContractStateSeed.set({
-      id: `${id}:${provenance.hash}`,
-      address: state.subject,
-      boundary: provenance,
-      getter: field.getter,
-      value: state.value,
     });
   if (!reference(field.kind) && !isPending(field.getter)) {
     const pendingGetter = `new${field.getter.charAt(0).toUpperCase()}${field.getter.slice(1)}`;
@@ -520,11 +506,7 @@ export async function completeRelationshipBlock(
   block: ControlBlock,
   fields: RelationshipField[],
   read: (address: string, getter: string) => Promise<ControlGetterResult>,
-  readCanonicalBlock: (number: string) => Promise<ControlBlock | undefined>,
-  refreshTargetCode?: (
-    address: string,
-    block: ControlBlock
-  ) => Promise<"present" | "absent" | undefined>
+  readCanonicalBlock: (number: string) => Promise<ControlBlock | undefined>
 ): Promise<boolean> {
   if (
     !(await relationshipAnchorsCanonical(
@@ -553,56 +535,6 @@ export async function completeRelationshipBlock(
         const id = relationshipId(chainId, field.address, field.getter);
         let state =
           await context.ContractRelationship.get<RelationshipState>(id);
-        const policy = field.eventPolicy;
-        const replay = state?.verification?.eventReplay;
-        let canReplay = Boolean(
-          policy &&
-            policyCoversGetter(policy, field.getter) &&
-            !field.coverage?.startsWith("getter-only") &&
-            state?.value != null &&
-            replay?.profile === policy.profile &&
-            replay.codeHash === policy.codeHash &&
-            replay.version === policy.version &&
-            BigInt(replay.block.number) <= BigInt(block.number) &&
-            BigInt(state.provenance.number) <= BigInt(block.number) &&
-            (!state.indexedThrough ||
-              BigInt(state.indexedThrough.number) <= BigInt(block.number)) &&
-            (state.targetCode === undefined || refreshTargetCode)
-        );
-        let targetCode: "present" | "absent" | undefined;
-        if (canReplay && state?.value && refreshTargetCode) {
-          targetCode = await refreshTargetCode(state.value, block);
-          canReplay = targetCode !== undefined;
-        }
-        if (canReplay && state && replay) {
-          // These callbacks must read fresh headers outside Envio's effect memoization.
-          const [anchor, current] = await Promise.all([
-            readCanonicalBlock(replay.block.number),
-            readCanonicalBlock(block.number),
-          ]);
-          if (
-            anchor?.hash !== replay.block.hash ||
-            current?.hash !== block.hash
-          ) {
-            context.ContractRelationship.set({
-              ...state,
-              verification: {
-                ...state.verification,
-                outcome: "unavailable",
-                reason:
-                  "Ownership replay anchor is not on the observed canonical chain.",
-              },
-            });
-            stopped = true;
-            return;
-          }
-          context.ContractRelationship.set({
-            ...(await present(context, chainId, state)),
-            indexedThrough: block,
-            ...(targetCode ? { targetCode } : {}),
-          });
-          continue;
-        }
         const result = await read(field.address, field.getter);
         if (
           result.status === "success" &&
@@ -636,6 +568,7 @@ export async function completeRelationshipBlock(
             ...(field.scope ? { scope: field.scope } : {}),
           };
         }
+        const policy = field.eventPolicy;
         const eventReplay =
           policy &&
           policyCoversGetter(policy, field.getter) &&
@@ -700,9 +633,5 @@ export async function completeRelationshipBlock(
   for (const result of results)
     if (result.status === "rejected") throw result.reason;
   if (stopped) return false;
-  context.ChainObservation.set({
-    id: String(chainId),
-    indexedThrough: block,
-  });
   return true;
 }

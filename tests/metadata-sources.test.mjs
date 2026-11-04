@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 
-test("preparation checks Etherscan once per miss, preserves proofs, fills missing ABI and sanitizes failures", () => {
+test("preparation checks Etherscan once per miss, preserves prepared metadata, fills missing ABI and sanitizes failures", () => {
   const root = mkdtempSync(path.join(tmpdir(), "pv-metadata-sources-"));
   const output = path.join(root, "metadata.json"),
     report = path.join(root, "sources.json");
@@ -42,7 +42,6 @@ test("preparation checks Etherscan once per miss, preserves proofs, fills missin
       },
     },
     addressGetters: ["owner"],
-    ordinaryDeployment: { fixture: "retained" },
   };
   const run = (seed, responses, normal = false, options = {}) => {
     writeFileSync(output, JSON.stringify({ 1: { [address]: seed } }));
@@ -76,9 +75,7 @@ globalThis.fetch=async (input)=>{
         ...(normal
           ? []
           : [
-              options.refreshOnly
-                ? "--refresh-getters"
-                : "--prefetch-deployments",
+              options.refreshOnly ? "--refresh-getters" : "--prefetch-metadata",
               "--source-report",
               report,
             ]),
@@ -123,7 +120,7 @@ globalThis.fetch=async (input)=>{
     assert.deepEqual(
       check.metadata,
       previous,
-      "explorer fallback must preserve prepared metadata and proof"
+      "explorer fallback must preserve prepared metadata"
     );
     assert.equal(
       check.calls.filter((c) => c.host === "api.etherscan.io").length,
@@ -140,31 +137,10 @@ globalThis.fetch=async (input)=>{
       check.metadata.functionSelectors["0x8da5cb5b"].canonicalSignature,
       "owner()"
     );
-    for (const field of [
-      "deploymentDiscovery",
-      "ordinaryDeployment",
-      "immutableDeployment",
-    ])
-      assert.equal(check.metadata[field], undefined);
     assert.equal(
       check.metadata.functionSelectors["0x8da5cb5b"].documentation,
       undefined
     );
-    check = run(
-      {
-        roleToFunctions: {},
-        functionSelectors: {},
-        ordinaryDeployment: previous.ordinaryDeployment,
-      },
-      [{ body: { status: "1", result: [source] } }]
-    );
-    assert.equal(check.result.status, 0, check.result.stderr);
-    assert.deepEqual(
-      check.metadata.ordinaryDeployment,
-      previous.ordinaryDeployment,
-      "empty ABI enrichment must retain independent deployment facts"
-    );
-
     check = run(previous, [
       {
         body: {

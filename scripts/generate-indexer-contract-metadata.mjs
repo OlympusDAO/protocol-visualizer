@@ -8,9 +8,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import "../apps/indexer/scripts/typescript-loader.mjs";
 
-const { processAbiMetadata, processVerifiedContractMetadata } = await import(
-  "../apps/indexer/src/services/contracts/abi.ts"
-);
+const {
+  processAbiMetadata,
+  processVerifiedContractMetadata,
+  verifiedMetadataFields,
+  hasVerifiedMetadata,
+} = await import("../apps/indexer/src/services/contracts/abi.ts");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
@@ -23,9 +26,6 @@ const defaultOutputPath = path.join(
   "src",
   "generated",
   "contract-metadata.json"
-);
-const { verifiedGetterFields, hasCompleteDeploymentDiscovery } = await import(
-  "../apps/indexer/src/services/contracts/immutables.ts"
 );
 
 const etherscanBaseUrl = "https://api.etherscan.io/v2/api";
@@ -69,7 +69,7 @@ function parseArgs(args) {
     cacheOnly: false,
     verifiedSource: undefined,
     refreshGetters: false,
-    prefetchDeployments: false,
+    prefetchMetadata: false,
     output: undefined,
     sourceReport: undefined,
     explorerAbi: undefined,
@@ -84,8 +84,8 @@ function parseArgs(args) {
       options.refreshGetters = true;
       continue;
     }
-    if (arg === "--prefetch-deployments") {
-      options.prefetchDeployments = true;
+    if (arg === "--prefetch-metadata") {
+      options.prefetchMetadata = true;
       continue;
     }
     if (arg === "--output") {
@@ -145,7 +145,7 @@ function parseArgs(args) {
     options.explorerAbi &&
     (options.verifiedSource ||
       options.refreshGetters ||
-      options.prefetchDeployments ||
+      options.prefetchMetadata ||
       options.cacheOnly)
   ) {
     throw new Error(
@@ -819,7 +819,7 @@ if (explicitLabel?.labelOnly) {
       cliOptions.address,
       metadata[cliOptions.chainId][cliOptions.address]
     );
-} else if (cliOptions.refreshGetters || cliOptions.prefetchDeployments) {
+} else if (cliOptions.refreshGetters || cliOptions.prefetchMetadata) {
   const activeChains = new Set(
     [
       ...readFileSync(path.join(indexerRoot, "config.yaml"), "utf8").matchAll(
@@ -829,7 +829,7 @@ if (explicitLabel?.labelOnly) {
   );
   const matched = [...targets.values()].filter(
     (contract) =>
-      (!cliOptions.prefetchDeployments ||
+      (!cliOptions.prefetchMetadata ||
         cliOptions.chainId ||
         activeChains.has(contract.chainId)) &&
       (!cliOptions.chainId || contract.chainId === cliOptions.chainId) &&
@@ -857,26 +857,16 @@ if (explicitLabel?.labelOnly) {
   const sourceCoverage = [];
   for (const contract of selected) {
     const previous = metadata[contract.chainId]?.[contract.normalizedAddress];
-    const functions = Object.values(previous?.functionSelectors ?? {});
     if (
       !cliOptions.force &&
-      (previous?.immutableDeployment ||
-        hasCompleteDeploymentDiscovery(
-          previous,
-          contract.chainId,
-          contract.normalizedAddress
-        )) &&
-      (cliOptions.prefetchDeployments ||
-        (Array.isArray(previous?.addressGetters) &&
-          functions.every(
-            (fn) => fn.canonicalSignature && fn.documentation?.source
-          )))
+      hasVerifiedMetadata(previous) &&
+      (cliOptions.prefetchMetadata || Array.isArray(previous?.addressGetters))
     )
       continue;
     try {
       await waitForEtherscanRequestSlot();
       lastEtherscanRequestAt = Date.now();
-      const url = `https://sourcify.dev/server/v2/contract/${contract.chainId}/${contract.normalizedAddress}?fields=${verifiedGetterFields}`;
+      const url = `https://sourcify.dev/server/v2/contract/${contract.chainId}/${contract.normalizedAddress}?fields=${verifiedMetadataFields}`;
       const response = await fetch(url, {
         signal: AbortSignal.timeout(30_000),
       });
@@ -893,7 +883,7 @@ if (explicitLabel?.labelOnly) {
       metadata[contract.chainId] ??= {};
       // Keep checkpoint getter coverage stable, but refresh function metadata as
       // runtime enrichment would; a completion marker must not freeze old docs.
-      if (cliOptions.prefetchDeployments && previous) {
+      if (cliOptions.prefetchMetadata && previous) {
         metadata[contract.chainId][contract.normalizedAddress] = {
           ...processed,
           addressGetters: previous.addressGetters,
@@ -901,7 +891,7 @@ if (explicitLabel?.labelOnly) {
       } else metadata[contract.chainId][contract.normalizedAddress] = processed;
       updated++;
       console.log(
-        `Verified metadata: ${contract.chainId}:${contract.normalizedAddress} ${contract.name} (${processed.deploymentDiscovery ? "complete discovery" : "partial discovery"})`
+        `Verified metadata: ${contract.chainId}:${contract.normalizedAddress} ${contract.name}`
       );
     } catch (error) {
       const coverage = {
@@ -909,7 +899,7 @@ if (explicitLabel?.labelOnly) {
         address: contract.normalizedAddress,
         name: contract.name,
         sourcify: error.status ? `http-${error.status}` : "unavailable",
-        etherscan: !cliOptions.prefetchDeployments
+        etherscan: !cliOptions.prefetchMetadata
           ? "not-attempted"
           : (etherscanDisabledReason ?? "not-configured"),
         etherscanAttempted: false,
@@ -917,7 +907,7 @@ if (explicitLabel?.labelOnly) {
       };
       let explorerAvailable = false;
       if (
-        cliOptions.prefetchDeployments &&
+        cliOptions.prefetchMetadata &&
         !etherscanDisabledReason &&
         process.env.ETHERSCAN_API_KEY?.trim()
       ) {

@@ -239,7 +239,7 @@ async function readControlGetter(
         reason: "getter returned an unexpected value",
       };
     let targetCode: "present" | "absent" | undefined;
-    if (mode === "observation" && generic && typeof value === "string") {
+    if (generic && typeof value === "string") {
       const codeHash = await readCodeHash({
         address: value as Address,
         blockHash: input.blockHash as Hex,

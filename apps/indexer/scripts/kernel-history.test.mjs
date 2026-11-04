@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { getKernelConstants } from "../src/constants.ts";
-import { handleKernelActionExecuted } from "../src/events/kernel.ts";
 import { parsePolicyPermissions } from "../src/events/contractParsing.ts";
-import { processAbiMetadata } from "../src/services/contracts/abi.ts";
+import { handleKernelActionExecuted } from "../src/events/kernel.ts";
 import {
   getCoreContracts,
   seedCoreContracts,
 } from "../src/events/kernel-history.ts";
+import { processAbiMetadata } from "../src/services/contracts/abi.ts";
 
 test("permission labels use canonical inputs rather than appending return types", async () => {
   const metadata = processAbiMetadata([
@@ -124,11 +124,7 @@ test("activation and removal events retain prior installation independently of c
       set: (row) => rows.set(row.id, row),
     };
   };
-  const context = Object.fromEntries(
-    ["Contract", "ContractEvent", "ActionExecutedEvent", "KernelReadEpoch"].map(
-      (key) => [key, store()]
-    )
-  );
+  const context = Object.fromEntries(["Contract"].map((key) => [key, store()]));
   context.effect = async (_effect, input) =>
     input.policyAddress
       ? { permissions: [], usedLatestFallback: false }

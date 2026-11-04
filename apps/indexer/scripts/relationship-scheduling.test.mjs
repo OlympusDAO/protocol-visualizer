@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { setImmediate as tick } from "node:timers/promises";
 import { test } from "node:test";
+import { setImmediate as tick } from "node:timers/promises";
 import {
   completeRelationshipBlock,
   relationshipId,
@@ -24,7 +24,6 @@ const store = () => {
 };
 const context = () => ({
   ContractRelationship: store(),
-  ContractStateSeed: store(),
   ControlTransition: store(),
   ChainObservation: store(),
 });
@@ -78,7 +77,11 @@ test("two subjects overlap, a third waits, and completion waits for all reads", 
     for (const gate of gates) gate.resolve();
     await done;
   }
-  assert.equal(ctx.ChainObservation.rows.size, 1);
+  assert.equal(
+    ctx.ChainObservation.rows.size,
+    0,
+    "only the outer full observation owns readiness"
+  );
 });
 
 test("normalized subjects preserve duplicates, owner ordering and registry token scope", async () => {
@@ -153,7 +156,7 @@ async function seededReplay(ctx) {
   return entry;
 }
 
-test("an eligible event replay remains getter-free while another subject reads", async () => {
+test("a reviewed ownership policy still receives fresh full verification", async () => {
   const ctx = context();
   const replay = await seededReplay(ctx);
   const reads = [];
@@ -165,91 +168,43 @@ test("an eligible event replay remains getter-free while another subject reads",
     }),
     true
   );
-  assert.deepEqual(reads, [addresses[0]]);
+  assert.deepEqual(reads, addresses.slice(0, 2));
 });
 
-for (const mode of ["throw", "canonical false"]) {
-  test(`${mode} stops new fields and groups but drains an active sibling`, async () => {
-    const ctx = context();
-    const replay =
-      mode === "canonical false"
-        ? await seededReplay(ctx)
-        : field(addresses[1]);
-    if (mode === "canonical false") {
-      const row = ctx.ContractRelationship.rows.get(
-        relationshipId(1, addresses[1], "owner")
-      );
-      row.verification.eventReplay.block = block(9);
-    }
-    const held = Promise.withResolvers();
-    const failureObserved = Promise.withResolvers();
-    const failure = new Error("fixture failure");
-    const reads = [];
-    let settled = false;
-    const done = run(
-      ctx,
-      [
-        field(addresses[0]),
-        replay,
-        field(addresses[0], "pendingOwner"),
-        field(addresses[2]),
-      ],
-      async (address) => {
-        reads.push(address);
-        if (address === addresses[0]) {
-          await held.promise;
-          return success();
-        }
-        failureObserved.resolve();
-        throw failure;
-      },
-      async (number) => {
-        if (number === "9") {
-          failureObserved.resolve();
-          return { ...block(9), hash: block(99).hash };
-        }
-        return canonical(number);
+test("a failed subject stops new work and drains an active sibling", async () => {
+  const ctx = context(),
+    held = Promise.withResolvers(),
+    failure = new Error("fixture failure"),
+    reads = [];
+  let settled = false;
+  const done = run(
+    ctx,
+    [
+      field(addresses[0]),
+      field(addresses[1]),
+      field(addresses[0], "pendingOwner"),
+      field(addresses[2]),
+    ],
+    async (address) => {
+      reads.push(address);
+      if (address === addresses[0]) {
+        await held.promise;
+        return success();
       }
-    ).then(
-      (value) => {
-        settled = true;
-        return { value };
-      },
-      (error) => {
-        settled = true;
-        return { error };
-      }
-    );
-    try {
-      await tick();
-      assert.equal(reads[0], addresses[0]);
-      // A serial implementation cannot reach the second subject while A waits.
-      if (mode === "throw") assert.deepEqual(reads, addresses.slice(0, 2));
-      else
-        assert.equal(
-          ctx.ContractRelationship.rows.get(
-            relationshipId(1, addresses[1], "owner")
-          ).verification.outcome,
-          "unavailable"
-        );
-      await failureObserved.promise;
-      await tick();
-      assert.equal(
-        settled,
-        false,
-        "the failed invocation must still own its sibling"
-      );
-      assert.equal(ctx.ChainObservation.rows.size, 0);
-    } finally {
-      held.resolve();
+      throw failure;
     }
-    const result = await done;
-    if (mode === "throw") assert.equal(result.error, failure);
-    else assert.equal(result.value, false);
-    assert.deepEqual(
-      reads,
-      mode === "throw" ? addresses.slice(0, 2) : addresses.slice(0, 1)
-    );
-    assert.equal(ctx.ChainObservation.rows.size, 0);
-  });
-}
+  ).then(
+    () => assert.fail("must reject"),
+    (error) => {
+      settled = true;
+      return error;
+    }
+  );
+  await tick();
+  assert.deepEqual(reads, addresses.slice(0, 2));
+  assert.equal(settled, false);
+  held.resolve();
+  assert.equal(await done, failure);
+  assert.deepEqual(reads, addresses.slice(0, 2));
+  assert.equal(ctx.ChainObservation.rows.size, 0);
+});

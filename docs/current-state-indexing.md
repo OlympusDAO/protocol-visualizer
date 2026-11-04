@@ -1,7 +1,7 @@
 # Current-state indexing
 
 The visualizer needs current protocol state. Routine historical getter sweeps are
-being replaced by full verification at catch-up and bounded live refreshes.
+replaced by full verification at catch-up and bounded live refreshes.
 HyperSync event processing remains necessary to reconstruct current memberships,
 roles, ownership and dynamically discovered contracts. eRPC caching, provider
 protection and canonical block checks remain.
@@ -44,10 +44,57 @@ accompany the completed comparison. Historical benchmark protocols still require
 their original exact state/provenance equality; they are not relaxed to accept
 the subsequent schema and observation changes.
 
-## Remaining work
+## Milestone 2: current observations and a smaller schema
 
-Remove obsolete cross-block deployment/Kernel proof reuse and write-only history
-entities. Replace broad creation/checkpoint sweeps with necessary initialization
-and complete catch-up/live verification. Gate publication on a committed full
-verification and measure the final current-state workload under a new explicit
-acceptance protocol.
+Historical 10,000-block callbacks no longer sweep getters. Creation callbacks
+only initialize the core contracts born at that boundary, after constructor
+logs. A bounded replay performs a full observation at its exact endpoint. An
+unbounded run retains the 100-block cadence, observes only within 99 blocks of
+the current RPC head, and skips older callbacks after one head lookup. This also
+works before native readiness in the final cold backfill batch. Preload does not
+advance eligibility. A stationary, nonaligned tip can wait for the next cadence
+block; Envio exposes no public transactional catch-up callback.
+
+Full observations read getters, dependencies and target bytecode at the canonical
+block. Cross-block deployment/immutable and Kernel reuse are removed, together
+with their compiler proof pipeline and generated descriptors. The raw-call layer
+was already removed in milestone 1. Verified ABI/NatSpec preparation, runtime-hash
+binding, exact block-hash bytecode effects, eRPC caching, bounded retries and
+provider admission remain. Ownership events still maintain current state between
+observations, including Solmate, OZ and Chainlink dialects; a full observation
+always checks their readable getters again.
+
+The native schema has **12 entities instead of 20 (40% fewer)**. Removed tables:
+`ActionExecutedEvent`, `ContractEvent`, `KernelExecutorEvent`, `RoleEvent`,
+`ContractStateSeed`, `VerifiedDeployment`, `KernelReadEpoch`, and `KernelReadCache`.
+The first five had no runtime readers. `ControlTransition` remains necessary for
+event deduplication and pool discovery. Current `seed`, `lastChange` and provenance
+fields remain necessary for ordering, rollback checks and honest presentation.
+This incompatible schema requires an explicitly approved rebuild on deployment;
+no existing database was reset for this work.
+
+Only the top-level completed canonical observation writes a versioned
+`ChainObservation`. Birth initialization and individual reader families cannot
+mark the entire chain complete. The publisher requires native readiness plus a
+recent canonical marker, checking its header/hash/timestamp and head distance
+through the private proxy. Missing, stale, future, orphaned or old-version markers
+withhold publication. A complete observation is a canonical attempt across all
+families: unsupported getters and mismatches remain visible rather than being
+relabeled successful. The freshness check precedes uploads; it is not an atomic
+check at manifest promotion.
+
+Native Envio fixtures exercise bounded and cold near-head callbacks, exhausted
+429 recovery, fork rejection without committed partial state, and resuming the
+same block. A real disposable PostgreSQL test verifies current entities, marker
+rollback, chain isolation and three process lifetimes. Publisher checks cover
+missing/stale/version/fork/capacity failures. All nine ordered validation steps passed. The rebuilt indexer image loads every
+handler with networking disabled, and the real patched eRPC/PostgreSQL integration
+passes its three checks. Trivy reports no unfixed medium/high/critical findings
+under the existing ignore policy. OpenAPI consistency and final lint pass. The
+image import fixture uses development configuration defaults; the separate
+controlled startup/reset integration exercises the deployed image configuration.
+These fixtures do not establish live nine-chain throughput.
+
+Performance evidence for this milestone is pending the separate current-state
+benchmark. The old exact-20-table profile remains unchanged and cannot certify
+this intentional schema/observation-policy change.

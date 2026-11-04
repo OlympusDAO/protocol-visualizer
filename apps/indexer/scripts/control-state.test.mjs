@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createPublicClient, custom, fallback } from "viem";
+import { readPinnedControlGetter } from "../src/events/control-reads.ts";
 import {
   applyControlTransition,
   completeControlBlock,
   seedControlState,
   verifyControlState,
 } from "../src/events/control-state.ts";
-import { readPinnedControlGetter } from "../src/events/control-reads.ts";
 
 const address = "0x0000000000000000000000000000000000000001";
 const block = (number, hash = `0x${number}`) => ({
@@ -32,7 +32,6 @@ const makeStore = () => {
 };
 const makeContext = () => ({
   ContractState: makeStore(),
-  ContractStateSeed: makeStore(),
   ControlTransition: makeStore(),
   ContractRelationship: makeStore(),
   ChainObservation: makeStore(),
@@ -228,7 +227,6 @@ test("an unavailable seed stays unknown and a changing hash rejects the read res
   assert.equal(state.enabled, null);
   assert.equal(state.enablerCapability, "unknown");
   assert.equal(state.verification.outcome, "unavailable");
-  assert.equal(context.ContractStateSeed.rows.size, 0);
   const hashes = ["0xa", "0xb"];
   const client = {
     getBlock: async () => ({ hash: hashes.shift() }),

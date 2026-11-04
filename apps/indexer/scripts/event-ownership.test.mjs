@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   completeRelationshipBlock,
-  handleOwnershipEvent,
-  handleOpenZeppelinOwnershipEvent,
   handleChainlinkOwnershipEvent,
+  handleOpenZeppelinOwnershipEvent,
+  handleOwnershipEvent,
   handleRegistryEvent,
   relationshipId,
 } from "../src/events/ownership.ts";
@@ -29,7 +29,6 @@ const store = () => {
 };
 const context = () => ({
   ContractRelationship: store(),
-  ContractStateSeed: store(),
   ControlTransition: store(),
   ChainObservation: store(),
 });
@@ -57,54 +56,63 @@ const verified = (value = alice, hash = codeHash) => ({
   },
 });
 
-test("proven ownership seeds once, follows events, and preserves actual RPC provenance across checkpoints and restart", async () => {
-  let ctx = context();
-  let reads = 0;
-  const complete = (number) =>
+test("full verification reads ownership again after events and restart, without changing event provenance", async () => {
+  let ctx = context(),
+    value = alice,
+    reads = 0;
+  const complete = (n) =>
     completeRelationshipBlock(
       ctx,
       1,
-      block(number),
+      block(n),
       [owner],
       async () => {
         reads++;
-        return verified();
+        return verified(value);
       },
-      async (number) => block(Number(number))
+      async (n) => block(Number(n))
     );
-  assert.equal(await complete(1), true);
-  assert.equal(await complete(2), true);
-  assert.equal(reads, 1, "a proven unchanged owner requires no checkpoint RPC");
+  await complete(1);
+  await complete(2);
+  assert.equal(reads, 2);
+  value = bob;
   await handleOwnershipEvent(ctx, event(3, bob));
-  assert.equal(await complete(4), true);
-  const state = await ctx.ContractRelationship.get(
+  const eventState = await ctx.ContractRelationship.get(
     relationshipId(1, subject, "owner")
   );
-  assert.equal(state.value, bob);
-  assert.equal(state.provenance.number, "3");
-  assert.equal(state.indexedThrough.number, "4");
-  assert.equal(state.verification.outcome, "unperformed");
-  assert.equal(state.verification.block.number, "1");
-  assert.equal(state.verification.getterValue, alice);
-  assert.match(state.verification.reason, /event/i);
-  assert.equal(reads, 1);
+  assert.equal(eventState.verification.outcome, "unperformed");
+  assert.equal(
+    eventState.verification.block.number,
+    "2",
+    "event must preserve the actual previous verification block"
+  );
+  await complete(4);
+  let row = await ctx.ContractRelationship.get(
+    relationshipId(1, subject, "owner")
+  );
+  assert.equal(row.value, bob);
+  assert.equal(row.provenance.number, "3");
+  assert.equal(row.verification.block.number, "4");
+  assert.equal(row.verification.outcome, "match");
   const persisted = structuredClone([...ctx.ContractRelationship.rows]);
   ctx = context();
   for (const [id, row] of persisted) ctx.ContractRelationship.rows.set(id, row);
-  assert.equal(await complete(5), true);
-  assert.equal(reads, 1, "the proof and event state persist with the entity");
-  await handleOwnershipEvent(ctx, event(6, zero));
-  assert.equal(await complete(7), true);
-  assert.equal(
-    (await ctx.ContractRelationship.get(relationshipId(1, subject, "owner")))
-      .status,
-    "unset"
-  );
+  await complete(5);
   assert.equal(
     reads,
-    1,
-    "renunciation is an event change, not a new getter read"
+    4,
+    "persisted event proof cannot bypass full verification"
   );
+  value = alice;
+  await complete(6);
+  row = await ctx.ContractRelationship.get(relationshipId(1, subject, "owner"));
+  assert.equal(
+    row.value,
+    bob,
+    "event-covered current state remains distinguishable from a conflicting getter"
+  );
+  assert.equal(row.verification.outcome, "mismatch");
+  assert.equal(row.verification.getterValue, alice);
 });
 
 test("OZ two-step requests leave owner unchanged, acceptance and renunciation clear pendingOwner", async () => {
@@ -124,7 +132,17 @@ test("OZ two-step requests leave owner unchanged, acceptance and renunciation cl
       fields,
       async (_address, getter) => {
         reads++;
-        return verified(getter === "owner" ? alice : zero);
+        return verified(
+          getter === "owner"
+            ? number < 3
+              ? alice
+              : number < 5
+                ? bob
+                : zero
+            : number === 2
+              ? bob
+              : zero
+        );
       },
       async (number) => block(Number(number))
     );
@@ -156,7 +174,7 @@ test("OZ two-step requests leave owner unchanged, acceptance and renunciation cl
   );
   await complete(6);
   assert.equal((await get("owner")).status, "unset");
-  assert.equal(reads, 2, "both getters are seeded only once");
+  assert.equal(reads, 8, "each full observation verifies both public getters");
 });
 
 test("OZ Ownable v4 and v5 profiles replay transfers and renunciation after canonical seeding", async () => {
@@ -175,7 +193,7 @@ test("OZ Ownable v4 and v5 profiles replay transfers and renunciation after cano
         [candidate],
         async () => {
           reads++;
-          return verified();
+          return verified(number < 2 ? alice : number < 4 ? bob : zero);
         },
         async (n) => block(Number(n))
       );
@@ -195,7 +213,7 @@ test("OZ Ownable v4 and v5 profiles replay transfers and renunciation after cano
         .status,
       "unset"
     );
-    assert.equal(reads, 1, version);
+    assert.equal(reads, 3, version);
   }
 });
 
@@ -283,8 +301,8 @@ test("TokenAdminRegistry replay isolates token-scoped admin and pool changes and
   assert.equal((await get(`administrator:${token}`)).value, alice);
   assert.equal((await get(`newAdministrator:${token}`)).value, bob);
   assert.equal(
-    (await get("newOwner")).verification.block,
-    undefined,
+    (await get("newOwner")).verification.outcome,
+    "unavailable",
     "a private pending getter is never labeled RPC-verified"
   );
   await handleRegistryEvent(
@@ -322,11 +340,7 @@ test("TokenAdminRegistry replay isolates token-scoped admin and pool changes and
   assert.equal((await get(`administrator:${token}`)).value, bob);
   assert.equal((await get(`newAdministrator:${token}`)).value, zero);
   assert.equal((await get(`getPool:${token}`)).value, zero);
-  assert.equal(
-    reads,
-    4,
-    "four public getter operations seed once despite all event types"
-  );
+  assert.equal(reads, 12, "each full observation verifies four public getters");
 });
 
 test("unproven runtime, getter-only coverage, changed policy, backward reads and unknown contracts retain ordinary reads", async () => {
@@ -366,40 +380,6 @@ test("unproven runtime, getter-only coverage, changed policy, backward reads and
       };
     await complete(variant === "backward" ? 1 : 3);
     assert.equal(reads, 2, variant);
-  }
-});
-
-test("orphaned runtime seed or changed current header cannot advance event-reused observations", async () => {
-  for (const changed of [1, 4]) {
-    const ctx = context();
-    let reads = 0;
-    const read = async () => {
-      reads++;
-      return verified();
-    };
-    await completeRelationshipBlock(
-      ctx,
-      1,
-      block(1),
-      [owner],
-      read,
-      async (n) => block(Number(n))
-    );
-    await handleOwnershipEvent(ctx, event(2, bob));
-    const complete = await completeRelationshipBlock(
-      ctx,
-      1,
-      block(4),
-      [owner],
-      read,
-      async (n) =>
-        Number(n) === changed
-          ? { ...block(Number(n)), hash: block(999).hash }
-          : block(Number(n))
-    );
-    assert.equal(complete, false);
-    assert.equal(ctx.ChainObservation.rows.get("1").indexedThrough.number, "1");
-    assert.equal(reads, 1);
   }
 });
 
@@ -498,59 +478,6 @@ test("removing a required event subscription disables persisted proof reuse", as
   assert.equal(reads, 2);
 });
 
-test("event replay refreshes referenced code and checks current canonicality after that read", async () => {
-  const ctx = context();
-  let reads = 0;
-  const read = async () => {
-    reads++;
-    return { ...verified(), targetCode: "absent" };
-  };
-  await completeRelationshipBlock(ctx, 1, block(1), [owner], read, async (n) =>
-    block(Number(n))
-  );
-  await completeRelationshipBlock(ctx, 1, block(2), [owner], read, async (n) =>
-    block(Number(n))
-  );
-  assert.equal(
-    reads,
-    2,
-    "without a code refresh reader it falls back to the ordinary getter"
-  );
-  await completeRelationshipBlock(
-    ctx,
-    1,
-    block(3),
-    [owner],
-    read,
-    async (n) => block(Number(n)),
-    async () => "present"
-  );
-  assert.equal(reads, 2);
-  assert.equal(
-    (await ctx.ContractRelationship.get(relationshipId(1, subject, "owner")))
-      .targetCode,
-    "present"
-  );
-  let changed = false;
-  const completed = await completeRelationshipBlock(
-    ctx,
-    1,
-    block(4),
-    [owner],
-    read,
-    async (n) =>
-      Number(n) === 4 && changed
-        ? { ...block(4), hash: block(999).hash }
-        : block(Number(n)),
-    async () => {
-      changed = true;
-      return "absent";
-    }
-  );
-  assert.equal(completed, false);
-  assert.equal(ctx.ChainObservation.rows.get("1").indexedThrough.number, "3");
-});
-
 test("restoring entity state on rollback removes orphan ownership state and its derived observation", async () => {
   let ctx = context();
   let reads = 0;
@@ -589,20 +516,20 @@ test("restoring entity state on rollback removes orphan ownership state and its 
       .status,
     "unset"
   );
-  assert.equal(reads, 1);
+  assert.equal(reads, 3);
 });
 
-test("ten quiet checkpoints replace ten ownership getter operations with one seed", async () => {
-  const run = async (proven) => {
-    const ctx = context();
-    let reads = 0;
-    const candidate = { ...owner };
+test("every full observation verifies ownership even with a reviewed event policy", async () => {
+  for (const proven of [false, true]) {
+    const ctx = context(),
+      candidate = { ...owner };
     if (!proven) delete candidate.eventPolicy;
-    for (let number = 1; number <= 10; number++)
+    let reads = 0;
+    for (let n = 1; n <= 10; n++)
       await completeRelationshipBlock(
         ctx,
         1,
-        block(number),
+        block(n),
         [candidate],
         async () => {
           reads++;
@@ -610,127 +537,11 @@ test("ten quiet checkpoints replace ten ownership getter operations with one see
         },
         async (n) => block(Number(n))
       );
-    return reads;
-  };
-  assert.equal(await run(false), 10);
-  assert.equal(await run(true), 1);
-});
-
-test("controlled production-reader fixture reduces 69 RPCs to 42 across ten quiet checkpoints including target-code and canonical checks", async () => {
-  const http = await import("node:http");
-  const {
-    createPublicClient,
-    http: transport,
-    keccak256,
-  } = await import("viem");
-  const { readPinnedControlGetter } = await import(
-    "../src/events/control-reads.ts"
-  );
-  const runtime = "0x6000";
-  const runtimeHash = keccak256(runtime);
-  let requests = 0;
-  const server = http.createServer(async (req, res) => {
-    let raw = "";
-    for await (const chunk of req) raw += chunk;
-    const payload = JSON.parse(raw);
-    requests++;
-    let result;
-    if (payload.method === "eth_getBlockByNumber") {
-      const number = Number(BigInt(payload.params[0]));
-      result = {
-        ...block(number),
-        number: payload.params[0],
-        timestamp: `0x${(1700000000 + number).toString(16)}`,
-        transactions: [],
-      };
-    } else if (payload.method === "eth_getCode") result = runtime;
-    else if (payload.method === "eth_call")
-      result = `0x${"00".repeat(12)}${alice.slice(2)}`;
-    else throw new Error(`Unexpected fixture method ${payload.method}`);
-    res.setHeader("content-type", "application/json");
-    res.end(JSON.stringify({ id: payload.id, jsonrpc: "2.0", result }));
-  });
-  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-  try {
-    const client = createPublicClient({
-      transport: transport(`http://127.0.0.1:${server.address().port}`, {
-        retryCount: 0,
-      }),
-    });
-    const contract = {
-      addressGetters: ["owner"],
-      functionSelectors: {
-        owner: {
-          canonicalSignature: "owner()",
-          documentation: {
-            signature: "owner()",
-            source: {
-              codeHash: runtimeHash,
-              url: "https://example.invalid/fixture-source",
-            },
-          },
-        },
-      },
-    };
-    const run = async (reuse) => {
-      requests = 0;
-      const ctx = context();
-      const candidate = {
-        ...owner,
-        eventPolicy: { ...owner.eventPolicy, codeHash: runtimeHash },
-      };
-      if (!reuse) delete candidate.eventPolicy;
-      for (let number = 1; number <= 10; number++) {
-        await completeRelationshipBlock(
-          ctx,
-          1,
-          block(number),
-          [candidate],
-          () =>
-            readPinnedControlGetter(
-              client,
-              {
-                chainId: 1,
-                address: subject,
-                getter: "owner",
-                blockNumber: BigInt(number),
-                blockHash: block(number).hash,
-              },
-              contract
-            ),
-          async (n) => {
-            const header = await client.getBlock({ blockNumber: BigInt(n) });
-            return {
-              number: n,
-              hash: header.hash,
-              timestamp: header.timestamp.toString(),
-            };
-          },
-          async (address, at) =>
-            (await client.getCode({
-              address,
-              blockHash: at.hash,
-              requireCanonical: true,
-            }))
-              ? "present"
-              : "absent"
-        );
-      }
-      return {
-        requests,
-        value: (
-          await ctx.ContractRelationship.get(
-            relationshipId(1, subject, "owner")
-          )
-        ).value,
-      };
-    };
-    const baseline = await run(false);
-    const reused = await run(true);
-    assert.equal(baseline.requests, 69);
-    assert.equal(reused.requests, 42);
-    assert.equal(reused.value, baseline.value);
-  } finally {
-    await new Promise((resolve) => server.close(resolve));
+    assert.equal(reads, 10);
+    assert.equal(
+      (await ctx.ContractRelationship.get(relationshipId(1, subject, "owner")))
+        .verification.block.number,
+      "10"
+    );
   }
 });

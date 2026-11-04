@@ -1,19 +1,5 @@
 import { getContractVersion } from "../ContractNames";
 import {
-  actionExecutedEventId,
-  contractEventId,
-  contractId,
-  kernelExecutorEventId,
-  kernelExecutorId,
-} from "./ids";
-import type {
-  ContractEntity,
-  EnvioContext,
-  KernelActionExecutedEvent,
-} from "./types";
-import { invalidateKernelReads } from "./kernel-reuse";
-import { getPreviousModule, setCurrentModule } from "./modules";
-import {
   parseAction,
   parseContractName,
   parseContractType,
@@ -21,7 +7,14 @@ import {
   parsePolicyFunctions,
   parsePolicyPermissions,
 } from "./contractParsing";
+import { contractId, kernelExecutorId } from "./ids";
+import { getPreviousModule, setCurrentModule } from "./modules";
 import { ensureKernelSeeded } from "./seeding";
+import type {
+  ContractEntity,
+  EnvioContext,
+  KernelActionExecutedEvent,
+} from "./types";
 
 export async function handleKernelActionExecuted(
   event: KernelActionExecutedEvent,
@@ -29,7 +22,6 @@ export async function handleKernelActionExecuted(
 ): Promise<void> {
   const envioContext = context;
   const chainId = event.chainId;
-  await invalidateKernelReads(context, event);
   await ensureKernelSeeded(envioContext, chainId);
 
   const actionInt = Number(event.params.action_);
@@ -54,22 +46,6 @@ export async function handleKernelActionExecuted(
   console.log(
     `Chain ${chainId}: Processing action ${action} on target ${target} at block ${event.block.number}`
   );
-
-  envioContext.ActionExecutedEvent.set({
-    id: actionExecutedEventId(
-      chainId,
-      event.srcAddress,
-      event.transaction.hash,
-      event.logIndex
-    ),
-    kernel: event.srcAddress,
-    transactionHash: event.transaction.hash,
-    logIndex: event.logIndex,
-    timestamp,
-    blockNumber,
-    action,
-    target,
-  });
 
   if (contractType !== "KERNEL") {
     const [policyPermissions, policyFunctions, existingContract] =
@@ -101,28 +77,6 @@ export async function handleKernelActionExecuted(
         );
       }
 
-      envioContext.ContractEvent.set({
-        id: contractEventId(
-          chainId,
-          event.transaction.hash,
-          event.logIndex,
-          action,
-          previousContract.address
-        ),
-        transactionHash: event.transaction.hash,
-        logIndex: event.logIndex,
-        action,
-        address: previousContract.address,
-        timestamp,
-        blockNumber,
-        name: previousContract.name,
-        version: previousContract.version,
-        contractType: previousContract.contractType,
-        isEnabled: false,
-        policyPermissions: previousContract.policyPermissions,
-        policyFunctions: previousContract.policyFunctions,
-      });
-
       envioContext.Contract.set({
         ...previousContract,
         kernelHistory: "installed",
@@ -133,27 +87,6 @@ export async function handleKernelActionExecuted(
     }
 
     const isEnabled = parseIsEnabled(actionInt);
-    envioContext.ContractEvent.set({
-      id: contractEventId(
-        chainId,
-        event.transaction.hash,
-        event.logIndex,
-        action,
-        target
-      ),
-      transactionHash: event.transaction.hash,
-      logIndex: event.logIndex,
-      action,
-      address: target,
-      timestamp,
-      blockNumber,
-      name: contractName,
-      version: contractVersion,
-      contractType,
-      isEnabled,
-      policyPermissions,
-      policyFunctions,
-    });
 
     envioContext.Contract.set({
       ...(existingContract ?? {
@@ -191,21 +124,6 @@ export async function handleKernelActionExecuted(
       kernel: event.srcAddress,
       lastUpdatedTimestamp: timestamp,
       lastUpdatedBlockNumber: blockNumber,
-      executor,
-    });
-
-    envioContext.KernelExecutorEvent.set({
-      id: kernelExecutorEventId(
-        chainId,
-        event.srcAddress,
-        event.transaction.hash,
-        event.logIndex
-      ),
-      kernel: event.srcAddress,
-      transactionHash: event.transaction.hash,
-      logIndex: event.logIndex,
-      timestamp,
-      blockNumber,
       executor,
     });
   }

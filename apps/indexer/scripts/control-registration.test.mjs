@@ -37,13 +37,16 @@ if (mode) {
     Handlers.finishRegistration(config)[80094].onBlockRegistrations;
   const names = registrations.map((row) => row.name);
   assert.ok(names.includes("control-seed-80094-780011"));
-  assert.ok(names.includes("control-seed-80094-1023691"));
+  assert.ok(
+    !names.includes("control-seed-80094-1023691"),
+    "registry creation does not sweep existing contracts"
+  );
   assert.equal(
     names.includes("control-seed-80094-27734756"),
     mode === "unbounded"
   );
-  assert.ok(names.includes("control-checkpoint-80094"));
-  assert.ok(names.includes("control-realtime-80094"));
+  assert.ok(!names.some((name) => name.startsWith("control-checkpoint-")));
+  assert.equal(names.includes("control-realtime-80094"), mode === "unbounded");
   assert.equal(names.includes("control-end-80094"), mode !== "unbounded");
 } else {
   test("native handler registration keeps in-range seeds and excludes future seeds only for bounded replays", () => {

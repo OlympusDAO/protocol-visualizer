@@ -1,15 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import {
-  handlePeriodicTaskEvent,
-  completeHeartTasks,
-  heartTaskAnchorsCanonical,
-  observeLegacyTaskState,
-  handleLegacyTaskEvent,
-  getLegacyTaskGetter,
-} from "../src/events/heart-tasks.ts";
 import { readPinnedControlGetter } from "../src/events/control-reads.ts";
 import { controlAnchorsCanonical } from "../src/events/enabler.ts";
+import {
+  completeHeartTasks,
+  getLegacyTaskGetter,
+  handleLegacyTaskEvent,
+  handlePeriodicTaskEvent,
+  heartTaskAnchorsCanonical,
+  observeLegacyTaskState,
+} from "../src/events/heart-tasks.ts";
 
 const heart = "0x0000000000000000000000000000000000000001";
 const a = "0x0000000000000000000000000000000000000002";
@@ -30,7 +30,6 @@ const store = () => {
 };
 const context = () => ({
   HeartTasks: store(),
-  ContractStateSeed: store(),
   ControlTransition: store(),
 });
 const event = (number, logIndex, params) => ({
@@ -132,11 +131,7 @@ test("A diverged task order recovers from conflicting events at the next success
     await complete(ctx, 14, [task(a)]);
     assert.deepEqual(row(ctx).tasks, [task(a)]);
     assert.equal(row(ctx).verification.outcome, "match");
-    assert.ok(
-      [...ctx.ContractStateSeed.rows.values()].some(
-        (seed) => seed.boundary.number === "14"
-      )
-    );
+    assert.equal(row(ctx).indexedThrough.number, "14");
     await handlePeriodicTaskEvent(
       ctx,
       event(15, 0, { task_: b, index_: 1n }),

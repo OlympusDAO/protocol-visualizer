@@ -1,23 +1,19 @@
 import type {
-  HeartTasks as SnapshotHeartTasks,
   PeriodicTask,
+  HeartTasks as SnapshotHeartTasks,
 } from "../../../../packages/snapshot-artifacts/src/index";
-import metadata from "../generated/contract-metadata.json";
 import { getContractName, getContractStartBlock } from "../ContractNames";
-import type { RelationshipField } from "./ownership";
-import type { ControlStateEntity } from "./control-state";
+import metadata from "../generated/contract-metadata.json";
+import type { ControlGetterResult } from "./control-reads";
+import type { ControlBlock, ControlStateEntity } from "./control-state";
 import { applyControlTransition, setControlCapability } from "./control-state";
 import { contractId, controlTransitionId } from "./ids";
-import type { ControlGetterResult } from "./control-reads";
-import type { ControlBlock } from "./control-state";
+import type { RelationshipField } from "./ownership";
 import type { ControlEvent, EnvioContext } from "./types";
 
 type HeartTasks = Omit<SnapshotHeartTasks, "chainId">;
 
-type Context = Pick<
-  EnvioContext,
-  "HeartTasks" | "ContractStateSeed" | "ControlTransition"
->;
+type Context = Pick<EnvioContext, "HeartTasks" | "ControlTransition">;
 type TaskEvent = ControlEvent & {
   params: { task_: string; index_: bigint; customSelector_?: string };
 };
@@ -166,7 +162,7 @@ export async function handleLegacyTaskEvent(
 }
 
 export async function observeLegacyTaskState(
-  context: Pick<EnvioContext, "ContractState" | "ContractStateSeed">,
+  context: Pick<EnvioContext, "ContractState">,
   chainId: number,
   address: string,
   block: ControlBlock,
@@ -186,14 +182,6 @@ export async function observeLegacyTaskState(
     getter === "locallyActive"
       ? (previous?.enabled ?? observed)
       : (observed ?? previous?.enabled ?? null);
-  if (success && !previous?.seed)
-    context.ContractStateSeed.set({
-      id: `${contractId(chainId, address)}:${block.hash}:${getter}`,
-      address,
-      getter,
-      boundary: block,
-      value: result.value,
-    });
   context.ContractState.set({
     id: contractId(chainId, address),
     address,
@@ -392,12 +380,4 @@ export async function completeHeartTasks(
     indexedThrough: block,
     verification: { outcome, block, getterValue: observedValue },
   });
-  if (state.tasks === null)
-    context.ContractStateSeed.set({
-      id: `${state.id}:${block.hash}:getPeriodicTasks`,
-      address: state.address,
-      getter: "getPeriodicTasks",
-      boundary: block,
-      value: observedValue,
-    });
 }

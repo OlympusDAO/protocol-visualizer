@@ -8,11 +8,11 @@ RPC cache deployment and storage belong in [rpc-cache.md](rpc-cache.md).
 Download verified metadata before building the indexer:
 
 ```bash
-ETHERSCAN_MIN_REQUEST_INTERVAL_MS=1000 pnpm run indexer:metadata -- --prefetch-deployments --source-report docs/performance/indexer-metadata-source-coverage.json
+ETHERSCAN_MIN_REQUEST_INTERVAL_MS=1000 pnpm run indexer:metadata -- --prefetch-metadata --source-report docs/performance/indexer-metadata-source-coverage.json
 ```
 
 This uses Sourcify's [contract lookup API](https://docs.sourcify.dev/docs/api/),
-including compiler metadata, source files and runtime/deployment evidence. It
+including compiler ABI, NatSpec and the matching runtime hash. It
 works without an Etherscan key. When `ETHERSCAN_API_KEY` is configured, Sourcify
 misses also query Etherscan's `getsourcecode` endpoint for ABI and source in one
 request. The existing interval variable also paces this
@@ -25,28 +25,24 @@ The command refreshes verified function metadata and retains role mappings and
 existing checkpoint getter lists. New metadata entries use the verified ABI.
 Use `--refresh-getters` instead when deliberately updating existing getter lists.
 Use `--chain-id <id> --address <address>` for one registered contract, `--force`
-to refresh completed discovery, or `--output <file>` to inspect a separate copy.
+to refresh prepared metadata, or `--output <file>` to inspect a separate copy.
 For that preview, copy the bundled JSON to the output path first: a new output
 path starts from empty metadata plus any local contract cache.
 Review generated changes and run the repository validation before committing.
-Run preparation after adding registered contracts or upgrading discovery logic;
+Run preparation after adding registered contracts or changing ABI metadata requirements;
 do not make every startup depend on this download.
 
-Only conclusive discovery receives a versioned chain/address/runtime-hash
-receipt: a proven immutable deployment, ordinary code with explicitly empty
-compiler immutable references, or bytecode/proxy evidence that excludes lifetime
-reuse. Ordinary code alone does not establish immutable ineligibility. Runtime
-negative reuse requires the observed code hash to match; positive lifetime facts
-still require canonical creation and runtime verification. Reused facts retain
-their actual verification block.
+Prepared metadata contains ABI methods, documentation and role mappings. Source
+annotations are bound to the observed runtime hash. Getters and bytecode are read
+at each full current-state observation; metadata preparation does not authorize
+cross-block value or deployment-lifetime reuse.
 
-Unavailable sources, 404/429 responses and incomplete compiler proof never become
-permanent negative receipts. Failed refreshes preserve prior metadata. Broad
-preparation reports partial coverage; targeted unavailable refreshes fail.
-Inspect the final summary rather than treating exit zero as complete coverage.
-New or unprepared contracts retain automatic runtime discovery. These cases can
-still contact Sourcify or Etherscan, so their independent runtime limits remain.
-Raising eRPC's RPC budget does not change either metadata service's allowance.
+Unavailable sources and 404/429 responses preserve previous metadata and remain
+retryable. Broad preparation reports partial coverage; targeted unavailable
+refreshes fail. Inspect the final summary rather than treating exit zero as
+complete coverage. New or unprepared contracts can still contact Sourcify or
+Etherscan, so their independent runtime limits remain. Raising eRPC's RPC budget
+does not change either metadata service's allowance.
 
 Known account labels use `labelOnly: true` in `ContractNames.ts` or
 `packages/protocol-config/other-contracts.json`. Preparation excludes these
@@ -67,18 +63,15 @@ pnpm run indexer:metadata -- --chain-id 4663 --address 0x1912c3cfafe8a76a32a9286
 
 This narrow import validates the registered identity and Blockscout observation
 URL, fills empty ABI metadata and retains any existing nonempty metadata. It
-performs no HTTP requests. Partial explorer verification does not authorize
-deployment lifetime, immutable-getter or conclusive-discovery proofs.
+performs no HTTP requests. Partial explorer verification supplies ABI metadata, without runtime-bound NatSpec.
 
 The source report distinguishes unavailable Sourcify evidence from Etherscan
 availability, unverified contracts, unsupported chains, authentication failures,
 quota errors and malformed responses. Etherscan fallback preserves existing
-nonempty metadata and independent proofs. It only fills missing ABI metadata;
-it never follows proxy implementation or similar-match addresses. An explorer
-ABI/source response does not supply compiler immutable references, source maps,
-runtime matching or creation proof, so it cannot create a deployment-discovery
-receipt or an immutable/lifetime fact. Later Sourcify proof discovery remains
-eligible. `--refresh-getters` retains its Sourcify-only verification behavior.
+nonempty metadata. It only fills missing ABI metadata; it never follows proxy
+implementation or similar-match addresses. Explorer ABI/source responses do not
+supply runtime-bound documentation.
+`--refresh-getters` retains its Sourcify-only verification behavior.
 
 Explorer requests use bounded retries for HTTP/API rate limits, transport errors
 and body-read timeouts. Errors and source reports omit provider-authored error
@@ -252,3 +245,25 @@ The native storage check runs against disposable PostgreSQL with a SELECT-only
 role. Empty, compatible, incompatible, legacy and authentication-error cases
 preserve the database dump hash. It never calls a migration as a preflight.
 No arbitrary cursor SQL or partial historical replay is part of this procedure.
+
+## Current-state schema change
+
+The current-state indexer removes eight history/reuse entities and adds a full
+observation version to `ChainObservation`. This is an incompatible schema change;
+use the approved rebuild procedure when deploying it. This document does not
+authorize a reset. Existing published artifacts remain readable.
+
+Historical backfill processes events and narrowly initializes core contracts at
+creation. Full getter observations run at the bounded replay endpoint, or at the
+existing 100-block cadence when an unbounded chain is within 99 blocks of its
+current RPC head. A cold final backfill batch can perform that observation before
+Envio marks itself ready. There is no public Envio transactional catch-up hook;
+a stationary, nonaligned tip can wait for the next cadence block.
+
+The publisher requires native readiness and a versioned full-observation marker.
+It checks the marker's header, hash, timestamp and distance from the head through
+the private proxy. Missing, stale, future, orphaned or unknown-version markers
+withhold publication. Freshness is checked during batch construction, not
+atomically with manifest upload. A completed observation means every configured
+family was attempted canonically; unsupported getters and mismatches remain
+explicit in field verification and do not become successful reads.

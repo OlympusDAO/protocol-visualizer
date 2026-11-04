@@ -32,11 +32,7 @@ globalThis.fetch=()=>{throw Error("label-only metadata must never perform HTTP")
     for (const chain of [
       1, 42161, 8453, 80094, 10, 11155111, 84532, 421614, 80084,
     ]) {
-      for (const mode of [
-        [],
-        ["--prefetch-deployments"],
-        ["--refresh-getters"],
-      ]) {
+      for (const mode of [[], ["--prefetch-metadata"], ["--refresh-getters"]]) {
         const run = spawnSync(
           process.execPath,
           [
@@ -73,7 +69,7 @@ globalThis.fetch=()=>{throw Error("label-only metadata must never perform HTTP")
         "scripts/generate-indexer-contract-metadata.mjs",
         "--name",
         "Deployer",
-        "--prefetch-deployments",
+        "--prefetch-metadata",
         "--force",
         "--output",
         output,
@@ -135,11 +131,10 @@ test("partial Blockscout ABI import fills empty metadata without claiming deploy
   };
   const read = () => JSON.parse(readFileSync(output, "utf8"))[4663][address];
   try {
-    let result = run(
-      observed,
-      { ordinaryDeployment: { fixture: "retained" } },
-      ["--source-report", path.join(root, "nested/report.json")]
-    );
+    let result = run(observed, {}, [
+      "--source-report",
+      path.join(root, "nested/report.json"),
+    ]);
     assert.equal(result.status, 0, result.stderr);
     const prepared = read();
     assert.equal(Object.keys(prepared.functionSelectors).length, 16);
@@ -148,9 +143,7 @@ test("partial Blockscout ABI import fills empty metadata without claiming deploy
         (fn) => fn.name === "getTokenConfig"
       )
     );
-    assert.deepEqual(prepared.ordinaryDeployment, { fixture: "retained" });
-    for (const field of ["immutableDeployment", "deploymentDiscovery"])
-      assert.equal(prepared[field], undefined);
+    assert.deepEqual(prepared.roleToFunctions, {});
     assert.equal(
       prepared.functionSelectors["0x8da5cb5b"].documentation,
       undefined
@@ -173,7 +166,7 @@ test("partial Blockscout ABI import fills empty metadata without claiming deploy
       assert.notEqual(result.status, 0, JSON.stringify(patch));
       assert.deepEqual(read(), {}, "failed import must not write metadata");
     }
-    result = run(observed, {}, ["--prefetch-deployments"]);
+    result = run(observed, {}, ["--prefetch-metadata"]);
     assert.notEqual(result.status, 0, "ambiguous import modes must fail");
   } finally {
     rmSync(root, { recursive: true, force: true });

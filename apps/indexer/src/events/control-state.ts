@@ -1,6 +1,6 @@
+import type { ControlGetterResult } from "./control-reads";
 import { contractId, controlTransitionId } from "./ids";
 import type { ControlEvent, EnvioContext } from "./types";
-import type { ControlGetterResult } from "./control-reads";
 
 export type ControlBlock = { number: string; hash: string; timestamp: string };
 type ControlProvenance = ControlBlock & {
@@ -28,13 +28,7 @@ export type ControlStateEntity = {
   };
 };
 
-type ControlContext = Pick<
-  EnvioContext,
-  | "ContractState"
-  | "ContractStateSeed"
-  | "ControlTransition"
-  | "ChainObservation"
->;
+type ControlContext = Pick<EnvioContext, "ContractState" | "ControlTransition">;
 const unknownState = (
   chainId: number,
   address: string
@@ -85,13 +79,7 @@ export async function seedControlState(
   }
   if (result.value !== "true" && result.value !== "false")
     throw new Error("isEnabled seed must be boolean");
-  context.ContractStateSeed.set({
-    id: `${state.id}:${block.hash}:isEnabled`,
-    address: state.address,
-    boundary: block,
-    getter: "isEnabled",
-    value: result.value,
-  });
+
   context.ContractState.set({
     ...state,
     enabled: result.value === "true",
@@ -165,10 +153,6 @@ export async function completeControlBlock(
     );
     if (state) context.ContractState.set({ ...state, indexedThrough: block });
   }
-  context.ChainObservation.set({
-    id: String(chainId),
-    indexedThrough: block,
-  });
 }
 
 export async function verifyControlState(

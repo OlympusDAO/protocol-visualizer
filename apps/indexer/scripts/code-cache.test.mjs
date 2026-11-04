@@ -3,7 +3,10 @@ import http from "node:http";
 import { test } from "node:test";
 import { keccak256 } from "viem";
 import { getBytecodeHash } from "../src/events/code-cache.ts";
-import { readPinnedControlGetter } from "../src/events/control-reads.ts";
+import {
+  readHashBoundControlGetter,
+  readPinnedControlGetter,
+} from "../src/events/control-reads.ts";
 import { processAbiMetadata } from "../src/services/contracts/abi.ts";
 import { makeEffectRuntime } from "./fixtures/effect-runtime.mjs";
 
@@ -177,6 +180,27 @@ test("cached bytecode keeps getter results and fresh canonical checks, including
     assert.equal(first.targetCode, "absent");
     assert.equal(headers, 3);
     assert.equal(calls.length, 2);
+    assert.equal(
+      (await readHashBoundControlGetter(client, input, metadata, readCodeHash))
+        .targetCode,
+      "absent"
+    );
+    assert.equal(
+      (
+        await readHashBoundControlGetter(
+          { ...client, readContract: async () => subject },
+          input,
+          metadata,
+          readCodeHash
+        )
+      ).targetCode,
+      "present"
+    );
+    assert.equal(
+      headers,
+      3,
+      "hash-bound domain effects leave canonical checks to their enclosing phase"
+    );
     headers = 0;
     assert.deepEqual(
       await readPinnedControlGetter(client, input, metadata, readCodeHash),

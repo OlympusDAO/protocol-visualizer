@@ -9,26 +9,18 @@ export type EntityStore = {
 };
 
 export type EnvioContext = EvmOnEventContext & {
-  VerifiedDeployment?: EntityStore;
-  KernelReadEpoch: EntityStore;
-  KernelReadCache: EntityStore;
   BridgeConfiguration: EntityStore;
   HeartTasks: EntityStore;
   ContractState: EntityStore;
-  ContractStateSeed: EntityStore;
   ControlTransition: EntityStore;
   ContractRelationship: EntityStore;
   ChainObservation: EntityStore;
-  ActionExecutedEvent: EntityStore;
   Contract: EntityStore;
-  ContractEvent: EntityStore;
   CurrentModule: EntityStore;
   CurrentRoleAssignee: EntityStore;
   KernelExecutor: EntityStore;
-  KernelExecutorEvent: EntityStore;
   Role: EntityStore;
   RoleAssignment: EntityStore;
-  RoleEvent: EntityStore;
 };
 
 export type RequestedPolicyPermission = {

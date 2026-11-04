@@ -1,21 +1,13 @@
 import {
+  type Abi,
+  type Hex,
+  keccak256,
   toFunctionSelector,
   toFunctionSignature,
-  keccak256,
-  type Hex,
-  type Abi,
 } from "viem";
-import type { ProcessedContractData } from "./types";
-import { waitForMetadata } from "../metadata-throttle";
-import {
-  discoverImmutableDeployment,
-  discoverOrdinaryDeployment,
-  ordinaryRuntime,
-  deploymentDiscoveryVersion,
-  verifiedGetterFields,
-  type VerifiedImmutableInput,
-} from "./immutables";
 import type { FunctionContext } from "../../../../../packages/snapshot-artifacts/src/index";
+import { waitForMetadata } from "../metadata-throttle";
+import type { ProcessedContractData } from "./types";
 
 type CompilerDocs = {
   userdoc?: { methods?: Record<string, { notice?: string }> };
@@ -78,10 +70,10 @@ export function processAbiMetadata(
 }
 
 export function processVerifiedContractMetadata(
-  verified: VerifiedImmutableInput & {
+  verified: {
     chainId?: string | number;
     address?: string;
-    runtimeMatch?: string;
+    runtimeMatch?: string | null;
     runtimeBytecode?: { onchainBytecode?: Hex };
     metadata?: { output?: CompilerDocs & { abi?: Abi } };
   },
@@ -111,34 +103,6 @@ export function processVerifiedContractMetadata(
   for (const [selector, details] of Object.entries(processed.functionSelectors))
     details.roles = previous?.functionSelectors?.[selector]?.roles ?? [];
   processed.roleToFunctions = previous?.roleToFunctions ?? {};
-  const ordinaryDeployment = discoverOrdinaryDeployment(
-    verified,
-    chainId,
-    address
-  );
-  if (ordinaryDeployment) processed.ordinaryDeployment = ordinaryDeployment;
-  const immutableDeployment = discoverImmutableDeployment(
-    verified,
-    chainId,
-    address
-  );
-  if (immutableDeployment) processed.immutableDeployment = immutableDeployment;
-  // Absence alone is not a negative proof: incomplete compiler/source data can
-  // become available later. Keep precisely the runtime discovery criteria.
-  if (
-    immutableDeployment ||
-    (ordinaryDeployment &&
-      verified.runtimeBytecode.immutableReferences &&
-      Object.keys(verified.runtimeBytecode.immutableReferences).length === 0) ||
-    !ordinaryRuntime(verified.runtimeBytecode.onchainBytecode) ||
-    verified.proxyResolution?.isProxy === true
-  )
-    processed.deploymentDiscovery = {
-      chainId: Number(chainId),
-      address: address.toLowerCase(),
-      codeHash: keccak256(verified.runtimeBytecode.onchainBytecode),
-      version: deploymentDiscoveryVersion,
-    };
   return processed;
 }
 
@@ -148,7 +112,7 @@ export async function fetchVerifiedContract(
 ): Promise<Parameters<typeof processVerifiedContractMetadata>[0]> {
   await waitForMetadata("sourcify");
   const response = await fetch(
-    `https://sourcify.dev/server/v2/contract/${chainId}/${address.toLowerCase()}?fields=${verifiedGetterFields}`,
+    `https://sourcify.dev/server/v2/contract/${chainId}/${address.toLowerCase()}?fields=${verifiedMetadataFields}`,
     { signal: AbortSignal.timeout(30_000) }
   );
   if (!response.ok)
@@ -171,5 +135,18 @@ export async function fetchVerifiedContractMetadata(
     chainId,
     address,
     previous
+  );
+}
+
+export const verifiedMetadataFields =
+  "metadata,runtimeBytecode.onchainBytecode";
+
+export function hasVerifiedMetadata(data?: ProcessedContractData): boolean {
+  const functions = Object.values(data?.functionSelectors ?? {});
+  return (
+    functions.length > 0 &&
+    functions.every(
+      (fn) => fn.canonicalSignature && fn.documentation?.source?.codeHash
+    )
   );
 }

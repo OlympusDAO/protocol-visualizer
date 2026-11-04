@@ -1,19 +1,15 @@
 import { getContractName } from "../ContractNames";
 import { getKernelConstants, getRolesAdminConstants } from "../constants";
 import { ROLE_ROLES_ADMIN } from "../services/contracts/types";
+import { getKernelExecutor, getRolesAdmin } from "./effects";
 import {
-  actionExecutedEventId,
-  contractEventId,
   contractId,
   currentRoleAssigneeId,
-  kernelExecutorEventId,
   kernelExecutorId,
   roleAssignmentId,
-  roleEventId,
   roleId,
 } from "./ids";
 import type { EnvioContext } from "./types";
-import { getKernelExecutor, getRolesAdmin } from "./effects";
 
 export function setRole(
   context: EnvioContext,
@@ -46,41 +42,6 @@ export async function ensureKernelSeeded(
     blockNumber
   );
 
-  context.ActionExecutedEvent.set({
-    id: actionExecutedEventId(
-      chainId,
-      constants.address,
-      constants.creationTransactionHash,
-      0
-    ),
-    kernel: constants.address,
-    transactionHash: constants.creationTransactionHash,
-    logIndex: 0,
-    timestamp,
-    blockNumber,
-    action: "migrateKernel",
-    target: constants.address,
-  });
-
-  context.ContractEvent.set({
-    id: contractEventId(
-      chainId,
-      constants.creationTransactionHash,
-      0,
-      "migrateKernel",
-      constants.address
-    ),
-    transactionHash: constants.creationTransactionHash,
-    logIndex: 0,
-    action: "migrateKernel",
-    address: constants.address,
-    timestamp,
-    blockNumber,
-    name: "Kernel",
-    contractType: "KERNEL",
-    isEnabled: true,
-  });
-
   context.Contract.set({
     id,
     address: constants.address,
@@ -96,21 +57,6 @@ export async function ensureKernelSeeded(
     kernel: constants.address,
     lastUpdatedTimestamp: timestamp,
     lastUpdatedBlockNumber: blockNumber,
-    executor: initialExecutor,
-  });
-
-  context.KernelExecutorEvent.set({
-    id: kernelExecutorEventId(
-      chainId,
-      constants.address,
-      constants.creationTransactionHash,
-      0
-    ),
-    kernel: constants.address,
-    transactionHash: constants.creationTransactionHash,
-    logIndex: 0,
-    timestamp,
-    blockNumber,
     executor: initialExecutor,
   });
 }
@@ -135,24 +81,6 @@ export async function ensureRolesAdminSeeded(
     blockNumber
   );
   const assigneeName = getContractName(initialAdmin, chainId);
-
-  context.RoleEvent.set({
-    id: roleEventId(
-      chainId,
-      ROLE_ROLES_ADMIN,
-      constants.creationTransactionHash,
-      0,
-      initialAdmin
-    ),
-    role: ROLE_ROLES_ADMIN,
-    transactionHash: constants.creationTransactionHash,
-    logIndex: 0,
-    assignee: initialAdmin,
-    timestamp,
-    blockNumber,
-    assigneeName,
-    isGranted: true,
-  });
 
   context.RoleAssignment.set({
     id: roleAssignmentId(chainId, ROLE_ROLES_ADMIN, initialAdmin),

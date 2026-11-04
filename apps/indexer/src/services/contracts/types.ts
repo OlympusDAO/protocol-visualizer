@@ -9,29 +9,7 @@ export interface ContractSource {
   lastFetched: number;
 }
 
-export interface OrdinaryDeployment {
-  chainId: number;
-  address: string;
-  creationBlock: string;
-  codeHash: string;
-  version: string;
-  sourceUrl: string;
-}
-
-export interface ImmutableDeployment extends OrdinaryDeployment {
-  immutableGetters: Record<string, string>;
-}
-
 export interface ProcessedContractData {
-  // Conclusive discovery for this runtime, including proven ineligible code.
-  deploymentDiscovery?: {
-    chainId: number;
-    address: string;
-    codeHash: string;
-    version: string;
-  };
-  ordinaryDeployment?: OrdinaryDeployment;
-  immutableDeployment?: ImmutableDeployment;
   roleToFunctions: Record<string, string[]>;
   functionSelectors: Record<string, FunctionDetails>;
   addressGetters?: string[];

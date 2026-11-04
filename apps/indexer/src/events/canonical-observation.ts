@@ -5,6 +5,11 @@ import {
   rethrowTransientRpc,
 } from "./rpc";
 
+export type CanonicalBlockReader = (
+  chainId: number,
+  blockNumber: bigint
+) => Promise<CanonicalHeader>;
+
 type CanonicalHeader = {
   hash?: string | null;
   parentHash?: string;

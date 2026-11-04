@@ -10,7 +10,7 @@ registerHooks({
     } catch (error) {
       if (error.code !== "ERR_MODULE_NOT_FOUND" || !specifier.startsWith("."))
         throw error;
-      return nextResolve(`${specifier}.ts`, context);
+      return nextResolve(`${specifier.replace(/\.js$/, "")}.ts`, context);
     }
   },
   load(url, context, nextLoad) {

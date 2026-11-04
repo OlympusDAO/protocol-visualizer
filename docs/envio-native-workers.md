@@ -125,14 +125,11 @@ Long-outage recovery is a separate remaining decision. Failed effect invocations
 
 ## Metadata preparation milestone
 
-The existing metadata generator now supports `--prefetch-deployments`; see the
+The existing generator now supports `--prefetch-metadata`; see the
 [preparation runbook](indexer-operations.md#prepare-metadata-before-indexing).
-It fetches Sourcify evidence ahead of indexing and bundles the processed results.
-Conclusive discovery has a versioned chain/address/runtime-hash receipt, including
-verified immutable ineligibility. Ordinary bytecode alone, unavailable sources
-and incomplete compiler proof do not authorize a negative receipt. Runtime
-negative reuse checks the observed code hash; positive lifetime reuse retains
-its canonical creation/runtime checks and original verification provenance.
+It bundles Sourcify ABI and runtime-bound documentation before indexing. The
+current-state simplification removes deployment/immutable reuse descriptors;
+the measurements below describe the earlier implementation and remain historical.
 
 The preparation run refreshed 182 contracts, retained previous data for 91
 unavailable contracts and skipped one already verified contract on configured

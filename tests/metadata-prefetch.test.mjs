@@ -67,7 +67,7 @@ globalThis.fetch = async (url) => {
         "--import",
         preload,
         "scripts/generate-indexer-contract-metadata.mjs",
-        "--prefetch-deployments",
+        "--prefetch-metadata",
         "--chain-id",
         "1",
         "--address",
@@ -96,8 +96,7 @@ globalThis.fetch = async (url) => {
         (fn) => fn.name === "addedGetter"
       )
     );
-    assert.ok(prepared.ordinaryDeployment);
-    assert.ok(prepared.deploymentDiscovery);
+    assert.match(owner.documentation.source.codeHash, /^0x[0-9a-f]{64}$/);
     result = run();
     assert.equal(result.status, 0, result.stderr);
     assert.equal(
@@ -118,25 +117,20 @@ globalThis.fetch = async (url) => {
       saved,
       "failed refresh must preserve prior file"
     );
-    delete verified.runtimeBytecode.immutableReferences;
-    mock(verified);
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (const patch of [
+      { chainId: "10" },
+      { address: `0x${"12".repeat(20)}` },
+      { runtimeMatch: null },
+    ]) {
+      mock({ ...verified, ...patch });
       result = run("--force");
-      assert.equal(result.status, 0, result.stderr);
-      assert.ok(read().ordinaryDeployment);
+      assert.notEqual(result.status, 0);
       assert.equal(
-        read().deploymentDiscovery,
-        undefined,
-        "partial proof must replace an old completion marker"
+        readFileSync(output, "utf8"),
+        saved,
+        "mismatched source must not replace metadata"
       );
     }
-    result = run();
-    assert.equal(result.status, 0, result.stderr);
-    assert.equal(
-      readFileSync(requests, "utf8").trim().split("\n").length,
-      5,
-      "partial proof must remain retryable without --force"
-    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

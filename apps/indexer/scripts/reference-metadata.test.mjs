@@ -1,25 +1,24 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
 import http from "node:http";
-import {
-  processAbiMetadata,
-  processVerifiedContractMetadata,
-} from "../src/services/contracts/abi.ts";
-import { keccak256 } from "viem";
+import { test } from "node:test";
+import { ContractFunctionRevertedError, keccak256 } from "viem";
+import { KernelAbi } from "../abis/Kernel.ts";
 import { readPinnedControlGetter } from "../src/events/control-reads.ts";
-import { getRelationshipFields } from "../src/events/ownership-contracts.ts";
 import {
-  readPinnedModuleDependencies,
   completeModuleDependencies,
   getModuleDependencyFields,
+  readPinnedModuleDependencies,
 } from "../src/events/module-dependencies.ts";
-import { ContractFunctionRevertedError } from "viem";
-import { KernelAbi } from "../abis/Kernel.ts";
 import {
   completeRelationshipBlock,
   handleContractReference,
   relationshipId,
 } from "../src/events/ownership.ts";
+import { getRelationshipFields } from "../src/events/ownership-contracts.ts";
+import {
+  processAbiMetadata,
+  processVerifiedContractMetadata,
+} from "../src/services/contracts/abi.ts";
 
 const fn = (
   name,
@@ -263,7 +262,6 @@ const store = () => {
 };
 const context = () => ({
   ContractRelationship: store(),
-  ContractStateSeed: store(),
   ControlTransition: store(),
   ChainObservation: store(),
 });

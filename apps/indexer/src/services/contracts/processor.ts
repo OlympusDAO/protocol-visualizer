@@ -1,16 +1,19 @@
-import { mkdirSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { Abi } from "viem";
+import type { ChainId } from "../../constants";
+import precomputedContractMetadata from "../../generated/contract-metadata.json";
+import { type EtherscanApi, getEtherscanApi } from "../etherscan/api";
+import {
+  fetchVerifiedContractMetadata,
+  hasVerifiedMetadata,
+  processAbiMetadata,
+} from "./abi";
 import {
   type ContractCache,
   type ProcessedContractData,
   ROLE_ROLES_ADMIN,
 } from "./types";
-import { type EtherscanApi, getEtherscanApi } from "../etherscan/api";
-import type { ChainId } from "../../constants";
-import { processAbiMetadata, fetchVerifiedContractMetadata } from "./abi";
-import precomputedContractMetadata from "../../generated/contract-metadata.json";
-import { hasCompleteDeploymentDiscovery } from "./immutables";
 
 const CACHE_FILE = "./data/contract-cache.json";
 const ABI_DIR = "./data/abis";
@@ -53,7 +56,7 @@ export class ContractProcessor {
       ];
     if (precomputedData) {
       console.log(`PRECOMPUTED CACHE HIT for ${name} on chain ${this.chainId}`);
-      return this.enrichImmutableMetadata(normalizedAddress, precomputedData);
+      return this.enrichVerifiedMetadata(normalizedAddress, precomputedData);
     }
 
     // Check cache first
@@ -66,7 +69,7 @@ export class ContractProcessor {
       existsSync(this.getAbiPath(normalizedAddress))
     ) {
       console.log(`CACHE HIT for ${name} on chain ${this.chainId}`);
-      return this.enrichImmutableMetadata(
+      return this.enrichVerifiedMetadata(
         normalizedAddress,
         contractCache.processedData
       );
@@ -100,7 +103,7 @@ export class ContractProcessor {
     }
 
     console.log(`Processing source code for ${name} on chain ${this.chainId}`);
-    const processedContractData = await this.enrichImmutableMetadata(
+    const processedContractData = await this.enrichVerifiedMetadata(
       normalizedAddress,
       this.processSourceCode(name, sourceCode, processedData)
     );
@@ -121,15 +124,11 @@ export class ContractProcessor {
     return processedContractData;
   }
 
-  private async enrichImmutableMetadata(
+  private async enrichVerifiedMetadata(
     address: string,
     previous: ProcessedContractData
   ): Promise<ProcessedContractData> {
-    if (
-      previous.immutableDeployment ||
-      hasCompleteDeploymentDiscovery(previous, this.chainId, address)
-    )
-      return previous;
+    if (hasVerifiedMetadata(previous)) return previous;
     try {
       return await fetchVerifiedContractMetadata(
         this.chainId,

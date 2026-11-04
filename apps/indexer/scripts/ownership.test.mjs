@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  handleOwnershipEvent,
+  completeRelationshipBlock,
   handleAuthorityEvent,
   handleAuthorityReference,
+  handleOwnershipEvent,
   handleStakingReference,
-  completeRelationshipBlock,
   relationshipId,
 } from "../src/events/ownership.ts";
 
@@ -40,7 +40,6 @@ const store = () => {
 };
 const context = () => ({
   ContractRelationship: store(),
-  ContractStateSeed: store(),
   ControlTransition: store(),
   ChainObservation: store(),
 });

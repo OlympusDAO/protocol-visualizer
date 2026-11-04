@@ -387,12 +387,11 @@ test("native comparisons require every chain, matching event counts and valid pr
     run.meta = run.chainMeta[0];
     run.blocksPerSecond = (range.end - range.start + 1) / run.committedSeconds;
     run.effectCalls = { readControlGetter: 100 };
-    const names = [
-      ...readFileSync(
-        new URL("../apps/indexer/schema.graphql", import.meta.url),
-        "utf8"
-      ).matchAll(/^type (\w+) \{/gm),
-    ].map((match) => match[1]);
+    // This historical protocol keeps its original 20-table contract as the live schema evolves.
+    const names =
+      "ActionExecutedEvent BridgeConfiguration ChainObservation Contract ContractEvent ContractRelationship ContractState ContractStateSeed ControlTransition CurrentModule CurrentRoleAssignee HeartTasks KernelExecutor KernelExecutorEvent KernelReadCache KernelReadEpoch Role RoleAssignment RoleEvent VerifiedDeployment".split(
+        " "
+      );
     run.entities = Object.fromEntries(
       names.map((name) => [
         name,

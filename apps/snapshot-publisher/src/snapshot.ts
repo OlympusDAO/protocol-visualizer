@@ -1,27 +1,28 @@
 import {
-  isSupportedSchemaVersion,
+  ACTIVE_MANIFEST_KEY,
   type AdditionalContract,
+  type ChainIndexingProgress,
+  type ChainObservation,
   type ContractState,
   deploymentArtifactKey,
   type IndexingProgress,
+  isSupportedSchemaVersion,
   restProtocolPath,
-  type SnapshotManifest,
   SCHEMA_VERSION,
-  ACTIVE_MANIFEST_KEY,
-  type ChainIndexingProgress,
+  type SnapshotManifest,
 } from "@protocol-visualizer/snapshot-artifacts";
 import { loadOtherContracts } from "./chains.js";
 import { CACHE_CONTROL, DEFAULT_PUBLIC_BASE_PATH } from "./constants.js";
 import { describeFetchError, safeUrlForLog } from "./network-errors.js";
 import { PROTOCOL_VISUALIZER_QUERIES } from "./protocol-query.js";
 import type {
-  InventoryContract,
   ChainConfig,
   Contract,
   EnvioContractType,
   GraphqlContract,
   GraphqlRole,
   GraphqlRoleAssignment,
+  InventoryContract,
   ProtocolGraphqlData,
   ProtocolSnapshot,
   Role,
@@ -40,6 +41,7 @@ type ChainSnapshot = {
   chain: ChainConfig;
   snapshot: ProtocolSnapshot;
   progress: ChainIndexingProgress;
+  observationReady: boolean;
 };
 
 type CreateProtocolSnapshotInput = {
@@ -60,6 +62,10 @@ type CreateSnapshotFilesInput = {
   publicBasePath?: string;
   publicOrigin?: string;
   indexingProgressOverride?: IndexingProgress;
+  verifyObservation?: (
+    chainId: number,
+    observation: ChainObservation | null | undefined
+  ) => Promise<boolean>;
 };
 
 const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
@@ -586,6 +592,7 @@ export async function createSnapshotBatch({
   publicBasePath = DEFAULT_PUBLIC_BASE_PATH,
   indexingProgressOverride,
   additionalContracts: inventory,
+  verifyObservation,
 }: CreateSnapshotFilesInput): Promise<SnapshotBatch> {
   const additionalContracts = inventory ?? (await loadOtherContracts());
   const generatedAt = now.toISOString();
@@ -611,6 +618,9 @@ export async function createSnapshotBatch({
     chainSnapshots.push({
       chain,
       snapshot,
+      observationReady: verifyObservation
+        ? await verifyObservation(chain.chainId, snapshot.data.observation)
+        : true,
       progress:
         Object.values(indexingProgressOverride?.chains ?? {}).find(
           (progress) => progress.chainId === chain.chainId
@@ -624,12 +634,14 @@ export async function createSnapshotBatch({
     ),
   };
   const ready = chainSnapshots.every(
-    ({ snapshot, progress }) =>
+    ({ snapshot, progress, observationReady }) =>
+      observationReady &&
       snapshot.recordCounts.contracts +
         snapshot.recordCounts.roles +
         snapshot.recordCounts.roleAssignments +
         (snapshot.data.additionalContracts?.length ?? 0) >
-        0 && progress.block > 0
+        0 &&
+      progress.block > 0
   );
 
   const manifest = createManifest({

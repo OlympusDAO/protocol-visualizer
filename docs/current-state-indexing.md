@@ -189,7 +189,7 @@ rebuild for the smaller schema; only disposable fixture databases were reset.
 The nine ordered validation steps, 45 focused checks, three real-image
 eRPC/Postgres integration tests and the fresh Trivy scan under the existing CI
 policy passed. Astra and Ponytail reviewed the implementation and simplification.
-Local CodeRabbit review was attempted twice but rejected Git-provider
+Local CodeRabbit review was retried but rejected Git-provider
 authentication; its local auth-status check alone was insufficient.
 
 The measured runtime-input fingerprint is

@@ -1,8 +1,9 @@
 # Robinhood-base current-state benchmark protocol
 
-Protocol v3 distinguishes native processed-item counts from canonical log counts;
-v2 added explicit pre-window initialization receipts. Failed v1/v2 qualification
-remains diagnostic evidence and cannot be relabeled as accepted.
+Protocol v4 admits the exact getterless seed-description difference below;
+v3 separated native processed-item counts from canonical log counts, and v2
+added explicit pre-window initialization receipts. Failed v1/v2/v3 trials remain
+diagnostic evidence and cannot be relabeled as accepted.
 
 Compare `feat/robinhood-chain` commit `9eb4755be2904f6751a72890ecce134c4c701fef`
 against the committed current branch. Recent performance commits are diagnostic
@@ -61,11 +62,24 @@ Allow only these documented differences:
 - A first ownership transition may lose a prior getter-derived `previousValue`.
   Admit only an address becoming unknown, with no earlier transition and a
   matching canonical transfer event's `from` value. No extra object fields pass.
+  For the first registry `newAdministrator` request, whose event omits the previous
+  nominee, require its token/new nominee to match and bind the prior value to the
+  base's independently reread canonical seed before the event. Unknown or missing
+  seeds fail; this does not infer the candidate's missing earlier nominee.
 - Chainlink `newOwner` is event knowledge, not a public getter observation. The
   explicit exception requires a subscribed Chainlink identity, an actual EVM
   revert and a canonical transfer/request establishing the displayed nominee.
   Without such an event, only an unknown null value is accepted. It remains
   unavailable in verification; no claim of reading private state is made.
+- A getterless Chainlink `newOwner` first established by a canonical ownership
+  event can have null seed/coverage, instead of retaining the base's exact
+  "Pending owner is event-only" seed description. Require an actual EVM revert,
+  unchanged event provenance and event-derived nominee, a null candidate seed,
+  and the matching canonical ownership event. No other description loss passes.
+- An unknown getterless nominee can move its observation provenance to the
+  endpoint only while both values, seeds and event changes remain null and
+  verification remains unavailable. This certifies the observation boundary,
+  not a read of private state.
 
 Seeded policies with unknown installation history remain unknown; do not turn
 their seed `isEnabled: false` into an assertion about actual activation. Check

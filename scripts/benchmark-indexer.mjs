@@ -41,7 +41,7 @@ const nativeProtocol = "protocol-visualizer-native-workers-v2";
 const capacityProtocol = "protocol-visualizer-native-capacity-v1";
 const capacitySweepProtocol = "protocol-visualizer-native-capacity-sweep-v2";
 export const currentStateProtocol =
-  "protocol-visualizer-robinhood-current-state-v3";
+  "protocol-visualizer-robinhood-current-state-v4";
 export const currentStateEntities =
   "BridgeConfiguration ChainObservation Contract ContractRelationship ContractState ControlTransition CurrentModule CurrentRoleAssignee HeartTasks KernelExecutor Role RoleAssignment".split(
     " "

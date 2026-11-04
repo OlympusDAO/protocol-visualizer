@@ -1235,7 +1235,19 @@ export function compareCurrentStates(base, head, a, b) {
           ["seed", "provenance", "verification"].includes(field)
         ) {
           const proof = b.observations.find((row) => row.key === id);
-          assert(proof && !proof.getterless, "changed getterless provenance");
+          assert(proof, "missing observation receipt");
+          if (proof.getterless) {
+            assert(a.observations.find((row) => row.key === id)?.getterless);
+            assert.equal(field, "provenance");
+            assert.equal(old.value, null);
+            assert.equal(next.value, null);
+            assert.equal(old.seed, null);
+            assert.equal(next.seed, null);
+            assert.equal(old.lastChange, null);
+            assert.equal(next.lastChange, null);
+            same(next.provenance, next.verification.block);
+            assert.equal(next.verification.outcome, "unavailable");
+          }
           if (field === "provenance") {
             assert.equal(old.lastChange, null);
             assert.equal(next.lastChange, null);
@@ -1296,11 +1308,49 @@ export function compareCurrentStates(base, head, a, b) {
           }
         } else if (name === "ContractRelationship" && field === "coverage") {
           const proof = b.observations.find((row) => row.key === id);
-          assert(proof?.policy);
-          assert.equal(
-            next.coverage,
-            "Source/runtime-verified ownership events maintain this value after its initial canonical getter verification."
-          );
+          if (proof?.getterless && !proof.policy) {
+            assert(a.observations.find((row) => row.key === id)?.getterless);
+            assert.equal(next.getter, "newOwner");
+            assert.equal(
+              old.coverage,
+              "Pending owner is event-only: no public getter; earlier nominations are unknown until a transfer request or acceptance is replayed."
+            );
+            assert.equal(next.coverage, null);
+            assert.equal(next.seed, null);
+            const latest = b.events
+              .filter(
+                (event) =>
+                  event.chainId === next.chainId &&
+                  event.address === next.subject &&
+                  event.contract === "ChainlinkOwned" &&
+                  [
+                    "OwnershipTransferred",
+                    "OwnershipTransferRequested",
+                  ].includes(event.event)
+              )
+              .at(-1);
+            assert(latest);
+            same(
+              {
+                number: latest.blockNumber,
+                hash: latest.blockHash,
+                transactionHash: latest.transactionHash,
+                logIndex: latest.logIndex,
+              },
+              {
+                number: next.lastChange?.number,
+                hash: next.lastChange?.hash,
+                transactionHash: next.lastChange?.transactionHash,
+                logIndex: next.lastChange?.logIndex,
+              }
+            );
+          } else {
+            assert(proof?.policy);
+            assert.equal(
+              next.coverage,
+              "Source/runtime-verified ownership events maintain this value after its initial canonical getter verification."
+            );
+          }
         } else if (name === "ContractRelationship" && field === "targetCode") {
           const proof = b.observations.find((row) => row.key === id);
           assert.equal(old.targetCode, null);
@@ -1317,16 +1367,47 @@ export function compareCurrentStates(base, head, a, b) {
               event.logIndex === next.logIndex &&
               event.address === next.address
           );
-          assert(
-            log &&
+          assert(log);
+          if (
+            log.contract === "TokenAdminRegistry" &&
+            log.event === "AdministratorTransferRequested"
+          ) {
+            const getter = `newAdministrator:${log.args.token.toLowerCase()}`;
+            assert.equal(next.kind, `relationship:${getter}`);
+            assert.equal(next.value.address, log.args.newAdmin.toLowerCase());
+            const relationship = base.ContractRelationship.find(
+              (row) =>
+                row.chainId === old.chainId &&
+                row.subject === old.address &&
+                row.getter === getter
+            );
+            assert(relationship);
+            const proof = a.observations.find(
+              (row) => row.key === key(relationship)
+            );
+            assert(proof && !proof.getterless);
+            const seed = base.ContractStateSeed.find(
+              (row) =>
+                row.chainId === old.chainId &&
+                row.address === old.address &&
+                row.getter === getter &&
+                equal(row.boundary, proof.seed)
+            );
+            assert(
+              seed && BigInt(seed.boundary.number) < BigInt(old.blockNumber)
+            );
+            assert.equal(seed.value, old.previousValue.address);
+          } else {
+            assert(
               ["OwnershipTransferred", "OwnershipTransferRequested"].includes(
                 log.event
               )
-          );
-          assert.equal(
-            (log.args.from ?? log.args.previousOwner)?.toLowerCase(),
-            old.previousValue.address
-          );
+            );
+            assert.equal(
+              (log.args.from ?? log.args.previousOwner)?.toLowerCase(),
+              old.previousValue.address
+            );
+          }
           assert(
             !base.ControlTransition.some(
               (row) =>

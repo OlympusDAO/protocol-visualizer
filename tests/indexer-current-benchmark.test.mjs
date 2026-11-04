@@ -111,7 +111,15 @@ const audit = (state) => ({
   manifestHash: digest([]),
   eventCounts: { 1: 0 },
   initializationSeeds: [],
-  coverage: [{ chainId: 1, relationships: [`${address}:owner`], keycodes: [] }],
+  coverage: [
+    {
+      chainId: 1,
+      relationships: [
+        `${address}:${state.ContractRelationship[0]?.getter ?? "owner"}`,
+      ],
+      keycodes: [],
+    },
+  ],
   observations: state.ContractRelationship.map((row) => ({
     key: `${row.chainId}:${row.id}`,
     value: row.value,
@@ -211,6 +219,116 @@ test("shared omissions and stale oracle receipts cannot make a comparison pass",
     () => compareCurrentStates(x.base, x.head, audit(x.base), audit(x.head)),
     /missing independently expected/
   );
+});
+test("getterless metadata changes require unknown state or the matching latest ownership event", () => {
+  const { base, head } = fixture();
+  for (const state of [base, head])
+    Object.assign(state.ContractRelationship[0], {
+      getter: "newOwner",
+      value: null,
+      seed: null,
+      lastChange: null,
+      verification: { outcome: "unavailable", block: block(20) },
+    });
+  const receipts = () => {
+    const pair = [audit(base), audit(head)];
+    for (const receipt of pair) receipt.observations[0].getterless = true;
+    return pair;
+  };
+  assert.doesNotThrow(() => compareCurrentStates(base, head, ...receipts()));
+  head.ContractRelationship[0].seed = block(20);
+  assert.throws(() => compareCurrentStates(base, head, ...receipts()));
+  head.ContractRelationship[0].seed = null;
+  const change = { ...block(15), transactionHash: block(15).hash, logIndex: 1 };
+  for (const state of [base, head])
+    Object.assign(state.ContractRelationship[0], {
+      value,
+      lastChange: change,
+      provenance: change,
+    });
+  base.ContractRelationship[0].coverage =
+    "Pending owner is event-only: no public getter; earlier nominations are unknown until a transfer request or acceptance is replayed.";
+  head.ContractRelationship[0].coverage = null;
+  const pair = receipts();
+  const event = {
+    chainId: 1,
+    address,
+    contract: "ChainlinkOwned",
+    event: "OwnershipTransferRequested",
+    blockNumber: "15",
+    blockHash: change.hash,
+    transactionHash: change.transactionHash,
+    logIndex: 1,
+    args: { to: value },
+  };
+  for (const receipt of pair) {
+    receipt.events = [event];
+    receipt.manifestHash = digest(receipt.events);
+  }
+  assert.doesNotThrow(() => compareCurrentStates(base, head, ...pair));
+  for (const receipt of pair) {
+    receipt.events = [];
+    receipt.manifestHash = digest([]);
+  }
+  assert.throws(() => compareCurrentStates(base, head, ...pair));
+});
+test("a missing first registry nominee requires the exact independently audited prior seed", () => {
+  const { base, head } = fixture(),
+    token = value;
+  const getter = `newAdministrator:${token}`;
+  for (const state of [base, head])
+    state.ContractRelationship[0].getter = getter;
+  base.ContractStateSeed = [
+    {
+      chainId: 1,
+      id: "seed",
+      address,
+      getter,
+      boundary: block(10),
+      value: address,
+    },
+  ];
+  const transition = {
+    id: "transition",
+    chainId: 1,
+    address,
+    kind: `relationship:${getter}`,
+    blockNumber: "15",
+    blockHash: block(15).hash,
+    transactionHash: block(15).hash,
+    logIndex: 1,
+    previousValue: { address },
+    value: { address: value },
+  };
+  base.ControlTransition = [transition];
+  head.ControlTransition = [
+    { ...transition, previousValue: { address: null } },
+  ];
+  const receipts = () => {
+    const pair = [audit(base), audit(head)];
+    for (const receipt of pair) {
+      receipt.events = [
+        {
+          chainId: 1,
+          address,
+          contract: "TokenAdminRegistry",
+          event: "AdministratorTransferRequested",
+          blockNumber: "15",
+          blockHash: block(15).hash,
+          transactionHash: block(15).hash,
+          logIndex: 1,
+          args: { token, newAdmin: value },
+        },
+      ];
+      receipt.manifestHash = digest(receipt.events);
+    }
+    return pair;
+  };
+  assert.doesNotThrow(() => compareCurrentStates(base, head, ...receipts()));
+  base.ContractStateSeed[0].value = value;
+  assert.throws(() => compareCurrentStates(base, head, ...receipts()));
+  base.ContractStateSeed = [];
+  assert.throws(() => compareCurrentStates(base, head, ...receipts()));
 });
 test("failed campaign preflight invalidates a prior accepted output without printing private inputs", () => {
   const directory = mkdtempSync(join(tmpdir(), "pv-current-failure-")),

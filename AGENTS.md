@@ -2,7 +2,7 @@
 
 ## Validation Skill
 
-When asked to validate this repository, run `./scripts/validate.sh`. It executes these commands in order:
+When asked to validate this repository, run `pnpm validate`. It calls `./scripts/validate.sh`, which executes these commands in order:
 
 1. `pnpm run check:runtime-versions`
 2. `pnpm install --frozen-lockfile`
@@ -15,6 +15,8 @@ When asked to validate this repository, run `./scripts/validate.sh`. It executes
 9. `pnpm run docker:build:snapshot-publisher`
 
 If a command fails, stop and report the first failure with actionable context.
+
+Invoke `pnpm validate` and individual `pnpm run docker:build:<image>` scripts as standalone commands. Avoid shell wrappers, pipes, environment prefixes and output redirection so reusable command approvals can match. Capture output through the execution tool instead.
 
 ## Indexer Benchmark
 

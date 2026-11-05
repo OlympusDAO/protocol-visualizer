@@ -162,6 +162,7 @@ test("configuration events invalidate observations, deduplicate, preserve state 
   );
   assert.deepEqual(ctx.BridgeConfiguration.rows.get(id).configuration, config);
   assert.equal(ctx.BridgeConfiguration.rows.get(id).observedAt.number, "10");
+  const before = structuredClone(ctx.BridgeConfiguration.rows.get(id));
   assert.equal(
     await bridgeAnchorsCanonical(
       ctx,
@@ -172,6 +173,7 @@ test("configuration events invalidate observations, deduplicate, preserve state 
     ),
     false
   );
+  assert.deepEqual(ctx.BridgeConfiguration.rows.get(id), before);
   const restored = context();
   for (const row of initial.values()) restored.BridgeConfiguration.set(row);
   assert.equal(

@@ -269,3 +269,13 @@ blocks withhold publication. Canonical validation happens during batch
 construction, not atomically with manifest upload. A completed observation means every configured
 family was attempted canonically; unsupported getters and mismatches remain
 explicit in field verification and do not become successful reads.
+
+A missing or changed canonical anchor rejects the entire observation batch. No
+partial entity changes or completion marker commit. Anchor checks are read-only;
+their failure is reported as the sanitized `Canonical observation changed or
+unavailable` error, rather than a verification row that would be rolled back.
+This stops processing and, with native workers, stops sibling workers too.
+Restarting can recover from a temporary provider failure. A persisted orphaned
+anchor needs canonical state restored through supported rollback or an approved
+rebuild; restarting alone does not repair it. Ordinary unsupported getters still
+record their unavailable result within an otherwise canonical observation.

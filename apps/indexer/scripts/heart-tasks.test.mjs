@@ -237,6 +237,7 @@ test("An orphaned task anchor prevents checkpoint advancement and entity restora
     event(11, 0, { task_: b, customSelector_: "0x00000000", index_: 0n }),
     "PeriodicTaskAdded"
   );
+  const orphan = structuredClone(row(ctx));
   assert.equal(
     await heartTaskAnchorsCanonical(ctx, 1, block(12), [heart], async () => ({
       ...block(11),
@@ -245,7 +246,7 @@ test("An orphaned task anchor prevents checkpoint advancement and entity restora
     false
   );
   assert.equal(row(ctx).indexedThrough.number, "10");
-  assert.equal(row(ctx).verification.outcome, "unavailable");
+  assert.deepEqual(row(ctx), orphan);
   ctx.HeartTasks.rows.clear();
   for (const [id, state] of checkpoint) ctx.HeartTasks.rows.set(id, state);
   ctx.ControlTransition.rows.clear();
@@ -301,6 +302,7 @@ test("Failed getter-only reads retain their successful origin and reject its orp
   assert.equal(state.enabled, false);
   assert.equal(state.indexedThrough.number, "11");
   assert.equal(state.verification.block.number, "12");
+  const before = structuredClone(state);
   const canonical = async (number) => ({
     ...block(Number(number)),
     hash: Number(number) === 11 ? "0xreplacement" : block(Number(number)).hash,
@@ -313,4 +315,5 @@ test("Failed getter-only reads retain their successful origin and reject its orp
     ctx.ContractState.rows.get(`1:${heart}`).indexedThrough.number,
     "11"
   );
+  assert.deepEqual(ctx.ContractState.rows.get(`1:${heart}`), before);
 });

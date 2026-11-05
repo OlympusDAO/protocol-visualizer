@@ -186,6 +186,7 @@ test("legacy minter getter gap updates only at a pinned checkpoint without inven
 test("a forked relationship anchor does not advance chain observation or seed siblings", async () => {
   const ctx = context();
   await handleOwnershipEvent(ctx, event(1, 0, { newOwner: alice }));
+  const before = structuredClone(await row(ctx, "owner"));
   const completed = await completeRelationshipBlock(
     ctx,
     1,
@@ -195,7 +196,7 @@ test("a forked relationship anchor does not advance chain observation or seed si
     async (number) => ({ ...block(Number(number)), hash: "0xfork" })
   );
   assert.equal(completed, false);
-  assert.equal((await row(ctx, "owner")).verification.outcome, "unavailable");
+  assert.deepEqual(await row(ctx, "owner"), before);
   assert.equal(await row(ctx, "authority"), undefined);
   assert.equal(ctx.ChainObservation.rows.size, 0);
 });

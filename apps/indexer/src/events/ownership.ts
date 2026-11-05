@@ -483,18 +483,7 @@ export async function relationshipAnchorsCanonical(
     if (!state || !anchor) continue;
     if (!headers.has(anchor.number))
       headers.set(anchor.number, await readCanonicalBlock(anchor.number));
-    if (headers.get(anchor.number)?.hash !== anchor.hash) {
-      context.ContractRelationship.set({
-        ...state,
-        verification: {
-          outcome: "unavailable",
-          block,
-          reason:
-            "Indexed relationship anchor is not confirmed on the observed canonical chain.",
-        },
-      });
-      return false;
-    }
+    if (headers.get(anchor.number)?.hash !== anchor.hash) return false;
   }
   return true;
 }

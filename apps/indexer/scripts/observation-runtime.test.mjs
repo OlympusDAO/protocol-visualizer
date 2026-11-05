@@ -53,7 +53,7 @@ if (!mode) {
     }
   });
 } else
-  test("native Envio rejects exhausted HTTP 429 and a late fork without committing entities, then resumes the same block", async () => {
+  test("native Envio rejects orphaned anchors, exhausted HTTP 429 and a late fork atomically, then resumes the same block", async () => {
     let phase;
     let throttled = true;
     let throttleCalls = 0;
@@ -62,6 +62,7 @@ if (!mode) {
     let pinnedCalls = 0;
     let pinnedCodes = 0;
     let nativeFinalChecks = 0;
+    let historicalReads = 0;
     const invocations = [];
     const unexpected = [];
     const server = http.createServer(async (req, res) => {
@@ -74,6 +75,7 @@ if (!mode) {
         if (rpc.method === "eth_blockNumber")
           result = `0x${height.toString(16)}`;
         else if (rpc.method === "eth_getBlockByNumber") {
+          if (Number(BigInt(rpc.params[0])) === height - 1) historicalReads++;
           if (Number(BigInt(rpc.params[0])) === height && phase) {
             phase.headers++;
             if (!phase.preload && phase.headers >= 2 && throttled) {
@@ -231,7 +233,6 @@ if (!mode) {
             tables.map(async (name) => [name, await runtime[name].getAll()])
           )
         );
-      const before = await snapshot();
       const processBlock = () =>
         runtime.process({
           chains: {
@@ -251,6 +252,65 @@ if (!mode) {
             },
           },
         });
+      const authority = "0x1c21f8ea7e39e2ba00bc12d2968d63f4acb38b7a";
+      const anchor = {
+        number: String(height - 1),
+        hash: hashB,
+        timestamp: "256",
+      };
+      const stored = {
+        chainId: 1,
+        id: `1:${authority}:governor`,
+        subject: authority,
+        getter: "governor",
+        kind: "governor",
+        value: owner,
+        source: owner,
+        target: authority,
+        status: "current",
+        provenance: anchor,
+        seed: anchor,
+        lastChange: null,
+        indexedThrough: anchor,
+        verification: { outcome: "match", block: anchor },
+      };
+      runtime.ContractRelationship.set(stored);
+      const orphaned = await snapshot();
+      throttled = false;
+      fork = false;
+      await assert.rejects(processBlock(), (error) => {
+        assert.match(
+          String(error),
+          /Canonical observation changed or unavailable/
+        );
+        assert(!String(error).includes(url));
+        return true;
+      });
+      assert(historicalReads > 0, "the stored historical anchor was checked");
+      assert.deepEqual(
+        await snapshot(),
+        orphaned,
+        "a historical anchor mismatch must not commit diagnostics, events or a completion marker"
+      );
+      assert.equal((await runtime.ChainObservation.getAll()).length, 0);
+      // Model restoration of the canonical entity; retrying alone cannot repair it.
+      const canonical = { ...anchor, hash: hashA };
+      runtime.ContractRelationship.set({
+        ...stored,
+        provenance: canonical,
+        seed: canonical,
+        indexedThrough: canonical,
+        verification: { outcome: "match", block: canonical },
+      });
+      const before = await snapshot();
+      phase = undefined;
+      invocations.length = 0;
+      throttled = true;
+      fork = true;
+      throttleCalls = 0;
+      pinnedCalls = 0;
+      pinnedCodes = 0;
+      nativeFinalChecks = 0;
       await assert.rejects(processBlock(), (error) => {
         assert.match(String(error), /Indexer RPC temporarily unavailable/);
         assert.doesNotMatch(String(error), /fixture-provider-secret|http:/);

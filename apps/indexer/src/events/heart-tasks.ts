@@ -327,18 +327,7 @@ export async function heartTaskAnchorsCanonical(
       if (!anchor) continue;
       if (!headers.has(anchor.number))
         headers.set(anchor.number, await readBlock(anchor.number));
-      if (headers.get(anchor.number)?.hash !== anchor.hash) {
-        context.HeartTasks.set({
-          ...state,
-          verification: {
-            outcome: "unavailable",
-            block,
-            reason:
-              "Periodic task anchor is not confirmed on the observed canonical chain.",
-          },
-        });
-        return false;
-      }
+      if (headers.get(anchor.number)?.hash !== anchor.hash) return false;
     }
   }
   return true;

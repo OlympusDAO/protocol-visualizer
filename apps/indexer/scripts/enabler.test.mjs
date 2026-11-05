@@ -196,6 +196,9 @@ test("checkpoint cannot verify or advance coverage across an indexed-state fork"
   for (const number of [10, 11]) {
     const context = makeContext();
     await handleEnablementEvent(context, event(0), "Disabled", "v1");
+    const before = structuredClone(
+      await context.ContractState.get(`1:${address}`)
+    );
     const block = {
       number: String(number),
       hash: "0xother-fork",
@@ -214,10 +217,7 @@ test("checkpoint cannot verify or advance coverage across an indexed-state fork"
       async (number) => ({ ...block, number })
     );
     const state = await context.ContractState.get(`1:${address}`);
-    assert.equal(state.enabled, false);
-    assert.equal(state.lastChange.hash, "0xcanonical");
-    assert.equal(state.indexedThrough, null);
-    assert.equal(state.verification.outcome, "unavailable");
+    assert.deepEqual(state, before);
     assert.equal(context.ChainObservation.rows.size, 0);
     assert.equal(reads, 0);
   }
@@ -226,6 +226,9 @@ test("checkpoint cannot verify or advance coverage across an indexed-state fork"
 test("a new contract boundary checks existing chain anchors before seeding or advancing observation", async () => {
   const context = makeContext();
   await handleEnablementEvent(context, event(0), "Disabled", "v1");
+  const before = structuredClone(
+    await context.ContractState.get(`1:${address}`)
+  );
   const added = "0x0000000000000000000000000000000000000002";
   const block = { number: "11", hash: "0xother-fork", timestamp: "1700000011" };
   await completeEnablementBlock(
@@ -241,8 +244,5 @@ test("a new contract boundary checks existing chain anchors before seeding or ad
   );
   assert.equal(await context.ContractState.get(`1:${added}`), undefined);
   assert.equal(context.ChainObservation.rows.size, 0);
-  assert.equal(
-    (await context.ContractState.get(`1:${address}`)).verification.outcome,
-    "unavailable"
-  );
+  assert.deepEqual(await context.ContractState.get(`1:${address}`), before);
 });

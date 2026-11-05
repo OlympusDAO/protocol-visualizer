@@ -139,18 +139,7 @@ export async function bridgeAnchorsCanonical(
       if (!anchor) continue;
       if (!headers.has(anchor.number))
         headers.set(anchor.number, await header(anchor.number));
-      if (headers.get(anchor.number)?.hash !== anchor.hash) {
-        if (row)
-          context.BridgeConfiguration.set({
-            ...row,
-            verification: {
-              outcome: "unavailable",
-              block,
-              reason: "Bridge configuration anchor is not canonical.",
-            },
-          });
-        return false;
-      }
+      if (headers.get(anchor.number)?.hash !== anchor.hash) return false;
     }
   }
   return true;

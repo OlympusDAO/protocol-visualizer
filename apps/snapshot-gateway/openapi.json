@@ -1078,6 +1078,10 @@
               },
               "indexedThrough": {
                 "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
+              },
+              "verificationVersion": {
+                "type": "integer",
+                "minimum": 1
               }
             }
           },

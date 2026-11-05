@@ -63,11 +63,25 @@ to a private Railway Bucket.
 
 ## Validation
 
-Run full local validation (including Docker builds):
+With the repository-pinned Node and pnpm versions active, run the nine required agent validation steps:
+
+```bash
+./scripts/validate.sh
+```
+
+The script runs from the repository root, prints each step, and stops at the first failure with its exit code.
+
+Run full local validation (including container builds):
 
 ```bash
 pnpm run validate:local
 ```
+
+The `container:build:*`, `container:tag:scan:*`, and `stack:*` commands use Docker
+when installed, otherwise Podman. Set `CONTAINER_ENGINE=podman` or
+`CONTAINER_ENGINE=docker` to choose explicitly, including for `pnpm validate`.
+Failures from the selected engine stop the command. Podman stack commands
+require a Compose provider installed on the host.
 
 Run checks individually:
 
@@ -77,12 +91,12 @@ pnpm install --frozen-lockfile
 pnpm run lint:check
 pnpm run build
 pnpm run snapshots:generate:local
-pnpm run docker:build:indexer
-pnpm run docker:build:frontend
-pnpm run docker:build:hasura
-pnpm run docker:build:snapshot-gateway
-pnpm run docker:build:snapshot-publisher
-pnpm run docker:build:snapshot-monitor
+pnpm run container:build:indexer
+pnpm run container:build:frontend
+pnpm run container:build:hasura
+pnpm run container:build:snapshot-gateway
+pnpm run container:build:snapshot-publisher
+pnpm run container:build:snapshot-monitor
 ```
 
 ## Indexer

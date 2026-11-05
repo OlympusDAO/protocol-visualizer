@@ -1,15 +1,19 @@
-import { mkdirSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { Abi } from "viem";
+import type { ChainId } from "../../constants";
+import precomputedContractMetadata from "../../generated/contract-metadata.json";
+import { type EtherscanApi, getEtherscanApi } from "../etherscan/api";
+import {
+  fetchVerifiedContractMetadata,
+  hasVerifiedMetadata,
+  processAbiMetadata,
+} from "./abi";
 import {
   type ContractCache,
   type ProcessedContractData,
   ROLE_ROLES_ADMIN,
 } from "./types";
-import { type EtherscanApi, getEtherscanApi } from "../etherscan/api";
-import type { ChainId } from "../../constants";
-import { processAbiMetadata } from "./abi";
-import precomputedContractMetadata from "../../generated/contract-metadata.json";
 
 const CACHE_FILE = "./data/contract-cache.json";
 const ABI_DIR = "./data/abis";
@@ -52,7 +56,7 @@ export class ContractProcessor {
       ];
     if (precomputedData) {
       console.log(`PRECOMPUTED CACHE HIT for ${name} on chain ${this.chainId}`);
-      return precomputedData;
+      return this.enrichVerifiedMetadata(normalizedAddress, precomputedData);
     }
 
     // Check cache first
@@ -65,7 +69,10 @@ export class ContractProcessor {
       existsSync(this.getAbiPath(normalizedAddress))
     ) {
       console.log(`CACHE HIT for ${name} on chain ${this.chainId}`);
-      return contractCache.processedData;
+      return this.enrichVerifiedMetadata(
+        normalizedAddress,
+        contractCache.processedData
+      );
     }
 
     let abi: Abi;
@@ -96,10 +103,9 @@ export class ContractProcessor {
     }
 
     console.log(`Processing source code for ${name} on chain ${this.chainId}`);
-    const processedContractData = this.processSourceCode(
-      name,
-      sourceCode,
-      processedData
+    const processedContractData = await this.enrichVerifiedMetadata(
+      normalizedAddress,
+      this.processSourceCode(name, sourceCode, processedData)
     );
 
     let currentChainCache = this.cache[this.chainId];
@@ -116,6 +122,22 @@ export class ContractProcessor {
     this.saveCache();
 
     return processedContractData;
+  }
+
+  private async enrichVerifiedMetadata(
+    address: string,
+    previous: ProcessedContractData
+  ): Promise<ProcessedContractData> {
+    if (hasVerifiedMetadata(previous)) return previous;
+    try {
+      return await fetchVerifiedContractMetadata(
+        this.chainId,
+        address,
+        previous
+      );
+    } catch {
+      return previous;
+    }
   }
 
   private getChainAbiDir(): string {

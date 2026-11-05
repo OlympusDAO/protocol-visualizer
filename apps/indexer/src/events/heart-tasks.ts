@@ -1,21 +1,19 @@
 import type {
-  HeartTasks,
   PeriodicTask,
+  HeartTasks as SnapshotHeartTasks,
 } from "../../../../packages/snapshot-artifacts/src/index";
-import metadata from "../generated/contract-metadata.json";
 import { getContractName, getContractStartBlock } from "../ContractNames";
-import type { RelationshipField } from "./ownership";
-import type { ControlStateEntity } from "./control-state";
+import metadata from "../generated/contract-metadata.json";
+import type { ControlGetterResult } from "./control-reads";
+import type { ControlBlock, ControlStateEntity } from "./control-state";
 import { applyControlTransition, setControlCapability } from "./control-state";
 import { contractId, controlTransitionId } from "./ids";
-import type { ControlGetterResult } from "./control-reads";
-import type { ControlBlock } from "./control-state";
+import type { RelationshipField } from "./ownership";
 import type { ControlEvent, EnvioContext } from "./types";
 
-type Context = Pick<
-  EnvioContext,
-  "HeartTasks" | "ContractStateSeed" | "ControlTransition"
->;
+type HeartTasks = Omit<SnapshotHeartTasks, "chainId">;
+
+type Context = Pick<EnvioContext, "HeartTasks" | "ControlTransition">;
 type TaskEvent = ControlEvent & {
   params: { task_: string; index_: bigint; customSelector_?: string };
 };
@@ -164,7 +162,7 @@ export async function handleLegacyTaskEvent(
 }
 
 export async function observeLegacyTaskState(
-  context: Pick<EnvioContext, "ContractState" | "ContractStateSeed">,
+  context: Pick<EnvioContext, "ContractState">,
   chainId: number,
   address: string,
   block: ControlBlock,
@@ -184,18 +182,8 @@ export async function observeLegacyTaskState(
     getter === "locallyActive"
       ? (previous?.enabled ?? observed)
       : (observed ?? previous?.enabled ?? null);
-  if (success && !previous?.seed)
-    context.ContractStateSeed.set({
-      id: `${contractId(chainId, address)}:${block.hash}:${getter}`,
-      chainId,
-      address,
-      getter,
-      boundary: block,
-      value: result.value,
-    });
   context.ContractState.set({
     id: contractId(chainId, address),
-    chainId,
     address,
     ...previous,
     enablerCapability: "unsupported",
@@ -244,7 +232,6 @@ export function getPeriodicTaskManagers(chainId: number) {
 function unknown(chainId: number, address: string): HeartTasks {
   return {
     id: contractId(chainId, address),
-    chainId,
     address: address.toLowerCase(),
     tasks: null,
     seed: null,
@@ -309,7 +296,6 @@ export async function handlePeriodicTaskEvent(
   });
   context.ControlTransition.set({
     id: transitionId,
-    chainId: event.chainId,
     address: state.address,
     kind: "periodic-tasks",
     previousValue: { tasks: state.tasks },
@@ -341,18 +327,7 @@ export async function heartTaskAnchorsCanonical(
       if (!anchor) continue;
       if (!headers.has(anchor.number))
         headers.set(anchor.number, await readBlock(anchor.number));
-      if (headers.get(anchor.number)?.hash !== anchor.hash) {
-        context.HeartTasks.set({
-          ...state,
-          verification: {
-            outcome: "unavailable",
-            block,
-            reason:
-              "Periodic task anchor is not confirmed on the observed canonical chain.",
-          },
-        });
-        return false;
-      }
+      if (headers.get(anchor.number)?.hash !== anchor.hash) return false;
     }
   }
   return true;
@@ -394,13 +369,4 @@ export async function completeHeartTasks(
     indexedThrough: block,
     verification: { outcome, block, getterValue: observedValue },
   });
-  if (state.tasks === null)
-    context.ContractStateSeed.set({
-      id: `${state.id}:${block.hash}:getPeriodicTasks`,
-      chainId,
-      address: state.address,
-      getter: "getPeriodicTasks",
-      boundary: block,
-      value: observedValue,
-    });
 }

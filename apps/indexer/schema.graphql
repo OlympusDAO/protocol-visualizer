@@ -4,18 +4,8 @@ enum ContractType {
   POLICY
 }
 
-enum ActionType {
-  installModule
-  upgradeModule
-  activatePolicy
-  deactivatePolicy
-  changeExecutor
-  migrateKernel
-}
-
 type Contract {
   id: ID!
-  chainId: Int! @index
   address: String! @index
   lastUpdatedTimestamp: BigInt!
   lastUpdatedBlockNumber: BigInt! @index
@@ -28,77 +18,21 @@ type Contract {
   policyFunctions: Json
 }
 
-type ContractEvent {
-  id: ID!
-  chainId: Int! @index
-  transactionHash: String! @index
-  logIndex: Int!
-  action: ActionType! @index
-  address: String! @index
-  timestamp: BigInt!
-  blockNumber: BigInt! @index
-  name: String!
-  version: String
-  contractType: ContractType!
-  isEnabled: Boolean!
-  policyPermissions: Json
-  policyFunctions: Json
-}
-
 type KernelExecutor {
   id: ID!
-  chainId: Int! @index
   kernel: String! @index
   lastUpdatedTimestamp: BigInt!
   lastUpdatedBlockNumber: BigInt! @index
   executor: String! @index
 }
 
-type KernelExecutorEvent {
-  id: ID!
-  chainId: Int! @index
-  kernel: String! @index
-  transactionHash: String! @index
-  logIndex: Int!
-  timestamp: BigInt!
-  blockNumber: BigInt! @index
-  executor: String! @index
-}
-
-type ActionExecutedEvent {
-  id: ID!
-  chainId: Int! @index
-  kernel: String! @index
-  transactionHash: String! @index
-  logIndex: Int!
-  timestamp: BigInt!
-  blockNumber: BigInt! @index
-  action: ActionType! @index
-  target: String! @index
-}
-
-type RoleEvent {
-  id: ID!
-  chainId: Int! @index
-  role: String! @index
-  transactionHash: String! @index
-  logIndex: Int!
-  assignee: String! @index
-  timestamp: BigInt!
-  blockNumber: BigInt! @index
-  assigneeName: String!
-  isGranted: Boolean! @index
-}
-
 type Role {
   id: ID!
-  chainId: Int! @index
   role: String! @index
 }
 
 type RoleAssignment {
   id: ID!
-  chainId: Int! @index
   role: String! @index
   assignee: String! @index
   assigneeName: String!
@@ -109,7 +43,6 @@ type RoleAssignment {
 
 type CurrentModule {
   id: ID!
-  chainId: Int! @index
   keycode: String! @index
   address: String! @index
   lastUpdatedTimestamp: BigInt!
@@ -118,7 +51,6 @@ type CurrentModule {
 
 type CurrentRoleAssignee {
   id: ID!
-  chainId: Int! @index
   role: String! @index
   assignee: String! @index
   assigneeName: String!
@@ -130,7 +62,6 @@ type CurrentRoleAssignee {
 # Json provenance uses {number,hash,timestamp}, all numeric values encoded as strings.
 type ContractState {
   id: ID!
-  chainId: Int! @index
   address: String! @index
   enablerCapability: String!
   enabled: Boolean
@@ -142,18 +73,8 @@ type ContractState {
   enablementCoverage: String
 }
 
-type ContractStateSeed {
-  id: ID!
-  chainId: Int! @index
-  address: String! @index
-  boundary: Json!
-  getter: String!
-  value: String!
-}
-
 type ControlTransition {
   id: ID!
-  chainId: Int! @index
   address: String! @index
   kind: String! @index
   previousValue: Json
@@ -169,7 +90,6 @@ type ContractRelationship {
   callSelector: String
   callSignature: String
   id: ID!
-  chainId: Int! @index
   kind: String! @index
   source: String! @index
   target: String @index
@@ -190,13 +110,12 @@ type ContractRelationship {
 
 type ChainObservation {
   id: ID!
-  chainId: Int! @index
   indexedThrough: Json!
+  verificationVersion: Int!
 }
 
 type HeartTasks {
   id: ID!
-  chainId: Int! @index
   address: String! @index
   tasks: Json
   seed: Json
@@ -207,7 +126,6 @@ type HeartTasks {
 
 type BridgeConfiguration {
   id: ID!
-  chainId: Int! @index
   address: String! @index
   kind: String!
   configuration: Json

@@ -1,24 +1,24 @@
 import assert from "node:assert/strict";
+import http from "node:http";
 import { test } from "node:test";
-import {
-  processAbiMetadata,
-  processVerifiedContractMetadata,
-} from "../src/services/contracts/abi.ts";
-import { keccak256 } from "viem";
+import { ContractFunctionRevertedError, keccak256 } from "viem";
+import { KernelAbi } from "../abis/Kernel.ts";
 import { readPinnedControlGetter } from "../src/events/control-reads.ts";
-import { getRelationshipFields } from "../src/events/ownership-contracts.ts";
 import {
-  readPinnedModuleDependencies,
   completeModuleDependencies,
   getModuleDependencyFields,
+  readPinnedModuleDependencies,
 } from "../src/events/module-dependencies.ts";
-import { ContractFunctionRevertedError } from "viem";
-import { KernelAbi } from "../abis/Kernel.ts";
 import {
   completeRelationshipBlock,
   handleContractReference,
   relationshipId,
 } from "../src/events/ownership.ts";
+import { getRelationshipFields } from "../src/events/ownership-contracts.ts";
+import {
+  processAbiMetadata,
+  processVerifiedContractMetadata,
+} from "../src/services/contracts/abi.ts";
 
 const fn = (
   name,
@@ -262,7 +262,6 @@ const store = () => {
 };
 const context = () => ({
   ContractRelationship: store(),
-  ContractStateSeed: store(),
   ControlTransition: store(),
   ChainObservation: store(),
 });
@@ -571,7 +570,7 @@ test("cached policy metadata rechecks each observation before exposing documenta
   const codeReads = [];
   const ctx = {
     effect: async (effect, input) => {
-      if (effect.name === "processContractMetadataV2") {
+      if (effect.name === "processContractMetadataV3") {
         metadataReads++;
         return structuredClone(getterMetadata);
       }
@@ -579,32 +578,73 @@ test("cached policy metadata rechecks each observation before exposing documenta
         return input.blockNumber === 13n
           ? undefined
           : block(Number(input.blockNumber));
-      assert.equal(effect.name, "readCanonicalCodeHash");
-      assert.equal(input.blockHash, block(Number(input.blockNumber)).hash);
-      codeReads.push(input.blockNumber);
-      return input.blockNumber === 10n
+      assert.equal(effect.name, "readPinnedBytecodeHash");
+      const number = [10n, 11n, 12n].find(
+        (height) => block(Number(height)).hash === input.blockHash
+      );
+      assert.notEqual(number, undefined);
+      codeReads.push(number);
+      return number === 10n
         ? source.codeHash
-        : input.blockNumber === 11n
+        : number === 11n
           ? "0xdifferent"
           : undefined;
     },
   };
-  const documentation = async (number) =>
-    Object.values(
-      (
-        await getProcessedContract(
-          ctx,
-          1,
-          "0x0000000000000000000000000000000000000004",
-          "DocumentedPolicy",
-          number
-        )
-      ).functionSelectors
-    )[0].documentation;
-  assert.equal((await documentation(10n)).notice, "The destination");
-  for (const number of [11n, 12n, 13n])
-    assert.equal(await documentation(number), undefined);
-  assert.equal((await documentation(10n)).notice, "The destination");
-  assert.equal(metadataReads, 1);
-  assert.deepEqual(codeReads, [10n, 11n, 12n, 10n]);
+  let headerReads = 0;
+  const server = http.createServer(async (req, res) => {
+    let raw = "";
+    for await (const part of req) raw += part;
+    const payload = JSON.parse(raw);
+    const reply = (rpc) => {
+      assert.equal(rpc.method, "eth_getBlockByNumber");
+      headerReads++;
+      const b = block(Number(BigInt(rpc.params[0])));
+      return {
+        jsonrpc: "2.0",
+        id: rpc.id,
+        result: {
+          number: rpc.params[0],
+          hash: b.hash,
+          timestamp: `0x${BigInt(b.timestamp).toString(16)}`,
+        },
+      };
+    };
+    res.setHeader("content-type", "application/json");
+    res.end(
+      JSON.stringify(
+        Array.isArray(payload) ? payload.map(reply) : reply(payload)
+      )
+    );
+  });
+  await new Promise((done) => server.listen(0, "127.0.0.1", done));
+  process.env.ENVIO_RPC_URL_1 = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const documentation = async (number) =>
+      Object.values(
+        (
+          await getProcessedContract(
+            ctx,
+            1,
+            "0x0000000000000000000000000000000000000004",
+            "DocumentedPolicy",
+            number
+          )
+        ).functionSelectors
+      )[0].documentation;
+    assert.equal((await documentation(10n)).notice, "The destination");
+    for (const number of [11n, 12n, 13n])
+      assert.equal(await documentation(number), undefined);
+    assert.equal((await documentation(10n)).notice, "The destination");
+    assert.equal(metadataReads, 1);
+    assert.deepEqual(codeReads, [10n, 11n, 12n, 10n]);
+    assert.equal(
+      headerReads,
+      3,
+      "successful cached code observations require fresh acceptance checks"
+    );
+  } finally {
+    delete process.env.ENVIO_RPC_URL_1;
+    await new Promise((done) => server.close(done));
+  }
 });

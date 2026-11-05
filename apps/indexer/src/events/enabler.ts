@@ -118,18 +118,8 @@ export async function controlAnchorsCanonical(
           anchor.number,
           await readCanonicalBlock(anchor.number)
         );
-      if (canonicalBlocks.get(anchor.number)?.hash !== anchor.hash) {
-        context.ContractState.set({
-          ...state,
-          verification: {
-            outcome: "unavailable",
-            block,
-            reason:
-              "Indexed state anchor is not confirmed on the observed canonical chain.",
-          },
-        });
+      if (canonicalBlocks.get(anchor.number)?.hash !== anchor.hash)
         return false;
-      }
     }
   }
   return true;

@@ -1,0 +1,127 @@
+{
+  "protocol": "protocol-visualizer-robinhood-current-state-v4",
+  "status": "accepted",
+  "generatedAt": "2026-11-04T13:58:51.210Z",
+  "profile": "ethereum",
+  "baseline": "9eb4755be2904f6751a72890ecce134c4c701fef",
+  "candidate": "01dc5471fa3ee685b496f3b8df2ca4ab4961bf9c",
+  "samples": 3,
+  "inputs": {
+    "driverHash": "b4b9c49f0ad814b7fcf70dac30f1a2c060f823652743ef96dfd1155a6967b4c3",
+    "probeHash": "4b3bcbeebbba9181d54e497135e39a0eea346fcc181a99195660f946100a4bfa",
+    "runtime": {
+      "node": "24.22.1",
+      "pnpm": "11.28.7",
+      "platform": "darwin",
+      "arch": "arm64",
+      "logicalCpus": 12
+    },
+    "workload": {
+      "chainId": 1,
+      "start": 26240000,
+      "end": 26290000,
+      "chains": [{ "chainId": 1, "start": 26240000, "end": 26290000 }],
+      "checkpointInterval": null,
+      "baselineConfigHash": "2d6a00b1dbac784d157b73373a34f066816ea527227937dec34828c179f263b1",
+      "eventSource": "HyperSync",
+      "rpcMode": "fallback"
+    },
+    "fixture": {
+      "erpcImageId": "sha256:a22f5b891a87a4153978a920e0f66f9e91bc799acee1c6dd1adabe3e952d7f1d",
+      "postgresImageId": "sha256:9355df27b2506973cfc421408623435f15298511c2cdadc502b7aa580efe611f",
+      "aggregateCreditsPerSecond": 100,
+      "proxyNetworks": [
+        1, 10, 42161, 8453, 80094, 4663, 11155111, 421614, 84532
+      ],
+      "queuedAdmission": {
+        "implementation": "3b4108dc5fddd9d6cfac1dabbe7a5e2b94e93c3c7cb5be906ac70ca1000da374",
+        "active": 32,
+        "waiting": 256,
+        "maxInFlight": 1024,
+        "deadlineMilliseconds": 8000
+      }
+    },
+    "providerProfile": "private-pr84"
+  },
+  "baselineSummary": {
+    "runCount": 3,
+    "medianCommittedSeconds": 170.54961308400001,
+    "medianBlocksPerSecond": 293.17568709682877,
+    "medianProxyRequests": 20385,
+    "medianUpstreamRequests": 10491,
+    "stateConsistent": true
+  },
+  "candidateSummary": {
+    "runCount": 3,
+    "medianCommittedSeconds": 25.034561958,
+    "medianBlocksPerSecond": 1997.2788053526044,
+    "medianProxyRequests": 902,
+    "medianUpstreamRequests": 898,
+    "stateConsistent": true
+  },
+  "workCounts": {
+    "canonicalLogs": { "1": 14 },
+    "baselineBlockCallbacks": { "1": 509 },
+    "candidateBlockCallbacks": { "1": 2 }
+  },
+  "initializationSeeds": [
+    {
+      "table": "KernelExecutor",
+      "key": "1:1:0x2286d7f9639e8158fad1169e76d1fbc38247f54b",
+      "block": {
+        "number": "15998125",
+        "hash": "0x75025a5cb105d220a295d97b69ff1aa1ba60c9b015e1578faf107bdbeef43260",
+        "timestamp": "1668789275"
+      },
+      "configuredTimestamp": "1668790475",
+      "value": "0x1a5309f208f161a393e8b5a253de8ab894a67188",
+      "endpoint": {
+        "block": {
+          "number": "26290000",
+          "hash": "0xdd9db3599d7edc3778921bdb8168553b61e54ed7e0443c94f999ad998812320f",
+          "timestamp": "1793175767"
+        },
+        "value": "0x245cc372c84b3645bf0ffe6538620b04a217988b"
+      },
+      "endpointVerified": false,
+      "rowHash": "b85d8fe03ea9916b0880c89da00e49da85ae76fcda596ce2ba162830aa544ab8"
+    }
+  ],
+  "throughputGainPercent": 581.2566298149246,
+  "rawFiles": {
+    "baseline": [
+      {
+        "path": "benchmarks/current-state-a9e1af78-fdfc-4097-872b-a59c15c2f5ae/baseline-1.json",
+        "sha256": "7e5c6851ee10993e5ab165c3f774c5f73e31f07dab879bd48c485678fd218a61"
+      },
+      {
+        "path": "benchmarks/current-state-a9e1af78-fdfc-4097-872b-a59c15c2f5ae/baseline-2.json",
+        "sha256": "b8e706b038c7fffbf0542e01ab24338099e2319a610a291c09a9711099ec3cf8"
+      },
+      {
+        "path": "benchmarks/current-state-a9e1af78-fdfc-4097-872b-a59c15c2f5ae/baseline-3.json",
+        "sha256": "85770763f64fb413a8a65a40498df616e9a8f150ca7ebd761a433342c0697c7d"
+      }
+    ],
+    "candidate": [
+      {
+        "path": "benchmarks/current-state-a9e1af78-fdfc-4097-872b-a59c15c2f5ae/candidate-1.json",
+        "sha256": "f8de6ea9b45e57a1cafbc0bf3d6828c537f8cd682fe6e207b8ccdb43528a8f75"
+      },
+      {
+        "path": "benchmarks/current-state-a9e1af78-fdfc-4097-872b-a59c15c2f5ae/candidate-2.json",
+        "sha256": "f9ca62636d71d440a591ff396ce1291427118c02098b176cbaf701f453143171"
+      },
+      {
+        "path": "benchmarks/current-state-a9e1af78-fdfc-4097-872b-a59c15c2f5ae/candidate-3.json",
+        "sha256": "4108a4dda9ef893d2ae5d88a39be308e6bb89664c29f7e1df7b8921985fdc3c9"
+      }
+    ]
+  },
+  "caveats": [
+    "Audited getter/state equivalence with separately disclosed initialization seeds; deliberately fewer historical observations, block callbacks and archive records.",
+    "Local cold bounded replays; no live nine-chain or provider billing claim.",
+    "Oracle RPC runs after timing and is excluded from measured request counts.",
+    "Pre-window Kernel executor initialization records are checked at creation and retained exactly; their endpoint executor and configured timestamp discrepancies are disclosed separately, not certified as current state."
+  ]
+}

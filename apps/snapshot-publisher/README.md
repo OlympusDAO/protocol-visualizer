@@ -82,7 +82,10 @@ private Hasura service; without it, Hasura may return an unauthorized or empty
 schema response.
 `INDEXER_METRICS_URL` is the private Envio metrics endpoint. The publisher uses
 `hyperindex_synced_to_head` and per-chain `envio_progress_ready` metrics as the
-handover gate before reading Hasura or writing bucket objects.
+handover gate before reading Hasura or writing bucket objects. These native
+metrics are the catch-up authority. The publisher also requires a completed
+full-verification marker and validates its exact canonical block/hash/timestamp;
+it does not impose a separate distance-from-head or age threshold.
 The indexer Railway service must expose the same port used here. With the
 documented setup, set `indexer.PORT=9898` and keep
 `INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics`.
@@ -223,7 +226,7 @@ ready.
 ```bash
 pnpm --filter snapshot-publisher run lint:check
 pnpm --filter snapshot-publisher run build
-pnpm run docker:build:snapshot-publisher
+pnpm run container:build:snapshot-publisher
 ```
 
 `build` compiles TypeScript and runs the Node test suite for snapshot

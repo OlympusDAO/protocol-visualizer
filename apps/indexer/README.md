@@ -91,8 +91,9 @@ Local Docker Compose intentionally requires `ENVIO_API_TOKEN` so the default
 path is HyperSync with RPC fallback. Set `ENVIO_RPC_MODE=sync` only when you are
 deliberately testing RPC-only ingestion.
 
-Effect-handler RPC reads use only `ENVIO_RPC_URL_<chainId>` with no public
-fallback or viem retries. Managed deployments route these URLs through the
+Effect-handler RPC reads use only `ENVIO_RPC_URL_<chainId>`. Bounded viem retry
+scheduling retries the configured proxy after transient failures; eRPC owns
+provider retries and the aggregate rate budget. Managed deployments route these URLs through the
 [private RPC cache](../../docs/rpc-cache.md).
 
 Control-state getter reads require archive state at the requested block.
@@ -335,6 +336,9 @@ pnpm run indexer:metrics
 
 ## Checking Progress
 
+For measured indexing rates, RPC request comparisons and cache boundaries, see
+[Indexer performance comparison](../../docs/current-state-indexing.md#robinhood-base-benchmark).
+
 During a local run, use the Envio metrics endpoint to confirm each chain is
 advancing and whether effect handlers are running:
 
@@ -367,7 +371,7 @@ pnpm --filter indexer run lint:check
 Validate the production indexer image from the repository root:
 
 ```bash
-pnpm run docker:build:indexer
+pnpm run container:build:indexer
 ```
 
 Full repository validation is defined at the repository root:

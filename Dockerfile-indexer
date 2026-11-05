@@ -18,10 +18,16 @@ RUN pnpm install --frozen-lockfile --prod
 # Copy source code
 COPY apps/indexer/ ./apps/indexer/
 COPY packages/protocol-config/ ./packages/protocol-config/
+COPY packages/snapshot-artifacts/src/observation-constants.ts ./packages/snapshot-artifacts/src/observation-constants.ts
+
+# Railway SSH requires sh even when the requested command is Node.
+FROM gcr.io/distroless/static-debian13:debug-nonroot@sha256:12c2026b21e05857a4c730b4dbf812becf02b396cb7916166c8305f45f140ab0 AS shell
 
 # Runtime stage
 # Pinned image index: gcr.io/distroless/nodejs24-debian13
 FROM gcr.io/distroless/nodejs24-debian13@sha256:c23cc7262662efd642cd9c9d61783d10f600321f7bafdd37c8a82365ffaa2aa6 AS runtime
+
+COPY --from=shell --chmod=0755 /busybox/busybox /usr/bin/sh
 
 # Set working directory
 WORKDIR /app
@@ -30,6 +36,7 @@ WORKDIR /app
 COPY --from=deps --chown=nonroot:nonroot /app/node_modules ./node_modules
 COPY --from=deps --chown=nonroot:nonroot /app/apps/indexer ./apps/indexer
 COPY --from=deps --chown=nonroot:nonroot /app/packages/protocol-config ./packages/protocol-config
+COPY --from=deps --chown=nonroot:nonroot /app/packages/snapshot-artifacts/src/observation-constants.ts ./packages/snapshot-artifacts/src/observation-constants.ts
 COPY --from=deps --chown=nonroot:nonroot /app/package.json ./package.json
 COPY --from=deps --chown=nonroot:nonroot /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 

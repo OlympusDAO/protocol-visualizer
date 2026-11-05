@@ -54,7 +54,6 @@ export async function seedCoreContracts(
       BigInt(block.number) === BigInt(contract.startBlock);
     context.Contract.set({
       id,
-      chainId,
       address: contract.address,
       name: contract.name,
       version: contract.version,

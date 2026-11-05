@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  handleOwnershipEvent,
+  completeRelationshipBlock,
   handleAuthorityEvent,
   handleAuthorityReference,
+  handleOwnershipEvent,
   handleStakingReference,
-  completeRelationshipBlock,
   relationshipId,
 } from "../src/events/ownership.ts";
 
@@ -40,7 +40,6 @@ const store = () => {
 };
 const context = () => ({
   ContractRelationship: store(),
-  ContractStateSeed: store(),
   ControlTransition: store(),
   ChainObservation: store(),
 });
@@ -64,6 +63,25 @@ const complete = (ctx, number, fields, values) =>
         : { status: "success", value: values[getter] },
     async (number) => block(Number(number))
   );
+
+test("full observations retain their actual read block and ignore legacy reuse annotations", async () => {
+  const ctx = context();
+  const run = (number) =>
+    completeRelationshipBlock(
+      ctx,
+      1,
+      block(number),
+      [field("kernel", "contract-reference")],
+      async () => ({ status: "success", value: alice, verifiedAt: block(2) }),
+      async (number) => block(Number(number))
+    );
+  await run(5);
+  await run(6);
+  const result = await row(ctx, "kernel");
+  assert.deepEqual(result.verification.block, block(6));
+  assert.deepEqual(result.indexedThrough, block(6));
+  assert.deepEqual(result.provenance, block(5));
+});
 
 test("owner constructor/transfer are idempotent, ordered, zero unsets, failed verification preserves indexed state", async () => {
   const ctx = context();
@@ -168,6 +186,7 @@ test("legacy minter getter gap updates only at a pinned checkpoint without inven
 test("a forked relationship anchor does not advance chain observation or seed siblings", async () => {
   const ctx = context();
   await handleOwnershipEvent(ctx, event(1, 0, { newOwner: alice }));
+  const before = structuredClone(await row(ctx, "owner"));
   const completed = await completeRelationshipBlock(
     ctx,
     1,
@@ -177,7 +196,7 @@ test("a forked relationship anchor does not advance chain observation or seed si
     async (number) => ({ ...block(Number(number)), hash: "0xfork" })
   );
   assert.equal(completed, false);
-  assert.equal((await row(ctx, "owner")).verification.outcome, "unavailable");
+  assert.deepEqual(await row(ctx, "owner"), before);
   assert.equal(await row(ctx, "authority"), undefined);
   assert.equal(ctx.ChainObservation.rows.size, 0);
 });

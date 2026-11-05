@@ -110,24 +110,25 @@ UPSTREAM_RPC_URL_421614=<Arbitrum Sepolia archive provider URL>
 UPSTREAM_RPC_URL_84532=<Base Sepolia archive provider URL>
 ```
 
-Optional: `RPC_CACHE_MAX_RPS=50`. Configure backups and check the database
+Optional: `RPC_CACHE_MAX_RPS=100` (the repository default). Existing explicit
+operator overrides remain effective. Configure backups and check the database
 connection before consumer cutover.
-This request limit applies **per RPC method**, shared by all nine providers on
-each eRPC instance, including polling. At the default value, all chains share
-50 `eth_getLogs` requests per second; `eth_call` has a separate 50-request allowance.
-It is not a combined 50-request cap across methods. A busy chain can consume
-the shared allowance for a method and throttle other chains using that method.
+This limit is one **aggregate** unit-credit pool across all methods and all nine
+chains on each eRPC instance, including polling and retries. Every method costs
+one unit in this configuration. It is not an Alchemy compute-unit allowance.
+A busy chain can consume the pool and throttle other chains.
 Per-chain budgets would multiply the possible total usage; confirm the provider
 account's allowance before changing that policy.
 Start with **one replica**; multiple replicas multiply the provider budget.
 Tune it to the provider account's actual allowance. Cache hits do not spend this
 budget. eRPC polls state every 30 seconds, including idle chains. Finality may
-lag and reduce hit rate; this is conservative. Retries have two sequential
-network attempts and one attempt per upstream; empty and pending retries are
-disabled. No hedging, consensus fan-out, or public provider fallbacks are
-configured. Add approved failover providers only inside eRPC, with their own
-budgets. Envio may still retry its own failed ingestion requests; the proxy
-owns the provider budget and retries for each request.
+lag and reduce hit rate; this is conservative. Requests allow two sequential
+network attempts, each able to visit eligible upstreams; each visit has no
+additional upstream retries. Empty and pending retries are disabled.
+No hedging, consensus fan-out, or public provider fallbacks are
+configured. Add approved failover providers only inside eRPC, with budgets
+shared by provider account rather than multiplied per chain or worker.
+Additional keys on the same Alchemy account do not add throughput capacity.
 
 After cache verification, IaC supplies all nine `ENVIO_RPC_URL_<chainId>` variables on `indexer`:
 
@@ -215,8 +216,71 @@ remain available to callers.
 HyperSync remains the indexer's event source when `ENVIO_API_TOKEN` is set and
 `ENVIO_RPC_MODE` is empty/`fallback`. eRPC serves JSON-RPC only. No new HyperSync
 or provider credentials belong on the publisher, monitor, or frontend. Existing
-Envio handler clients require their configured endpoint and perform no viem
-retry or public fallback; `ENVIO_RPC_URL_FALLBACK_*` is no longer used.
+Envio handler clients require their configured endpoint and use bounded viem
+recovery for transient failures. They have no public fallback;
+`ENVIO_RPC_URL_FALLBACK_*` is no longer used.
+
+## Throttling and provider selection
+
+There is currently one configured upstream per chain. The pinned eRPC release
+supports multiple providers. Its default policy filters unhealthy providers,
+ranks them by latency, and keeps a sticky primary. It supports fallback tiers
+and custom selection policies; successful requests are not round-robin balanced
+by default. See the [pinned selection policy](https://github.com/erpc/erpc/blob/0.5.0/internal/policy/default_policy.js).
+The default policy can also probe excluded providers in the background; those
+requests consume upstream capacity. The deterministic fixture disables probes.
+
+For a throttled upstream, eRPC tries another eligible provider within the same
+request. It avoids immediately retrying that exhausted provider again in that
+request. Network retries can sweep the provider list again for other transient
+errors; they are not simply a fixed number of physical upstream calls.
+
+The indexer's production transport makes up to six private-proxy attempts with
+exponential backoff and jitter. Its 50-second HTTP deadline, including body
+reading, allows eRPC's 45-second network recovery window to finish. Six exhausted
+attempts can take about five minutes plus backoff and queue waiting. These are application getter retries, separate
+from Envio's ingestion retries. They do not currently honor `Retry-After`.
+If every eligible provider remains unavailable, exhaustion propagates through
+reader catches and fails the handler. Envio must not commit an incomplete
+checkpoint; continued service then depends on restarting/resuming that process.
+This is bounded recovery, not a guarantee of uninterrupted indexing.
+
+Run controlled throttling checks with the repository-pinned runtime:
+
+```sh
+RPC_CACHE_TEST_SKIP_RESET=1 pnpm test:rpc-cache
+```
+
+The fixture uses real patched eRPC/PostgreSQL containers and local HTTP providers.
+It checks HTTP/JSON-RPC 429 recovery, successful-response caching, exhaustion
+through the production dependency reader, two-provider failover, terminal EVM
+reverts and error privacy. The two-provider ordering is deterministic test
+configuration, not the production selection policy. Native Envio memory-store
+tests separately check that exhausted HTTP 429 leaves staged entity state
+uncommitted and the same block can resume after recovery.
+
+| Controlled case | Observed provider calls |
+|---|---:|
+| Two HTTP or JSON-RPC 429 failures, then recovery | 3 |
+| One persistently throttled provider | 6; reader throws |
+| Primary throttled, secondary healthy; one proxy request | 1 per provider |
+| Both providers persistently throttled | 6 per provider; reader throws |
+| EVM revert with two providers available | 1; no retry or failover |
+
+Separate bounded probes of Alchemy's documented public low-throughput test app
+on November 3, 2026 used eight concurrent requests and no user credentials:
+
+- All 201 balance reads returned HTTP 200, including 160 reads in 623 ms.
+- A heavier-method burst of 27 `eth_getBlockReceipts` reads for genesis produced
+  16 successes and 11 HTTP/JSON-RPC 429 responses. The burst stopped after
+  detecting throttling; already-running requests account for the final count.
+- One further receipt read succeeded after a 10-second cooldown. The responses
+  did not include `Retry-After`.
+
+This reproduces real provider throttling and recovery on the public test app;
+it does not measure the private account's allowance. The deterministic fixtures
+separately establish the patched proxy and indexer retry behaviour. See
+[Alchemy's throughput documentation](https://www.alchemy.com/docs/reference/throughput).
 
 ## Indexer resets and cache persistence
 
@@ -234,8 +298,8 @@ existing `postgres-data` and `minio-data` are unchanged. `docker compose down`
 keeps all volumes; do not use `down --volumes` for this stack.
 
 ```bash
-pnpm run docker:build:rpc-cache
-pnpm run docker:build:indexer
+pnpm run container:build:rpc-cache
+pnpm run container:build:indexer
 pnpm run test:rpc-cache
 ```
 
@@ -251,26 +315,25 @@ volumes. Fixture evidence does not establish live provider behavior.
 
 ## Security validation boundary
 
-The original official image scan reported 29 unique MEDIUM/HIGH advisory IDs
-(58 occurrences across its normal and profiling binaries). Rebuilding with the
-pinned compiler/modules above and omitting the profiler reduced the final image
-to **one HIGH advisory**: `CVE-2026-32286` in
-`github.com/jackc/pgproto3/v2` 2.3.3. Trivy 0.76.1 reports no fixed version.
-A malicious or compromised PostgreSQL server can send a malformed DataRow that
-panics this client. The dedicated private database narrows exposure but does
-not remediate the vulnerable dependency.
+The original official image contained compiler and module advisories. The custom
+build keeps the pinned eRPC release and private-error patch, and updates its
+compiler and affected modules.
 
-A seven-day repository-wide exception was approved on 2026-10-29. The root
-`.trivyignore` suppresses this advisory across all image scans until
-**2026-11-05 at 00:00 UTC**. All other findings retain their existing handling.
-Trivy enforces the expiration date; the next scan after expiry reports the
-advisory and fails if the dependency remains vulnerable. Existing weekly scans
-and scans on PR changes still run. Expiry does not stop a running service.
+On November 5, the temporary exception for `CVE-2026-32286` expired. The legacy
+`pgproto3/v2` module has no fixed release. The build now applies
+`services/rpc-cache/pgx-v5.patch` to use the maintained `pgx/v5` driver, pinned to
+5.12.0, and removes the expired exception. Its decoder rejects malformed negative
+DataRow lengths instead of panicking.
 
-Before expiry, recheck upstream for a fix and rebuild the image if one exists.
-Remove the exception after remediation. Any extension needs explicit approval
-and a new deadline; do not renew it automatically. A passing scan during this
-window means the known risk is temporarily accepted, not fixed.
+Pool creation in v5 is lazy. The adapter requires a successful `Ping` before
+publishing either the main or listener pool and closes a pool on failure.
+It verifies one live connection; minimum pool capacity fills in the background.
+The cache schema, table names, RPC limits and retry settings stay unchanged.
+
+The image build runs malformed-row, unresponsive-server and PostgreSQL error
+classification regressions. The actual eRPC/Postgres integration checks cache
+round trips, persistence, recovery, rate limits and safe RPC errors. A fresh scan
+must pass without the old exception before cutover.
 
 ## Infrastructure deployment and PR environments
 
@@ -290,8 +353,7 @@ since sealed production variables are not copied into previews.
 
 ## Deployment order and rollback checklist
 
-- Confirm the image security finding is fixed or the approved exception above
-  remains valid before cutover.
+- Confirm the current image passes security checks before cutover.
 - Review the whole-project plan for the target environment. Apply through the
   merge workflow for production or an approved operator action for a preview.
 - Set the cache service variables after creation, then deploy the service.
@@ -309,76 +371,3 @@ since sealed production variables are not copied into previews.
   checking cache-schema compatibility or restoring a cache backup; never discard
   Envio state to recover the proxy. Cache deletion is a separate deliberate
   operation, not part of a normal rollback.
-
-## Recorded local validation (2026-10-29)
-
-Node 24.22.1 and pnpm 11.28.7 were used. The required sequence passed in order:
-runtime version check, frozen install, lint, build, sample snapshots, indexer
-image, frontend image, gateway image, publisher image. The first lint attempt
-stopped on an unused import introduced by this change; it was removed and the
-sequence restarted from step 1. No required command was skipped.
-
-The actual `0.5.0-pv1` service image passed fixture integration on all nine
-routes, including 17 distinct non-expiring Postgres rows, repeat hits, block and
-parameter isolation, restart persistence, unknown/unfinalized/moving-tag bypass,
-numeric and mixed log ranges, pending/safe/omitted log bounds, error bypass,
-credential-echo suppression, valid hex revert data, and new queries. The actual
-distroless indexer image ran `local db-migrate setup` twice through its wrapper;
-a canary proved Envio schema reset, while cache rows and hits survived. Hasura
-metadata responses were a fixture. Existing startup tests prove default resume
-arguments and explicit restart arguments; no full live indexing run was made.
-
-Compose interpolation verified all 27 consumer URLs. eRPC startup without
-required settings failed with a variable-name-only message. Dockerfile Trivy
-checks passed. Without the exception, the final-image Trivy scan reports the
-one HIGH advisory above. With the approved exception, Trivy 0.76.1 returns zero.
-A control scan with an expired copy returns exit code 1 and reports the same
-advisory. The underlying vulnerability remains. Local source review found and
-closed the two regressions reproduced against the original image (tagged log caching and
-credential echo). No live archive providers were tested: no configured RPC
-credentials were found in the session or local indexer/root env files. All nine
-real providers, especially Robinhood's finality semantics and archive/EIP-1898
-support, still need verification before cutover. Hash-bound calls with unknown
-finality remain deliberately uncached and may limit rebuild savings.
-
-
-## IaC migration validation (2026-10-29)
-
-The whole-project configuration typechecks with the pinned Railway SDK 3.16.0.
-Read-only plans against production and PR #82 preserve the existing databases,
-volumes, bucket, and groups, with no deletions or existing storage changes.
-Production adds the cache service, database, and volume; PR #82 already has the
-cache database and volume, so it adds only the service. Both plans restore the
-six application services' Docker, healthcheck, restart, and cron settings from
-the former repository JSON files. These initial plans left variables unmanaged.
-The later variable wiring declares connection references and preserves manual secrets.
-No production apply or workflow deployment was executed locally.
-The earlier cache integration used disposable Postgres 17, not the live cache
-Postgres 18 service. Real archive providers still need verification.
-
-## PR 82 cache bootstrap (2026-10-29)
-
-This section records the initial bootstrap, before later whole-project applies and GitHub publication.
-
-A cache-only IaC plan created `rpc-cache` in `protocol-visualizer-pr-82`.
-The existing cache Postgres 18 database and volume remained unchanged.
-The bootstrap copied the nine existing indexer provider URLs into the cache's
-`UPSTREAM_RPC_URL_<id>` variables without printing or committing their values.
-Temporary partial ownership was released after the apply.
-
-The initial Railway build rejected the optional Go cache mount. The portable
-Dockerfile removes that mount. A minimal CLI upload deployed the corrected image;
-Railway reports `SUCCESS` with `/healthcheck`. The service has no public domain
-or TCP endpoint. The Dockerfile correction still needs publication before future
-GitHub deployments can use it.
-
-Direct provider smoke checks returned the expected chain ID and a numeric
-`finalized` block for all nine configured URLs. These checks do not prove historical
-state coverage, EIP-1898 support, or Robinhood's finality semantics.
-The local eRPC/Postgres integration passed cache persistence and Envio reset isolation.
-The final image passed Trivy with the approved exception that expires November 5.
-
-The operator deferred SSH access. Private-network proxy requests and live Postgres
-cache hits remain unverified. Consumer RPC URLs remain unchanged pending those checks.
-An exact final comparison found no changes to pre-existing services, variables,
-databases, volumes, buckets, or groups. No production apply, push, or PR update occurred.

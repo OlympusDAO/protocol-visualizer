@@ -69,7 +69,16 @@ snapshot. It is separate from the filesystem-only `config migrate --apply`
 generator. Keep the snapshot locally; `railway config migrate undo` restores
 its settings if needed. Neither operation resets application databases.
 The initial migration preparation did not run cutover, undo, or apply.
-Later PR 82 cache setup is recorded in [PR 82 cache bootstrap](rpc-cache.md#pr-82-cache-bootstrap-2026-10-29).
+Cache deployment and recovery are documented in [rpc-cache.md](rpc-cache.md).
+
+Verify the effective `ServiceInstance.railwayConfigFile` field after cutover.
+In PR 84, CLI 5.71.0 reported no legacy readers, but six service instances still
+referenced deleted `railway-*.json` files. Deployment failed at `SNAPSHOT_CODE`
+before Docker started. Clear those paths in the target environment's service
+settings, then read them back before retrying. The CLI's cutover mutation uses
+an empty string; sending `null` leaves the old value unchanged. For a preview,
+verify its `sourceEnvironment` and compare other environments before and after
+the update. Do not clear production settings as part of preview recovery.
 
 Before the first merge:
 
@@ -589,5 +598,5 @@ variable ownership, and merge workflow guards. Checksum-verified Actionlint
 The current GitHub credential received HTTP 403 when listing secret names, so
 the presence and scope of `RAILWAY_TOKEN` must be confirmed by a repository admin.
 These initial checks were read-only. Later PR 82 cache creation, upstream variable
-setup, and CLI deployment are recorded in [PR 82 cache bootstrap](rpc-cache.md#pr-82-cache-bootstrap-2026-10-29).
+setup and deployment follow [rpc-cache.md](rpc-cache.md).
 No production apply was run.

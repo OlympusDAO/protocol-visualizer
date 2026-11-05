@@ -2,10 +2,78 @@
 // Only uniquely named containers/networks created here are removed.
 import assert from "node:assert/strict";
 import { execFile, execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import http from "node:http";
+import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import "../../apps/indexer/scripts/register-typescript.mjs";
 import { test } from "node:test";
-import { promisify } from "node:util";
+import { inspect, promisify } from "node:util";
 const runFile = promisify(execFile);
+const requireIndexer = createRequire(
+  new URL("../../apps/indexer/package.json", import.meta.url)
+);
+const { toFunctionSelector } = requireIndexer("viem");
+const { readPinnedModuleDependencies } = await import(
+  "../../apps/indexer/src/events/module-dependencies.ts"
+);
+const { getPublicClient } = await import(
+  "../../apps/indexer/src/events/rpc.ts"
+);
+// biome-ignore lint/suspicious/noUndeclaredEnvVars: this Docker integration runs outside Turbo.
+const skipReset = process.env.RPC_CACHE_TEST_SKIP_RESET === "1";
+const moduleSelector = toFunctionSelector("getModuleForKeycode(bytes5)");
+const dependentsSelector = toFunctionSelector(
+  "moduleDependents(bytes5,uint256)"
+);
+const moduleAddress = `0x${"22".repeat(20)}`;
+const dependentAddress = `0x${"33".repeat(20)}`;
+const encodedAddress = (address) => `0x${address.slice(2).padStart(64, "0")}`;
+const panic = (code) =>
+  `0x4e487b71${BigInt(code).toString(16).padStart(64, "0")}`;
+const dependencyCases = [
+  {
+    name: "bare revert code 3",
+    error: { code: 3, message: "execution reverted" },
+    success: true,
+  },
+  {
+    name: "bare revert code -32000",
+    error: { code: -32000, message: "execution reverted" },
+    success: true,
+  },
+  {
+    name: "Panic bounds",
+    error: { code: 3, message: "execution reverted", data: panic(0x32) },
+    success: true,
+  },
+  {
+    name: "reasoned revert",
+    error: { code: 3, message: "execution reverted: fixture-url-secret" },
+  },
+  {
+    name: "other execution failure",
+    error: { code: 3, message: "out of gas fixture-query-secret" },
+  },
+  {
+    name: "other panic",
+    error: { code: 3, message: "execution reverted", data: panic(0x11) },
+  },
+  {
+    name: "custom error",
+    error: { code: 3, message: "execution reverted", data: "0x12345678" },
+  },
+  {
+    name: "generic RPC failure",
+    error: { code: -32000, message: "fixture-url-secret" },
+  },
+  { name: "transport failure", disconnect: true },
+].map((entry, index) => ({
+  ...entry,
+  kernel: `0x${(0xc0 + index).toString(16).padStart(40, "0")}`,
+}));
 
 const ids = [1, 10, 42161, 8453, 80094, 4663, 11155111, 421614, 84532];
 const keyFor = (value) =>
@@ -37,11 +105,78 @@ async function eventually(check, message) {
 }
 
 // Kept outside tests/*.test.mjs so regular builds do not require Docker.
+test("indexer image supports a non-root administrative shell", () => {
+  const name = `pv-indexer-shell-${process.pid}-${Date.now()}`;
+  try {
+    docker(
+      "run",
+      "-d",
+      "--name",
+      name,
+      "protocol-visualizer/indexer:local",
+      "-e",
+      "setInterval(() => {}, 1000)"
+    );
+    const result = JSON.parse(
+      docker(
+        "exec",
+        name,
+        "/bin/sh",
+        "-c",
+        "exec /nodejs/bin/node -e 'console.log(JSON.stringify({node:process.version,uid:process.getuid()}))'"
+      )
+    );
+    assert.equal(
+      result.node,
+      `v${readFileSync(new URL("../../.node-version", import.meta.url), "utf8").trim()}`
+    );
+    assert.equal(result.uid, 65532);
+  } finally {
+    docker("rm", "-f", name);
+  }
+});
+
+test("indexer image loads every handler and its runtime imports offline", () => {
+  const result = docker(
+    "run",
+    "--rm",
+    "--network=none",
+    "-e",
+    "NODE_ENV=development",
+    "-e",
+    "ENVIO_HASURA=false",
+    "-e",
+    "ENVIO_API_TOKEN=fixture",
+    "-e",
+    "ENVIO_RPC_MODE=fallback",
+    ...ids.flatMap((chain) => [
+      "-e",
+      `ENVIO_RPC_URL_${chain}=http://127.0.0.1:1`,
+    ]),
+    "protocol-visualizer/indexer:local",
+    "--import",
+    "./scripts/typescript-loader.mjs",
+    "--input-type=module",
+    "-e",
+    'globalThis.fetch=()=>{throw Error("Handler registration must remain offline");}; await import("./src/EventHandlers.ts"); console.log("Handlers loaded");'
+  );
+  assert.equal(result, "Handlers loaded");
+});
+
 test("pinned eRPC read-through persistence, finality, isolation and safe errors", {
-  timeout: 180_000,
+  timeout: 300_000,
 }, async () => {
   const prefix = `pv-rpc-test-${process.pid}-${Date.now()}`;
   const counts = new Map();
+  const admissions = [];
+  let recoveryFailures = 1;
+  const throttleFailures = new Map([
+    ["0x4291", 1],
+    ["0x4292", 2],
+    ["0x4293", 2],
+  ]);
+  const throttleKernel = `0x${"e1".repeat(20)}`;
+  const scratch = mkdtempSync(join(tmpdir(), "pv-rpc-throttle-"));
   let unknownFinality = true;
   const upstream = http.createServer(async (req, res) => {
     let raw = "";
@@ -52,10 +187,39 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
       return;
     }
     const chainId = Number(req.url.split("/")[1]);
+    const provider = req.url.includes("/secondary/") ? "secondary" : "primary";
+    let httpThrottled = false;
     const respond = (rpc) => {
       const key = keyFor([chainId, rpc.method, rpc.params]);
+      admissions.push({
+        second: Math.floor(Date.now() / 1000),
+        chainId,
+        method: rpc.method,
+        provider,
+        key,
+      });
       counts.set(key, (counts.get(key) || 0) + 1);
       const params = rpc.params || [];
+      const data = params[0]?.data;
+      if (
+        rpc.method === "eth_call" &&
+        ((throttleFailures.get(data) ?? 0) > 0 ||
+          params[0]?.to?.toLowerCase() === throttleKernel ||
+          (data === "0xfade" && provider === "primary"))
+      ) {
+        if (throttleFailures.has(data))
+          throttleFailures.set(data, throttleFailures.get(data) - 1);
+        httpThrottled = data !== "0x4293";
+        return {
+          jsonrpc: "2.0",
+          id: rpc.id,
+          error: {
+            code: 429,
+            message:
+              "Too Many Requests: throughput exceeded fixture-url-secret",
+          },
+        };
+      }
       if (rpc.method === "eth_call" && params[0]?.data === "0xdddd")
         return null;
       let result;
@@ -91,7 +255,25 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
           };
           break;
         }
-        case "eth_call":
+        case "eth_call": {
+          const fixture = dependencyCases.find(
+            (entry) => entry.kernel === params[0]?.to?.toLowerCase()
+          );
+          if (fixture && params[0].data.startsWith(moduleSelector)) {
+            result = encodedAddress(moduleAddress);
+            break;
+          }
+          if (fixture && params[0].data.startsWith(dependentsSelector)) {
+            if (BigInt(`0x${params[0].data.slice(-64)}`) === 0n)
+              result = encodedAddress(dependentAddress);
+            else if (fixture.disconnect) return null;
+            else error = fixture.error;
+            break;
+          }
+          if (params[0]?.data === "0xcafe" && recoveryFailures-- > 0) {
+            error = { code: -32005, message: "rate limit fixture-url-secret" };
+            break;
+          }
           if (params[0]?.data === "0xaaaa")
             error = {
               code: -32000,
@@ -106,6 +288,7 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
             };
           else result = params[0]?.data === "0x0000" ? "0x" : "0x1234";
           break;
+        }
         case "eth_estimateGas":
           error = {
             code: 3,
@@ -122,6 +305,9 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
         case "eth_getBalance":
           result = "0x0";
           break;
+        case "eth_getStorageAt":
+          result = `0x${"00".repeat(32)}`;
+          break;
         case "eth_getTransactionReceipt":
           result = null;
           break;
@@ -136,11 +322,18 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
     };
     const data = JSON.parse(raw);
     const response = Array.isArray(data) ? data.map(respond) : respond(data);
-    if (response === null) {
+    if (
+      response === null ||
+      (Array.isArray(response) && response.includes(null))
+    ) {
       req.socket.destroy();
       return;
     }
     res.setHeader("content-type", "application/json");
+    if (httpThrottled) {
+      res.statusCode = 429;
+      res.setHeader("retry-after", "1");
+    }
     res.end(JSON.stringify(response));
   });
   await new Promise((resolve) => upstream.listen(0, "0.0.0.0", resolve));
@@ -151,7 +344,7 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
   const created = [];
   try {
     docker("network", "create", prefix);
-    for (const name of [pg, envioPg]) {
+    for (const name of skipReset ? [pg] : [pg, envioPg]) {
       docker(
         "run",
         "-d",
@@ -229,6 +422,31 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
     };
     const count = (id, method, params) =>
       counts.get(keyFor([id, method, params])) || 0;
+    const cacheRows = (id, method) =>
+      Number(
+        docker(
+          "exec",
+          pg,
+          "psql",
+          "-U",
+          "postgres",
+          "-Atc",
+          `SELECT count(*) FROM rpc_cache WHERE partition_key LIKE 'evm:${id}:%' AND range_key LIKE '${method}:%'`
+        )
+      );
+    await eventually(
+      () =>
+        docker(
+          "exec",
+          pg,
+          "psql",
+          "-U",
+          "postgres",
+          "-Atc",
+          "SELECT to_regclass('public.rpc_cache') IS NOT NULL"
+        ) === "t",
+      "eRPC PostgreSQL cache schema was not initialized"
+    );
     // Let each network discover its genuine finalized head before historical reads.
     await eventually(
       () =>
@@ -243,6 +461,7 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
     const call = [{ to: `0x${"11".repeat(20)}`, data: "0x1234" }, "0x100"];
     const cachedPair = async (id, method, params) => {
       const before = count(id, method, params);
+      const persistedBefore = cacheRows(id, method);
       const first = await rpc(id, method, params);
       assert.equal(first.body.error, undefined, JSON.stringify(first.body));
       assert.equal(
@@ -250,14 +469,17 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
         before + 1,
         "first read must reach upstream"
       );
+      // Cache writes run asynchronously. Observe their PostgreSQL completion
+      // without issuing duplicate RPCs that could hide a broken first write.
       await eventually(
-        async () => (await rpc(id, method, params)).cached === "HIT",
-        "result was not persisted/cached"
+        () => cacheRows(id, method) > persistedBefore,
+        `first response did not persist (${id}:${method})`
       );
+      assert.equal((await rpc(id, method, params)).cached, "HIT");
       assert.equal(
         count(id, method, params),
         before + 1,
-        "repeat read must avoid upstream"
+        `repeat read must avoid upstream (${id}:${method})`
       );
       return first.body.result;
     };
@@ -370,91 +592,547 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
     console.log(
       `Fixture verified ${expiry} persisted cache rows across restart; no live providers used.`
     );
-    // The reset command must run in the actual distroless deployed image, with
-    // its real config and a separate disposable Envio DB. No indexer is running.
-    const indexerEnv = [
-      "-e",
-      `DATABASE_URL=postgresql://postgres:fixture@${envioPg}:5432/postgres`,
-      "-e",
-      "ETHERSCAN_API_KEY=fixture",
-      "-e",
-      `HASURA_GRAPHQL_ENDPOINT=http://host.docker.internal:${port}/hasura/v1/metadata`,
-      "-e",
-      "HASURA_GRAPHQL_ADMIN_SECRET=fixture",
-    ];
-    for (const id of ids)
-      indexerEnv.push(
-        "-e",
-        `ENVIO_RPC_URL_${id}=http://${erpc}:4000/pv/evm/${id}`
+    const productionChain = 999971;
+    process.env[`ENVIO_RPC_URL_${productionChain}`] = `${base}/pv/evm/1`;
+    const production = getPublicClient(productionChain);
+    const probeStart = Date.now();
+    for (const fixture of dependencyCases) {
+      let result;
+      try {
+        result = await readPinnedModuleDependencies(production, {
+          kernel: fixture.kernel,
+          keycode: "MINTR",
+          blockNumber: 256n,
+          blockHash: `0x${"ab".repeat(32)}`,
+        });
+      } catch (error) {
+        assert.equal(fixture.success, undefined, fixture.name);
+        assert.match(
+          error.message,
+          /Indexer RPC temporarily unavailable/,
+          fixture.name
+        );
+        result = { status: "unavailable" };
+      }
+      assert.equal(
+        result.status,
+        fixture.success ? "success" : "unavailable",
+        fixture.name
       );
-    const reset = () =>
-      runFile(
-        "docker",
-        [
-          "run",
-          "--rm",
-          "--network",
-          prefix,
-          "--add-host",
-          "host.docker.internal:host-gateway",
-          ...indexerEnv,
-          "protocol-visualizer/indexer:local",
-          "scripts/start-envio.mjs",
-          "local",
-          "db-migrate",
-          "setup",
-        ],
-        { encoding: "utf8", timeout: 120_000 }
+      if (fixture.success)
+        assert.deepEqual(result.policies, [dependentAddress], fixture.name);
+    }
+    const recoveryParams = [{ ...call[0], data: "0xcafe" }, "0x106"];
+    const recoveryCount = count(1, "eth_call", recoveryParams);
+    assert.equal(
+      await production.request({ method: "eth_call", params: recoveryParams }),
+      "0x1234"
+    );
+    assert.equal(
+      count(1, "eth_call", recoveryParams),
+      recoveryCount + 2,
+      "capacity recovery must retry through the proxy"
+    );
+    console.log(
+      `Production dependency reader passed ${dependencyCases.length} proxy/viem cases and capacity recovery in ${Date.now() - probeStart} ms.`
+    );
+
+    const throttleParams = (data) => [{ ...call[0], data }, "0x107"];
+    const rawThrottle = throttleParams("0x4291");
+    const rawBefore = count(1, "eth_call", rawThrottle);
+    assert((await rpc(1, "eth_call", rawThrottle)).body.error);
+    assert.equal(count(1, "eth_call", rawThrottle), rawBefore + 1);
+    // The failed response was not cached: the identical call reaches the now
+    // healthy provider; only its successful result becomes a cache hit.
+    await cachedPair(1, "eth_call", rawThrottle);
+    for (const data of ["0x4292", "0x4293"]) {
+      const params = throttleParams(data);
+      const before = count(1, "eth_call", params);
+      assert.equal(
+        await production.request({ method: "eth_call", params }),
+        "0x1234"
       );
-    await reset();
+      assert.equal(count(1, "eth_call", params), before + 3);
+      assert.equal((await rpc(1, "eth_call", params)).cached, "HIT");
+      assert.equal(count(1, "eth_call", params), before + 3);
+    }
+    const exhausted = async (client) => {
+      const input = {
+        kernel: throttleKernel,
+        keycode: "MINTR",
+        blockNumber: 256n,
+        blockHash: `0x${"ab".repeat(32)}`,
+      };
+      await assert.rejects(
+        readPinnedModuleDependencies(client, input),
+        (error) => {
+          assert.equal(error.name, "RpcTransientFailure");
+          assert.doesNotMatch(
+            inspect(error, { depth: 12 }),
+            /fixture-url-secret|fixture-query-secret|https?:|Too Many Requests/
+          );
+          return true;
+        }
+      );
+    };
+    const exhaustionStart = admissions.length;
+    await exhausted(production);
+    assert.equal(
+      admissions
+        .slice(exhaustionStart)
+        .filter((item) => item.method === "eth_call").length,
+      6
+    );
+    console.log(
+      "429 fixture: raw proxy rejects once; HTTP/JSON-RPC recovery each takes 3 admissions; dependency exhaustion takes 6 and propagates safely."
+    );
+
+    // Stop the unlimited test instance so all counted admissions below belong
+    // to one finite aggregate budget, including its background pollers/retries.
+    docker("stop", erpc);
+    const multiConfig = join(scratch, "erpc.js");
+    const source = readFileSync(new URL("./erpc.js", import.meta.url), "utf8");
+    assert.equal(source.split("export default {").length, 2);
+    writeFileSync(
+      multiConfig,
+      `${source.replace("export default {", "const config = {")}
+const primary = config.projects[0].upstreams[0];
+config.projects[0].upstreams = [
+  { ...primary, id: "a-primary", routing: { probe: "off" } },
+  { ...primary, id: "b-secondary", endpoint: primary.endpoint.replace("/fixture-url-secret", "/secondary/fixture-url-secret"), routing: { probe: "off" } },
+];
+config.projects[0].networks = [{ architecture: "evm", evm: { chainId: 1 } }];
+// Deterministic test ordering, not the production health/latency policy.
+config.projects[0].networkDefaults.selectionPolicy = {
+  evalFunc: (upstreams) => upstreams.sortBy((upstream) => upstream.id === "a-primary" ? 0 : 1),
+};
+export default config;
+`
+    );
+    const multi = `${prefix}-multi`;
     docker(
+      "run",
+      "-d",
+      "--name",
+      multi,
+      "--network",
+      prefix,
+      "--add-host",
+      "host.docker.internal:host-gateway",
+      "-p",
+      "127.0.0.1::4000",
+      "-v",
+      `${multiConfig}:/etc/erpc/throttle-test.js:ro`,
+      ...env,
+      image,
+      "/erpc-server",
+      "/etc/erpc/throttle-test.js"
+    );
+    created.push(multi);
+    base = `http://127.0.0.1:${docker("port", multi, "4000/tcp").split(":").at(-1)}`;
+    await eventually(health, "multi-provider eRPC did not start");
+    const failoverParams = throttleParams("0xfade");
+    const failoverStart = admissions.length;
+    assert.equal(
+      (await rpc(1, "eth_call", failoverParams)).body.result,
+      "0x1234"
+    );
+    assert.deepEqual(
+      admissions
+        .slice(failoverStart)
+        .filter((item) => item.key === keyFor([1, "eth_call", failoverParams]))
+        .map((item) => item.provider),
+      ["primary", "secondary"]
+    );
+    const multiChain = 999972;
+    process.env[`ENVIO_RPC_URL_${multiChain}`] = `${base}/pv/evm/1`;
+    const multiStart = admissions.length;
+    await exhausted(getPublicClient(multiChain));
+    const exhaustedCalls = admissions
+      .slice(multiStart)
+      .filter((item) => item.method === "eth_call");
+    assert.equal(exhaustedCalls.length, 12);
+    for (const provider of ["primary", "secondary"])
+      assert.equal(
+        exhaustedCalls.filter((item) => item.provider === provider).length,
+        6
+      );
+    const revertParams = [{ ...call[0], data: "0xabcd" }];
+    const revertStart = admissions.length;
+    assert((await rpc(1, "eth_estimateGas", revertParams)).body.error);
+    assert.equal(
+      admissions
+        .slice(revertStart)
+        .filter((item) => item.method === "eth_estimateGas").length,
+      1
+    );
+    console.log(
+      "Two-provider fixture: one raw request fails over primary→secondary; both throttled yield 6 attempts/provider; EVM revert is not retried."
+    );
+    docker("stop", multi);
+    const limited = `${prefix}-limited`;
+    const budget = 20;
+    docker(
+      "run",
+      "-d",
+      "--name",
+      limited,
+      "--network",
+      prefix,
+      "--add-host",
+      "host.docker.internal:host-gateway",
+      "-p",
+      "127.0.0.1::4000",
+      ...env.map((value) =>
+        value === "RPC_CACHE_MAX_RPS=1000"
+          ? `RPC_CACHE_MAX_RPS=${budget}`
+          : value
+      ),
+      image
+    );
+    created.push(limited);
+    const originalBase = base;
+    base = `http://127.0.0.1:${docker("port", limited, "4000/tcp").split(":").at(-1)}`;
+    await eventually(health, "limited eRPC did not start");
+    await wait(2500);
+    await eventually(
+      async () => (await rpc(1, "eth_call", call)).cached === "HIT",
+      "limited proxy cannot read persisted cache"
+    );
+    await wait(1100 - (Date.now() % 1000));
+    const admissionStart = admissions.length;
+    const burstStart = Date.now();
+    const burst = Array.from({ length: 160 }, (_, i) => {
+      const address = `0x${(10000 + i).toString(16).padStart(40, "0")}`;
+      const chain = [1, 8453, 42161][i % 3];
+      const method = [
+        "eth_call",
+        "eth_getCode",
+        "eth_getBalance",
+        "eth_getStorageAt",
+      ][i % 4];
+      const params =
+        method === "eth_call"
+          ? [{ to: address, data: "0x1234" }, "0x200"]
+          : method === "eth_getStorageAt"
+            ? [address, "0x0", "0x200"]
+            : [address, "0x200"];
+      return rpc(chain, method, params);
+    });
+    await eventually(
+      () => admissions.length - admissionStart >= budget,
+      "burst did not saturate aggregate budget"
+    );
+    const hitBefore = count(1, "eth_call", call);
+    assert.equal(
+      (await rpc(1, "eth_call", call)).cached,
+      "HIT",
+      "cache hits must precede upstream budgeting"
+    );
+    assert.equal(count(1, "eth_call", call), hitBefore);
+    const burstResults = await Promise.all(burst);
+    const perSecond = {};
+    for (const admission of admissions.slice(admissionStart))
+      perSecond[admission.second] = (perSecond[admission.second] ?? 0) + 1;
+    assert(
+      Object.values(perSecond).every((total) => total <= budget),
+      JSON.stringify({ budget, perSecond })
+    );
+    assert(
+      burstResults.some((result) => result.body.error),
+      "overload should return finite capacity errors, not an unbounded queue"
+    );
+    assert(
+      new Set(admissions.slice(admissionStart).map((a) => a.method)).size > 1
+    );
+    assert(
+      new Set(admissions.slice(admissionStart).map((a) => a.chainId)).size > 1
+    );
+    await wait(1100);
+    const recovered = await rpc(1, "eth_getBalance", [
+      `0x${"fa".repeat(20)}`,
+      "0x201",
+    ]);
+    assert.equal(
+      recovered.body.error,
+      undefined,
+      "budget must recover in later windows"
+    );
+    const limitedLogs = docker("logs", limited);
+    assert(
+      !limitedLogs.includes("fixture-url-secret") &&
+        !limitedLogs.includes("fixture-query-secret")
+    );
+    console.log(
+      `Aggregate mixed-method/chain fixture: ${JSON.stringify({ budget, perSecond, requests: burst.length, capacityErrors: burstResults.filter((result) => result.body.error).length, durationMs: Date.now() - burstStart })}`
+    );
+    // Docker can reassign an ephemeral host port when a container starts again.
+    // Exercise resume even when database-reset checks are disabled.
+    docker("start", erpc);
+    base = `http://127.0.0.1:${docker("port", erpc, "4000/tcp").split(":").at(-1)}`;
+    await eventually(health, "original eRPC did not resume");
+    const resetBaseline = docker(
       "exec",
-      envioPg,
+      pg,
       "psql",
       "-U",
       "postgres",
-      "-v",
-      "ON_ERROR_STOP=1",
-      "-c",
-      "CREATE TABLE public.rpc_cache_reset_canary (id integer PRIMARY KEY); INSERT INTO public.rpc_cache_reset_canary VALUES (1)"
+      "-Atc",
+      "SELECT count(*) FROM rpc_cache"
     );
-    await reset();
-    assert.equal(
+    console.log(
+      `Proxy resume verified; published port changed: ${base !== originalBase}; cache rows after probes: ${resetBaseline}.`
+    );
+    if (!skipReset) {
+      // The reset command must run in the actual distroless deployed image, with
+      // its real config and a separate disposable Envio DB. No indexer is running.
+      const indexerEnv = [
+        "-e",
+        `DATABASE_URL=postgresql://postgres:fixture@${envioPg}:5432/postgres`,
+        "-e",
+        "ETHERSCAN_API_KEY=fixture",
+        "-e",
+        `HASURA_GRAPHQL_ENDPOINT=http://host.docker.internal:${port}/hasura/v1/metadata`,
+        "-e",
+        "HASURA_GRAPHQL_ADMIN_SECRET=fixture",
+      ];
+      for (const id of ids)
+        indexerEnv.push(
+          "-e",
+          `ENVIO_RPC_URL_${id}=http://${erpc}:4000/pv/evm/${id}`
+        );
+      const reset = () =>
+        runFile(
+          "docker",
+          [
+            "run",
+            "--rm",
+            "--network",
+            prefix,
+            "--add-host",
+            "host.docker.internal:host-gateway",
+            ...indexerEnv,
+            "protocol-visualizer/indexer:local",
+            "scripts/start-envio.mjs",
+            "local",
+            "db-migrate",
+            "setup",
+          ],
+          { encoding: "utf8", timeout: 120_000 }
+        );
+      const sql = (query) =>
+        docker(
+          "exec",
+          envioPg,
+          "psql",
+          "-U",
+          "postgres",
+          "-v",
+          "ON_ERROR_STOP=1",
+          "-Atc",
+          query
+        );
+      const databaseHash = () =>
+        createHash("sha256")
+          .update(
+            docker(
+              "exec",
+              envioPg,
+              "pg_dump",
+              "-U",
+              "postgres",
+              "--no-owner",
+              "--no-privileges"
+            ).replace(/^\\(?:un)?restrict .*$/gm, "")
+          )
+          .digest("hex");
+      sql(
+        "CREATE ROLE reset_reader LOGIN PASSWORD 'fixture'; GRANT USAGE ON SCHEMA public TO reset_reader"
+      );
+      const checkStorage = async (expected, password = "fixture") => {
+        const before = databaseHash();
+        let status = 0,
+          output = "";
+        try {
+          const result = await runFile(
+            "docker",
+            [
+              "run",
+              "--rm",
+              "--network",
+              prefix,
+              ...indexerEnv,
+              "-e",
+              `ENVIO_PG_HOST=${envioPg}`,
+              "-e",
+              "ENVIO_PG_PORT=5432",
+              "-e",
+              "ENVIO_PG_DATABASE=postgres",
+              "-e",
+              "ENVIO_PG_USER=reset_reader",
+              "-e",
+              `ENVIO_PG_PASSWORD=${password}`,
+              "-e",
+              "ENVIO_PG_SSL_MODE=prefer",
+              "-e",
+              "HASURA_GRAPHQL_ROLE=admin",
+              "-e",
+              "ENVIO_THROTTLE_CHAIN_METADATA_INTERVAL_MILLIS=500",
+              "-e",
+              "ENVIO_THROTTLE_PRUNE_STALE_DATA_INTERVAL_MILLIS=30000",
+              "protocol-visualizer/indexer:local",
+              "scripts/check-envio-storage.mjs",
+              "start",
+            ],
+            { encoding: "utf8", timeout: 45_000 }
+          );
+          output = result.stdout + result.stderr;
+        } catch (error) {
+          status = error.code;
+          output = error.stdout + error.stderr;
+        }
+        assert.equal(status, expected, output);
+        assert(
+          !output.includes("fixture-private-password"),
+          "compatibility errors leaked credentials"
+        );
+        assert.equal(
+          databaseHash(),
+          before,
+          "compatibility check modified its database"
+        );
+      };
+      await checkStorage(0); // Empty storage: normal initialization remains allowed.
+      await reset();
+      sql("GRANT SELECT ON ALL TABLES IN SCHEMA public TO reset_reader");
+      await checkStorage(0); // Compatible metadata, using a SELECT-only role.
+      await checkStorage(1, "fixture-private-password");
+      sql(
+        `UPDATE public.envio_info SET config = jsonb_set(config::jsonb, '{chainIdMode}', '"fixture-incompatible"')::text`
+      );
+      await checkStorage(78);
+      const waitingIndexer = `${prefix}-indexer`;
+      const beforeStartup = databaseHash();
+      docker(
+        "run",
+        "-d",
+        "--name",
+        waitingIndexer,
+        "--network",
+        prefix,
+        "--add-host",
+        "host.docker.internal:host-gateway",
+        "-p",
+        "127.0.0.1::9898",
+        ...indexerEnv,
+        "-e",
+        "PORT=9898",
+        "protocol-visualizer/indexer:local"
+      );
+      created.push(waitingIndexer);
+      const waitingPort = docker("port", waitingIndexer, "9898/tcp")
+        .split(":")
+        .at(-1);
+      await eventually(
+        () =>
+          docker("logs", waitingIndexer).includes(
+            "Envio storage is incompatible."
+          ),
+        "Incompatible indexer did not remain available for reset"
+      );
+      for (const [route, status] of [
+        ["healthz", 200],
+        ["ready", 503],
+        ["metrics", 503],
+      ])
+        assert.equal(
+          (await fetch(`http://127.0.0.1:${waitingPort}/${route}`)).status,
+          status
+        );
+      assert.equal(
+        databaseHash(),
+        beforeStartup,
+        "Incompatible startup changed stored data"
+      );
+      const operatorReset = await runFile(
+        "docker",
+        [
+          "exec",
+          waitingIndexer,
+          "/nodejs/bin/node",
+          "/app/apps/indexer/scripts/reset-envio.mjs",
+        ],
+        { encoding: "utf8", timeout: 120_000 }
+      );
+      assert.match(
+        operatorReset.stdout,
+        /Envio migration completed. Envio restarted inside the existing container/
+      );
+      docker("stop", waitingIndexer);
+      sql("GRANT SELECT ON ALL TABLES IN SCHEMA public TO reset_reader");
+      await checkStorage(0);
+      console.log(
+        "Actual indexer image waited on incompatible schema without writes, accepted its operator reset and launched normal ingestion without another deployment."
+      );
+      sql("DROP TABLE public.envio_info");
+      await checkStorage(78); // Older storage without native compatibility metadata.
+      console.log(
+        "Native storage preflight: empty/compatible/incompatible/legacy/auth cases passed; SELECT-only role and database hashes verified no writes."
+      );
+      await reset();
       docker(
         "exec",
         envioPg,
         "psql",
         "-U",
         "postgres",
-        "-Atc",
-        "SELECT to_regclass('public.rpc_cache_reset_canary') IS NULL"
-      ),
-      "t",
-      "Envio setup did not reset its own schema"
-    );
-    assert.equal(
-      docker(
-        "exec",
-        pg,
-        "psql",
-        "-U",
-        "postgres",
-        "-Atc",
-        "SELECT count(*) FROM rpc_cache"
-      ),
-      expiry,
-      "Envio reset touched cache storage"
-    );
-    assert.equal((await rpc(1, "eth_call", call)).cached, "HIT");
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-c",
+        "CREATE TABLE public.rpc_cache_reset_canary (id integer PRIMARY KEY); INSERT INTO public.rpc_cache_reset_canary VALUES (1)"
+      );
+      await reset();
+      assert.equal(
+        docker(
+          "exec",
+          envioPg,
+          "psql",
+          "-U",
+          "postgres",
+          "-Atc",
+          "SELECT to_regclass('public.rpc_cache_reset_canary') IS NULL"
+        ),
+        "t",
+        "Envio setup did not reset its own schema"
+      );
+      assert.equal(
+        docker(
+          "exec",
+          pg,
+          "psql",
+          "-U",
+          "postgres",
+          "-Atc",
+          "SELECT count(*) FROM rpc_cache"
+        ),
+        resetBaseline,
+        "Envio reset touched cache storage"
+      );
+      assert.equal((await rpc(1, "eth_call", call)).cached, "HIT");
+    } else
+      console.log(
+        "Envio reset checks explicitly skipped; no database reset executed."
+      );
     const output = docker("logs", erpc);
     assert(
       !output.includes("fixture-url-secret") &&
         !output.includes("fixture-query-secret"),
       "upstream URL leaked to logs"
     );
-    console.log(
-      "Distroless Envio setup/reset ran twice with the deployed config; eRPC rows and hits survived."
-    );
+    if (!skipReset)
+      console.log(
+        "Distroless Envio setup/reset ran twice with the deployed config; eRPC rows and hits survived."
+      );
   } catch (error) {
     // Do not print arbitrary runtime logs or environment (may contain URLs).
     if (error.stderr)
@@ -468,5 +1146,6 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
       docker("network", "rm", prefix);
     } catch {}
     await new Promise((resolve) => upstream.close(resolve));
+    rmSync(scratch, { recursive: true, force: true });
   }
 });

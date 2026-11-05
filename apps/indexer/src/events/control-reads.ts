@@ -1,7 +1,9 @@
+import { rethrowTransientRpc } from "./rpc";
 import { keccak256, type Abi, type Address, type Hex } from "viem";
 import metadata from "../generated/contract-metadata.json";
 import type { ProcessedContractData } from "../services/contracts/types";
 import type { FunctionContext } from "../../../../packages/snapshot-artifacts/src/index";
+import { emptyCodeHash, type BytecodePin } from "./code-cache";
 
 export type ControlGetterInput = {
   chainId: number;
@@ -70,13 +72,23 @@ type ControlReadClient = {
 };
 
 /** Hash-bound reads stay on the same state even when the transport falls back to another provider. */
-export async function readPinnedControlGetter(
+async function readControlGetter(
   client: ControlReadClient,
   input: ControlGetterInput,
   contract: ProcessedContractData | undefined = (
     metadata as Record<string, Record<string, ProcessedContractData>>
-  )[String(input.chainId)]?.[input.address.toLowerCase()]
+  )[String(input.chainId)]?.[input.address.toLowerCase()],
+  readCodeHash: (pin: BytecodePin) => Promise<Hex | undefined> = async (pin) =>
+    client.getCode ? keccak256((await client.getCode(pin)) ?? "0x") : undefined,
+  mode: "observation" | "fact" = "observation"
 ): Promise<ControlGetterResult> {
+  const canonical =
+    mode === "observation"
+      ? async () =>
+          (
+            await client.getBlock({ blockNumber: input.blockNumber })
+          ).hash?.toLowerCase() === input.blockHash.toLowerCase()
+      : undefined;
   try {
     const [getter = "", token] = input.getter.split(":");
     const metadataGetter =
@@ -120,19 +132,18 @@ export async function readPinnedControlGetter(
       !registryGetter
     )
       return { status: "unavailable", reason: "getter is not configured" };
-    const before = await client.getBlock({ blockNumber: input.blockNumber });
-    if (before.hash?.toLowerCase() !== input.blockHash.toLowerCase())
+    if (canonical && !(await canonical()))
       return {
         status: "unavailable",
         reason: "canonical block hash changed before getter read",
       };
     if (functionContext?.source) {
-      const code = await client.getCode?.({
+      const codeHash = await readCodeHash({
         address: input.address,
         blockHash: input.blockHash as Hex,
         requireCanonical: true,
       });
-      if (!code || keccak256(code) !== functionContext.source.codeHash)
+      if (!codeHash || codeHash !== functionContext.source.codeHash)
         return {
           status: "unavailable",
           reason:
@@ -178,8 +189,7 @@ export async function readPinnedControlGetter(
             index === 0 ? "administrator" : "pendingAdministrator"
           ];
     }
-    const after = await client.getBlock({ blockNumber: input.blockNumber });
-    if (after.hash?.toLowerCase() !== input.blockHash.toLowerCase())
+    if (canonical && !(await canonical()))
       return {
         status: "unavailable",
         reason: "canonical block hash changed during getter read",
@@ -227,17 +237,19 @@ export async function readPinnedControlGetter(
         reason: "getter returned an unexpected value",
       };
     let targetCode: "present" | "absent" | undefined;
-    if (generic && client.getCode && typeof value === "string") {
-      const code = await client.getCode({
+    if (generic && typeof value === "string") {
+      const codeHash = await readCodeHash({
         address: value as Address,
         blockHash: input.blockHash as Hex,
         requireCanonical: true,
       });
-      targetCode = code && code !== "0x" ? "present" : "absent";
-      const confirmed = await client.getBlock({
-        blockNumber: input.blockNumber,
-      });
-      if (confirmed.hash?.toLowerCase() !== input.blockHash.toLowerCase())
+      if (!codeHash)
+        return {
+          status: "unavailable",
+          reason: "historical code read unavailable",
+        };
+      targetCode = codeHash === emptyCodeHash ? "absent" : "present";
+      if (canonical && !(await canonical()))
         return {
           status: "unavailable",
           reason: "canonical block hash changed during code read",
@@ -249,10 +261,31 @@ export async function readPinnedControlGetter(
       ...(functionContext ? { functionContext } : {}),
       ...(targetCode ? { targetCode } : {}),
     };
-  } catch {
+  } catch (error) {
+    rethrowTransientRpc(error);
     return {
       status: "unavailable",
       reason: "historical getter read unavailable",
     };
   }
+}
+
+/** Standalone observations check canonicality around every read and target lookup. */
+export function readPinnedControlGetter(
+  client: ControlReadClient,
+  input: ControlGetterInput,
+  contract?: ProcessedContractData,
+  readCodeHash?: (pin: BytecodePin) => Promise<Hex | undefined>
+): Promise<ControlGetterResult> {
+  return readControlGetter(client, input, contract, readCodeHash);
+}
+
+/** Persisted hash-bound facts require canonical acceptance by their outer reader. */
+export function readHashBoundControlGetter(
+  client: ControlReadClient,
+  input: ControlGetterInput,
+  contract?: ProcessedContractData,
+  readCodeHash?: (pin: BytecodePin) => Promise<Hex | undefined>
+): Promise<ControlGetterResult> {
+  return readControlGetter(client, input, contract, readCodeHash, "fact");
 }

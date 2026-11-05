@@ -1,3 +1,4 @@
+import { rethrowTransientRpc } from "./rpc";
 import {
   BaseError,
   ContractFunctionRevertedError,
@@ -27,7 +28,11 @@ type Client = {
   }) => Promise<unknown>;
 };
 export type DependencyReadResult =
-  | { status: "success"; module: string; policies: string[] }
+  | {
+      status: "success";
+      module: string;
+      policies: string[];
+    }
   | { status: "unavailable"; reason: string };
 
 /** Read the Kernel registry: read-only module users do not appear in requestPermissions(). */
@@ -100,7 +105,8 @@ export async function readPinnedModuleDependencies(
       }
     }
     throw new Error("Dependency scan limit reached");
-  } catch {
+  } catch (error) {
+    rethrowTransientRpc(error);
     return {
       status: "unavailable",
       reason: "Canonical Kernel dependency registry unavailable or incomplete",
@@ -112,8 +118,9 @@ export async function getModuleDependencyFields(
   context: EnvioContext,
   chainId: number
 ): Promise<RelationshipField[]> {
+  if (context.chain && context.chain.id !== chainId)
+    throw new Error("Dependency read chain scope mismatch");
   const rows = await context.ContractRelationship.getWhere<RelationshipState>({
-    chainId: { _eq: chainId },
     kind: { _eq: "module-dependency" },
   });
   return rows.map((row) => ({
@@ -133,8 +140,9 @@ export async function completeModuleDependencies(
   read: (keycode: string) => Promise<DependencyReadResult>,
   readBlock: (number: string) => Promise<ControlBlock | undefined>
 ) {
+  if (context.chain && context.chain.id !== chainId)
+    throw new Error("Dependency read chain scope mismatch");
   const modules = await context.Contract.getWhere<ContractEntity>({
-    chainId: { _eq: chainId },
     contractType: { _eq: "MODULE" },
   });
   const keycodes = new Set(

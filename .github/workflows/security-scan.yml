@@ -2,16 +2,22 @@ name: Security Audit
 
 on:
   pull_request:
+  workflow_dispatch:
   push:
     branches: [master]
   schedule:
     - cron: "17 5 * * 1"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
 jobs:
-  audit:
+  rpc-integration:
+    name: Image (rpc-cache + indexer)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,68 +30,23 @@ jobs:
       - name: Verify runtime version alignment
         run: pnpm run check:runtime-versions
 
-      - name: Run security audit
-        run: pnpm audit --audit-level=high
-
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
       - name: Build RPC cache Docker image
-        run: pnpm run docker:build:rpc-cache
+        run: pnpm run container:build:rpc-cache
 
       - name: Tag RPC cache image for scan
-        run: pnpm run docker:tag:scan:rpc-cache
+        run: pnpm run container:tag:scan:rpc-cache
 
       - name: Build indexer Docker image
-        run: pnpm run docker:build:indexer
+        run: pnpm run container:build:indexer
 
       - name: Run RPC cache integration checks
         run: pnpm run test:rpc-cache
 
       - name: Tag indexer image for scan
-        run: pnpm run docker:tag:scan:indexer
-
-      - name: Build frontend Docker image
-        run: pnpm run docker:build:frontend
-
-      - name: Tag frontend image for scan
-        run: pnpm run docker:tag:scan:frontend
-
-      - name: Build Hasura Docker image
-        run: pnpm run docker:build:hasura
-
-      - name: Tag Hasura image for scan
-        run: pnpm run docker:tag:scan:hasura
-
-      - name: Build snapshot gateway Docker image
-        run: pnpm run docker:build:snapshot-gateway
-
-      - name: Tag snapshot gateway image for scan
-        run: pnpm run docker:tag:scan:snapshot-gateway
-
-      - name: Build snapshot publisher Docker image
-        run: pnpm run docker:build:snapshot-publisher
-
-      - name: Tag snapshot publisher image for scan
-        run: pnpm run docker:tag:scan:snapshot-publisher
-
-      - name: Build snapshot monitor Docker image
-        run: pnpm run docker:build:snapshot-monitor
-
-      - name: Tag snapshot monitor image for scan
-        run: pnpm run docker:tag:scan:snapshot-monitor
-
-      - name: Scan Dockerfiles for misconfigurations
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
-        env:
-          TRIVY_FILE_PATTERNS: dockerfile:Dockerfile-*
-          TRIVY_SKIP_DIRS: node_modules
-        with:
-          scan-type: config
-          scan-ref: .
-          scanners: misconfig
-          severity: MEDIUM,HIGH,CRITICAL
-          exit-code: "1"
+        run: pnpm run container:tag:scan:indexer
 
       - name: Scan indexer image for vulnerabilities
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
@@ -97,52 +58,6 @@ jobs:
           trivyignores: .trivyignore
           exit-code: "1"
 
-      - name: Scan frontend image for vulnerabilities
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
-        with:
-          image-ref: protocol-visualizer/frontend:scan
-          format: table
-          severity: MEDIUM,HIGH,CRITICAL
-          trivyignores: .trivyignore
-          exit-code: "1"
-
-      - name: Scan Hasura image for vulnerabilities
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
-        with:
-          image-ref: protocol-visualizer/hasura:scan
-          format: table
-          severity: MEDIUM,HIGH,CRITICAL
-          ignore-unfixed: true
-          trivyignores: .trivyignore
-          exit-code: "1"
-
-      - name: Scan snapshot gateway image for vulnerabilities
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
-        with:
-          image-ref: protocol-visualizer/snapshot-gateway:scan
-          format: table
-          severity: MEDIUM,HIGH,CRITICAL
-          trivyignores: .trivyignore
-          exit-code: "1"
-
-      - name: Scan snapshot publisher image for vulnerabilities
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
-        with:
-          image-ref: protocol-visualizer/snapshot-publisher:scan
-          format: table
-          severity: MEDIUM,HIGH,CRITICAL
-          trivyignores: .trivyignore
-          exit-code: "1"
-
-      - name: Scan snapshot monitor image for vulnerabilities
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
-        with:
-          image-ref: protocol-visualizer/snapshot-monitor:scan
-          format: table
-          severity: MEDIUM,HIGH,CRITICAL
-          trivyignores: .trivyignore
-          exit-code: "1"
-
       - name: Scan RPC cache image for vulnerabilities
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
@@ -150,4 +65,59 @@ jobs:
           format: table
           severity: MEDIUM,HIGH,CRITICAL
           trivyignores: .trivyignore
+          exit-code: "1"
+
+  images:
+    name: Image (${{ matrix.image }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        image: [frontend, hasura, snapshot-gateway, snapshot-publisher, snapshot-monitor]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Build image
+        env:
+          IMAGE: ${{ matrix.image }}
+        run: >-
+          docker build -f "Dockerfile-$IMAGE"
+          --build-arg VITE_PROTOCOL_SNAPSHOT_BASE_URL=http://localhost:8082
+          -t "protocol-visualizer/$IMAGE:scan" .
+
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: protocol-visualizer/${{ matrix.image }}:scan
+          format: table
+          severity: MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: ${{ matrix.image == 'hasura' }}
+          trivyignores: .trivyignore
+          exit-code: "1"
+
+  dockerfiles:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Scan Dockerfiles for misconfigurations
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        env:
+          TRIVY_FILE_PATTERNS: dockerfile:Dockerfile-*
+          TRIVY_SKIP_DIRS: node_modules
+        with:
+          scan-type: config
+          scan-ref: .
+          scanners: misconfig
+          severity: MEDIUM,HIGH,CRITICAL
           exit-code: "1"

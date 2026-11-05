@@ -124,3 +124,31 @@ test("immutable policies require known finality and disable speculative upstream
   assert.equal(cfg.server.includeErrorDetails, false);
   assert.equal(cfg.logLevel, "disabled");
 });
+
+test("one finite archive credit pool covers every method and chain", () => {
+  const cfg = config();
+  const budget = cfg.rateLimiters.budgets[0];
+  assert.equal(budget.id, "archive");
+  assert.deepEqual(budget.creditUnits, { "*": 1 });
+  assert.deepEqual(budget.rules, [
+    { method: "*", maxCount: 100, period: "1s", countMode: "credit" },
+  ]);
+  assert.match(
+    readFileSync("docker-compose.yml", "utf8"),
+    /RPC_CACHE_MAX_RPS: \$\{RPC_CACHE_MAX_RPS:-100\}/
+  );
+  assert(
+    cfg.projects[0].upstreams.every(
+      (upstream) => upstream.rateLimitBudget === budget.id
+    )
+  );
+  assert.equal(
+    cfg.projects[0].upstreamDefaults.failsafe[0].retry.maxAttempts,
+    1
+  );
+  assert.equal(
+    config({ ...env, RPC_CACHE_MAX_RPS: "12" }).rateLimiters.budgets[0].rules[0]
+      .maxCount,
+    12
+  );
+});

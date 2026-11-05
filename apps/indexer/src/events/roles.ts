@@ -2,7 +2,8 @@ import { fromHex } from "viem";
 
 import { getContractName } from "../ContractNames";
 import { ROLE_ROLES_ADMIN } from "../services/contracts/types";
-import { currentRoleAssigneeId, roleAssignmentId, roleEventId } from "./ids";
+import { currentRoleAssigneeId, roleAssignmentId } from "./ids";
+import { ensureRolesAdminSeeded, setRole } from "./seeding";
 import type {
   CurrentRoleAssigneeEntity,
   EnvioContext,
@@ -10,7 +11,6 @@ import type {
   RoleGrantedEvent,
   RoleRevokedEvent,
 } from "./types";
-import { ensureRolesAdminSeeded, setRole } from "./seeding";
 
 export async function handleRoleGranted(
   event: RoleGrantedEvent,
@@ -29,28 +29,8 @@ export async function handleRoleGranted(
     `Chain ${event.chainId}: Processing role granted event for ${role} to ${assignee}`
   );
 
-  envioContext.RoleEvent.set({
-    id: roleEventId(
-      event.chainId,
-      role,
-      event.transaction.hash,
-      event.logIndex,
-      assignee
-    ),
-    chainId: event.chainId,
-    role,
-    transactionHash: event.transaction.hash,
-    logIndex: event.logIndex,
-    assignee,
-    timestamp,
-    blockNumber,
-    assigneeName,
-    isGranted: true,
-  });
-
   envioContext.RoleAssignment.set({
     id: roleAssignmentId(event.chainId, role, assignee),
-    chainId: event.chainId,
     role,
     assignee,
     lastUpdatedTimestamp: timestamp,
@@ -85,28 +65,8 @@ export async function handleRoleRevoked(
     `Chain ${event.chainId}: Processing role revoked event for ${role} from ${assignee}`
   );
 
-  envioContext.RoleEvent.set({
-    id: roleEventId(
-      event.chainId,
-      role,
-      event.transaction.hash,
-      event.logIndex,
-      assignee
-    ),
-    chainId: event.chainId,
-    role,
-    transactionHash: event.transaction.hash,
-    logIndex: event.logIndex,
-    assignee,
-    timestamp,
-    blockNumber,
-    assigneeName,
-    isGranted: false,
-  });
-
   envioContext.RoleAssignment.set({
     id: assignmentId,
-    chainId: event.chainId,
     role,
     assignee,
     lastUpdatedTimestamp: timestamp,
@@ -138,32 +98,12 @@ export async function handleNewAdminPulled(
   );
 
   if (currentAssignee) {
-    envioContext.RoleEvent.set({
-      id: roleEventId(
-        event.chainId,
-        ROLE_ROLES_ADMIN,
-        event.transaction.hash,
-        event.logIndex,
-        currentAssignee.assignee
-      ),
-      chainId: event.chainId,
-      role: ROLE_ROLES_ADMIN,
-      transactionHash: event.transaction.hash,
-      logIndex: event.logIndex,
-      assignee: currentAssignee.assignee,
-      timestamp,
-      blockNumber,
-      assigneeName: currentAssignee.assigneeName,
-      isGranted: false,
-    });
-
     envioContext.RoleAssignment.set({
       id: roleAssignmentId(
         event.chainId,
         ROLE_ROLES_ADMIN,
         currentAssignee.assignee
       ),
-      chainId: event.chainId,
       role: ROLE_ROLES_ADMIN,
       assignee: currentAssignee.assignee,
       lastUpdatedTimestamp: timestamp,
@@ -174,28 +114,9 @@ export async function handleNewAdminPulled(
   }
 
   const assigneeName = getContractName(newAdmin, event.chainId);
-  envioContext.RoleEvent.set({
-    id: roleEventId(
-      event.chainId,
-      ROLE_ROLES_ADMIN,
-      event.transaction.hash,
-      event.logIndex,
-      newAdmin
-    ),
-    chainId: event.chainId,
-    role: ROLE_ROLES_ADMIN,
-    transactionHash: event.transaction.hash,
-    logIndex: event.logIndex,
-    assignee: newAdmin,
-    timestamp,
-    blockNumber,
-    assigneeName,
-    isGranted: true,
-  });
 
   envioContext.RoleAssignment.set({
     id: roleAssignmentId(event.chainId, ROLE_ROLES_ADMIN, newAdmin),
-    chainId: event.chainId,
     role: ROLE_ROLES_ADMIN,
     assignee: newAdmin,
     lastUpdatedTimestamp: timestamp,
@@ -206,7 +127,6 @@ export async function handleNewAdminPulled(
 
   envioContext.CurrentRoleAssignee.set({
     id: currentRoleAssigneeId(event.chainId, ROLE_ROLES_ADMIN),
-    chainId: event.chainId,
     role: ROLE_ROLES_ADMIN,
     assignee: newAdmin,
     assigneeName,

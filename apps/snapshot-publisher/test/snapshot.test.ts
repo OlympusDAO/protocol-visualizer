@@ -3,12 +3,12 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { getSampleProtocolData } from "../src/sample-data.js";
 import { loadOtherContracts, loadSupportedChains } from "../src/chains.js";
+import { getSampleProtocolData } from "../src/sample-data.js";
 import {
   createProtocolSnapshot,
-  createSnapshotFiles,
   createSnapshotBatch,
+  createSnapshotFiles,
   fetchProtocolData,
   parseChainIds,
   selectChains,
@@ -361,4 +361,27 @@ test("reports Hasura network failures with safe context", async () => {
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("completed native progress cannot bypass incomplete full observation", async () => {
+  let checked = 0;
+  const mainnet = supportedChains[0];
+  assert(mainnet);
+  const batch = await createSnapshotBatch({
+    chains: [mainnet],
+    loadProtocolData: () => getSampleProtocolData(1),
+    additionalContracts: [],
+    indexingProgressOverride: {
+      chains: {
+        Mainnet: { chainId: 1, block: 123, timestamp: null, date: null },
+      },
+    },
+    verifyObservation: async (chainId) => {
+      assert.equal(chainId, 1);
+      checked++;
+      return false;
+    },
+  });
+  assert.equal(checked, 1);
+  assert.equal(batch.ready, false);
 });

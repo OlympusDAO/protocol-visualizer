@@ -1,3 +1,4 @@
+import { rethrowTransientRpc } from "./rpc";
 import { keccak256, type Abi, type Address, type Hex } from "viem";
 import type {
   BridgeConfiguration,
@@ -6,6 +7,7 @@ import type {
 } from "../../../../packages/snapshot-artifacts/src/index";
 import type { BridgeReadResult } from "./bridge-config";
 import externalChains from "../../../../packages/protocol-config/ccip-external-chains.json";
+import { emptyCodeHash, type BytecodePin } from "./code-cache";
 
 type Client = {
   getBlock: (input: { blockNumber: bigint }) => Promise<{ hash: Hex | null }>;
@@ -70,7 +72,9 @@ export async function readPinnedBridgeConfiguration(
     blockNumber: bigint;
     blockHash: string;
     selectors: string[];
-  }
+  },
+  readCodeHash: (pin: BytecodePin) => Promise<Hex | undefined> = async (pin) =>
+    keccak256((await client.getCode(pin)) ?? "0x")
 ): Promise<BridgeReadResult> {
   try {
     const pin = {
@@ -82,11 +86,12 @@ export async function readPinnedBridgeConfiguration(
       input.blockHash
     )
       throw new Error("Canonical block changed");
-    const code = await client.getCode({
+    const codeHash = await readCodeHash({
       address: input.address as Address,
       ...pin,
     });
-    if (!code || code === "0x") throw new Error("Contract is not deployed");
+    if (!codeHash || codeHash === emptyCodeHash)
+      throw new Error("Contract is not deployed");
     const read = (
       target: string,
       name: string,
@@ -148,7 +153,8 @@ export async function readPinnedBridgeConfiguration(
           selector
         );
         if (typeof supported === "boolean") routerSupported = supported;
-      } catch {
+      } catch (error) {
+        rethrowTransientRpc(error);
         /* Router coverage stays unknown. */
       }
       if (input.kind === "pool") {
@@ -221,12 +227,13 @@ export async function readPinnedBridgeConfiguration(
     const configuration: NonNullable<BridgeConfiguration["configuration"]> = {
       token,
       router,
-      codeHash: keccak256(code),
+      codeHash,
       routes,
       allowList,
     };
     return { status: "success", value: JSON.stringify(configuration) };
-  } catch {
+  } catch (error) {
+    rethrowTransientRpc(error);
     return {
       status: "unavailable",
       reason: "Bridge configuration could not be read at the canonical block.",

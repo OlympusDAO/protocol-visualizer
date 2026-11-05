@@ -12,30 +12,20 @@ export type EnvioContext = EvmOnEventContext & {
   BridgeConfiguration: EntityStore;
   HeartTasks: EntityStore;
   ContractState: EntityStore;
-  ContractStateSeed: EntityStore;
   ControlTransition: EntityStore;
   ContractRelationship: EntityStore;
   ChainObservation: EntityStore;
-  ActionExecutedEvent: EntityStore;
   Contract: EntityStore;
-  ContractEvent: EntityStore;
   CurrentModule: EntityStore;
   CurrentRoleAssignee: EntityStore;
   KernelExecutor: EntityStore;
-  KernelExecutorEvent: EntityStore;
   Role: EntityStore;
   RoleAssignment: EntityStore;
-  RoleEvent: EntityStore;
 };
 
 export type RequestedPolicyPermission = {
   keycode: Hex;
   funcSelector: Hex;
-};
-
-export type RequestedPolicyPermissionsResult = {
-  permissions: RequestedPolicyPermission[];
-  usedLatestFallback: boolean;
 };
 
 export type PolicyPermission = {
@@ -56,7 +46,7 @@ export type ControlEvent = BaseEvent & {
   block: { number: number; timestamp: number; hash: string };
 };
 
-export type KernelActionExecutedEvent = BaseEvent & {
+export type KernelActionExecutedEvent = ControlEvent & {
   params: { action_: bigint; target_: Address };
 };
 
@@ -84,7 +74,6 @@ export type ActionType =
 
 export type ContractEntity = {
   id: string;
-  chainId: number;
   address: string;
   lastUpdatedTimestamp: bigint;
   lastUpdatedBlockNumber: bigint;
@@ -99,7 +88,6 @@ export type ContractEntity = {
 
 export type CurrentModuleEntity = {
   id: string;
-  chainId: number;
   keycode: string;
   address: string;
   lastUpdatedTimestamp: bigint;
@@ -108,7 +96,6 @@ export type CurrentModuleEntity = {
 
 export type CurrentRoleAssigneeEntity = {
   id: string;
-  chainId: number;
   role: string;
   assignee: string;
   assigneeName: string;

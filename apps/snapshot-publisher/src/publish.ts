@@ -1,7 +1,3 @@
-import {
-  assertRpcConfiguration,
-  resolveEnvioProgressTimestamps,
-} from "@protocol-visualizer/snapshot-artifacts/indexer-progress";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -14,23 +10,28 @@ import {
 } from "@aws-sdk/client-s3";
 import {
   ACTIVE_MANIFEST_KEY,
+  type EnvioMetricsChainConfig,
   type EnvioMetricsReadiness,
+  type IndexingProgress,
+  PUBLISHER_LOCK_KEY,
   parseDeploymentId,
   parseEnvioMetricsReadiness,
-  type EnvioMetricsChainConfig,
-  PUBLISHER_LOCK_KEY,
-  type IndexingProgress,
 } from "@protocol-visualizer/snapshot-artifacts";
+import {
+  assertRpcConfiguration,
+  resolveEnvioProgressTimestamps,
+  verifyCompletedObservation,
+} from "@protocol-visualizer/snapshot-artifacts/indexer-progress";
 import { loadSupportedChains } from "./chains.js";
 import { DEFAULT_PUBLIC_BASE_PATH } from "./constants.js";
+import { describeFetchError, safeUrlForLog } from "./network-errors.js";
+import { getSampleProtocolData } from "./sample-data.js";
 import {
   createSnapshotBatch,
   fetchProtocolData,
   parseChainIds,
   selectChains,
 } from "./snapshot.js";
-import { describeFetchError, safeUrlForLog } from "./network-errors.js";
-import { getSampleProtocolData } from "./sample-data.js";
 import type {
   ChainConfig,
   Manifest,
@@ -940,6 +941,8 @@ export async function runPublisher(deps: PublisherDependencies = {}) {
       publicBasePath,
       publicOrigin,
       indexingProgressOverride: indexerReadiness?.indexingProgress,
+      verifyObservation:
+        source === "hasura" ? verifyCompletedObservation : undefined,
     });
   }
 

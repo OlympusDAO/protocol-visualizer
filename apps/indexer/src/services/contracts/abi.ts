@@ -1,12 +1,13 @@
 import {
+  type Abi,
+  type Hex,
+  keccak256,
   toFunctionSelector,
   toFunctionSignature,
-  keccak256,
-  type Hex,
-  type Abi,
 } from "viem";
-import type { ProcessedContractData } from "./types";
 import type { FunctionContext } from "../../../../../packages/snapshot-artifacts/src/index";
+import { waitForMetadata } from "../metadata-throttle";
+import type { ProcessedContractData } from "./types";
 
 type CompilerDocs = {
   userdoc?: { methods?: Record<string, { notice?: string }> };
@@ -72,7 +73,7 @@ export function processVerifiedContractMetadata(
   verified: {
     chainId?: string | number;
     address?: string;
-    runtimeMatch?: string;
+    runtimeMatch?: string | null;
     runtimeBytecode?: { onchainBytecode?: Hex };
     metadata?: { output?: CompilerDocs & { abi?: Abi } };
   },
@@ -103,4 +104,49 @@ export function processVerifiedContractMetadata(
     details.roles = previous?.functionSelectors?.[selector]?.roles ?? [];
   processed.roleToFunctions = previous?.roleToFunctions ?? {};
   return processed;
+}
+
+export async function fetchVerifiedContract(
+  chainId: string | number,
+  address: string
+): Promise<Parameters<typeof processVerifiedContractMetadata>[0]> {
+  await waitForMetadata("sourcify");
+  const response = await fetch(
+    `https://sourcify.dev/server/v2/contract/${chainId}/${address.toLowerCase()}?fields=${verifiedMetadataFields}`,
+    { signal: AbortSignal.timeout(30_000) }
+  );
+  if (!response.ok)
+    throw Object.assign(new Error("Verified contract metadata unavailable"), {
+      status: response.status,
+    });
+  const value: unknown = await response.json();
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new Error("Invalid verified contract metadata response");
+  return value as Parameters<typeof processVerifiedContractMetadata>[0];
+}
+
+export async function fetchVerifiedContractMetadata(
+  chainId: string | number,
+  address: string,
+  previous?: ProcessedContractData
+): Promise<ProcessedContractData> {
+  return processVerifiedContractMetadata(
+    await fetchVerifiedContract(chainId, address),
+    chainId,
+    address,
+    previous
+  );
+}
+
+export const verifiedMetadataFields =
+  "metadata,runtimeBytecode.onchainBytecode";
+
+export function hasVerifiedMetadata(data?: ProcessedContractData): boolean {
+  const functions = Object.values(data?.functionSelectors ?? {});
+  return (
+    functions.length > 0 &&
+    functions.every(
+      (fn) => fn.canonicalSignature && fn.documentation?.source?.codeHash
+    )
+  );
 }

@@ -9,7 +9,7 @@ const required = (name, pattern) => {
 };
 const database = required("RPC_CACHE_DATABASE_URL", /^postgres(ql)?:\/\//);
 // biome-ignore lint/suspicious/noUndeclaredEnvVars: eRPC reads runtime settings outside Turbo.
-const maxRps = Number(process.env.RPC_CACHE_MAX_RPS || "50");
+const maxRps = Number(process.env.RPC_CACHE_MAX_RPS || "100");
 if (!Number.isSafeInteger(maxRps) || maxRps < 1) {
   throw new Error("RPC_CACHE_MAX_RPS must be a positive integer");
 }
@@ -98,7 +98,12 @@ export default {
     budgets: [
       {
         id: "archive",
-        rules: [{ method: "*", maxCount: maxRps, period: "1s" }],
+        // Request counting partitions wildcard rules by concrete RPC method.
+        // Unit credits share one aggregate pool across methods and networks.
+        creditUnits: { "*": 1 },
+        rules: [
+          { method: "*", maxCount: maxRps, period: "1s", countMode: "credit" },
+        ],
       },
     ],
   },

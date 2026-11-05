@@ -459,7 +459,7 @@ const startHealthcheckWrapper = () => {
       response.end(
         JSON.stringify({
           ready: false,
-          reason: "Ingestion stopped for reset",
+          reason: "Ingestion paused for an explicit reset",
         })
       );
       return;
@@ -506,6 +506,28 @@ export const run = async () => {
   const wrapperServer = startHealthcheckWrapper();
   const envioCommand = resolveEnvioCommand();
 
+  if (isStartCommand()) {
+    maintenanceMode = true;
+    const status = await new Promise((accept, reject) => {
+      const check = spawn(
+        process.execPath,
+        [resolve(scriptDir, "check-envio-storage.mjs"), ...envioArgs],
+        { cwd: indexerDir, env: process.env, stdio: "inherit", timeout: 30_000 }
+      );
+      check.once("error", reject);
+      check.once("exit", (code) => accept(code));
+    });
+    if (status !== 0 && status !== 78) {
+      wrapperServer?.close();
+      process.exit(1);
+    }
+    maintenanceMode = status === 78;
+    if (maintenanceMode)
+      console.log(
+        "Envio storage is incompatible. Ingestion is paused until an operator runs indexer:reset:railway for this environment. No reset was performed."
+      );
+  }
+
   let child;
   const startChild = (args = envioCommand.args) => {
     const started = spawn(envioCommand.command, args, {
@@ -529,7 +551,7 @@ export const run = async () => {
       process.exit(code ?? 1);
     });
   };
-  startChild();
+  if (!maintenanceMode) startChild();
 
   if (isStartCommand()) {
     try {
@@ -540,13 +562,14 @@ export const run = async () => {
         };
         maintenanceMode = true;
         log("Stopping Envio ingestion...\n");
-        try {
-          process.kill(-child.pid, "SIGTERM");
-        } catch (error) {
-          if (error.code !== "ESRCH") throw error;
-        }
+        if (child)
+          try {
+            process.kill(-child.pid, "SIGTERM");
+          } catch (error) {
+            if (error.code !== "ESRCH") throw error;
+          }
         const deadline = Date.now() + 30_000;
-        while (true) {
+        while (child) {
           try {
             process.kill(-child.pid, 0);
           } catch (error) {
@@ -601,7 +624,7 @@ export const run = async () => {
     } catch (error) {
       console.error(`Reset control could not start: ${error.message}`);
       try {
-        process.kill(-child.pid, "SIGTERM");
+        if (child) process.kill(-child.pid, "SIGTERM");
       } catch (stopError) {
         if (stopError.code !== "ESRCH") console.error(stopError.message);
       }

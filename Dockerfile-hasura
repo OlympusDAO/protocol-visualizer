@@ -32,6 +32,7 @@ RUN apt-get update \
         libpam-modules-bin \
         libpam-runtime \
         libpam0g \
+        libpcre2-8-0 \
         libperl5.34 \
         libpq5 \
         libpython3.10-minimal \

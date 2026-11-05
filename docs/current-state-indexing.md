@@ -33,12 +33,14 @@ The incompatible schema requires an explicitly approved database rebuild.
 
 Only the top-level completed canonical observation writes a versioned
 `ChainObservation`. Birth initialization and individual reader families cannot
-mark the entire chain complete. The publisher requires native readiness plus a
-recent canonical marker, checking its header/hash/timestamp and head distance
-through the private proxy. Missing, stale, future, orphaned or old-version markers
-withhold publication. A complete observation is a canonical attempt across all
+mark the entire chain complete. Envio's native readiness is the publisher's
+catch-up authority. The publisher separately checks the completed marker's
+exact canonical block number, hash, timestamp and verification version through
+the private proxy. Missing, orphaned or old-version markers and unavailable
+blocks withhold publication. It does not query the latest head or impose a
+second block-age limit. A complete observation is a canonical attempt across all
 families: unsupported getters and mismatches remain visible rather than being
-relabeled successful. The freshness check precedes uploads; it is not an atomic
+relabeled successful. Canonical validation precedes uploads; it is not an atomic
 check at manifest promotion.
 
 ## Decisions and limits
@@ -60,9 +62,10 @@ a current-only worker benefit. The matched primary replay uses one process.
 
 One remaining liveness limit is a deep head regression below the remembered live
 eligibility threshold. Verification can wait until callbacks reach that threshold
-again. Publisher freshness/canonical checks withhold stale publication. A quiet,
-nonaligned tip can also wait for the next 100-block callback. These are freshness
-delays, not evidence that an older cached value becomes a new RPC observation.
+again. A quiet, nonaligned tip can also wait for the next 100-block callback.
+Observation scheduling is separate from publication readiness: the publisher
+trusts Envio's catch-up decision and validates the marker's canonical integrity.
+An older observation keeps its actual verification block.
 
 ## Kernel rollback and canonical reads
 

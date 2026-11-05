@@ -3,11 +3,10 @@ import {
   type ChainObservation,
   type EnvioMetricsReadiness,
   FULL_VERIFICATION_VERSION,
-  OBSERVATION_BLOCK_INTERVAL,
 } from "./index.js";
 
-/** A native ready flag can survive downtime; require a recent canonical full read. */
-export async function verifyCurrentObservation(
+/** Envio owns readiness; this check validates the completed observation's integrity. */
+export async function verifyCompletedObservation(
   chainId: number,
   observation: ChainObservation | null | undefined,
   environment: Record<string, string | undefined> = process.env
@@ -55,15 +54,7 @@ export async function verifyCurrentObservation(
   };
   try {
     const number = BigInt(observation.indexedThrough.number);
-    const head = await read("latest");
-    if (
-      !head ||
-      number > head.number ||
-      head.number - number >= BigInt(OBSERVATION_BLOCK_INTERVAL)
-    )
-      return false;
-    const observed =
-      number === head.number ? head : await read(`0x${number.toString(16)}`);
+    const observed = await read(`0x${number.toString(16)}`);
     return Boolean(
       observed &&
         observed.number === number &&

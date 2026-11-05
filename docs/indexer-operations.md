@@ -261,9 +261,11 @@ Envio marks itself ready. There is no public Envio transactional catch-up hook;
 a stationary, nonaligned tip can wait for the next cadence block.
 
 The publisher requires native readiness and a versioned full-observation marker.
-It checks the marker's header, hash, timestamp and distance from the head through
-the private proxy. Missing, stale, future, orphaned or unknown-version markers
-withhold publication. Freshness is checked during batch construction, not
-atomically with manifest upload. A completed observation means every configured
+Envio's native metrics determine catch-up readiness. The publisher checks the
+marker's exact block number, canonical hash, timestamp and verification version
+through the private proxy. It does not query the latest head or apply another
+block-age threshold. Missing, orphaned or unknown-version markers and unavailable
+blocks withhold publication. Canonical validation happens during batch
+construction, not atomically with manifest upload. A completed observation means every configured
 family was attempted canonically; unsupported getters and mismatches remain
 explicit in field verification and do not become successful reads.

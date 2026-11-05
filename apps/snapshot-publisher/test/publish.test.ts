@@ -20,6 +20,7 @@ import {
 } from "../src/publish.js";
 import type { SnapshotFile } from "../src/types.js";
 import { loadSupportedChains } from "../src/chains.js";
+import { getSampleProtocolData } from "../src/sample-data.js";
 
 const snapshotFile = (key: string, publishLast = false): SnapshotFile => ({
   publicPath: `/${key}`,
@@ -331,6 +332,72 @@ test("publisher skips before Hasura reads when indexer metrics are not ready", a
     client.objects[PUBLISHER_NOTIFICATION_STATE_KEY] !== undefined,
     true
   );
+});
+
+test("native readiness permits completed canonical observations without a second age gate", async () => {
+  const originalFetch = globalThis.fetch;
+  for (const completed of [true, false]) {
+    const capture = captureConsole();
+    const client = new MemoryS3Client();
+    const data = getSampleProtocolData(1);
+    const block = data.ChainObservation?.[0]?.indexedThrough;
+    assert(block);
+    data.ChainObservation = completed
+      ? [{ chainId: 1, indexedThrough: block, verificationVersion: 1 }]
+      : [];
+    let rpcCalls = 0;
+    globalThis.fetch = async (url, init) => {
+      if (String(url) === "http://indexer/metrics")
+        return new Response(
+          'hyperindex_synced_to_head 1\nenvio_progress_ready{chainId="1"} 1\nenvio_progress_block{chainId="1"} 2000000\nenvio_progress_block_time_seconds{chainId="1"} 1700000000'
+        );
+      if (String(url) === "http://hasura/v1/graphql")
+        return Response.json({ data });
+      assert.equal(String(url), "https://private-proxy.example/1");
+      rpcCalls++;
+      const { params } = JSON.parse(String(init?.body));
+      assert.deepEqual(
+        params,
+        ["0xf4240", false],
+        "only validate the recorded block"
+      );
+      return Response.json({
+        result: {
+          number: "0xf4240",
+          hash: block.hash,
+          timestamp: "0x" + BigInt(block.timestamp).toString(16),
+        },
+      });
+    };
+    try {
+      await withPublisherEnv(
+        {
+          SNAPSHOT_SOURCE: "hasura",
+          SNAPSHOT_CHAIN_IDS: "1",
+          INDEXER_DEPLOYMENT_ID: "deployment-native-ready",
+          RAILWAY_ENVIRONMENT_NAME: "preview",
+          INDEXER_METRICS_URL: "http://indexer/metrics",
+          HASURA_GRAPHQL_URL: "http://hasura/v1/graphql",
+          RPC_URL_1: "https://private-proxy.example/1",
+          DISCORD_WEBHOOK_URL: undefined,
+          BUCKET: "bucket",
+        },
+        () =>
+          runPublisher({
+            createS3Client: () => client,
+            notifyHandover: async () => undefined,
+          })
+      );
+      const result = publisherResultFrom(capture.logs);
+      assert.equal(result.published, completed);
+      assert.equal(Boolean(client.objects[ACTIVE_MANIFEST_KEY]), completed);
+      assert.equal(rpcCalls, completed ? 1 : 0);
+      if (!completed) assert.equal(result.skipReason, "not_data_ready");
+    } finally {
+      globalThis.fetch = originalFetch;
+      capture.restore();
+    }
+  }
 });
 
 test("publisher logs continuing indexing for a previously observed deployment", async () => {

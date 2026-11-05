@@ -20,7 +20,7 @@ import {
 import {
   assertRpcConfiguration,
   resolveEnvioProgressTimestamps,
-  verifyCurrentObservation,
+  verifyCompletedObservation,
 } from "@protocol-visualizer/snapshot-artifacts/indexer-progress";
 import { loadSupportedChains } from "./chains.js";
 import { DEFAULT_PUBLIC_BASE_PATH } from "./constants.js";
@@ -942,7 +942,7 @@ export async function runPublisher(deps: PublisherDependencies = {}) {
       publicOrigin,
       indexingProgressOverride: indexerReadiness?.indexingProgress,
       verifyObservation:
-        source === "hasura" ? verifyCurrentObservation : undefined,
+        source === "hasura" ? verifyCompletedObservation : undefined,
     });
   }
 

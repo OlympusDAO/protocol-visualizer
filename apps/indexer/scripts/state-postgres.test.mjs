@@ -378,13 +378,19 @@ if (stage) {
   await runStage(stage.slice("--stage=".length));
 } else {
   test("native PostgreSQL preserves current state, chain isolation and rollback across process restarts", {
-    skip: !process.env.PV_CACHE_POSTGRES_URL,
+    skip:
+      !process.env.PV_CACHE_POSTGRES_URL &&
+      process.env.PV_REQUIRE_POSTGRES !== "1",
   }, async () => {
+    assert.ok(
+      process.env.PV_CACHE_POSTGRES_URL,
+      "PV_CACHE_POSTGRES_URL is required when PV_REQUIRE_POSTGRES=1"
+    );
     const url = localDatabaseUrl();
     const Postgres = require(
       require.resolve("postgres", { paths: [require.resolve("envio")] })
     );
-    const admin = Postgres(url.toString(), { max: 1 });
+    const admin = Postgres(url.toString(), { max: 1, connect_timeout: 5 });
     const database = `pv_cache_rollback_${randomUUID().replaceAll("-", "")}`;
     try {
       await admin.unsafe(`CREATE DATABASE "${database}"`);
@@ -409,6 +415,7 @@ if (stage) {
         }
       );
       assert.equal(child.status, 0, `${phase}: ${child.stderr}`);
+      console.log(`Native SQL fixture completed stage: ${phase}`);
     }
     console.log(`Native SQL rollback fixture passed; completed ${database}`);
   });

@@ -30,6 +30,20 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -43,6 +57,13 @@ jobs:
 
       - name: Run build
         run: pnpm run build
+
+      - name: Verify native PostgreSQL persistence and rollback
+        working-directory: apps/indexer
+        env:
+          PV_REQUIRE_POSTGRES: "1"
+          PV_CACHE_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+        run: node --import ./scripts/register-typescript.mjs --test scripts/state-postgres.test.mjs
 
       - name: Run snapshot monitor tests
         run: pnpm --filter snapshot-monitor run test

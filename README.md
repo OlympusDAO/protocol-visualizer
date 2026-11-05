@@ -83,6 +83,21 @@ when installed, otherwise Podman. Set `CONTAINER_ENGINE=podman` or
 Failures from the selected engine stop the command. Podman stack commands
 require a Compose provider installed on the host.
 
+Scan a built image with the installed Trivy CLI:
+
+```bash
+pnpm run container:build:hasura
+pnpm run container:scan:hasura
+```
+
+For another service, use `pnpm run container:scan -- frontend`. An optional
+second argument selects a different local image. The scanner resolves its
+immutable image ID and follows CI's severity thresholds, `.trivyignore`, and
+Hasura-only handling of unfixed vulnerabilities. Missing images, export failures,
+and scanner failures stop the command. Temporary exports are removed afterward;
+the reusable Trivy cache stays under ignored `node_modules/.cache/container-scan`.
+Large scanner working files use that directory instead of the system `/tmp`.
+
 Run checks individually:
 
 ```bash

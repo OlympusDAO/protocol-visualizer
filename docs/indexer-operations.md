@@ -8,7 +8,7 @@ RPC cache deployment and storage belong in [rpc-cache.md](rpc-cache.md).
 Download verified metadata before building the indexer:
 
 ```bash
-ETHERSCAN_MIN_REQUEST_INTERVAL_MS=1000 pnpm run indexer:metadata -- --prefetch-metadata --source-report docs/performance/indexer-metadata-source-coverage.json
+ETHERSCAN_MIN_REQUEST_INTERVAL_MS=1000 pnpm run indexer:metadata -- --prefetch-metadata --source-report benchmarks/metadata-source-coverage.json
 ```
 
 This uses Sourcify's [contract lookup API](https://docs.sourcify.dev/docs/api/),

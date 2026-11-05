@@ -337,7 +337,7 @@ pnpm run indexer:metrics
 ## Checking Progress
 
 For measured indexing rates, RPC request comparisons and cache boundaries, see
-[Indexer performance comparison](../../docs/performance/indexer-benchmark-robinhood-comparison.md).
+[Indexer performance comparison](../../docs/current-state-indexing.md#robinhood-base-benchmark).
 
 During a local run, use the Envio metrics endpoint to confirm each chain is
 advancing and whether effect handlers are running:

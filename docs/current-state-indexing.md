@@ -1,50 +1,11 @@
 # Current-state indexing
 
 The visualizer needs current protocol state. Routine historical getter sweeps are
-replaced by full verification at catch-up and bounded live refreshes.
-HyperSync event processing remains necessary to reconstruct current memberships,
-roles, ownership and dynamically discovered contracts. eRPC caching, provider
-protection and canonical block checks remain.
+replaced by full verification at catch-up and bounded live refreshes. HyperSync
+still supplies events to reconstruct memberships, roles, ownership and discovered
+contracts. eRPC, provider protection and canonical block checks remain.
 
-## Milestone 1: remove the raw-call effect layer
-
-Commit `d3f84c8` removes the 75-line raw-call cache/client wrapper, its 100-line
-feature test and obsolete raw-cache assertions in the PostgreSQL suite. Three
-domain readers use the existing shared RPC client. No replacement abstraction,
-dependency or schema entity was added. Domain effects, hash pins, bounded client
-concurrency/retries and the finite 100-credit eRPC cap are unchanged.
-
-One cold scout per revision used the fixed Berachain 780,011–1,530,001 profile:
-749,991 blocks and 7,610 events, one process, two PostgreSQL connections, identical
-images/metadata and fresh disposable databases. Baseline: `31f32ee`.
-
-| Metric | Parent | Without raw-call effect |
-| --- | ---: | ---: |
-| Committed time | 79.309s | 73.714s |
-| Blocks/second | 9,456.6 | 10,174.4 |
-| Proxy requests | 4,265 | 4,317 |
-| Upstream requests | 2,527 | 2,581 |
-| Upstream `eth_call` | 1,949 | 2,001 |
-
-All 20 exact table digests matched. Both runs completed and cleaned up. Neither
-recorded capacity rejections or rate-limit outcomes; missing optional counters
-do not prove spare provider capacity. The 230 call failures per run were
-execution reverts. All nine ordered validation steps passed. Astra reviewed
-correctness and Ponytail reviewed simplification.
-
-The observed throughput difference is +7.59%, but these single scouts establish
-feasibility only. Shared provider traffic and source-service latency remain
-uncontrolled. No repeatable speedup is claimed. The deletion increases proxy
-traffic by 1.22% and upstream traffic by 2.14%; eRPC cannot replace every
-block-hash cache hit when finality is unknown. Keeping the smaller read path is
-a code-maintenance decision with this measured traffic trade-off.
-
-Raw results remain private, outside tracked source. Their SHA-256 hashes will
-accompany the completed comparison. Historical benchmark protocols still require
-their original exact state/provenance equality; they are not relaxed to accept
-the subsequent schema and observation changes.
-
-## Milestone 2: current observations and a smaller schema
+## Observation and storage
 
 Historical 10,000-block callbacks no longer sweep getters. Creation callbacks
 only initialize the core contracts born at that boundary, after constructor
@@ -58,20 +19,17 @@ block; Envio exposes no public transactional catch-up callback.
 Full observations read getters, dependencies and target bytecode at the canonical
 block. Cross-block deployment/immutable and Kernel reuse are removed, together
 with their compiler proof pipeline and generated descriptors. The raw-call layer
-was already removed in milestone 1. Verified ABI/NatSpec preparation, runtime-hash
+is also removed. Verified ABI/NatSpec preparation, runtime-hash
 binding, exact block-hash bytecode effects, eRPC caching, bounded retries and
 provider admission remain. Ownership events still maintain current state between
 observations, including Solmate, OZ and Chainlink dialects; a full observation
 always checks their readable getters again.
 
-The native schema has **12 entities instead of 20 (40% fewer)**. Removed tables:
-`ActionExecutedEvent`, `ContractEvent`, `KernelExecutorEvent`, `RoleEvent`,
-`ContractStateSeed`, `VerifiedDeployment`, `KernelReadEpoch`, and `KernelReadCache`.
-The first five had no runtime readers. `ControlTransition` remains necessary for
-event deduplication and pool discovery. Current `seed`, `lastChange` and provenance
-fields remain necessary for ordering, rollback checks and honest presentation.
-This incompatible schema requires an explicitly approved rebuild on deployment;
-no existing database was reset for this work.
+The schema has **12 entity types versus the Robinhood base's 17**. Historical
+archive rows and cross-block reuse tables are removed. `ControlTransition`
+remains for event deduplication and pool discovery; current seeds, event changes
+and verification provenance remain for ordering, rollback and presentation.
+The incompatible schema requires an explicitly approved database rebuild.
 
 Only the top-level completed canonical observation writes a versioned
 `ChainObservation`. Birth initialization and individual reader families cannot
@@ -83,43 +41,12 @@ families: unsupported getters and mismatches remain visible rather than being
 relabeled successful. The freshness check precedes uploads; it is not an atomic
 check at manifest promotion.
 
-Native Envio fixtures exercise bounded and cold near-head callbacks, exhausted
-429 recovery, fork rejection without committed partial state, and resuming the
-same block. A real disposable PostgreSQL test verifies current entities, marker
-rollback, chain isolation and three process lifetimes. Publisher checks cover
-missing/stale/version/fork/capacity failures. All nine ordered validation steps passed. The rebuilt indexer image loads every
-handler with networking disabled, and the real patched eRPC/PostgreSQL integration
-passes its three checks. Trivy reports no unfixed medium/high/critical findings
-under the existing ignore policy. OpenAPI consistency and final lint pass. The
-image import fixture uses development configuration defaults; the separate
-controlled startup/reset integration exercises the deployed image configuration.
-These fixtures do not establish live nine-chain throughput.
-
-The final performance comparison uses the actual Robinhood base `9eb4755`, not
-the recent optimization commits. That base has 17 entities; this milestone has
-12 (29.4% fewer). The 20-to-12 count above describes the preceding performance
-iteration. Earlier raw-call scouts remain diagnostic only.
-
-The accepted Robinhood-base comparison below measures this intentional
-schema/observation-policy change. The old exact-20-table profile remains unchanged
-and cannot certify current-only indexing.
-
-## Simplification review before publication
-
-Astra reviewed correctness and Ponytail reviewed unnecessary complexity. The
-follow-up removes 2,566 net lines: unused compiler-proof fixtures, the superseded
-Robinhood auditor/comparator, and obsolete `verifiedAt` plumbing. The retired
-auditor imported removed caching modules. Its historical results and source refs
-remain available; new comparisons use the current-state command.
-
-Fresh getter and dependency results can no longer supply an older verification
-block. Full observations record their actual block. The regression check also
-rejects the effect of an injected legacy reuse annotation.
+## Decisions and limits
 
 | Decision | Reason and remaining cost |
 | --- | --- |
 | Remove cross-block immutable/deployment and Kernel reuse | Current-only verification removes most repeated sweeps. Deployment lifetime, custom proxy and event-invalidation assumptions no longer justify a separate reuse system. New contracts receive fresh reads; immutable detection is no longer a runtime optimization. |
-| Remove the raw-call effect layer | eRPC and existing domain effects already cache calls. The earlier scout recorded a small traffic increase after deletion; maintenance simplicity justified keeping the smaller path. |
+| Remove the raw-call effect layer | eRPC and existing domain effects already cache calls. Deletion trades a small increase in proxy traffic for a simpler read path; eRPC cannot absorb every hash-bound call when finality is unknown. |
 | Keep block-hash bytecode/domain effects | Their cache identity and opening/closing canonical checks protect against forks. Failures do not become reusable successful observations. |
 | Keep bounded RPC recovery and HTTP batching | They cap private-proxy pressure and prevent exhausted capacity reads from being committed as missing values. Long outages can still exhaust recovery and require restart. |
 | Keep the two-subject scheduler | It overlaps independent I/O while preserving same-address ordering and draining sibling work on failure. No generic worker scheduler is added. |
@@ -137,7 +64,7 @@ again. Publisher freshness/canonical checks withhold stale publication. A quiet,
 nonaligned tip can also wait for the next 100-block callback. These are freshness
 delays, not evidence that an older cached value becomes a new RPC observation.
 
-## Kernel rollback follow-up
+## Kernel rollback and canonical reads
 
 A focused follow-up reproduced an inherited rollback bug in the process-local
 current-module map. Envio restored the canonical entity, but the map returned the
@@ -155,15 +82,12 @@ provider capability gap that the previous fallback concealed; an archive-capable
 private upstream is required to resume those historical handlers. Transport
 retry/backpressure remains separate and unchanged.
 
-The getter-admission scout held eRPC at 100 credits/second and changed only the
-getter effect from 35 to 100 calls/second. The two cold runs took 26.023s and
-24.516s respectively, with identical 12-table digests, 902 proxy requests, 898
-upstream requests and no exhausted recovery. This single-pair result did not
-clear the predeclared 10% qualification threshold; it does not establish a gain.
-The getter limit is restored to 35. Bytecode remains 25/s, dependency/bridge
-effects 10/s, metadata 5/s, client admission 10 active/256 queued with six attempts,
-and eRPC 100 aggregate credits/s. No live budget was changed. The 100/s treatment
-was not retained or promoted to a worker holdout.
+The getter effect remains 35/s. A single 35→100 scout improved throughput by
+about 6%, below its 10% qualification threshold, so the higher limit was rejected.
+Bytecode effects remain 25/s, dependency/bridge effects 10/s, and metadata 5/s.
+The client allows 10 active requests, 256 queued requests and six attempts;
+eRPC uses 100 aggregate credits/s. These finite budgets do not increase provider
+account allowances. Long outages can exhaust recovery and require a restart.
 
 ## Robinhood-base benchmark
 
@@ -177,6 +101,9 @@ cold replays per revision in A/B, B/A, A/B order over Ethereum
 use HyperSync, one process, two PostgreSQL connections, identical images/providers,
 100 aggregate eRPC credits/second and the same bounded queued-recovery fixture.
 Waiting counts toward elapsed time; independent oracle RPC happens afterward.
+Both revisions used the same recorded proxy image. The later pgx v5 security
+migration has separate integration/security validation; these numbers do not
+measure a speed change from that driver upgrade.
 
 | Median | Robinhood base | Current branch |
 | --- | ---: | ---: |

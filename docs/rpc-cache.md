@@ -333,8 +333,7 @@ The cache schema, table names, RPC limits and retry settings stay unchanged.
 The image build runs malformed-row, unresponsive-server and PostgreSQL error
 classification regressions. The actual eRPC/Postgres integration checks cache
 round trips, persistence, recovery, rate limits and safe RPC errors. A fresh scan
-must pass without the old exception before cutover. Earlier dated scan results
-below describe the image and approved exception at that time.
+must pass without the old exception before cutover.
 
 ## Infrastructure deployment and PR environments
 
@@ -372,76 +371,3 @@ since sealed production variables are not copied into previews.
   checking cache-schema compatibility or restoring a cache backup; never discard
   Envio state to recover the proxy. Cache deletion is a separate deliberate
   operation, not part of a normal rollback.
-
-## Recorded local validation (2026-10-29)
-
-Node 24.22.1 and pnpm 11.28.7 were used. The required sequence passed in order:
-runtime version check, frozen install, lint, build, sample snapshots, indexer
-image, frontend image, gateway image, publisher image. The first lint attempt
-stopped on an unused import introduced by this change; it was removed and the
-sequence restarted from step 1. No required command was skipped.
-
-The actual `0.5.0-pv1` service image passed fixture integration on all nine
-routes, including 17 distinct non-expiring Postgres rows, repeat hits, block and
-parameter isolation, restart persistence, unknown/unfinalized/moving-tag bypass,
-numeric and mixed log ranges, pending/safe/omitted log bounds, error bypass,
-credential-echo suppression, valid hex revert data, and new queries. The actual
-distroless indexer image ran `local db-migrate setup` twice through its wrapper;
-a canary proved Envio schema reset, while cache rows and hits survived. Hasura
-metadata responses were a fixture. Existing startup tests prove default resume
-arguments and explicit restart arguments; no full live indexing run was made.
-
-Compose interpolation verified all 27 consumer URLs. eRPC startup without
-required settings failed with a variable-name-only message. Dockerfile Trivy
-checks passed. Without the exception, the final-image Trivy scan reports the
-one HIGH advisory above. With the approved exception, Trivy 0.76.1 returns zero.
-A control scan with an expired copy returns exit code 1 and reports the same
-advisory. The underlying vulnerability remains. Local source review found and
-closed the two regressions reproduced against the original image (tagged log caching and
-credential echo). No live archive providers were tested: no configured RPC
-credentials were found in the session or local indexer/root env files. All nine
-real providers, especially Robinhood's finality semantics and archive/EIP-1898
-support, still need verification before cutover. Hash-bound calls with unknown
-finality remain deliberately uncached and may limit rebuild savings.
-
-
-## IaC migration validation (2026-10-29)
-
-The whole-project configuration typechecks with the pinned Railway SDK 3.16.0.
-Read-only plans against production and PR #82 preserve the existing databases,
-volumes, bucket, and groups, with no deletions or existing storage changes.
-Production adds the cache service, database, and volume; PR #82 already has the
-cache database and volume, so it adds only the service. Both plans restore the
-six application services' Docker, healthcheck, restart, and cron settings from
-the former repository JSON files. These initial plans left variables unmanaged.
-The later variable wiring declares connection references and preserves manual secrets.
-No production apply or workflow deployment was executed locally.
-The earlier cache integration used disposable Postgres 17, not the live cache
-Postgres 18 service. Real archive providers still need verification.
-
-## PR 82 cache bootstrap (2026-10-29)
-
-This section records the initial bootstrap, before later whole-project applies and GitHub publication.
-
-A cache-only IaC plan created `rpc-cache` in `protocol-visualizer-pr-82`.
-The existing cache Postgres 18 database and volume remained unchanged.
-The bootstrap copied the nine existing indexer provider URLs into the cache's
-`UPSTREAM_RPC_URL_<id>` variables without printing or committing their values.
-Temporary partial ownership was released after the apply.
-
-The initial Railway build rejected the optional Go cache mount. The portable
-Dockerfile removes that mount. A minimal CLI upload deployed the corrected image;
-Railway reports `SUCCESS` with `/healthcheck`. The service has no public domain
-or TCP endpoint. The Dockerfile correction still needs publication before future
-GitHub deployments can use it.
-
-Direct provider smoke checks returned the expected chain ID and a numeric
-`finalized` block for all nine configured URLs. These checks do not prove historical
-state coverage, EIP-1898 support, or Robinhood's finality semantics.
-The local eRPC/Postgres integration passed cache persistence and Envio reset isolation.
-The final image passed Trivy with the approved exception that expires November 5.
-
-The operator deferred SSH access. Private-network proxy requests and live Postgres
-cache hits remain unverified. Consumer RPC URLs remain unchanged pending those checks.
-An exact final comparison found no changes to pre-existing services, variables,
-databases, volumes, buckets, or groups. No production apply, push, or PR update occurred.

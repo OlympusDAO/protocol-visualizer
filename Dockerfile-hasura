@@ -5,11 +5,14 @@ USER root
 
 RUN apt-get update \
     && ACCEPT_EULA=Y DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --only-upgrade \
+        apt \
+        apt-transport-https \
         bsdutils \
         coreutils \
         curl \
         diffutils \
         gzip \
+        libapt-pkg6.0 \
         libattr1 \
         libblkid1 \
         libbrotli1 \

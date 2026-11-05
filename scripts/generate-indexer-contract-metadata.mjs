@@ -860,7 +860,7 @@ if (explicitLabel?.labelOnly) {
     if (
       !cliOptions.force &&
       hasVerifiedMetadata(previous) &&
-      (cliOptions.prefetchMetadata || Array.isArray(previous?.addressGetters))
+      Array.isArray(previous.addressGetters)
     )
       continue;
     try {
@@ -886,7 +886,7 @@ if (explicitLabel?.labelOnly) {
       if (cliOptions.prefetchMetadata && previous) {
         metadata[contract.chainId][contract.normalizedAddress] = {
           ...processed,
-          addressGetters: previous.addressGetters,
+          addressGetters: previous.addressGetters ?? processed.addressGetters,
         };
       } else metadata[contract.chainId][contract.normalizedAddress] = processed;
       updated++;

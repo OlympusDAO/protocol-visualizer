@@ -63025,7 +63025,8 @@
           "signature": "receiveMessage(tuple)()"
         }
       },
-      "roleToFunctions": {}
+      "roleToFunctions": {},
+      "addressGetters": ["OHM", "getCCIPRouter", "getRouter", "owner"]
     }
   },
   "84532": {

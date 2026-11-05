@@ -131,6 +131,33 @@ globalThis.fetch = async (url) => {
         "mismatched source must not replace metadata"
       );
     }
+    mock(verified);
+    for (const [label, entry, expected] of [
+      [
+        "legacy entry without getters",
+        { ...previous, addressGetters: undefined },
+        ["owner", "addedGetter"],
+      ],
+      [
+        "verified entry without getters",
+        { ...prepared, addressGetters: undefined },
+        ["owner", "addedGetter"],
+      ],
+      ["explicit empty inventory", { ...previous, addressGetters: [] }, []],
+    ]) {
+      writeFileSync(output, JSON.stringify({ 1: { [address]: entry } }));
+      result = run();
+      assert.equal(result.status, 0, `${label}: ${result.stderr}`);
+      assert.deepEqual(read().addressGetters, expected, label);
+      const downloaded = readFileSync(requests, "utf8");
+      result = run();
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(
+        readFileSync(requests, "utf8"),
+        downloaded,
+        `${label}: completed inventory survives a process restart without another download`
+      );
+    }
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

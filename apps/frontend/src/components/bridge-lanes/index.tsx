@@ -7,6 +7,7 @@ import ReactFlow, {
   Position,
   type Node,
   type Edge,
+  type XYPosition,
 } from "reactflow";
 import { SUPPORTED_CHAINS, type ProtocolChain } from "../../lib/constants";
 import { getProtocolVisualizerData } from "../../services/contracts";
@@ -108,6 +109,10 @@ export function BridgeLanes() {
   const [selected, setSelected] = useState<string | null>(() =>
     new URL(window.location.href).searchParams.get("lane")
   );
+  const [selectedChain, setSelectedChain] = useState<string | null>(null);
+  const [nodePositions, setNodePositions] = useState<
+    Record<string, XYPosition>
+  >({});
   useEffect(() => {
     const restore = () => {
       const url = new URL(window.location.href);
@@ -117,6 +122,7 @@ export function BridgeLanes() {
           : "production"
       );
       setSelected(url.searchParams.get("lane"));
+      setSelectedChain(null);
     };
     window.addEventListener("popstate", restore);
     return () => window.removeEventListener("popstate", restore);
@@ -133,6 +139,7 @@ export function BridgeLanes() {
       window.history.pushState(null, "", url);
     setEnvironment(nextEnvironment);
     setSelected(lane);
+    setSelectedChain(null);
   };
   const chains = SUPPORTED_CHAINS.filter(
     (chain) => chain.availability === "indexed"
@@ -237,7 +244,6 @@ export function BridgeLanes() {
         });
     }
     const edges: Edge[] = lanes.map((lane) => {
-      const label = `CCIP · ${lane.status}`;
       return {
         id: lane.id,
         source: String(lane.source.chainId),
@@ -245,7 +251,6 @@ export function BridgeLanes() {
           ? String(lane.destination.chainId)
           : `selector-${lane.selector}`,
         type: "lane",
-        label,
         ariaLabel: `${lane.source.name} to ${lane.destinationName}: ${lane.status}`,
         data: {
           offset: lanes.some(
@@ -259,20 +264,45 @@ export function BridgeLanes() {
         style: {
           stroke: colors[lane.status],
           strokeWidth: lane.id === selected ? 3 : 2,
-          opacity: selected && lane.id !== selected ? 0.3 : 1,
+          opacity: selectedChain
+            ? String(lane.source.chainId) === selectedChain ||
+              (lane.destination
+                ? String(lane.destination.chainId)
+                : `selector-${lane.selector}`) === selectedChain
+              ? 1
+              : 0.15
+            : selected && lane.id !== selected
+              ? 0.3
+              : 1,
           ...(lane.status === "unknown" ? { strokeDasharray: "5 5" } : {}),
         },
         markerEnd: { type: MarkerType.ArrowClosed, color: colors[lane.status] },
-        labelStyle: { fontSize: 11 },
-        labelBgPadding: [5, 3],
-        labelBgBorderRadius: 3,
       };
     });
     const positions = getBridgeCirclePositions(nodes.length);
+    const connected = new Set([selectedChain]);
+    for (const edge of edges) {
+      if (edge.source === selectedChain || edge.target === selectedChain) {
+        connected.add(edge.source);
+        connected.add(edge.target);
+      }
+    }
     return {
       nodes: nodes.map((node, index) => ({
         ...node,
-        position: { x: positions[index].x, y: positions[index].y },
+        position: nodePositions[`${environment}:${node.id}`] ?? {
+          x: positions[index].x,
+          y: positions[index].y,
+        },
+        selected: node.id === selectedChain,
+        style: {
+          ...node.style,
+          opacity: selectedChain && !connected.has(node.id) ? 0.2 : 1,
+          borderColor:
+            node.id === selectedChain ? "var(--link)" : "var(--ui-border)",
+          boxShadow:
+            node.id === selectedChain ? "0 0 0 1px var(--link)" : undefined,
+        },
         sourcePosition: positions[index].side as Position,
         targetPosition: positions[index].side as Position,
       })),
@@ -286,7 +316,8 @@ export function BridgeLanes() {
           <h2 className="text-xl font-semibold">OHM bridge lanes</h2>
           <p className="mt-1 text-sm text-muted">
             Observed CCIP configuration. Each arrow is checked independently;
-            select a lane for its contracts and blockers.
+            select a chain to highlight its lanes, or a lane for its contracts
+            and blockers. Drag chains to rearrange the graph.
           </p>
         </div>
         <label className="text-sm">
@@ -317,6 +348,45 @@ export function BridgeLanes() {
           </span>
         ))}
       </div>
+      {selectedChain && (
+        <div
+          role="status"
+          className="rounded border border-ui-border bg-surface p-3 text-sm"
+        >
+          <strong>
+            {graph.nodes.find((node) => node.id === selectedChain)?.data.name}
+          </strong>
+          <p className="mt-1 text-muted">
+            Outbound lanes:{" "}
+            {graph.edges
+              .filter((edge) => edge.source === selectedChain)
+              .map(
+                (edge) =>
+                  graph.nodes.find((node) => node.id === edge.target)?.data.name
+              )
+              .join(", ") || "None observed"}
+            .
+          </p>
+          <p className="mt-1 text-muted">
+            Incoming lanes:{" "}
+            {graph.edges
+              .filter((edge) => edge.target === selectedChain)
+              .map(
+                (edge) =>
+                  graph.nodes.find((node) => node.id === edge.source)?.data.name
+              )
+              .join(", ") || "None observed"}
+            .
+          </p>
+          <button
+            type="button"
+            className="mt-2 text-link hover:underline"
+            onClick={() => setSelectedChain(null)}
+          >
+            Clear selection
+          </button>
+        </div>
+      )}
       <div className="h-[560px] rounded-lg border border-ui-border bg-surface sm:h-[640px]">
         <ReactFlow
           key={`${environment}:${graph.nodes.length}`}
@@ -325,8 +395,19 @@ export function BridgeLanes() {
           edgeTypes={edgeTypes}
           fitView
           fitViewOptions={{ padding: 0.2 }}
-          nodesDraggable={false}
+          nodesDraggable
           nodesConnectable={false}
+          onNodeDrag={(_, node) =>
+            setNodePositions((positions) => ({
+              ...positions,
+              [`${environment}:${node.id}`]: node.position,
+            }))
+          }
+          onNodeClick={(_, node) => {
+            navigate(environment, null);
+            setSelectedChain(selectedChain === node.id ? null : node.id);
+          }}
+          onPaneClick={() => navigate(environment, null)}
           onEdgeClick={(_, edge) => navigate(environment, edge.id)}
           minZoom={0.15}
           maxZoom={1.8}
@@ -357,45 +438,84 @@ export function BridgeLanes() {
       {lanes.length > 0 && (
         <div className="overflow-x-auto rounded-lg border border-ui-border bg-surface">
           <table className="w-full text-left text-sm">
+            <caption className="p-3 text-left text-xs text-muted">
+              Sources run across columns; destinations run down rows. Select a
+              route to inspect it. A dash means no route was observed, not that
+              transfers are unsupported.
+            </caption>
             <thead className="border-b border-ui-border bg-background text-muted">
               <tr>
-                <th className="px-4 py-3">Source</th>
-                <th>Destination</th>
-                <th>Configuration</th>
-                <th className="px-4">Details</th>
+                <th scope="col" className="px-4 py-3">
+                  Destination ↓ / Source →
+                </th>
+                {chains
+                  .filter((chain) => chain.environment === environment)
+                  .map((chain) => (
+                    <th
+                      key={chain.chainId}
+                      scope="col"
+                      className="px-4 py-3 text-center"
+                    >
+                      {chain.name}
+                    </th>
+                  ))}
               </tr>
             </thead>
             <tbody>
-              {lanes.map((lane) => (
-                <tr
-                  key={lane.id}
-                  className={`border-b border-ui-border ${selected === lane.id ? "bg-selection" : ""}`}
-                >
-                  <td className="px-4 py-3">{lane.source.name}</td>
-                  <td>{lane.destinationName}</td>
-                  <td>
-                    <span
-                      className="font-medium capitalize"
-                      style={{ color: colors[lane.status] }}
-                    >
-                      {lane.status}
-                    </span>
-                    <div className="mt-1 text-xs text-muted">
-                      {lane.blockers[0] ??
-                        lane.unknowns[0] ??
-                        "Pool and bridge configuration agree."}
-                    </div>
-                  </td>
-                  <td className="px-4">
-                    <button
-                      type="button"
-                      aria-label={`Inspect ${lane.source.name} to ${lane.destinationName}`}
-                      onClick={() => navigate(environment, lane.id)}
-                      className="rounded border border-ui-border px-3 py-1.5 hover:bg-surface-muted"
-                    >
-                      Inspect
-                    </button>
-                  </td>
+              {graph.nodes.map((destination) => (
+                <tr key={destination.id} className="border-b border-ui-border">
+                  <th scope="row" className="px-4 py-3 font-medium">
+                    {destination.data.name}
+                  </th>
+                  {chains
+                    .filter((chain) => chain.environment === environment)
+                    .map((source) => {
+                      const edge = graph.edges.find(
+                        (edge) =>
+                          edge.source === String(source.chainId) &&
+                          edge.target === destination.id
+                      );
+                      const lane = lanes.find((lane) => lane.id === edge?.id);
+                      return (
+                        <td
+                          key={source.chainId}
+                          className={`p-2 text-center align-top ${lane && selected === lane.id ? "bg-selection" : ""}`}
+                        >
+                          {lane ? (
+                            <button
+                              type="button"
+                              aria-label={`Inspect ${lane.source.name} to ${lane.destinationName}`}
+                              aria-pressed={selected === lane.id}
+                              onClick={() => navigate(environment, lane.id)}
+                              className="w-full rounded border border-ui-border px-3 py-2 hover:bg-surface-muted"
+                            >
+                              <span
+                                className="font-medium capitalize"
+                                style={{ color: colors[lane.status] }}
+                              >
+                                {lane.status}
+                              </span>
+                              {(lane.blockers[0] || lane.unknowns[0]) && (
+                                <span className="mt-1 block text-xs text-muted">
+                                  {lane.blockers[0] ?? lane.unknowns[0]}
+                                </span>
+                              )}
+                            </button>
+                          ) : (
+                            <span
+                              className="text-muted"
+                              title={
+                                String(source.chainId) === destination.id
+                                  ? "Same chain"
+                                  : "No route observed"
+                              }
+                            >
+                              —
+                            </span>
+                          )}
+                        </td>
+                      );
+                    })}
                 </tr>
               ))}
             </tbody>

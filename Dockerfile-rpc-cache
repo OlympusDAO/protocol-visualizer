@@ -7,9 +7,15 @@ ADD --checksum=sha256:54c1776002ed22a93741296781fc7996a1bf64bf3f243da23545958b2f
 RUN tar -xzf /tmp/erpc.tar.gz --strip-components=1
 # Security updates scoped to this new service; monorepo dependencies are unchanged.
 ENV GOTOOLCHAIN=local CGO_ENABLED=0
-RUN go get golang.org/x/crypto@v0.57.0 golang.org/x/net@v0.60.0 && go mod download
 COPY services/rpc-cache/private-errors.patch /tmp/private-errors.patch
-RUN apk add --no-cache patch && patch -p1 < /tmp/private-errors.patch && gofmt -w erpc/http_server.go
+COPY services/rpc-cache/pgx-v5.patch /tmp/pgx-v5.patch
+RUN apk add --no-cache patch \
+    && patch -p1 < /tmp/private-errors.patch \
+    && patch -p1 < /tmp/pgx-v5.patch \
+    && gofmt -w erpc/http_server.go data/postgresql*.go auth/strategy_database_test.go \
+    && go get golang.org/x/crypto@v0.57.0 golang.org/x/net@v0.60.0 github.com/jackc/pgx/v5@v5.12.0 \
+    && go mod tidy \
+    && go test ./data ./auth -run 'Test(PgxDataRowRejectsInvalidLength|PostgreSQLPoolChecksConnectivity|IsPostgresConnectionError|ClassifyDbError)$'
 # Railway requires service-specific IDs for cache mounts. Use a portable build.
 RUN go build -ldflags="-w -s -X github.com/erpc/erpc/common.ErpcVersion=0.5.0-pv1 -X github.com/erpc/erpc/common.ErpcCommitSha=204f98cb" -o /erpc-server ./cmd/erpc/main.go
 

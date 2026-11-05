@@ -315,26 +315,26 @@ volumes. Fixture evidence does not establish live provider behavior.
 
 ## Security validation boundary
 
-The original official image scan reported 29 unique MEDIUM/HIGH advisory IDs
-(58 occurrences across its normal and profiling binaries). Rebuilding with the
-pinned compiler/modules above and omitting the profiler reduced the final image
-to **one HIGH advisory**: `CVE-2026-32286` in
-`github.com/jackc/pgproto3/v2` 2.3.3. Trivy 0.76.1 reports no fixed version.
-A malicious or compromised PostgreSQL server can send a malformed DataRow that
-panics this client. The dedicated private database narrows exposure but does
-not remediate the vulnerable dependency.
+The original official image contained compiler and module advisories. The custom
+build keeps the pinned eRPC release and private-error patch, and updates its
+compiler and affected modules.
 
-A seven-day repository-wide exception was approved on 2026-10-29. The root
-`.trivyignore` suppresses this advisory across all image scans until
-**2026-11-05 at 00:00 UTC**. All other findings retain their existing handling.
-Trivy enforces the expiration date; the next scan after expiry reports the
-advisory and fails if the dependency remains vulnerable. Existing weekly scans
-and scans on PR changes still run. Expiry does not stop a running service.
+On November 5, the temporary exception for `CVE-2026-32286` expired. The legacy
+`pgproto3/v2` module has no fixed release. The build now applies
+`services/rpc-cache/pgx-v5.patch` to use the maintained `pgx/v5` driver, pinned to
+5.12.0, and removes the expired exception. Its decoder rejects malformed negative
+DataRow lengths instead of panicking.
 
-Before expiry, recheck upstream for a fix and rebuild the image if one exists.
-Remove the exception after remediation. Any extension needs explicit approval
-and a new deadline; do not renew it automatically. A passing scan during this
-window means the known risk is temporarily accepted, not fixed.
+Pool creation in v5 is lazy. The adapter requires a successful `Ping` before
+publishing either the main or listener pool and closes a pool on failure.
+It verifies one live connection; minimum pool capacity fills in the background.
+The cache schema, table names, RPC limits and retry settings stay unchanged.
+
+The image build runs malformed-row, unresponsive-server and PostgreSQL error
+classification regressions. The actual eRPC/Postgres integration checks cache
+round trips, persistence, recovery, rate limits and safe RPC errors. A fresh scan
+must pass without the old exception before cutover. Earlier dated scan results
+below describe the image and approved exception at that time.
 
 ## Infrastructure deployment and PR environments
 
@@ -354,8 +354,7 @@ since sealed production variables are not copied into previews.
 
 ## Deployment order and rollback checklist
 
-- Confirm the image security finding is fixed or the approved exception above
-  remains valid before cutover.
+- Confirm the current image passes security checks before cutover.
 - Review the whole-project plan for the target environment. Apply through the
   merge workflow for production or an approved operator action for a preview.
 - Set the cache service variables after creation, then deploy the service.

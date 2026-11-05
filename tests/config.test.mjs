@@ -108,6 +108,7 @@ test("snapshot pre-deploy commands fail on missing RPC settings and validate wit
 test("CI scans every Dockerfile and local image", () => {
   const workflow = readFileSync(".github/workflows/security-scan.yml", "utf8");
   const packageJson = readFileSync("package.json", "utf8");
+  const matrixImages = workflow.match(/image: \[([^\]]+)\]/)[1].split(/,\s*/);
   for (const name of [
     "indexer",
     "frontend",
@@ -119,7 +120,10 @@ test("CI scans every Dockerfile and local image", () => {
   ]) {
     assert(packageJson.includes(`"docker:build:${name}"`));
     assert(packageJson.includes(`"docker:tag:scan:${name}"`));
-    assert(workflow.includes(`protocol-visualizer/${name}:scan`));
+    assert(
+      matrixImages.includes(name) ||
+        workflow.includes(`protocol-visualizer/${name}:scan`)
+    );
   }
   for (const dockerfile of [
     "Dockerfile-indexer",
@@ -138,6 +142,20 @@ test("CI scans every Dockerfile and local image", () => {
     workflow,
     /image-ref: protocol-visualizer\/indexer:scan[\s\S]*?ignore-unfixed: true/
   );
+  assert.match(
+    workflow,
+    /image-ref: protocol-visualizer\/\$\{\{ matrix.image \}\}:scan/
+  );
+  assert.match(
+    workflow,
+    /ignore-unfixed: \$\{\{ matrix.image == 'hasura' \}\}/
+  );
+  assert.match(workflow, /fail-fast: false/);
+  assert.match(workflow, /run: pnpm run test:rpc-cache/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert(!workflow.includes("pnpm audit"));
+  const ci = readFileSync(".github/workflows/ci.yml", "utf8");
+  assert(!ci.includes("docker:build:"));
 });
 
 test("Dependabot treats the snapshot gateway as TypeScript", () => {
@@ -159,6 +177,8 @@ test("Dependency audit comments are isolated from pull request code", () => {
   assert(!auditWorkflow.includes("github_token:"));
   assert(auditWorkflow.includes("pnpm audit --audit-level moderate --json"));
   assert(auditWorkflow.includes("actions/upload-artifact@"));
+  assert(auditWorkflow.includes("branches: [master]"));
+  assert(auditWorkflow.includes('cron: "17 5 * * 1"'));
 
   assert(commentWorkflow.includes("workflow_run:"));
   assert(commentWorkflow.includes("pull-requests: write"));
@@ -167,6 +187,7 @@ test("Dependency audit comments are isolated from pull request code", () => {
   assert(!commentWorkflow.includes("actions/checkout@"));
   assert(!commentWorkflow.includes("./.github/actions/bootstrap"));
   assert(!commentWorkflow.includes("pnpm install"));
+  assert(commentWorkflow.includes("conclusion != 'cancelled'"));
 });
 
 test("Compose includes the Railway-like snapshot services", () => {

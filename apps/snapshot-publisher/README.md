@@ -226,7 +226,7 @@ ready.
 ```bash
 pnpm --filter snapshot-publisher run lint:check
 pnpm --filter snapshot-publisher run build
-pnpm run docker:build:snapshot-publisher
+pnpm run container:build:snapshot-publisher
 ```
 
 `build` compiles TypeScript and runs the Node test suite for snapshot

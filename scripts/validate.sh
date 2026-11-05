@@ -26,9 +26,9 @@ run pnpm install --frozen-lockfile
 run pnpm run lint:check
 run pnpm run build
 run pnpm run snapshots:generate:local
-run pnpm run docker:build:indexer
-run pnpm run docker:build:frontend
-run pnpm run docker:build:snapshot-gateway
-run pnpm run docker:build:snapshot-publisher
+run pnpm run container:build:indexer
+run pnpm run container:build:frontend
+run pnpm run container:build:snapshot-gateway
+run pnpm run container:build:snapshot-publisher
 
 printf '\nAll 9 validation steps passed.\n'

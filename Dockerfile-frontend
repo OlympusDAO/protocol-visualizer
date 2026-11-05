@@ -29,7 +29,7 @@ ENV VITE_PROTOCOL_SNAPSHOT_BASE_URL=$VITE_PROTOCOL_SNAPSHOT_BASE_URL
 RUN pnpm run build
 
 # Production stage
-FROM nginxinc/nginx-unprivileged:alpine@sha256:b5047b9b76845eac124358373c6852377c52e4b05834a47647e955dd91cb8f1e
+FROM docker.io/nginxinc/nginx-unprivileged:alpine@sha256:b5047b9b76845eac124358373c6852377c52e4b05834a47647e955dd91cb8f1e
 
 # Apply Alpine security updates
 USER root

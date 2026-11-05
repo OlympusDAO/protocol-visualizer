@@ -9,14 +9,14 @@ When asked to validate this repository, run `pnpm validate`. It calls `./scripts
 3. `pnpm run lint:check`
 4. `pnpm run build`
 5. `pnpm run snapshots:generate:local`
-6. `pnpm run docker:build:indexer`
-7. `pnpm run docker:build:frontend`
-8. `pnpm run docker:build:snapshot-gateway`
-9. `pnpm run docker:build:snapshot-publisher`
+6. `pnpm run container:build:indexer`
+7. `pnpm run container:build:frontend`
+8. `pnpm run container:build:snapshot-gateway`
+9. `pnpm run container:build:snapshot-publisher`
 
 If a command fails, stop and report the first failure with actionable context.
 
-Invoke `pnpm validate`, `pnpm run docker:build` (all seven images), and individual `pnpm run docker:build:<image>` scripts as standalone commands. Avoid shell wrappers, pipes, environment prefixes and output redirection so reusable command approvals can match. Capture output through the execution tool instead.
+Invoke `pnpm validate`, `pnpm run container:build` (all seven images), and individual `pnpm run container:build:<image>` scripts as standalone commands. Avoid shell wrappers, pipes, environment prefixes and output redirection so reusable command approvals can match. Capture output through the execution tool instead.
 
 ## Indexer Benchmark
 

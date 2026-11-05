@@ -298,8 +298,8 @@ existing `postgres-data` and `minio-data` are unchanged. `docker compose down`
 keeps all volumes; do not use `down --volumes` for this stack.
 
 ```bash
-pnpm run docker:build:rpc-cache
-pnpm run docker:build:indexer
+pnpm run container:build:rpc-cache
+pnpm run container:build:indexer
 pnpm run test:rpc-cache
 ```
 

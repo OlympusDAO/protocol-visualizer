@@ -371,7 +371,7 @@ pnpm --filter indexer run lint:check
 Validate the production indexer image from the repository root:
 
 ```bash
-pnpm run docker:build:indexer
+pnpm run container:build:indexer
 ```
 
 Full repository validation is defined at the repository root:

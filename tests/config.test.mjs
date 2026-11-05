@@ -118,8 +118,8 @@ test("CI scans every Dockerfile and local image", () => {
     "snapshot-monitor",
     "rpc-cache",
   ]) {
-    assert(packageJson.includes(`"docker:build:${name}"`));
-    assert(packageJson.includes(`"docker:tag:scan:${name}"`));
+    assert(packageJson.includes(`"container:build:${name}"`));
+    assert(packageJson.includes(`"container:tag:scan:${name}"`));
     assert(
       matrixImages.includes(name) ||
         workflow.includes(`protocol-visualizer/${name}:scan`)
@@ -155,7 +155,7 @@ test("CI scans every Dockerfile and local image", () => {
   assert.match(workflow, /workflow_dispatch:/);
   assert(!workflow.includes("pnpm audit"));
   const ci = readFileSync(".github/workflows/ci.yml", "utf8");
-  assert(!ci.includes("docker:build:"));
+  assert(!ci.includes("container:build:"));
 });
 
 test("Dependabot treats the snapshot gateway as TypeScript", () => {

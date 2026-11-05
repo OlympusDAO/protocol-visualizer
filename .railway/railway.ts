@@ -1,11 +1,11 @@
 import {
   bucket,
+  database,
   defineRailway,
   github,
   group,
-  database,
-  project,
   preserve,
+  project,
   ref,
   service,
   volume,
@@ -29,10 +29,9 @@ export default defineRailway((ctx) => {
     defaultMountPath: "/var/lib/postgresql/data",
     region: "us-west2",
   });
-  // Retain the existing Envio database alias and operator TCP proxy.
+  // Retain the Envio database alias without exposing a public TCP proxy.
   envioDatabase.networking = {
     privateNetworkEndpoint: "postgres",
-    tcpProxies: { "5432": {} },
   };
   const envioData = volume("destruction-volume", {
     region: "us-west2",

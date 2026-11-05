@@ -57,6 +57,15 @@ plans changes on PR updates and applies the reviewed production plan on merge.
 See [the Railway setup guide](docs/railway-self-hosting.md) for bootstrap and
 secrets.
 
+Before the first frontend build in a PR environment, generate Railway public
+domains for **frontend** and **snapshot-gateway**, both targeting port **8080**.
+The frontend build reads `VITE_PROTOCOL_SNAPSHOT_BASE_URL` from
+`https://${{snapshot-gateway.RAILWAY_PUBLIC_DOMAIN}}`; the gateway domain must
+already exist. IaC's `domains` field manages custom domains, not generated Railway
+domains. Keep all other services and both databases private, without public TCP
+proxies. See [first-use domain setup](docs/railway-self-hosting.md#first-use-public-domains-for-pr-environments)
+for the commands and recovery steps.
+
 The frontend is a static build that points at the public snapshot gateway. The
 publisher talks to Hasura over Railway private networking and writes snapshots
 to a private Railway Bucket.

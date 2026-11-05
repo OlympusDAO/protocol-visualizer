@@ -3,8 +3,8 @@
 This project runs the Envio indexer, private Hasura, private Railway Bucket,
 snapshot publisher, snapshot monitor, public REST API, and frontend on Railway.
 Hasura, the indexer, publisher, monitor, bucket, and cache use private networking.
-The existing Envio Postgres operator TCP proxy is retained during migration.
-The public application services are `snapshot-gateway` and `frontend`.
+Both databases remain private, without public TCP proxies. The only public
+application services are `snapshot-gateway` and `frontend`.
 
 The private RPC proxy and its independent Postgres are described in
 [rpc-cache.md](rpc-cache.md), including variables, finality limits,
@@ -215,6 +215,34 @@ Preview branches follow Railway's PR metadata. No production custom domains are 
 previews. Operator secrets and generated Railway domains remain on Railway.
 A PR environment's databases survive ordinary redeploys and disappear when
 Railway deletes that temporary environment.
+
+### First-use public domains for PR environments
+
+Once `frontend` and `snapshot-gateway` exist in a new PR environment, generate a
+Railway public domain for each, targeting port **8080**, before the first frontend
+build. Keep frontend deployment paused while provisioning these prerequisites.
+In each service's Settings → Networking, choose **Generate Domain** and port 8080,
+or use the CLI with explicit project and environment selectors:
+
+```bash
+railway domain --project d733dd5c-7076-48ad-ac8b-a147cb428300 --environment protocol-visualizer-pr-82 --service snapshot-gateway --port 8080
+railway domain --project d733dd5c-7076-48ad-ac8b-a147cb428300 --environment protocol-visualizer-pr-82 --service frontend --port 8080
+```
+
+Replace the environment name when setting up a different PR. Reuse existing
+generated domains rather than creating replacements on every deployment.
+The IaC `domains` field manages custom domains only; it does not create these
+generated Railway domains. Generate domains only for these two public services;
+leave Hasura, the indexer, snapshot jobs, RPC cache, and databases private.
+
+The frontend's `VITE_PROTOCOL_SNAPSHOT_BASE_URL` is set to
+`https://${{snapshot-gateway.RAILWAY_PUBLIC_DOMAIN}}`. Confirm that Railway resolves
+this reference to a complete HTTPS URL with the gateway's actual hostname.
+Deploy the gateway and verify that its `/v1/manifest` endpoint returns JSON after
+the publisher has produced a snapshot, then build/deploy the frontend.
+Vite embeds this URL at build time, so a frontend built before domain creation
+must be rebuilt afterward. A missing gateway domain resolves the URL to `https://`;
+protocol requests can then reach frontend Nginx and return HTML instead of JSON.
 
 ## Manual IaC plan and deployment
 

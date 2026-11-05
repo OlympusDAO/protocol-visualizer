@@ -38,6 +38,20 @@ test("whole-project IaC retains storage and wires services without embedding sec
       "volume.postgres-volume",
     ]);
     const get = (name) => resources.find((r) => r.name === name);
+    assert.equal(get("Postgres").networking.privateNetworkEndpoint, "postgres");
+    for (const resource of resources) {
+      assert.deepEqual(
+        Object.keys(resource.networking?.tcpProxies ?? {}),
+        [],
+        `${resource.name} must not expose a public TCP proxy`
+      );
+      if (!["frontend", "snapshot-gateway"].includes(resource.name))
+        assert.deepEqual(
+          Object.keys(resource.networking?.customDomains ?? {}),
+          [],
+          `${resource.name} must not expose a public domain`
+        );
+    }
     assert.equal(
       get("Postgres").image,
       "ghcr.io/railwayapp-templates/postgres-ssl:16"

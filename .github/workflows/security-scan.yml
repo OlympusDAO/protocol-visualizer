@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   rpc-integration:
+    name: Image (rpc-cache + indexer)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

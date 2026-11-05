@@ -160,3 +160,6 @@ The measured runtime-input fingerprint is
 Later documentation/evidence commits retain this fingerprint. The generated
 result records trial hashes and image/runtime identities. Reproduce with
 `pnpm benchmark:indexer:current --baseline 9eb4755be2904f6751a72890ecce134c4c701fef --env-file .env --provider-profile local-private`.
+Use a profile label that identifies the actual provider setup for both revisions.
+The recorded comparison used `private-pr84`; the label is part of the input
+fingerprint, so a different label produces a different run identity.

@@ -16,7 +16,7 @@ When asked to validate this repository, run `pnpm validate`. It calls `./scripts
 
 If a command fails, stop and report the first failure with actionable context.
 
-Invoke `pnpm validate` and individual `pnpm run docker:build:<image>` scripts as standalone commands. Avoid shell wrappers, pipes, environment prefixes and output redirection so reusable command approvals can match. Capture output through the execution tool instead.
+Invoke `pnpm validate`, `pnpm run docker:build` (all seven images), and individual `pnpm run docker:build:<image>` scripts as standalone commands. Avoid shell wrappers, pipes, environment prefixes and output redirection so reusable command approvals can match. Capture output through the execution tool instead.
 
 ## Indexer Benchmark
 

@@ -8,6 +8,7 @@
     "benchmark:indexer": "node -- scripts/benchmark-indexer.mjs",
     "benchmark:indexer:current": "node -- scripts/benchmark-indexer-current.mjs",
     "benchmark:indexer:compare": "node scripts/benchmark-indexer.mjs --compare-ref",
+    "docker:build": "pnpm run docker:build:rpc-cache && pnpm run docker:build:indexer && pnpm run docker:build:frontend && pnpm run docker:build:hasura && pnpm run docker:build:snapshot-gateway && pnpm run docker:build:snapshot-publisher && pnpm run docker:build:snapshot-monitor",
     "docker:build:frontend": "docker build -f Dockerfile-frontend --build-arg VITE_PROTOCOL_SNAPSHOT_BASE_URL=http://localhost:8082 -t protocol-visualizer/frontend:local .",
     "docker:build:hasura": "docker build -f Dockerfile-hasura -t protocol-visualizer/hasura:local .",
     "docker:build:indexer": "docker build -f Dockerfile-indexer -t protocol-visualizer/indexer:local .",

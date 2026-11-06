@@ -55,6 +55,12 @@ jobs:
       - name: Verify runtime version alignment
         run: pnpm run check:runtime-versions
 
+      - name: Build shared snapshot artifacts
+        run: pnpm --filter @protocol-visualizer/snapshot-artifacts run build
+
+      - name: Check OpenAPI schema is current
+        run: pnpm run openapi:check
+
       - name: Run build
         run: pnpm run build
 

@@ -7,12 +7,14 @@ When asked to validate this repository, run `pnpm validate`. It calls `./scripts
 1. `pnpm run check:runtime-versions`
 2. `pnpm install --frozen-lockfile`
 3. `pnpm run lint:check`
-4. `pnpm run build`
-5. `pnpm run snapshots:generate:local`
-6. `pnpm run container:build:indexer`
-7. `pnpm run container:build:frontend`
-8. `pnpm run container:build:snapshot-gateway`
-9. `pnpm run container:build:snapshot-publisher`
+4. `pnpm --filter @protocol-visualizer/snapshot-artifacts run build`
+5. `pnpm run openapi:check`
+6. `pnpm run build`
+7. `pnpm run snapshots:generate:local`
+8. `pnpm run container:build:indexer`
+9. `pnpm run container:build:frontend`
+10. `pnpm run container:build:snapshot-gateway`
+11. `pnpm run container:build:snapshot-publisher`
 
 If a command fails, stop and report the first failure with actionable context.
 

@@ -606,8 +606,10 @@ paths outside the public REST surface. Let Cloudflare handle edge compression.
 
 ## Validation
 
-Run the repository validation sequence from `AGENTS.md`. The local
-`validate:local` script also checks generated OpenAPI and the monitor build.
+Run `pnpm validate` for the eleven-step sequence in `AGENTS.md`. It checks
+OpenAPI after building the shared snapshot-artifacts package and before the full
+build can regenerate the file. The `validate:local` script uses the same ordering
+and builds the additional service images, including the monitor.
 
 
 ## Recorded initial migration checks (2026-10-29)

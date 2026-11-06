@@ -42,7 +42,7 @@
     "stack:up": "node scripts/container.mjs compose up --build rpc-cache-postgres rpc-cache postgres hasura minio minio-create-bucket indexer snapshot-gateway frontend",
     "test:config": "pnpm --filter snapshot-publisher... run build && pnpm --filter snapshot-monitor run build && pnpm --filter snapshot-gateway exec tsc && node --test tests/*.test.mjs",
     "validate": "./scripts/validate.sh",
-    "validate:local": "pnpm run check:runtime-versions && pnpm install --frozen-lockfile && pnpm run lint:check && pnpm run build && pnpm run openapi:check && pnpm run snapshots:generate:local && pnpm run container:build:indexer && pnpm run container:build:frontend && pnpm run container:build:hasura && pnpm run container:build:snapshot-gateway && pnpm run container:build:snapshot-publisher && pnpm run container:build:snapshot-monitor",
+    "validate:local": "pnpm run check:runtime-versions && pnpm install --frozen-lockfile && pnpm run lint:check && pnpm --filter @protocol-visualizer/snapshot-artifacts run build && pnpm run openapi:check && pnpm run build && pnpm run snapshots:generate:local && pnpm run container:build:indexer && pnpm run container:build:frontend && pnpm run container:build:hasura && pnpm run container:build:snapshot-gateway && pnpm run container:build:snapshot-publisher && pnpm run container:build:snapshot-monitor",
     "format": "biome format --write .",
     "container:build:rpc-cache": "node scripts/container.mjs build -f Dockerfile-rpc-cache -t protocol-visualizer/rpc-cache:local .",
     "container:tag:scan:rpc-cache": "node scripts/container.mjs tag protocol-visualizer/rpc-cache:local protocol-visualizer/rpc-cache:scan",

@@ -72,13 +72,15 @@ to a private Railway Bucket.
 
 ## Validation
 
-With the repository-pinned Node and pnpm versions active, run the nine required agent validation steps:
+With the repository-pinned Node and pnpm versions active, run the eleven required agent validation steps:
 
 ```bash
-./scripts/validate.sh
+pnpm validate
 ```
 
 The script runs from the repository root, prints each step, and stops at the first failure with its exit code.
+After linting, it builds the shared snapshot-artifacts package and checks the
+existing OpenAPI file before the full build can regenerate it.
 
 Run full local validation (including container builds):
 

@@ -113,6 +113,7 @@ export default defineRailway((ctx) => {
         "/apps/snapshot-gateway/**",
         "/packages/snapshot-artifacts/**",
         "/packages/protocol-config/**",
+        "/packages/contract-abis/abis/**",
         "/package.json",
         "/pnpm-lock.yaml",
         "/pnpm-workspace.yaml",
@@ -173,6 +174,7 @@ export default defineRailway((ctx) => {
       dockerfilePath: "Dockerfile-indexer",
       watchPatterns: [
         "/apps/indexer/**",
+        "/packages/contract-abis/abis/**",
         "/packages/protocol-config/**",
         "/package.json",
         "/pnpm-lock.yaml",

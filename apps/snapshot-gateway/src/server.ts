@@ -645,7 +645,10 @@ export function createSnapshotGateway(config: GatewayConfig) {
       const match = url.pathname.match(/^\/v1\/chains\/([0-9]+)\/protocol$/);
       if (match) {
         const chainId = Number(match[1]);
-        if (!allowedChains.has(chainId)) {
+        if (
+          !allowedChains.has(chainId) ||
+          !manifest.chains.some((chain) => chain.chainId === chainId)
+        ) {
           sendJson(request, response, 404, { error: "chain not found" });
           return;
         }

@@ -263,13 +263,14 @@ Getter discovery does not generate event handlers or reconstruct earlier transit
 4. Run the repository validation procedure in [the root README](../../README.md#validation).
 5. Rebuild the affected indexer, publisher, and frontend services with the updated metadata, registrations, inventories, and labels.
 6. Restart the indexer with the updated build.
-7. Wait for a completed checkpoint and inspect indexing progress.
+7. Wait for a completed full observation and inspect indexing progress.
 8. Publish a snapshot from the updated indexer.
 
 Metadata generation alone does not update indexed relationships or published snapshots.
-During catch-up, checkpoints occur every 10,000 blocks.
-In realtime, checkpoints occur every 100 blocks.
-Creation boundaries also trigger completed-block observations.
+Catch-up does not sweep getters at fixed intervals.
+A bounded replay performs a full observation at its exact end block.
+An unbounded run performs full observations on 100-block callbacks within 99 blocks of the RPC head.
+Creation boundaries only initialize core contracts born at that block; they do not mark the chain observed.
 Unknown creation anchors use the first indexed observation boundary for generic getters.
 Historical event coverage requires a replay from the relevant start block.
 An ordinary restart does not establish missing earlier history.

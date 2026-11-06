@@ -45,12 +45,14 @@ test("preparation checks Etherscan once per miss, preserves prepared metadata, f
   };
   const run = (seed, responses, normal = false, options = {}) => {
     writeFileSync(output, JSON.stringify({ 1: { [address]: seed } }));
+    writeFileSync(requests, "[]");
     writeFileSync(
       preload,
       `
 import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 const responses=${JSON.stringify(responses)},calls=[];
+if (${Boolean(options.exitBeforeFetch)}) process.exit(0);
 globalThis.fetch=async (input)=>{
  const url=new URL(input);calls.push({host:url.hostname,action:url.searchParams.get("action"),address:url.searchParams.get("address")});
  writeFileSync(${JSON.stringify(requests)},JSON.stringify(calls));
@@ -128,6 +130,14 @@ globalThis.fetch=async (input)=>{
     );
     assert.equal(check.coverage.entries[0].etherscan, "available");
     assert.equal(check.coverage.entries[0].etherscanDeploymentProof, false);
+
+    check = run(previous, [], true, { exitBeforeFetch: true });
+    assert.equal(check.result.status, 0);
+    assert.deepEqual(
+      check.calls,
+      [],
+      "a child exiting before fetch must not reuse earlier requests"
+    );
 
     check = run({ roleToFunctions: {}, functionSelectors: {} }, [
       { body: { status: "1", result: [source] } },

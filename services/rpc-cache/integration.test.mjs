@@ -1,7 +1,7 @@
 // Uses real eRPC/Postgres images and a counted fixture upstream; no provider keys.
 // Only uniquely named containers/networks created here are removed.
 import assert from "node:assert/strict";
-import { execFile, execFileSync } from "node:child_process";
+import { execFile, execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import http from "node:http";
@@ -11,6 +11,7 @@ import { join } from "node:path";
 import "../../apps/indexer/scripts/register-typescript.mjs";
 import { test } from "node:test";
 import { inspect, promisify } from "node:util";
+
 const runFile = promisify(execFile);
 const requireIndexer = createRequire(
   new URL("../../apps/indexer/package.json", import.meta.url)
@@ -93,6 +94,16 @@ const docker = (...args) =>
     stdio: ["ignore", "pipe", "pipe"],
     timeout: 120_000,
   }).trim();
+const dockerLogs = (name) => {
+  const result = spawnSync("docker", ["logs", name], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: 120_000,
+  });
+  if (result.error) throw result.error;
+  if (result.status !== 0) throw new Error("docker logs failed");
+  return `${result.stdout}${result.stderr}`;
+};
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function eventually(check, message) {
   for (let i = 0; i < 100; i++) {
@@ -858,7 +869,7 @@ export default config;
       undefined,
       "budget must recover in later windows"
     );
-    const limitedLogs = docker("logs", limited);
+    const limitedLogs = dockerLogs(limited);
     assert(
       !limitedLogs.includes("fixture-url-secret") &&
         !limitedLogs.includes("fixture-query-secret")
@@ -1123,7 +1134,7 @@ export default config;
       console.log(
         "Envio reset checks explicitly skipped; no database reset executed."
       );
-    const output = docker("logs", erpc);
+    const output = dockerLogs(erpc);
     assert(
       !output.includes("fixture-url-secret") &&
         !output.includes("fixture-query-secret"),

@@ -308,6 +308,11 @@ test("catalog-only historical networks do not become published snapshots or read
     [1]
   );
   assert.equal((await request("/ready")).response.status, 200);
+  for (const method of ["GET", "HEAD"]) {
+    const unpublished = await request("/v1/chains/5/protocol", { method });
+    assert.equal(unpublished.response.status, 404);
+    assert.deepEqual(unpublished.reader.keys, [ACTIVE_MANIFEST_KEY]);
+  }
 });
 
 test("rejects old static routes and unsupported query params", async () => {

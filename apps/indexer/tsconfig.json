@@ -19,6 +19,7 @@
     "target": "ES2022",
 
     // Skip type checking for node modules
+    "types": ["node"],
     "skipLibCheck": true
   },
   "include": ["./**/*.ts", "./**/*.d.ts"],

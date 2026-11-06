@@ -1,0 +1,41 @@
+[
+  {
+    "type": "event",
+    "name": "Enabled",
+    "inputs": [],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Disabled",
+    "inputs": [],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Transition",
+    "inputs": [
+      {
+        "name": "by",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "enable",
+        "type": "bool",
+        "indexed": true
+      },
+      {
+        "name": "data",
+        "type": "bytes",
+        "indexed": false
+      },
+      {
+        "name": "at",
+        "type": "uint48",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  }
+]

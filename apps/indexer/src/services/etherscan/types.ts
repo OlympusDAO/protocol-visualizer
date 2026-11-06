@@ -4,7 +4,6 @@ export interface EtherscanApiConfig {
   chainId?: number;
   maxRetries?: number;
   retryDelay?: number;
-  rateLimitDelay?: number;
 }
 
 export interface EtherscanResponse<T> {

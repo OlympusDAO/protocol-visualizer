@@ -1,19 +1,5 @@
 import { getContractVersion } from "../ContractNames";
 import {
-  actionExecutedEventId,
-  contractEventId,
-  contractId,
-  kernelExecutorEventId,
-  kernelExecutorId,
-} from "./ids";
-import type {
-  ContractEntity,
-  EnvioContext,
-  KernelActionExecutedEvent,
-} from "./types";
-import { getKernelExecutor } from "./effects";
-import { getPreviousModule, setCurrentModule } from "./modules";
-import {
   parseAction,
   parseContractName,
   parseContractType,
@@ -21,7 +7,14 @@ import {
   parsePolicyFunctions,
   parsePolicyPermissions,
 } from "./contractParsing";
+import { contractId, kernelExecutorId } from "./ids";
+import { getPreviousModule, setCurrentModule } from "./modules";
 import { ensureKernelSeeded } from "./seeding";
+import type {
+  ContractEntity,
+  EnvioContext,
+  KernelActionExecutedEvent,
+} from "./types";
 
 export async function handleKernelActionExecuted(
   event: KernelActionExecutedEvent,
@@ -42,7 +35,8 @@ export async function handleKernelActionExecuted(
     target,
     chainId,
     blockNumber,
-    envioContext
+    envioContext,
+    event.block.hash
   );
   const contractVersion = getContractVersion(target, chainId) ?? undefined;
   const previousContract =
@@ -54,23 +48,6 @@ export async function handleKernelActionExecuted(
     `Chain ${chainId}: Processing action ${action} on target ${target} at block ${event.block.number}`
   );
 
-  envioContext.ActionExecutedEvent.set({
-    id: actionExecutedEventId(
-      chainId,
-      event.srcAddress,
-      event.transaction.hash,
-      event.logIndex
-    ),
-    chainId,
-    kernel: event.srcAddress,
-    transactionHash: event.transaction.hash,
-    logIndex: event.logIndex,
-    timestamp,
-    blockNumber,
-    action,
-    target,
-  });
-
   if (contractType !== "KERNEL") {
     const [policyPermissions, policyFunctions, existingContract] =
       await Promise.all([
@@ -81,7 +58,8 @@ export async function handleKernelActionExecuted(
           contractName,
           blockNumber,
           chainId,
-          envioContext
+          envioContext,
+          event.block.hash
         ),
         parsePolicyFunctions(
           actionInt,
@@ -101,31 +79,9 @@ export async function handleKernelActionExecuted(
         );
       }
 
-      envioContext.ContractEvent.set({
-        id: contractEventId(
-          chainId,
-          event.transaction.hash,
-          event.logIndex,
-          action,
-          previousContract.address
-        ),
-        chainId,
-        transactionHash: event.transaction.hash,
-        logIndex: event.logIndex,
-        action,
-        address: previousContract.address,
-        timestamp,
-        blockNumber,
-        name: previousContract.name,
-        version: previousContract.version,
-        contractType: previousContract.contractType,
-        isEnabled: false,
-        policyPermissions: previousContract.policyPermissions,
-        policyFunctions: previousContract.policyFunctions,
-      });
-
       envioContext.Contract.set({
         ...previousContract,
+        kernelHistory: "installed",
         isEnabled: false,
         lastUpdatedTimestamp: timestamp,
         lastUpdatedBlockNumber: blockNumber,
@@ -133,33 +89,10 @@ export async function handleKernelActionExecuted(
     }
 
     const isEnabled = parseIsEnabled(actionInt);
-    envioContext.ContractEvent.set({
-      id: contractEventId(
-        chainId,
-        event.transaction.hash,
-        event.logIndex,
-        action,
-        target
-      ),
-      chainId,
-      transactionHash: event.transaction.hash,
-      logIndex: event.logIndex,
-      action,
-      address: target,
-      timestamp,
-      blockNumber,
-      name: contractName,
-      version: contractVersion,
-      contractType,
-      isEnabled,
-      policyPermissions,
-      policyFunctions,
-    });
 
     envioContext.Contract.set({
       ...(existingContract ?? {
         id: contractId(chainId, target),
-        chainId,
         address: target,
         name: contractName,
         version: contractVersion,
@@ -167,6 +100,7 @@ export async function handleKernelActionExecuted(
       }),
       lastUpdatedTimestamp: timestamp,
       lastUpdatedBlockNumber: blockNumber,
+      kernelHistory: "installed",
       isEnabled,
       policyPermissions,
       policyFunctions,
@@ -185,35 +119,13 @@ export async function handleKernelActionExecuted(
   }
 
   if (action === "changeExecutor") {
-    const executor = await getKernelExecutor(
-      envioContext,
-      event.srcAddress,
-      chainId,
-      blockNumber
-    );
+    const executor = target;
 
     envioContext.KernelExecutor.set({
       id: kernelExecutorId(chainId, event.srcAddress),
-      chainId,
       kernel: event.srcAddress,
       lastUpdatedTimestamp: timestamp,
       lastUpdatedBlockNumber: blockNumber,
-      executor,
-    });
-
-    envioContext.KernelExecutorEvent.set({
-      id: kernelExecutorEventId(
-        chainId,
-        event.srcAddress,
-        event.transaction.hash,
-        event.logIndex
-      ),
-      chainId,
-      kernel: event.srcAddress,
-      transactionHash: event.transaction.hash,
-      logIndex: event.logIndex,
-      timestamp,
-      blockNumber,
       executor,
     });
   }

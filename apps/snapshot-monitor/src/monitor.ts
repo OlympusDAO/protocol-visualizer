@@ -1,4 +1,8 @@
 import {
+  assertRpcConfiguration,
+  resolveEnvioProgressTimestamps,
+} from "@protocol-visualizer/snapshot-artifacts/indexer-progress";
+import {
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -21,7 +25,7 @@ type MonitorState = {
     string,
     {
       block: number;
-      timestamp: number;
+      timestamp: number | null;
       observedAt: string;
     }
   >;
@@ -31,6 +35,8 @@ type ChainConfig = {
   key: string;
   chainId: number;
   name: string;
+  environment: "production" | "testnet";
+  availability?: "indexed" | "historical";
 };
 
 type MonitorStore = {
@@ -39,11 +45,14 @@ type MonitorStore = {
 };
 
 type MonitorInput = {
+  chains: ChainConfig[];
   environmentName?: string;
   deploymentId: string;
   manifest?: SnapshotManifest;
   progress?: IndexingProgress;
   notReadyChainIds?: number[];
+  readyChainIds?: number[];
+  missingChainIds?: number[];
   state: MonitorState;
   now: Date;
   staleThresholdMs?: number;
@@ -63,6 +72,7 @@ type DiscordEmbedField = {
 
 type DiscordEmbed = {
   title: string;
+  color?: number;
   description?: string;
   fields?: DiscordEmbedField[];
   footer?: {
@@ -207,6 +217,29 @@ async function loadChains(
   return JSON.parse(await readFile(configPath, "utf8")) as ChainConfig[];
 }
 
+export async function loadConfiguredChains(): Promise<ChainConfig[]> {
+  const chains = (await loadChains()).filter(
+    (chain) => chain.availability !== "historical"
+  );
+  const invalidChains = chains.filter(
+    (chain) => !["production", "testnet"].includes(chain.environment)
+  );
+  if (invalidChains.length > 0) {
+    throw new Error(
+      `Each indexed chain must specify environment: production or testnet. Invalid chains: ${invalidChains
+        .map((chain) => `${chain.key} (${chain.chainId})`)
+        .join(", ")}`
+    );
+  }
+  assertRpcConfiguration(chains);
+  return chains;
+}
+
+export async function checkConfiguration(): Promise<void> {
+  await loadConfiguredChains();
+  requiredEnv("DISCORD_WEBHOOK_URL");
+}
+
 export async function fetchIndexerMetricsReadiness(input: {
   metricsUrl: string;
   chains: ChainConfig[];
@@ -233,7 +266,12 @@ export async function fetchIndexerMetricsReadiness(input: {
       )} failed with HTTP ${response.status}`
     );
   }
-  return parseEnvioMetricsReadiness(await response.text(), input.chains);
+  const chains = input.chains.filter(
+    (chain) => chain.availability !== "historical"
+  );
+  return resolveEnvioProgressTimestamps(
+    parseEnvioMetricsReadiness(await response.text(), chains)
+  );
 }
 
 const ageHours = (from: string, to: Date): number | undefined => {
@@ -277,61 +315,92 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
   }
 
   const today = input.now.toISOString().slice(0, 10);
-  if (input.state.lastDailySummaryAt !== today) {
-    const chainEntries = Object.entries(progress?.chains ?? {});
-    const chainLines = chainEntries
-      .map(([name, chain]) => `${name}: ${chain.date} / block ${chain.block}`)
-      .join("; ");
-    const message = `Protocol visualizer indexing summary for ${environmentName} / ${shortId(
-      input.deploymentId
-    )}: ${chainLines || "no per-chain progress available"}.`;
-    messages.push(message);
-    discordMessages.push({
-      content: "Protocol visualizer indexing summary",
-      embeds: [
-        {
-          title: "Protocol Visualizer Indexing Summary",
-          description: `Environment ${environmentName}`,
-          fields:
-            chainEntries.length > 0
-              ? [
-                  {
-                    name: "Deployment ID",
-                    value: shortId(input.deploymentId),
-                    inline: false,
-                  },
-                  ...chainEntries.flatMap(([name, chain]) => [
-                    {
-                      name: "Chain",
-                      value: name,
-                      inline: true,
-                    },
-                    {
-                      name: "Block",
-                      value: String(chain.block),
-                      inline: true,
-                    },
-                    {
-                      name: "Time",
-                      value: `<t:${chain.timestamp}:F>`,
-                      inline: true,
-                    },
-                  ]),
-                ]
-              : [
-                  {
-                    name: "Progress",
-                    value: "No per-chain progress available.",
-                    inline: false,
-                  },
-                ],
-          footer: input.manifest
-            ? { text: `Active manifest: ${input.manifest.generatedAt}` }
-            : undefined,
-          timestamp: input.now.toISOString(),
-        },
-      ],
-    });
+  if (input.state.lastDailySummaryAt !== today || notReadyChainIds.length > 0) {
+    const progressByChainId = new Map(
+      Object.values(progress?.chains ?? {}).map((chain) => [
+        chain.chainId,
+        chain,
+      ])
+    );
+    for (const environment of ["production", "testnet"] as const) {
+      const chains = input.chains.filter(
+        (chain) =>
+          chain.availability !== "historical" &&
+          chain.environment === environment
+      );
+      if (chains.length === 0) continue;
+      const group =
+        environment === "production" ? "Production chains" : "Testnets";
+      const rows = chains.map((chain) => {
+        const current = progressByChainId.get(chain.chainId);
+        const unavailable =
+          !current || input.missingChainIds?.includes(chain.chainId);
+        const behind = !unavailable && notReadyChainIds.includes(chain.chainId);
+        const ready =
+          !unavailable &&
+          !behind &&
+          input.readyChainIds?.includes(chain.chainId);
+        const status = unavailable
+          ? "Progress unavailable"
+          : behind
+            ? "Behind head"
+            : ready
+              ? "Synced to head"
+              : "Readiness unavailable";
+        return {
+          behind,
+          ready,
+          field: {
+            name: `${behind ? "🟠" : ready ? "🟢" : "⚪"} ${chain.name}`,
+            value: `Status: ${status}\nBlock: ${
+              unavailable ? "Unavailable" : current.block
+            }\nTime: ${
+              unavailable || current.timestamp === null
+                ? "Timestamp unavailable"
+                : `<t:${current.timestamp}:F>`
+            }`,
+            inline: false,
+          },
+        };
+      });
+      const color = rows.some((row) => row.behind)
+        ? 0xf39c12
+        : rows.every((row) => row.ready)
+          ? 0x2ecc71
+          : 0x95a5a6;
+      const chainFields = rows.map((row) => row.field);
+      messages.push(
+        `Protocol visualizer indexing summary for ${environmentName} / ${shortId(
+          input.deploymentId
+        )} — ${group}: ${chainFields
+          .map(
+            (field) => `${field.name}: ${field.value.replaceAll("\n", "; ")}`
+          )
+          .join("; ")}.`
+      );
+      discordMessages.push({
+        content: `Protocol visualizer indexing summary — ${group}`,
+        embeds: [
+          {
+            title: `Protocol Visualizer Indexing Summary — ${group}`,
+            color,
+            description: `Environment ${environmentName}`,
+            fields: [
+              {
+                name: "Deployment ID",
+                value: shortId(input.deploymentId),
+                inline: false,
+              },
+              ...chainFields,
+            ],
+            footer: input.manifest
+              ? { text: `Active manifest: ${input.manifest.generatedAt}` }
+              : undefined,
+            timestamp: input.now.toISOString(),
+          },
+        ],
+      });
+    }
     nextState.lastDailySummaryAt = today;
   }
 
@@ -357,12 +426,6 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
       messages.push(message);
       discordMessages.push({ content: message });
     }
-
-    if (notReadyChainIds.includes(chain.chainId)) {
-      const message = `Protocol visualizer indexing warning: ${name} is not synced to head at block ${chain.block}.`;
-      messages.push(message);
-      discordMessages.push({ content: message });
-    }
   }
   nextState.chainProgress = nextChainProgress;
 
@@ -374,6 +437,9 @@ export async function sendDiscordMessage(
   message: string | DiscordWebhookPayload
 ) {
   const payload = typeof message === "string" ? { content: message } : message;
+  if (payload.embeds?.some((embed) => (embed.fields?.length ?? 0) > 25)) {
+    throw new Error("Discord embeds must have at most 25 fields");
+  }
   const response = await fetch(webhookUrl, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -385,6 +451,7 @@ export async function sendDiscordMessage(
 }
 
 export async function runMonitor(input: {
+  chains: ChainConfig[];
   store: MonitorStore;
   webhookUrl: string;
   stateKey: string;
@@ -392,6 +459,8 @@ export async function runMonitor(input: {
   deploymentId: string;
   progress?: IndexingProgress;
   notReadyChainIds?: number[];
+  readyChainIds?: number[];
+  missingChainIds?: number[];
   now?: Date;
   staleThresholdMs?: number;
 }) {
@@ -400,18 +469,31 @@ export async function runMonitor(input: {
     input.store.getJson<MonitorState>(input.stateKey),
   ]);
   const result = evaluateMonitor({
+    chains: input.chains,
     deploymentId: input.deploymentId,
     environmentName: input.environmentName,
     manifest,
     progress: input.progress,
     notReadyChainIds: input.notReadyChainIds,
+    readyChainIds: input.readyChainIds,
+    missingChainIds: input.missingChainIds,
     state: state ?? {},
     now: input.now ?? new Date(),
     staleThresholdMs: input.staleThresholdMs,
   });
 
+  let failedMessages = 0;
   for (const message of result.discordMessages) {
-    await sendDiscordMessage(input.webhookUrl, message);
+    try {
+      await sendDiscordMessage(input.webhookUrl, message);
+    } catch {
+      failedMessages += 1;
+    }
+  }
+  if (failedMessages > 0) {
+    throw new Error(
+      `Discord delivery failed for ${failedMessages} of ${result.discordMessages.length} messages`
+    );
   }
   await input.store.putJson(input.stateKey, result.state);
   console.log(
@@ -448,7 +530,7 @@ export async function runMonitorFromEnv(logger: MonitorLogger = defaultLogger) {
     });
 
     stage = "load_chain_configuration";
-    const chains = await loadChains();
+    const chains = await loadConfiguredChains();
 
     stage = "fetch_indexer_metrics";
     const readiness = await fetchIndexerMetricsReadiness({
@@ -458,6 +540,7 @@ export async function runMonitorFromEnv(logger: MonitorLogger = defaultLogger) {
 
     stage = "run_monitor";
     await runMonitor({
+      chains,
       store,
       webhookUrl,
       stateKey,
@@ -465,6 +548,8 @@ export async function runMonitorFromEnv(logger: MonitorLogger = defaultLogger) {
       deploymentId,
       progress: readiness.indexingProgress,
       notReadyChainIds: readiness.notReadyChainIds,
+      readyChainIds: readiness.readyChainIds,
+      missingChainIds: readiness.missingChainIds,
       staleThresholdMs: staleThresholdHours * 60 * 60 * 1000,
     });
   } catch (error) {

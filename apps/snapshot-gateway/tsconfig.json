@@ -13,6 +13,7 @@
     "rootDir": ".",
     "lib": ["ES2022"],
     "target": "ES2022",
+    "types": ["node"],
     "skipLibCheck": true
   },
   "include": ["src/**/*.ts", "scripts/**/*.ts", "test/**/*.ts"],

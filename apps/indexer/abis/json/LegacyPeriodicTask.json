@@ -1,0 +1,5 @@
+[
+  { "type": "event", "name": "Activated", "inputs": [], "anonymous": false },
+  { "type": "event", "name": "Deactivated", "inputs": [], "anonymous": false },
+  { "type": "event", "name": "Shutdown", "inputs": [], "anonymous": false }
+]

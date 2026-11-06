@@ -1,4 +1,4 @@
-import { fromHex, type Address, type Hex } from "viem";
+import { fromHex, type Address } from "viem";
 
 import {
   getContractName,
@@ -15,7 +15,7 @@ import type {
 import {
   getProcessedContract,
   getRequestedPolicyPermissions,
-  readModuleKeycodeEffect,
+  getModuleKeycode,
 } from "./effects";
 import { getCurrentModuleAddress } from "./modules";
 
@@ -80,7 +80,8 @@ export async function parseContractName(
   target: Address,
   chainId: number,
   blockNumber: bigint,
-  context: EnvioContext
+  context: EnvioContext,
+  blockHash: string
 ): Promise<string> {
   if (action > 1) {
     return getContractName(target, chainId);
@@ -91,24 +92,16 @@ export async function parseContractName(
     return knownName;
   }
 
-  try {
-    const { keycode: keycodeResult } = await context.effect(
-      readModuleKeycodeEffect,
-      {
-        chainId,
-        moduleAddress: target,
-        blockNumber,
-      }
-    );
-
-    const keycode = fromHex(keycodeResult as Hex, "string").replace(/\0/g, "");
-    console.log(`Keycode for ${target}: ${keycode}`);
-
-    return keycode;
-  } catch (error) {
-    console.error(`Failed to read KEYCODE from module at ${target}:`, error);
-    return "UNKNOWN";
-  }
+  const keycodeResult = await getModuleKeycode(
+    context,
+    chainId,
+    target,
+    blockNumber,
+    blockHash
+  );
+  const keycode = fromHex(keycodeResult, "string").replace(/\0/g, "");
+  if (!/^[A-Z]{5}$/.test(keycode)) throw new Error("Invalid module keycode");
+  return keycode;
 }
 
 export async function parsePolicyFunctions(
@@ -137,7 +130,8 @@ export async function parsePolicyFunctions(
     context,
     chainId,
     policyAddress,
-    policyName
+    policyName,
+    blockNumber
   );
 
   return Object.values(policyFunctions.functionSelectors);
@@ -150,7 +144,8 @@ export async function parsePolicyPermissions(
   targetName: string,
   blockNumber: bigint,
   chainId: number,
-  context: EnvioContext
+  context: EnvioContext,
+  blockHash: string
 ): Promise<PolicyPermission[] | undefined> {
   if (action !== 2 && action !== 3) {
     return undefined;
@@ -172,7 +167,8 @@ export async function parsePolicyPermissions(
     context,
     chainId,
     target,
-    blockNumber
+    blockNumber,
+    blockHash
   );
 
   const permissionDetails = permissionsResult
@@ -207,7 +203,8 @@ export async function parsePolicyPermissions(
           kernelAddress,
           blockNumber,
           chainId,
-          context
+          context,
+          blockHash
         );
         if (!currentModuleAddress) {
           throw new Error(
@@ -234,7 +231,8 @@ export async function parsePolicyPermissions(
           context,
           chainId,
           moduleAddress,
-          currentResult.moduleKeycode
+          currentResult.moduleKeycode,
+          blockNumber
         );
         const functionDetails =
           moduleProcessedData.functionSelectors[currentResult.funcSelector];
@@ -248,7 +246,11 @@ export async function parsePolicyPermissions(
 
         return {
           keycode: currentResult.moduleKeycode,
-          function: functionDetails.signature,
+          function:
+            functionDetails.canonicalSignature ?? functionDetails.signature,
+          ...(functionDetails.documentation
+            ? { functionContext: functionDetails.documentation }
+            : {}),
         };
       }
     )

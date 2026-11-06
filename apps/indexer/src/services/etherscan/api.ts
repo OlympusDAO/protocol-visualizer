@@ -1,4 +1,5 @@
 import type { Abi } from "viem";
+import { waitForMetadata } from "../metadata-throttle";
 import {
   type EtherscanApiConfig,
   type EtherscanResponse,
@@ -35,8 +36,6 @@ export class EtherscanApi {
   private chainId: number;
   private maxRetries: number;
   private retryDelay: number;
-  private rateLimitDelay: number;
-  private lastRequestTime: number = 0;
 
   constructor(config: EtherscanApiConfig) {
     // Ensure there is an API key
@@ -49,7 +48,6 @@ export class EtherscanApi {
     this.chainId = config.chainId || 1;
     this.maxRetries = config.maxRetries || 3;
     this.retryDelay = config.retryDelay || 1000;
-    this.rateLimitDelay = config.rateLimitDelay || 200; // 5 requests per second
   }
 
   async getContractAbi(address: string): Promise<Abi> {
@@ -124,15 +122,9 @@ export class EtherscanApi {
   private async fetchWithRetry<T>(params: URLSearchParams): Promise<T> {
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        // Rate limiting
-        const timeSinceLastRequest = Date.now() - this.lastRequestTime;
-        if (timeSinceLastRequest < this.rateLimitDelay) {
-          await this.sleep(this.rateLimitDelay - timeSinceLastRequest);
-        }
-
         const url = `${this.baseUrl}?${params.toString()}`;
+        await waitForMetadata("etherscan");
         const response = await fetch(url);
-        this.lastRequestTime = Date.now();
 
         if (!response.ok) {
           throw new EtherscanApiError(

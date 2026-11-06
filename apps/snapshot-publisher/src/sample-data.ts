@@ -29,9 +29,73 @@ export function getSampleProtocolData(chainId: number): ProtocolGraphqlData {
     policyFunctions:
       type === "policy" ? [{ name: "operate", roles: ["operator"] }] : null,
   }));
+  const block = {
+    number: "1000000",
+    hash: `0x${chainId.toString(16).padStart(64, "0")}`,
+    timestamp: "1700000000",
+  };
 
   return {
     Contract: contracts,
+    KnownContract: contracts,
+    ContractState: [
+      {
+        id: `${chainId}:${addressFor(chainId, 3)}`,
+        chainId,
+        address: addressFor(chainId, 3),
+        kernelMembership: "active",
+        enablerCapability: "supported",
+        enabled: false,
+        seed: block,
+        lastChange: null,
+        indexedThrough: block,
+        verification: { outcome: "match", block, getterValue: "false" },
+      },
+    ],
+    ContractRelationship: [
+      {
+        id: `${chainId}:sample-owner`,
+        chainId,
+        kind: "owner",
+        source: addressFor(chainId, 3),
+        target: addressFor(chainId, 2),
+        status: "current",
+        provenance: block,
+      },
+      {
+        id: `${chainId}:sample-governor`,
+        chainId,
+        kind: "governor",
+        source: addressFor(chainId, 4),
+        target: addressFor(chainId, 5),
+        status: "current",
+        provenance: block,
+      },
+      {
+        id: `${chainId}:sample-guardian`,
+        chainId,
+        kind: "guardian",
+        source: addressFor(chainId, 4),
+        target: addressFor(chainId, 5),
+        status: "current",
+        provenance: block,
+      },
+      {
+        id: `${chainId}:sample-nominee`,
+        chainId,
+        kind: "governor",
+        source: addressFor(chainId, 6),
+        target: addressFor(chainId, 5),
+        status: "pending",
+        provenance: block,
+      },
+    ],
+    ChainObservation: [
+      {
+        chainId,
+        indexedThrough: block,
+      },
+    ],
     Role: [{ id: `${chainId}-operator`, chainId, role: "operator" }],
     RoleAssignment: [
       {

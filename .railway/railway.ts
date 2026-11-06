@@ -260,7 +260,8 @@ export default defineRailway((ctx) => {
     source,
     env: {
       PORT: "4000",
-      RPC_CACHE_DATABASE_URL: ref(cacheDatabase, "DATABASE_URL"),
+      // Preserve the operator-supplied URL with percent-encoded credentials.
+      RPC_CACHE_DATABASE_URL: preserve(),
       ...Object.fromEntries(
         chainIds.map((id) => [`UPSTREAM_RPC_URL_${id}`, preserve()])
       ),

@@ -91,14 +91,16 @@ finalized watermark remains safe if a provider later becomes unavailable.
 
 ## Railway variables and private networking
 
-IaC supplies `PORT` and `RPC_CACHE_DATABASE_URL`. Manually supply all nine
-`UPSTREAM_RPC_URL_<id>` values on `rpc-cache` after its creation. Existing Railway
+IaC supplies `PORT`. Manually supply `RPC_CACHE_DATABASE_URL` and all nine
+`UPSTREAM_RPC_URL_<id>` values on `rpc-cache` after its creation. Percent-encode
+the database username and password in the connection URI. Existing Railway
 shared variables can supply references instead of copied credentials. IaC uses
-`preserve()` for upstream values; it does not generate them or contain their values.
+`preserve()` for upstream values and the database URI; it does not generate them
+or contain their values. Update the URI manually when database credentials change.
 
 ```text
 PORT=4000
-RPC_CACHE_DATABASE_URL=${{rpc-cache-postgres.DATABASE_URL}}
+RPC_CACHE_DATABASE_URL=<Postgres URI with percent-encoded credentials>
 UPSTREAM_RPC_URL_1=<Ethereum archive provider URL>
 UPSTREAM_RPC_URL_10=<Optimism archive provider URL>
 UPSTREAM_RPC_URL_42161=<Arbitrum archive provider URL>

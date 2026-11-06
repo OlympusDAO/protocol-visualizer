@@ -83,6 +83,7 @@ jobs:
     permissions:
       contents: read
       actions: read
+      checks: read
       pull-requests: read
     steps:
       - name: Checkout merged configuration
@@ -94,6 +95,47 @@ jobs:
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version-file: .nvmrc
+      - name: Wait for merge CI
+        timeout-minutes: 35
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          MERGE_COMMIT_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        with:
+          script: |
+            const workflows = ["ci.yml", "security-scan.yml", "audit.yml"];
+            // GitHub-managed CodeQL has no workflow file and uses the dynamic event.
+            const codeqlWorkflow = 255339919;
+            for (let attempt = 0; attempt < 120; attempt++) {
+              const runs = await Promise.all([...workflows, codeqlWorkflow].map(async workflow_id => {
+                const { data } = await github.rest.actions.listWorkflowRuns({
+                  ...context.repo,
+                  workflow_id,
+                  head_sha: process.env.MERGE_COMMIT_SHA,
+                  event: workflow_id === codeqlWorkflow ? "dynamic" : "push",
+                  per_page: 1,
+                });
+                return { workflow_id, run: data.workflow_runs[0] };
+              }));
+              const failed = runs.find(({ run }) => run?.status === "completed" && run.conclusion !== "success");
+              if (failed) throw new Error(`${failed.workflow_id}: ${failed.run.conclusion}`);
+              if (runs.every(({ run }) => run?.status === "completed" && run.conclusion === "success")) {
+                const checks = await github.paginate(github.rest.checks.listForRef, {
+                  ...context.repo,
+                  ref: process.env.MERGE_COMMIT_SHA,
+                  filter: "latest",
+                  per_page: 100,
+                });
+                const failedCheck = checks.find(check => check.status === "completed" && !["success", "neutral", "skipped"].includes(check.conclusion));
+                if (failedCheck) throw new Error(`${failedCheck.name}: ${failedCheck.conclusion}`);
+                if (checks.length > 0 && checks.every(check => check.status === "completed")) {
+                  core.info("Merge CI passed; production infrastructure apply may proceed.");
+                  return;
+                }
+              }
+              core.info("Waiting for build, security, dependency, CodeQL, and commit checks on the merge commit.");
+              await new Promise(resolve => setTimeout(resolve, 15_000));
+            }
+            throw new Error("Timed out waiting for merge CI; production infrastructure was not applied.");
       - name: Install Railway CLI
         run: npm install --global @railway/cli@5.71.0
       - name: Find successful plan for the merged PR head

@@ -85,7 +85,7 @@ Before the first merge:
 1. Create a Railway API token scoped to the **Olympus workspace** in Account Settings → Tokens.
 2. Add it as the GitHub Actions repository secret **`RAILWAY_TOKEN`**.
 3. Provision and verify the private cache service and its separate database first.
-4. Supply all nine `UPSTREAM_RPC_URL_<id>` values on `rpc-cache`.
+4. Supply all nine `UPSTREAM_RPC_URL_<id>` values and a percent-encoded `RPC_CACHE_DATABASE_URL` on `rpc-cache`.
 5. Preserve the other operator secrets listed below.
 6. Review the production plan posted on the PR.
 
@@ -97,14 +97,14 @@ workflow before this prerequisite is complete.
 For a new environment, provision the cache resources first through a reviewed,
 cache-only IaC plan or the Railway dashboard. Supply provider credentials manually
 on `rpc-cache`. Configure its Dockerfile as `Dockerfile-rpc-cache`, its healthcheck
-as `/healthcheck`, and its database reference as shown in [rpc-cache.md](rpc-cache.md).
+as `/healthcheck`, and its encoded database URI as shown in [rpc-cache.md](rpc-cache.md).
 Verify the proxy before the whole-project apply routes consumers through it.
 
 ## Automatic variables and manual secrets
 
 | Destination | Supplied by IaC | Manual values retained in Railway |
 | --- | --- | --- |
-| `rpc-cache` | `PORT=4000`, `RPC_CACHE_DATABASE_URL` from `rpc-cache-postgres.DATABASE_URL` | Nine `UPSTREAM_RPC_URL_<id>` values; optional `RPC_CACHE_MAX_RPS` |
+| `rpc-cache` | `PORT=4000` | Percent-encoded `RPC_CACHE_DATABASE_URL`; nine `UPSTREAM_RPC_URL_<id>` values; optional `RPC_CACHE_MAX_RPS` |
 | `indexer` | Nine `ENVIO_RPC_URL_<id>` paths through `rpc-cache`; Envio database and Hasura references; `PORT=9898` | `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY`; optional `ENVIO_RPC_MODE` |
 | `snapshot-publisher` | Nine `RPC_URL_<id>` paths; bucket, Hasura, indexer metrics, and shared webhook references | Shared `DISCORD_WEBHOOK_URL` value; optional operator overrides |
 | `snapshot-monitor` | Nine `RPC_URL_<id>` paths; bucket, indexer metrics, and shared webhook references | Shared `DISCORD_WEBHOOK_URL` value; optional operator overrides |
@@ -185,7 +185,8 @@ uses Railway CLI 5.71.0 with workspace API authentication.
 For same-repository PRs into `master` that affect IaC or its tooling:
 
 - Opening, reopening, or updating the PR produces a **production** plan and a PR comment linking to its run.
-- Merging applies that exact saved plan to production.
+- Merging applies that exact saved plan to production after build, security,
+  dependency, and CodeQL checks pass for the merge commit.
 - Closing without merging does not apply anything.
 - Fork PRs do not receive the Railway credential or run these jobs.
 
@@ -206,8 +207,28 @@ Production sources always use `master`, including plans generated from unmerged 
 See [Railway CLI authentication](https://docs.railway.com/cli/login#environment-variables) for the token types.
 
 Application code continues to use Railway GitHub autodeploys and watch patterns.
-Those deployments can start independently of the IaC workflow; this workflow
-does not serialize application deployments behind an infrastructure apply.
+IaC requests `checkSuites: true` on each GitHub source. Verify the effective
+"Wait for CI" setting on newly created services; production `rpc-cache` needed
+a manual correction during initial creation. The apply workflow also waits for
+successful push runs of `pnpm CI`, `Security Audit`, and `Dependency Audit`, plus
+GitHub-managed CodeQL (`dynamic` event, repository workflow ID `255339919`), on
+the exact merge commit. Update that ID if managed CodeQL is recreated. Missing
+or unfinished runs time out after 30 minutes; failed, cancelled, or skipped
+required workflows block the apply. Additional reported commit checks, such as
+Socket, must finish without failure; neutral or skipped optional checks are allowed.
+
+Before a manual production apply or operator redeploy, inspect the exact merge SHA:
+
+```bash
+gh run list --commit <merge-sha> --limit 100 --json workflowName,event,status,conclusion
+gh api repos/OlympusDAO/protocol-visualizer/commits/<merge-sha>/check-runs --paginate --jq '.check_runs[] | {name,status,conclusion}'
+```
+
+Require successful runs of all four workflows above and no pending or failed
+commit checks. For previews and other non-master targets, verify the equivalent
+PR or manually dispatched runs for the target revision instead of master push runs.
+If required runs are missing, trigger the matching workflows and wait for success;
+do not treat missing runs as a pass.
 This workflow does **not** auto-apply IaC changes to PR environments on every
 commit. Preview infrastructure changes use the manual procedure below.
 

@@ -120,9 +120,7 @@ test("whole-project IaC retains storage and wires services without embedding sec
         type: "preserve",
       });
     assert.deepEqual(get("rpc-cache").variables.RPC_CACHE_DATABASE_URL, {
-      type: "reference",
-      resource: "database.rpc-cache-postgres",
-      output: "DATABASE_URL",
+      type: "preserve",
     });
     for (const name of [
       "snapshot-publisher",

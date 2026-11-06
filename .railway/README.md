@@ -5,6 +5,8 @@ It is the project definition; there is no named partial. Removing a resource
 can delete it on apply. IaC supplies connection references. Provider URLs and
 operator secrets stay in Railway through `preserve()`; optional overrides remain
 outside IaC ownership. Configure and verify the cache before routing consumers.
+Supply `RPC_CACHE_DATABASE_URL` with percent-encoded credentials on `rpc-cache`;
+IaC preserves this connection string so applies cannot overwrite its encoding.
 Publisher and monitor reference the environment's shared `DISCORD_WEBHOOK_URL`.
 Add its value manually in Project Settings → Shared Variables before applying the plan.
 Use a separate webhook for preview alerts. Do not commit the webhook URL.
@@ -40,7 +42,8 @@ Use the [manual deployment procedure](../docs/railway-self-hosting.md#manual-iac
 for login, project selection, required validation, and common plan messages.
 
 The GitHub workflow plans production changes on PR updates and applies the saved
-plan on merge to `master`. Set one Olympus workspace API token as the GitHub
+plan on merge to `master`, after build, security, dependency, and CodeQL checks pass for
+the merge commit. Set one Olympus workspace API token as the GitHub
 Actions secret `RAILWAY_TOKEN`. The workflow exports it as `RAILWAY_API_TOKEN`
 and selects the project and production environment explicitly. No token per
 environment is required. Destructive applies are blocked. Preview infrastructure

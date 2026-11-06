@@ -25,6 +25,17 @@ import { parseArgs } from "node:util";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const defaultOutput = "docs/performance/indexer-benchmark.json";
 const networks = [1, 10, 42161, 8453, 80094, 4663, 11155111, 421614, 84532];
+export function auditEnvironment(env, proxyOrigin) {
+  return {
+    ...env,
+    ...Object.fromEntries(
+      networks.map((chain) => [
+        `ENVIO_RPC_URL_${chain}`,
+        `${proxyOrigin}/pv/evm/${chain}`,
+      ])
+    ),
+  };
+}
 const cacheEntities = new Set([
   "VerifiedDeployment",
   "KernelReadCache",
@@ -1293,7 +1304,7 @@ async function collectRun(options, setup, runNumber, cancelled) {
           ],
           {
             cwd: join(source, "apps/indexer"),
-            env: { ...env, ENVIO_RPC_URL_1: `${proxyOrigin}/pv/evm/1` },
+            env: auditEnvironment(env, proxyOrigin),
             stdio: ["ignore", auditLog, auditLog],
             detached: true,
           }

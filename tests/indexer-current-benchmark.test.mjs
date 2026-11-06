@@ -17,7 +17,33 @@ import {
   digest,
   entityDigests,
   parseOptions,
+  auditEnvironment,
 } from "../scripts/benchmark-indexer.mjs";
+
+test("post-timing audit routes every chain around the closed admission relay", () => {
+  const chains = [1, 10, 42161, 8453, 80094, 4663, 11155111, 421614, 84532];
+  const env = {
+    LOG_LEVEL: "warn",
+    ...Object.fromEntries(
+      chains.map((id) => [
+        `ENVIO_RPC_URL_${id}`,
+        `http://closed-relay/pv/evm/${id}`,
+      ])
+    ),
+  };
+  const result = auditEnvironment(env, "http://live-proxy");
+  for (const id of chains) {
+    assert.equal(
+      result[`ENVIO_RPC_URL_${id}`],
+      `http://live-proxy/pv/evm/${id}`
+    );
+    assert.equal(
+      env[`ENVIO_RPC_URL_${id}`],
+      `http://closed-relay/pv/evm/${id}`
+    );
+  }
+  assert.equal(result.LOG_LEVEL, "warn");
+});
 
 const address = `0x${"12".repeat(20)}`,
   value = `0x${"34".repeat(20)}`;

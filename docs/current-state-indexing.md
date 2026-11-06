@@ -151,9 +151,8 @@ The nine ordered validation steps, Kernel rollback/hash-pinning regressions,
 three real-image eRPC/Postgres integration tests and the fresh Trivy scan under
 the existing CI policy passed. Eighteen creation-block reads across all nine
 configured chains also passed through a fresh local proxy using the actual private
-upstreams; this was a read-only provider capability check, not a live indexing benchmark. Astra and Ponytail reviewed the implementation and simplification.
-CodeRabbit was skipped at the user's request after repeated authentication failures,
-including the normal interactive CLI command. Its auth-status check alone was insufficient.
+upstreams; this was a read-only provider capability check, not a live indexing
+benchmark.
 
 The measured runtime-input fingerprint is
 `e160ce413ef43a7fd8c5bd83d1a0d629d56d7033f0eddfecc6c920114bd179fd`.

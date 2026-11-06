@@ -1,0 +1,16 @@
+[
+  {
+    "type": "event",
+    "name": "LtvOracleSet",
+    "inputs": [{ "name": "oracle", "type": "address", "indexed": true }],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "TreasuryBorrowerSet",
+    "inputs": [
+      { "name": "treasuryBorrower", "type": "address", "indexed": true }
+    ],
+    "anonymous": false
+  }
+]

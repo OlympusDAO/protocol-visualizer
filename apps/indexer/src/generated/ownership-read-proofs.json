@@ -1,0 +1,273 @@
+{
+  "implementations": [
+    {
+      "id": "cooler-v2-migrator-solmate-owned-v1",
+      "profile": "solmate-owned",
+      "codeHash": "0x8e503fd1d1a6d39eda4e5505c7bfbb923b3884b68060614517593d98ba4019a2",
+      "source": {
+        "url": "https://sourcify.dev/server/v2/contract/1/0xe045bd0a0d85e980aa152064c06eae6b6ae358d2?fields=metadata,sources,runtimeBytecode.onchainBytecode",
+        "compiler": "0.8.15+commit.e14f2714",
+        "target": {
+          "src/periphery/CoolerV2Migrator.sol": "CoolerV2Migrator"
+        },
+        "proof": "The deployed contract inherits Solmate Owned without overriding transferOwnership or writing owner elsewhere. Constructor and transferOwnership emit OwnershipTransferred. The exact executable runtime contains no CALLCODE, DELEGATECALL or SELFDESTRUCT.",
+        "files": [
+          {
+            "path": "src/periphery/CoolerV2Migrator.sol",
+            "keccak256": "0x705ec064f7997f2c175645e60fad3666d68827f58d25bb410a6698465dd62b91"
+          },
+          {
+            "path": "src/interfaces/maker-dao/IERC3156FlashBorrower.sol",
+            "keccak256": "0xb4f7084c961ff06481f4327429c761ef79be20e16c996bdb0d0d0224666c2c4f"
+          },
+          {
+            "path": "src/interfaces/maker-dao/IERC3156FlashLender.sol",
+            "keccak256": "0x064a09ac321cac7c42ffd6b1656d5f53f59ed0d50013cfcd3594870add124e90"
+          },
+          {
+            "path": "src/interfaces/maker-dao/IDaiUsdsMigrator.sol",
+            "keccak256": "0xe7d58497c13c1f49e11b8a6674ebad78fb36b3536b2662f2066cd0598eda51cb"
+          },
+          {
+            "path": "src/periphery/interfaces/ICoolerV2Migrator.sol",
+            "keccak256": "0x64d300c3ceb7a8e2c3f25e9e93db5309bf020eec5305fb8d594245c0b156ab93"
+          },
+          {
+            "path": "src/periphery/interfaces/IEnabler.sol",
+            "keccak256": "0xf3aa4c7fd7237e0cad838a16f58160b2ca7716c2b717a134e5f0ff110d87f278"
+          },
+          {
+            "path": "lib/solmate/src/utils/ReentrancyGuard.sol",
+            "keccak256": "0xb282dd78aa7375d6b200b9a5d8dd214b2e5df1004f8217a4b4c2b07f0c5bfd01"
+          },
+          {
+            "path": "src/libraries/SafeCast.sol",
+            "keccak256": "0x01224a32ebd5bb849ccd9fcd65d10738ef60a8248eb68d8368f5924d78d8cd02"
+          },
+          {
+            "path": "lib/solmate/src/utils/SafeTransferLib.sol",
+            "keccak256": "0x6ab948013c2c7ca6351e593600425b0ec6df9035320280c678e735bce16e996b"
+          },
+          {
+            "path": "lib/solmate/src/tokens/ERC20.sol",
+            "keccak256": "0xcdfd8db76b2a3415620e4d18cc5545f3d50de792dbf2c3dd5adb40cbe6f94b10"
+          },
+          {
+            "path": "lib/solmate/src/auth/Owned.sol",
+            "keccak256": "0xfedb27d14c508342c33eb067c9a02eabcdb0f9dcf93b04ded1001f580d12d0ea"
+          },
+          {
+            "path": "src/external/cooler/Cooler.sol",
+            "keccak256": "0x3d3807d631528e36d26685459c8de430d6c0476eb8a9ac2258956710d005c563"
+          },
+          {
+            "path": "src/modules/CHREG/CHREG.v1.sol",
+            "keccak256": "0x6961ed13b143ec508f9ebc5834ff6505bf7f8b2de8539c62f85d76a47a7d4384"
+          },
+          {
+            "path": "src/policies/interfaces/cooler/IMonoCooler.sol",
+            "keccak256": "0x841eb6e050ca5ae6b636d0aa3aca724b054b03c41a2491f8477a9503eb9cea6e"
+          },
+          {
+            "path": "src/external/cooler/interfaces/ICoolerFactory.sol",
+            "keccak256": "0x2e2b96ef4b5690e25fd49b4f214388dceca3e6bb51226d0c14c43bd1a14cd756"
+          },
+          {
+            "path": "src/modules/DLGTE/IDLGTE.v1.sol",
+            "keccak256": "0x9691327526a3f666297fbd44be17b0ccf976aa7355e68f54997913782fc51fb1"
+          },
+          {
+            "path": "lib/clones-with-immutable-args/src/Clone.sol",
+            "keccak256": "0x8f569b077d99ec821c2750c52094b59b3505fb6ca3e6eac9009092bf86c5452d"
+          },
+          {
+            "path": "src/external/cooler/CoolerFactory.sol",
+            "keccak256": "0x2b62ec66777d28dc03486f8d1d330fbca2b44c6e140a22ba338d1a4966311506"
+          },
+          {
+            "path": "src/external/cooler/CoolerCallback.sol",
+            "keccak256": "0xb6f2c31937e4737b160f06d3687b8a463052987c04df5665c30656dfd44aee61"
+          },
+          {
+            "path": "src/Kernel.sol",
+            "keccak256": "0x5798deae5f5ce704f699ef3b5022e16825a4470972212a9b55ec66746fcd5fc2"
+          },
+          {
+            "path": "src/interfaces/IERC20.sol",
+            "keccak256": "0x974a59ee45b2a6107b6dd8cd0f1de0ad878b54f1db47ebf27f697dda6145d9dc"
+          },
+          {
+            "path": "src/policies/interfaces/cooler/ICoolerLtvOracle.sol",
+            "keccak256": "0xab5264ba6146fe32d455840c2403733f872d5703a1be5ffcdd40c05247ac7ac7"
+          },
+          {
+            "path": "src/policies/interfaces/cooler/ICoolerTreasuryBorrower.sol",
+            "keccak256": "0x516792b157e7b2009548b6b883e0daef1f1071da94212f2e21dd67806d82cebc"
+          },
+          {
+            "path": "src/interfaces/IStaking.sol",
+            "keccak256": "0x5b7df3db742582d39fb557c58067f8320c2d46d7094ae7152809b311fc610d37"
+          },
+          {
+            "path": "lib/clones-with-immutable-args/src/ClonesWithImmutableArgs.sol",
+            "keccak256": "0x0c6a218a9724ce6d754db22b162600adbdbac41bfe4dd4eecf6b6d77c74eefe7"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ccip-cross-chain-bridge-solmate-owned-v1",
+      "profile": "solmate-owned",
+      "codeHash": "0x0e6ac2b7418daed0e89cfb1398a136a91b7b080b6c04227ec0c04b016454c0b1",
+      "source": {
+        "url": "https://sourcify.dev/server/v2/contract/1/0xfbf6383dc3f6010d403ecdf12ddc1311701d143d?fields=metadata,sources,runtimeBytecode.onchainBytecode",
+        "compiler": "0.8.24+commit.e11b9ed9",
+        "target": {
+          "src/periphery/bridge/CCIPCrossChainBridge.sol": "CCIPCrossChainBridge"
+        },
+        "proof": "The deployed contract inherits Solmate Owned without overriding transferOwnership or writing owner elsewhere. Constructor and transferOwnership emit OwnershipTransferred. The exact executable runtime contains no CALLCODE, DELEGATECALL or SELFDESTRUCT.",
+        "files": [
+          {
+            "path": "src/periphery/bridge/CCIPCrossChainBridge.sol",
+            "keccak256": "0x5a7116c6d77a2e3467a2d79084651842d3954ffc1b9b42ea31e7e3fe01de63a2"
+          },
+          {
+            "path": "src/interfaces/IERC20.sol",
+            "keccak256": "0x974a59ee45b2a6107b6dd8cd0f1de0ad878b54f1db47ebf27f697dda6145d9dc"
+          },
+          {
+            "path": "dependencies/chainlink-ccip-1.6.0/contracts/src/v0.8/ccip/interfaces/IRouterClient.sol",
+            "keccak256": "0x21280104a988eb7022f8968b1672bafba80a74e59f5512415009dff9a37be46a"
+          },
+          {
+            "path": "src/periphery/interfaces/ICCIPCrossChainBridge.sol",
+            "keccak256": "0x4a6cec1f190d30fcae8cda485b7e7b2bba821950ddc7727e6c3b122833b25bb9"
+          },
+          {
+            "path": "src/external/bridge/ICCIPClient.sol",
+            "keccak256": "0x9fd4f2e55423f1ec31fc4c07b8e2b09614700ab2a4b49530317c56f2e747fe43"
+          },
+          {
+            "path": "dependencies/solmate-6.2.0/src/auth/Owned.sol",
+            "keccak256": "0xfedb27d14c508342c33eb067c9a02eabcdb0f9dcf93b04ded1001f580d12d0ea"
+          },
+          {
+            "path": "dependencies/chainlink-ccip-1.6.0/contracts/src/v0.8/ccip/libraries/Client.sol",
+            "keccak256": "0xf806e9787d52ac3099d549dbdce9a890e99e3fc6f5557b7336104fb2b7713e99"
+          },
+          {
+            "path": "src/periphery/PeripheryEnabler.sol",
+            "keccak256": "0xa8f51f1ff97cef3950214abe3834308c6ce3ddef3528c3104994e3a9687532cd"
+          },
+          {
+            "path": "dependencies/chainlink-ccip-1.6.0/contracts/src/v0.8/ccip/applications/CCIPReceiver.sol",
+            "keccak256": "0x55dd8b75751ff4fca499bdb1371e78185dc8924e4266bea05173acf8a5852df7"
+          },
+          {
+            "path": "src/periphery/interfaces/IEnabler.sol",
+            "keccak256": "0xf3aa4c7fd7237e0cad838a16f58160b2ca7716c2b717a134e5f0ff110d87f278"
+          },
+          {
+            "path": "dependencies/chainlink-ccip-1.6.0/contracts/src/v0.8/ccip/interfaces/IAny2EVMMessageReceiver.sol",
+            "keccak256": "0x8f67554db88baee2d8facee3320fb85fd566f843b9e4bdb6870eafe1637d7919"
+          },
+          {
+            "path": "dependencies/chainlink-ccip-1.6.0/contracts/src/v0.8/vendor/openzeppelin-solidity/v5.0.2/contracts/utils/introspection/IERC165.sol",
+            "keccak256": "0x4296879f55019b23e135000eb36896057e7101fb7fb859c5ef690cf14643757b"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ccip-token-admin-registry-v1",
+      "profile": "chainlink-token-admin-registry",
+      "codeHash": "0x1b92397d327bd586ddbfe82737c6d5b2d567e01d00734ec6b94cc2a8926e8845",
+      "source": {
+        "url": "https://sourcify.dev/server/v2/contract/1/0xb22764f98dd05c789929716d677382df22c05cb6?fields=metadata,sources,runtimeBytecode.onchainBytecode",
+        "compiler": "0.8.24+commit.e11b9ed9",
+        "target": {
+          "src/v0.8/ccip/tokenAdminRegistry/TokenAdminRegistry.sol": "TokenAdminRegistry"
+        },
+        "proof": "The deployed non-upgradeable TokenAdminRegistry inherits ConfirmedOwnerWithProposal. Owner changes only on acceptance, emitting OwnershipTransferred; proposals emit OwnershipTransferRequested. Token admin proposals/transfers emit AdministratorTransferRequested, acceptance emits AdministratorTransferred and clears pending admin, and changed pool values emit PoolSet. The exact executable runtime contains no CALLCODE, DELEGATECALL or SELFDESTRUCT.",
+        "files": [
+          {
+            "path": "src/v0.8/ccip/libraries/Pool.sol",
+            "keccak256": "0x0bab34da83a9a9f207471db3aeb0866a376aada7e287b0d8a7ac74a8d77fc2a5"
+          },
+          {
+            "path": "src/v0.8/ccip/interfaces/IPool.sol",
+            "keccak256": "0x7502212427ab594a6dbc4c69e5c4c276fe59d98678ef259ab1935f1bd31ab4e6"
+          },
+          {
+            "path": "src/v0.8/shared/interfaces/IOwnable.sol",
+            "keccak256": "0x885de72b7b4e4f1bf8ba817a3f2bcc37fd9022d342c4ce76782151c30122d767"
+          },
+          {
+            "path": "src/v0.8/shared/access/ConfirmedOwner.sol",
+            "keccak256": "0xdcb0e9135ddbe71ee27ba99fa06656960c66c964cf2ecb29696da1c1427d9861"
+          },
+          {
+            "path": "src/v0.8/shared/access/OwnerIsCreator.sol",
+            "keccak256": "0x895af02d6a3df2930bbb6ec1f2d68118b492ca6e710ba0c34fcb6b574a0906aa"
+          },
+          {
+            "path": "src/v0.8/shared/interfaces/ITypeAndVersion.sol",
+            "keccak256": "0xf5827cb463c01d055021684d04f9186391c2d9ac850e0d0819f76140e4fc84ed"
+          },
+          {
+            "path": "src/v0.8/ccip/interfaces/ITokenAdminRegistry.sol",
+            "keccak256": "0xe589ff8c42b80a035928442a06d436c4bd83a6a19f82ff9558d98fdbcae331e8"
+          },
+          {
+            "path": "src/v0.8/shared/access/ConfirmedOwnerWithProposal.sol",
+            "keccak256": "0x2422a055657a87e98be61f8f31abb1824ec50fd0f73949f4e3c6ac877efb6da8"
+          },
+          {
+            "path": "src/v0.8/ccip/tokenAdminRegistry/TokenAdminRegistry.sol",
+            "keccak256": "0xa1ad1f72acb9c5ed8c7c94925c4b86e868b12669d8e9a5f82eef62c0f7711469"
+          },
+          {
+            "path": "src/v0.8/vendor/openzeppelin-solidity/v5.0.2/contracts/utils/introspection/IERC165.sol",
+            "keccak256": "0x4296879f55019b23e135000eb36896057e7101fb7fb859c5ef690cf14643757b"
+          },
+          {
+            "path": "src/v0.8/vendor/openzeppelin-solidity/v5.0.2/contracts/utils/structs/EnumerableSet.sol",
+            "keccak256": "0x86c1470cbfd878491e5de030072b647352d36bd27122cffb928970b1945282aa"
+          }
+        ]
+      }
+    }
+  ],
+  "contracts": [
+    {
+      "chainId": 1,
+      "address": "0xe045bd0a0d85e980aa152064c06eae6b6ae358d2",
+      "implementation": "cooler-v2-migrator-solmate-owned-v1"
+    },
+    {
+      "chainId": 1,
+      "address": "0xfbf6383dc3f6010d403ecdf12ddc1311701d143d",
+      "implementation": "ccip-cross-chain-bridge-solmate-owned-v1"
+    },
+    {
+      "chainId": 1,
+      "address": "0xb22764f98dd05c789929716d677382df22c05cb6",
+      "implementation": "ccip-token-admin-registry-v1"
+    },
+    {
+      "chainId": 10,
+      "address": "0x657c42abe4cd8aa731aec322f871b5b90cf6274f",
+      "implementation": "ccip-token-admin-registry-v1"
+    },
+    {
+      "chainId": 8453,
+      "address": "0x6f6c373d09c07425baae72317863d7f6bb731e37",
+      "implementation": "ccip-token-admin-registry-v1"
+    },
+    {
+      "chainId": 42161,
+      "address": "0x39ae1032cf4b334a1ed41cdd0833bdd7c7e7751e",
+      "implementation": "ccip-token-admin-registry-v1"
+    }
+  ]
+}

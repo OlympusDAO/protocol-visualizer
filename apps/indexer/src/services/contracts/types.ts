@@ -1,4 +1,5 @@
 import type { Abi } from "viem";
+import type { FunctionContext } from "../../../../../packages/snapshot-artifacts/src/index";
 
 export interface ContractSource {
   address: string;
@@ -11,6 +12,8 @@ export interface ContractSource {
 export interface ProcessedContractData {
   roleToFunctions: Record<string, string[]>;
   functionSelectors: Record<string, FunctionDetails>;
+  addressGetters?: string[];
+  metadataIncomplete?: boolean;
 }
 
 export interface FunctionDetails {
@@ -30,6 +33,8 @@ export interface FunctionDetails {
    * The roles that are associated with this function
    */
   roles: string[];
+  canonicalSignature?: string;
+  documentation?: FunctionContext;
 }
 
 export interface ContractCache {

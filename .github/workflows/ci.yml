@@ -4,6 +4,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
@@ -26,6 +30,20 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -37,45 +55,24 @@ jobs:
       - name: Verify runtime version alignment
         run: pnpm run check:runtime-versions
 
+      - name: Build shared snapshot artifacts
+        run: pnpm --filter @protocol-visualizer/snapshot-artifacts run build
+
+      - name: Check OpenAPI schema is current
+        run: pnpm run openapi:check
+
       - name: Run build
         run: pnpm run build
+
+      - name: Verify native PostgreSQL persistence and rollback
+        working-directory: apps/indexer
+        env:
+          PV_REQUIRE_POSTGRES: "1"
+          PV_CACHE_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+        run: node --import ./scripts/register-typescript.mjs --test scripts/state-postgres.test.mjs
 
       - name: Run snapshot monitor tests
         run: pnpm --filter snapshot-monitor run test
 
       - name: Check ABI registry
         run: pnpm run abis:check
-
-  docker-build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-
-      - name: Bootstrap
-        uses: ./.github/actions/bootstrap
-      - name: Verify runtime version alignment
-        run: pnpm run check:runtime-versions
-
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
-
-      - name: Build indexer Docker image
-        run: pnpm run docker:build:indexer
-
-      - name: Build frontend Docker image
-        run: pnpm run docker:build:frontend
-
-      - name: Build Hasura Docker image
-        run: pnpm run docker:build:hasura
-
-      - name: Build snapshot gateway Docker image
-        run: pnpm run docker:build:snapshot-gateway
-
-      - name: Build snapshot publisher Docker image
-        run: pnpm run docker:build:snapshot-publisher
-
-      - name: Build snapshot monitor Docker image
-        run: pnpm run docker:build:snapshot-monitor

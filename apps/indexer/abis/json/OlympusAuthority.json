@@ -1,0 +1,158 @@
+[
+  {
+    "type": "event",
+    "name": "GovernorPushed",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "_effectiveImmediately",
+        "type": "bool",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "GovernorPulled",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "GuardianPushed",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "_effectiveImmediately",
+        "type": "bool",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "GuardianPulled",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PolicyPushed",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "_effectiveImmediately",
+        "type": "bool",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PolicyPulled",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "VaultPushed",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "_effectiveImmediately",
+        "type": "bool",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "VaultPulled",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true
+      }
+    ],
+    "anonymous": false
+  }
+]

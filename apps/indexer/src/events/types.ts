@@ -1,22 +1,26 @@
 import type { EvmOnEventContext } from "envio";
 import type { Address, Hex } from "viem";
+import type { FunctionContext } from "../../../../packages/snapshot-artifacts/src/index";
 
 export type EntityStore = {
   get: <T>(id: string) => Promise<T | undefined>;
   set: (entity: Record<string, unknown>) => void;
+  getWhere: <T>(filter: Record<string, unknown>) => Promise<T[]>;
 };
 
 export type EnvioContext = EvmOnEventContext & {
-  ActionExecutedEvent: EntityStore;
+  BridgeConfiguration: EntityStore;
+  HeartTasks: EntityStore;
+  ContractState: EntityStore;
+  ControlTransition: EntityStore;
+  ContractRelationship: EntityStore;
+  ChainObservation: EntityStore;
   Contract: EntityStore;
-  ContractEvent: EntityStore;
   CurrentModule: EntityStore;
   CurrentRoleAssignee: EntityStore;
   KernelExecutor: EntityStore;
-  KernelExecutorEvent: EntityStore;
   Role: EntityStore;
   RoleAssignment: EntityStore;
-  RoleEvent: EntityStore;
 };
 
 export type RequestedPolicyPermission = {
@@ -24,25 +28,25 @@ export type RequestedPolicyPermission = {
   funcSelector: Hex;
 };
 
-export type RequestedPolicyPermissionsResult = {
-  permissions: RequestedPolicyPermission[];
-  usedLatestFallback: boolean;
-};
-
 export type PolicyPermission = {
   keycode: string;
   function: string;
+  functionContext?: FunctionContext;
 };
 
 export type BaseEvent = {
   chainId: number;
-  block: { number: number; timestamp: number };
+  block: { number: number; timestamp: number; hash?: string };
   transaction: { hash: string };
   logIndex: number;
   srcAddress: Address;
 };
 
-export type KernelActionExecutedEvent = BaseEvent & {
+export type ControlEvent = BaseEvent & {
+  block: { number: number; timestamp: number; hash: string };
+};
+
+export type KernelActionExecutedEvent = ControlEvent & {
   params: { action_: bigint; target_: Address };
 };
 
@@ -70,7 +74,6 @@ export type ActionType =
 
 export type ContractEntity = {
   id: string;
-  chainId: number;
   address: string;
   lastUpdatedTimestamp: bigint;
   lastUpdatedBlockNumber: bigint;
@@ -78,13 +81,13 @@ export type ContractEntity = {
   version?: string;
   contractType: ContractType;
   isEnabled: boolean;
+  kernelHistory?: "installed" | "never-installed" | "unknown";
   policyPermissions?: unknown;
   policyFunctions?: unknown;
 };
 
 export type CurrentModuleEntity = {
   id: string;
-  chainId: number;
   keycode: string;
   address: string;
   lastUpdatedTimestamp: bigint;
@@ -93,7 +96,6 @@ export type CurrentModuleEntity = {
 
 export type CurrentRoleAssigneeEntity = {
   id: string;
-  chainId: number;
   role: string;
   assignee: string;
   assigneeName: string;

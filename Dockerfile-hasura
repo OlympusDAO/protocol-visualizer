@@ -1,17 +1,21 @@
 # Pinned image: hasura/graphql-engine:v2.48.16
-FROM hasura/graphql-engine:v2.48.16@sha256:6ff7d8ba122c69f7be377092b0c1f5314d3e4e28274dc089cd774ce6a8ba6479
+FROM docker.io/hasura/graphql-engine:v2.48.16@sha256:6ff7d8ba122c69f7be377092b0c1f5314d3e4e28274dc089cd774ce6a8ba6479
 
 USER root
 
 RUN apt-get update \
     && ACCEPT_EULA=Y DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --only-upgrade \
+        apt \
+        apt-transport-https \
         bsdutils \
         coreutils \
         curl \
         diffutils \
         gzip \
+        libapt-pkg6.0 \
         libattr1 \
         libblkid1 \
+        libbrotli1 \
         libc-bin \
         libc6 \
         libcap2 \
@@ -31,6 +35,7 @@ RUN apt-get update \
         libpam-modules-bin \
         libpam-runtime \
         libpam0g \
+        libpcre2-8-0 \
         libperl5.34 \
         libpq5 \
         libpython3.10-minimal \

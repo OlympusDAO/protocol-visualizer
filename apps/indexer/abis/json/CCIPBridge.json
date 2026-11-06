@@ -1,0 +1,60 @@
+[
+  {
+    "type": "event",
+    "name": "TrustedRemoteEVMSet",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "dstChainSelector",
+        "type": "uint64",
+        "indexed": true
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "TrustedRemoteEVMUnset",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "dstChainSelector",
+        "type": "uint64",
+        "indexed": true
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "TrustedRemoteSVMSet",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "dstChainSelector",
+        "type": "uint64",
+        "indexed": true
+      },
+      {
+        "name": "to",
+        "type": "bytes32",
+        "indexed": true
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "TrustedRemoteSVMUnset",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "dstChainSelector",
+        "type": "uint64",
+        "indexed": true
+      }
+    ]
+  }
+]

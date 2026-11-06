@@ -1,0 +1,52 @@
+[tools]
+"aqua:vercel-labs/agent-browser" = "0.41.2"
+
+[tools."http:coderabbit"]
+version = "0.9.2"
+url = 'https://cli.coderabbit.ai/releases/{{ version }}/coderabbit-{{ os(macos="darwin") }}-{{ arch() }}.zip'
+
+[tools."http:coderabbit".platforms]
+linux-x64 = { checksum = "sha256:b29bef55fd5a41a2872938516acde46f4c0ccf8fd81c0d86829c435a75a5fd9a" }
+linux-arm64 = { checksum = "sha256:4567ea42d0c52a6f5134180d22e5f0de4e75732b3e25fb1a5c5a433ccaa10d9c" }
+macos-x64 = { checksum = "sha256:e2f25d839d4abd04d07cdbd1b171d8648dd085d529f7cb373308a2753a7b6399" }
+macos-arm64 = { checksum = "sha256:bf3ca96c08e5a5786e83703e285e30db43dd26e0e6dc59b82d9074ddcaa5b854" }
+windows-x64 = { checksum = "sha256:7af747adc3d25ec2d3117f984df803e129bb45f0f250223cf00744fe6fb68131" }
+
+# Chrome dependencies for this Ubuntu devbox. Requires sudo when applied.
+[bootstrap.packages]
+"apt:libxcb-shm0" = "latest"
+"apt:libx11-xcb1" = "latest"
+"apt:libx11-6" = "latest"
+"apt:libxcb1" = "latest"
+"apt:libxext6" = "latest"
+"apt:libxrandr2" = "latest"
+"apt:libxcomposite1" = "latest"
+"apt:libxcursor1" = "latest"
+"apt:libxdamage1" = "latest"
+"apt:libxfixes3" = "latest"
+"apt:libxi6" = "latest"
+"apt:libgtk-3-0t64" = "latest"
+"apt:libpangocairo-1.0-0" = "latest"
+"apt:libpango-1.0-0" = "latest"
+"apt:libatk1.0-0t64" = "latest"
+"apt:libcairo-gobject2" = "latest"
+"apt:libcairo2" = "latest"
+"apt:libgdk-pixbuf-2.0-0" = "latest"
+"apt:libxrender1" = "latest"
+"apt:libasound2t64" = "latest"
+"apt:libfreetype6" = "latest"
+"apt:libfontconfig1" = "latest"
+"apt:libdbus-1-3" = "latest"
+"apt:libnss3" = "latest"
+"apt:libnss3-tools" = "latest"
+"apt:libnspr4" = "latest"
+"apt:libatk-bridge2.0-0t64" = "latest"
+"apt:libdrm2" = "latest"
+"apt:libxkbcommon0" = "latest"
+"apt:libatspi2.0-0t64" = "latest"
+"apt:libcups2t64" = "latest"
+"apt:libxshmfence1" = "latest"
+"apt:libgbm1" = "latest"
+"apt:fonts-noto-color-emoji" = "latest"
+"apt:fonts-noto-cjk" = "latest"
+"apt:fonts-freefont-ttf" = "latest"

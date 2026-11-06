@@ -1,0 +1,14 @@
+[
+  {
+    "type": "event",
+    "name": "LogStakingContractUpdated",
+    "inputs": [
+      {
+        "name": "stakingContract",
+        "type": "address",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  }
+]

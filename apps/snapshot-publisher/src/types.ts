@@ -14,6 +14,8 @@ export type ChainConfig = {
   chainId: number;
   name: string;
   explorerBaseUrl: string;
+  availability?: "indexed" | "historical";
+  environment?: "production" | "testnet";
 };
 
 export type GraphqlContract = {
@@ -26,6 +28,7 @@ export type GraphqlContract = {
   version?: unknown;
   contractType: EnvioContractType;
   isEnabled: unknown;
+  kernelHistory?: "installed" | "never-installed" | "unknown" | null;
   policyPermissions?: JsonValue;
   policyFunctions?: JsonValue;
 };
@@ -47,7 +50,44 @@ export type GraphqlRoleAssignment = {
   isGranted: unknown;
 };
 
+export type InventoryContract = {
+  chainId: number;
+  address: string;
+  name: string;
+  startBlock?: number;
+  labelOnly?: boolean;
+};
+
 export type ProtocolGraphqlData = {
+  BridgeConfiguration?: BridgeConfiguration[];
+  HeartTasks?: HeartTasks[];
+  KnownContract?: Pick<
+    GraphqlContract,
+    | "address"
+    | "name"
+    | "version"
+    | "contractType"
+    | "isEnabled"
+    | "kernelHistory"
+  >[];
+  ContractState?: ContractState[];
+  ContractRelationship?: (Omit<
+    ContractRelationship,
+    | "subject"
+    | "getter"
+    | "coverage"
+    | "verification"
+    | "functionContext"
+    | "targetCode"
+  > & {
+    subject?: string | null;
+    getter?: string | null;
+    coverage?: string | null;
+    verification?: ContractRelationship["verification"] | null;
+    functionContext?: ContractRelationship["functionContext"] | null;
+    targetCode?: ContractRelationship["targetCode"] | null;
+  })[];
+  ChainObservation?: ChainObservation[];
   Contract?: GraphqlContract[];
   Role?: GraphqlRole[];
   RoleAssignment?: GraphqlRoleAssignment[];
@@ -64,6 +104,7 @@ export type Contract = {
   contractType: EnvioContractType;
   type: ContractType;
   isEnabled: boolean;
+  kernelHistory?: "installed" | "never-installed" | "unknown";
   policyPermissions: JsonValue;
   policyFunctions: JsonValue;
 };
@@ -86,11 +127,11 @@ export type RoleAssignment = {
 };
 
 export type ProtocolSnapshot = {
-  schemaVersion: "1.0.0";
+  schemaVersion: SnapshotSchemaVersion;
   generatedAt: string;
   chainId: number;
   recordCounts: RecordCounts;
-  data: {
+  data: SnapshotExtension & {
     contracts: Contract[];
     roles: Role[];
     roleAssignments: RoleAssignment[];
@@ -115,7 +156,14 @@ export type SnapshotFile = {
   publishLast?: boolean;
 };
 import type {
+  BridgeConfiguration,
+  HeartTasks,
   IndexingProgress,
+  ContractState,
+  ContractRelationship,
+  ChainObservation,
+  SnapshotExtension,
+  SnapshotSchemaVersion,
   RecordCounts,
   SnapshotManifest,
 } from "@protocol-visualizer/snapshot-artifacts";

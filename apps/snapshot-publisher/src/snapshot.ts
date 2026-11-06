@@ -1,12 +1,17 @@
 import {
+  ACTIVE_MANIFEST_KEY,
+  type AdditionalContract,
+  type ChainIndexingProgress,
+  type ChainObservation,
+  type ContractState,
   deploymentArtifactKey,
   type IndexingProgress,
+  isSupportedSchemaVersion,
   restProtocolPath,
-  type SnapshotManifest,
   SCHEMA_VERSION,
-  ACTIVE_MANIFEST_KEY,
-  type ChainIndexingProgress,
+  type SnapshotManifest,
 } from "@protocol-visualizer/snapshot-artifacts";
+import { loadOtherContracts } from "./chains.js";
 import { CACHE_CONTROL, DEFAULT_PUBLIC_BASE_PATH } from "./constants.js";
 import { describeFetchError, safeUrlForLog } from "./network-errors.js";
 import { PROTOCOL_VISUALIZER_QUERIES } from "./protocol-query.js";
@@ -17,6 +22,7 @@ import type {
   GraphqlContract,
   GraphqlRole,
   GraphqlRoleAssignment,
+  InventoryContract,
   ProtocolGraphqlData,
   ProtocolSnapshot,
   Role,
@@ -35,16 +41,19 @@ type ChainSnapshot = {
   chain: ChainConfig;
   snapshot: ProtocolSnapshot;
   progress: ChainIndexingProgress;
+  observationReady: boolean;
 };
 
 type CreateProtocolSnapshotInput = {
   chainId: number;
   generatedAt: string;
   graphqlData: ProtocolGraphqlData;
+  additionalContracts?: InventoryContract[];
 };
 
 type CreateSnapshotFilesInput = {
   chains: ChainConfig[];
+  additionalContracts?: InventoryContract[];
   loadProtocolData: (
     chainId: number
   ) => Promise<ProtocolGraphqlData> | ProtocolGraphqlData;
@@ -53,6 +62,10 @@ type CreateSnapshotFilesInput = {
   publicBasePath?: string;
   publicOrigin?: string;
   indexingProgressOverride?: IndexingProgress;
+  verifyObservation?: (
+    chainId: number,
+    observation: ChainObservation | null | undefined
+  ) => Promise<boolean>;
 };
 
 const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
@@ -288,6 +301,7 @@ const normalizeContract = (
     contractType: contract.contractType,
     type,
     isEnabled: Boolean(contract.isEnabled),
+    kernelHistory: contract.kernelHistory ?? undefined,
     policyPermissions: contract.policyPermissions ?? null,
     policyFunctions: contract.policyFunctions ?? null,
   };
@@ -317,6 +331,7 @@ export function createProtocolSnapshot({
   chainId,
   generatedAt,
   graphqlData,
+  additionalContracts = [],
 }: CreateProtocolSnapshotInput): ProtocolSnapshot {
   const contracts = (graphqlData.Contract ?? []).map((contract) =>
     normalizeContract(contract, chainId)
@@ -328,6 +343,96 @@ export function createProtocolSnapshot({
     normalizeRoleAssignment(assignment, chainId)
   );
 
+  const identity = (address: string) => `${chainId}:${address.toLowerCase()}`;
+  const active = new Set(
+    contracts.map((contract) => identity(contract.address))
+  );
+  const known = graphqlData.KnownContract ?? graphqlData.Contract ?? [];
+  const additions = new Map<string, AdditionalContract>();
+  for (const contract of additionalContracts.filter(
+    (contract) => contract.chainId === chainId && !contract.labelOnly
+  )) {
+    const id = identity(contract.address);
+    if (!active.has(id))
+      additions.set(id, {
+        id,
+        chainId,
+        address: contract.address.toLowerCase(),
+        name: contract.name,
+        category: "external",
+        provenance: {
+          source: "inventory",
+          ...(contract.startBlock === undefined
+            ? {}
+            : { startBlock: contract.startBlock }),
+        },
+      });
+  }
+  for (const contract of known) {
+    const address = String(contract.address).toLowerCase();
+    const id = identity(address);
+    if (!active.has(id))
+      additions.set(id, {
+        id,
+        chainId,
+        address,
+        name: String(contract.name),
+        category: "inactive-core",
+        // Older Contract rows were created exclusively by Kernel events.
+        kernelHistory: contract.kernelHistory ?? "installed",
+        contractType: contract.contractType,
+        version: typeof contract.version === "string" ? contract.version : null,
+        provenance: { source: "indexer" },
+      });
+  }
+  const inactive = new Set(
+    known
+      .filter(
+        (contract) =>
+          !contract.isEnabled && contract.kernelHistory !== "unknown"
+      )
+      .map((contract) => identity(String(contract.address)))
+  );
+  const stateAddresses = new Set([
+    ...contracts.map((contract) => contract.address.toLowerCase()),
+    ...[...additions.values()].map((contract) => contract.address),
+    ...(graphqlData.ContractState ?? []).map((state) =>
+      state.address.toLowerCase()
+    ),
+  ]);
+  const indexedStates = new Map(
+    (graphqlData.ContractState ?? []).map((state) => [
+      identity(state.address),
+      state,
+    ])
+  );
+  const contractStates: ContractState[] = [...stateAddresses].map((address) => {
+    const id = identity(address);
+    const state = indexedStates.get(id);
+    return {
+      id,
+      chainId,
+      address,
+      enablerCapability: state?.enablerCapability ?? "unknown",
+      enabled: state?.enabled ?? null,
+      seed: state?.seed ?? null,
+      lastChange: state?.lastChange ?? null,
+      indexedThrough: state?.indexedThrough ?? null,
+      verification: state?.verification ?? { outcome: "unperformed" },
+      ...(state?.enablementGetter
+        ? { enablementGetter: state.enablementGetter }
+        : {}),
+      ...(state?.enablementCoverage
+        ? { enablementCoverage: state.enablementCoverage }
+        : {}),
+      kernelMembership: active.has(id)
+        ? "active"
+        : inactive.has(id)
+          ? "inactive"
+          : "unknown",
+    };
+  });
+
   return {
     schemaVersion: SCHEMA_VERSION,
     generatedAt,
@@ -338,17 +443,42 @@ export function createProtocolSnapshot({
       roleAssignments: roleAssignments.length,
     },
     data: {
+      bridgeConfigurations: graphqlData.BridgeConfiguration ?? [],
+      periodicTasks: graphqlData.HeartTasks ?? [],
       contracts,
       roles,
       roleAssignments,
+      additionalContracts: [...additions.values()].sort((a, b) =>
+        a.id.localeCompare(b.id)
+      ),
+      contractStates: contractStates.sort((a, b) => a.id.localeCompare(b.id)),
+      relationships: (graphqlData.ContractRelationship ?? []).map(
+        (relationship) => ({
+          ...relationship,
+          subject: relationship.subject ?? undefined,
+          getter: relationship.getter ?? undefined,
+          coverage: relationship.coverage ?? undefined,
+          functionContext: relationship.functionContext ?? undefined,
+          targetCode: relationship.targetCode ?? undefined,
+          callSignature: relationship.callSignature ?? undefined,
+          callSelector: relationship.callSelector ?? undefined,
+          verification: relationship.verification ?? undefined,
+        })
+      ),
+      observation:
+        graphqlData.ChainObservation?.find(
+          (observation) => observation.chainId === chainId
+        ) ?? null,
     },
   };
 }
 
 export function validateProtocolSnapshot(snapshot: ProtocolSnapshot): string[] {
   const errors: string[] = [];
-  if (snapshot.schemaVersion !== SCHEMA_VERSION) {
-    errors.push("schemaVersion must be 1.0.0");
+  if (!isSupportedSchemaVersion(snapshot.schemaVersion)) {
+    errors.push(
+      `Unsupported snapshot schema version: ${String(snapshot.schemaVersion)}`
+    );
   }
   if (!Number.isInteger(snapshot.chainId)) {
     errors.push("chainId must be an integer");
@@ -398,42 +528,20 @@ export function validateProtocolSnapshot(snapshot: ProtocolSnapshot): string[] {
   return errors;
 }
 
-const maxNumericString = (values: string[]): number =>
-  values.reduce((max, value) => {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) && parsed > max ? parsed : max;
-  }, 0);
-
 const progressFromSnapshot = (
   chain: ChainConfig,
   snapshot: ProtocolSnapshot
 ): ChainIndexingProgress => {
-  const timestamps = [
-    ...snapshot.data.contracts.map((contract) => contract.lastUpdatedTimestamp),
-    ...snapshot.data.roleAssignments.map(
-      (assignment) => assignment.lastUpdatedTimestamp
-    ),
-  ];
-  const blocks = [
-    ...snapshot.data.contracts.map(
-      (contract) => contract.lastUpdatedBlockNumber
-    ),
-    ...snapshot.data.roleAssignments.map(
-      (assignment) => assignment.lastUpdatedBlockNumber
-    ),
-  ];
-  const timestamp = maxNumericString(timestamps);
-  const block = maxNumericString(blocks);
-  const date =
-    timestamp > 0
-      ? new Date(timestamp * 1000).toISOString().slice(0, 10)
-      : snapshot.generatedAt.slice(0, 10);
-
+  const observation = snapshot.data.observation?.indexedThrough;
+  const timestamp = observation ? Number(observation.timestamp) : null;
   return {
     chainId: chain.chainId,
-    date,
+    date:
+      timestamp === null
+        ? null
+        : new Date(timestamp * 1000).toISOString().slice(0, 10),
     timestamp,
-    block,
+    block: Number(observation?.number ?? 0),
   };
 };
 
@@ -483,7 +591,10 @@ export async function createSnapshotBatch({
   now = new Date(),
   publicBasePath = DEFAULT_PUBLIC_BASE_PATH,
   indexingProgressOverride,
+  additionalContracts: inventory,
+  verifyObservation,
 }: CreateSnapshotFilesInput): Promise<SnapshotBatch> {
+  const additionalContracts = inventory ?? (await loadOtherContracts());
   const generatedAt = now.toISOString();
   const basePath = normalizeBasePath(publicBasePath);
   const chainSnapshots: ChainSnapshot[] = [];
@@ -494,6 +605,7 @@ export async function createSnapshotBatch({
       chainId: chain.chainId,
       generatedAt,
       graphqlData,
+      additionalContracts,
     });
     const errors = validateProtocolSnapshot(snapshot);
     if (errors.length > 0) {
@@ -506,7 +618,13 @@ export async function createSnapshotBatch({
     chainSnapshots.push({
       chain,
       snapshot,
-      progress: progressFromSnapshot(chain, snapshot),
+      observationReady: verifyObservation
+        ? await verifyObservation(chain.chainId, snapshot.data.observation)
+        : true,
+      progress:
+        Object.values(indexingProgressOverride?.chains ?? {}).find(
+          (progress) => progress.chainId === chain.chainId
+        ) ?? progressFromSnapshot(chain, snapshot),
     });
   }
 
@@ -516,13 +634,14 @@ export async function createSnapshotBatch({
     ),
   };
   const ready = chainSnapshots.every(
-    ({ snapshot, progress }) =>
+    ({ snapshot, progress, observationReady }) =>
+      observationReady &&
       snapshot.recordCounts.contracts +
         snapshot.recordCounts.roles +
-        snapshot.recordCounts.roleAssignments >
+        snapshot.recordCounts.roleAssignments +
+        (snapshot.data.additionalContracts?.length ?? 0) >
         0 &&
-      progress.block > 0 &&
-      progress.timestamp > 0
+      progress.block > 0
   );
 
   const manifest = createManifest({

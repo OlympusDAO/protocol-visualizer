@@ -12,6 +12,11 @@
       "types": "./dist/src/index.d.ts",
       "import": "./dist/src/index.js",
       "default": "./dist/src/index.js"
+    },
+    "./indexer-progress": {
+      "types": "./dist/src/indexer-progress.d.ts",
+      "import": "./dist/src/indexer-progress.js",
+      "default": "./dist/src/indexer-progress.js"
     }
   },
   "scripts": {
@@ -21,9 +26,10 @@
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
-    "typescript": "^5.9.3"
+    "ajv": "8.20.0",
+    "typescript": "^7.0.2"
   },
   "engines": {
-    "node": ">=24"
+    "node": ">=24.22.1"
   }
 }

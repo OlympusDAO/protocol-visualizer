@@ -39,3 +39,7 @@ yarn-error.log*
 .cursorrules
 
 .pnpm-store/
+
+# Local Railway plans and migration rollback snapshots
+/railway-plan.json
+/.railway/*migration*.json

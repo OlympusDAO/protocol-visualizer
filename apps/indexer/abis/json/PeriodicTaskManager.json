@@ -1,0 +1,21 @@
+[
+  {
+    "type": "event",
+    "name": "PeriodicTaskAdded",
+    "inputs": [
+      { "name": "task_", "type": "address", "indexed": true },
+      { "name": "customSelector_", "type": "bytes4", "indexed": false },
+      { "name": "index_", "type": "uint256", "indexed": true }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PeriodicTaskRemoved",
+    "inputs": [
+      { "name": "task_", "type": "address", "indexed": true },
+      { "name": "index_", "type": "uint256", "indexed": true }
+    ],
+    "anonymous": false
+  }
+]

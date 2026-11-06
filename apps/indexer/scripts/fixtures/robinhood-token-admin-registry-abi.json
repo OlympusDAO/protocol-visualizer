@@ -1,0 +1,28 @@
+{
+  "address": "0x1912c3cfafe8a76a32a92861d815ac2837f237ca",
+  "chainId": 4663,
+  "compilerVersion": "v0.8.26+commit.8a97fa7a",
+  "contractName": "TokenAdminRegistry",
+  "functions": [
+    "function acceptAdminRole(address) nonpayable",
+    "function acceptOwnership() nonpayable",
+    "function addRegistryModule(address) nonpayable",
+    "function getAllConfiguredTokens(uint64,uint64) view returns (address[])",
+    "function getPool(address) view returns (address)",
+    "function getPools(address[]) view returns (address[])",
+    "function getTokenConfig(address) view returns ((address,address,address))",
+    "function isAdministrator(address,address) view returns (bool)",
+    "function isRegistryModule(address) view returns (bool)",
+    "function owner() view returns (address)",
+    "function proposeAdministrator(address,address) nonpayable",
+    "function removeRegistryModule(address) nonpayable",
+    "function setPool(address,address) nonpayable",
+    "function transferAdminRole(address,address) nonpayable",
+    "function transferOwnership(address) nonpayable",
+    "function typeAndVersion() view returns (string)"
+  ],
+  "partial": true,
+  "runtimeBytes": 5287,
+  "sourceUrl": "https://robinhoodchain.blockscout.com/api/v2/smart-contracts/0x1912c3cfafe8a76a32a92861d815ac2837f237ca",
+  "verified": true
+}

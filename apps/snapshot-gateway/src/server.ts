@@ -12,7 +12,7 @@ import {
   deploymentArtifactKey,
   restProtocolPath,
   sanitizeManifestForPublic,
-  SCHEMA_VERSION,
+  isSupportedSchemaVersion,
   type BoundsResponse,
   type SnapshotManifest,
 } from "@protocol-visualizer/snapshot-artifacts";
@@ -23,6 +23,8 @@ type ChainConfig = {
   chainId: number;
   name: string;
   explorerBaseUrl: string;
+  environment?: "production" | "testnet";
+  availability?: "indexed" | "historical";
 };
 
 export type ObjectReader = {
@@ -237,7 +239,7 @@ export async function loadGatewayConfig(): Promise<GatewayConfig> {
 
 // A bad ABI registry must not stop the snapshot API. The /v1/abis routes
 // then return 503, and the log names the error. /ready also returns 503, so
-// that Railway keeps the previous deployment.
+// that data-availability monitoring shows the failure.
 export async function loadOptionalAbiRegistry(
   path: string,
   logger: GatewayLogger = defaultLogger
@@ -355,8 +357,10 @@ class ActiveManifestNotReadyError extends Error {
 const activeManifestIssues = (manifest: SnapshotManifest): string[] => {
   const issues: string[] = [];
 
-  if (manifest.schemaVersion !== SCHEMA_VERSION) {
-    issues.push("manifest schemaVersion is unsupported");
+  if (!isSupportedSchemaVersion(manifest.schemaVersion)) {
+    issues.push(
+      `manifest schemaVersion is unsupported: ${String(manifest.schemaVersion)}`
+    );
   }
   if (!manifest.generatedAt || Number.isNaN(Date.parse(manifest.generatedAt))) {
     issues.push("manifest generatedAt is invalid");
@@ -734,6 +738,8 @@ export function createSnapshotGateway(config: GatewayConfig) {
             data: manifest.chains.map((chain) => ({
               ...chain,
               path: restProtocolPath(chain.chainId),
+              environment: allowedChains.get(chain.chainId)?.environment,
+              availability: allowedChains.get(chain.chainId)?.availability,
             })),
           },
           "public, s-maxage=300, stale-while-revalidate=3600"
@@ -744,7 +750,10 @@ export function createSnapshotGateway(config: GatewayConfig) {
       const match = url.pathname.match(/^\/v1\/chains\/([0-9]+)\/protocol$/);
       if (match) {
         const chainId = Number(match[1]);
-        if (!allowedChains.has(chainId)) {
+        if (
+          !allowedChains.has(chainId) ||
+          !manifest.chains.some((chain) => chain.chainId === chainId)
+        ) {
           sendJson(request, response, 404, { error: "chain not found" });
           return;
         }
@@ -754,6 +763,13 @@ export function createSnapshotGateway(config: GatewayConfig) {
           return;
         }
         const object = await config.reader.getObject(key);
+        const snapshot = JSON.parse(object.body) as { schemaVersion?: unknown };
+        if (!isSupportedSchemaVersion(snapshot.schemaVersion)) {
+          sendJson(request, response, 502, {
+            error: `Unsupported snapshot schema version: ${String(snapshot.schemaVersion)}`,
+          });
+          return;
+        }
         send(
           response,
           200,

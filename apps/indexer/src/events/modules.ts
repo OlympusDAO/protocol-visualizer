@@ -6,11 +6,9 @@ import type {
   CurrentModuleEntity,
   EnvioContext,
 } from "./types";
-import { readModuleForKeycodeEffect } from "./effects";
+import { getModuleForKeycode } from "./effects";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-
-const currentModuleCache = new Map<string, CurrentModuleEntity>();
 
 export async function getCurrentModuleAddress(
   keycode: string,
@@ -18,27 +16,24 @@ export async function getCurrentModuleAddress(
   kernelAddress: Address,
   blockNumber: bigint,
   chainId: number,
-  context: EnvioContext
+  context: EnvioContext,
+  blockHash: string
 ): Promise<Address | null> {
   const id = currentModuleId(chainId, keycode);
-  const cached = currentModuleCache.get(id);
-  if (cached?.address) {
-    return cached.address as Address;
-  }
-
   const currentModule =
     await context.CurrentModule.get<CurrentModuleEntity>(id);
   if (currentModule?.address) {
-    currentModuleCache.set(id, currentModule);
     return currentModule.address as Address;
   }
 
-  const moduleAddress = await context.effect(readModuleForKeycodeEffect, {
+  const moduleAddress = await getModuleForKeycode(
+    context,
     chainId,
     kernelAddress,
     keycodeHex,
     blockNumber,
-  });
+    blockHash
+  );
 
   if (moduleAddress === ZERO_ADDRESS) {
     return null;
@@ -46,13 +41,11 @@ export async function getCurrentModuleAddress(
 
   const currentModuleEntity = {
     id,
-    chainId,
     keycode,
     address: moduleAddress,
     lastUpdatedTimestamp: 0n,
     lastUpdatedBlockNumber: blockNumber,
   };
-  currentModuleCache.set(id, currentModuleEntity);
   context.CurrentModule.set(currentModuleEntity);
 
   return moduleAddress;
@@ -85,13 +78,11 @@ export function setCurrentModule(
 ): void {
   const currentModule = {
     id: currentModuleId(chainId, keycode),
-    chainId,
     keycode,
     address,
     lastUpdatedTimestamp: timestamp,
     lastUpdatedBlockNumber: blockNumber,
   };
 
-  currentModuleCache.set(currentModule.id, currentModule);
   context.CurrentModule.set(currentModule);
 }

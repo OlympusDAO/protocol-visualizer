@@ -500,6 +500,24 @@ export const formatEnvioSpawnError = (error) => {
   return `Failed to start Envio: ${error.message}`;
 };
 
+export async function stopEnvioGroup(child, signal, timeoutMs = 30_000) {
+  if (!child) return;
+  try {
+    process.kill(-child.pid, signal);
+    const deadline = Date.now() + timeoutMs;
+    while (true) {
+      process.kill(-child.pid, 0);
+      if (Date.now() >= deadline) {
+        process.kill(-child.pid, "SIGKILL");
+        return;
+      }
+      await sleep(100);
+    }
+  } catch (error) {
+    if (error.code !== "ESRCH") throw error;
+  }
+}
+
 export const run = async () => {
   await waitForHasura();
 
@@ -529,6 +547,7 @@ export const run = async () => {
   }
 
   let child;
+  let shuttingDown = false;
   const startChild = (args = envioCommand.args) => {
     const started = spawn(envioCommand.command, args, {
       env: process.env,
@@ -542,7 +561,7 @@ export const run = async () => {
       process.exit(1);
     });
     started.on("exit", (code, signal) => {
-      if (maintenanceMode || child !== started) return;
+      if (shuttingDown || maintenanceMode || child !== started) return;
       wrapperServer?.close();
       if (signal) {
         process.kill(process.pid, signal);
@@ -554,6 +573,18 @@ export const run = async () => {
   if (!maintenanceMode) startChild();
 
   if (isStartCommand()) {
+    for (const signal of ["SIGINT", "SIGTERM"])
+      process.on(signal, async () => {
+        if (shuttingDown) return;
+        shuttingDown = true;
+        try {
+          await stopEnvioGroup(child, signal);
+        } catch (error) {
+          console.error(error.message);
+        }
+        wrapperServer?.close();
+        process.exit(signal === "SIGINT" ? 130 : 143);
+      });
     try {
       await startResetServer(async (sendLog) => {
         const log = (message) => {

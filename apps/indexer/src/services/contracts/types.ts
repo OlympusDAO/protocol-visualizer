@@ -13,6 +13,7 @@ export interface ProcessedContractData {
   roleToFunctions: Record<string, string[]>;
   functionSelectors: Record<string, FunctionDetails>;
   addressGetters?: string[];
+  metadataIncomplete?: boolean;
 }
 
 export interface FunctionDetails {

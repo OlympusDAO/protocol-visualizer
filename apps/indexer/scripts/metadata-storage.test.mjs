@@ -36,7 +36,7 @@ test("verified ABI metadata round trips through native effect persistence", asyn
     {
       effect: async (effect) => {
         if (effect.name === "readControlBlock") return undefined;
-        assert.equal(effect.name, "processContractMetadataV3");
+        assert.equal(effect.name, "processContractMetadataV4");
         const stored = codec.reverseConvertToJsonOrThrow(
           output,
           effect.storageMeta.outputSchema

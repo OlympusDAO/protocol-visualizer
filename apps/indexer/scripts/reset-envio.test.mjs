@@ -39,15 +39,18 @@ function command(child) {
   return { child, done, output: () => output };
 }
 
-for (const { checkCode, migrationCode, startCode } of [
+for (const { checkCode, migrationCode, startCode, shutdownSignal } of [
   { checkCode: 0, migrationCode: 0 },
   { checkCode: 0, migrationCode: 17 },
   { checkCode: 78, migrationCode: 0 },
   { checkCode: 78, migrationCode: 17 },
   { checkCode: 1, migrationCode: 0 },
   { checkCode: 0, migrationCode: 0, startCode: 23 },
+  { checkCode: 0, migrationCode: 0, shutdownSignal: "SIGTERM" },
+  { checkCode: 0, migrationCode: 0, shutdownSignal: "SIGINT" },
+  { checkCode: 78, migrationCode: 0, shutdownSignal: "SIGTERM" },
 ]) {
-  test(`explicit reset lifecycle (storage ${checkCode}, migration ${migrationCode}, start ${startCode ?? 0})`, {
+  test(`explicit reset lifecycle (storage ${checkCode}, migration ${migrationCode}, start ${startCode ?? 0}, shutdown ${shutdownSignal ?? "none"})`, {
     timeout: 20_000,
   }, async () => {
     const root = realpathSync(
@@ -142,6 +145,19 @@ for (const { checkCode, migrationCode, startCode } of [
           assert.equal(wrapper.child.exitCode, null, wrapper.output());
           return existsSync(running) && existsSync(workerRunning);
         });
+      }
+      if (shutdownSignal) {
+        wrapper.child.kill(shutdownSignal);
+        assert.equal(
+          (await wrapper.done).code,
+          shutdownSignal === "SIGINT" ? 130 : 143
+        );
+        assert(
+          !existsSync(running) && !existsSync(workerRunning),
+          "wrapper must wait for ingestion shutdown"
+        );
+        assert(!existsSync(migrated), "shutdown must not reset storage");
+        return;
       }
       const oldPid = existsSync(running)
         ? readFileSync(running, "utf8")

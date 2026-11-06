@@ -107,6 +107,7 @@ export class ContractProcessor {
       normalizedAddress,
       this.processSourceCode(name, sourceCode, processedData)
     );
+    if (processedContractData.metadataIncomplete) return processedContractData;
 
     let currentChainCache = this.cache[this.chainId];
     if (!currentChainCache) {
@@ -135,8 +136,16 @@ export class ContractProcessor {
         address,
         previous
       );
-    } catch {
-      return previous;
+    } catch (error) {
+      const status = (error as { status?: number })?.status;
+      const transient =
+        status === 408 ||
+        status === 429 ||
+        (typeof status === "number" && status >= 500 && status <= 599) ||
+        error instanceof TypeError ||
+        (error instanceof DOMException &&
+          ["AbortError", "TimeoutError"].includes(error.name));
+      return transient ? { ...previous, metadataIncomplete: true } : previous;
     }
   }
 

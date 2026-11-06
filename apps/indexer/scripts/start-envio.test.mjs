@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
+import { spawn } from "node:child_process";
 
 const validEnv = {
   DATABASE_URL:
@@ -25,6 +26,33 @@ async function loadModule() {
   process.env.ENVIO_HASURA_STARTUP_TIMEOUT_MS = "1";
   return import(`./start-envio.mjs?test=${Date.now()}-${Math.random()}`);
 }
+
+test("shutdown forcibly stops an unresponsive process group after the deadline", async () => {
+  const { stopEnvioGroup } = await loadModule();
+  const child = spawn(
+    process.execPath,
+    [
+      "-e",
+      'process.on("SIGTERM",()=>{});process.stdout.write("ready");setInterval(()=>{},1000)',
+    ],
+    { detached: true, stdio: ["ignore", "pipe", "ignore"] }
+  );
+  const exited = new Promise((accept) =>
+    child.once("exit", (code, signal) => accept({ code, signal }))
+  );
+  try {
+    await new Promise((accept, reject) => {
+      child.stdout.once("data", accept);
+      child.once("error", reject);
+    });
+    await stopEnvioGroup(child, "SIGTERM", 100);
+    assert.equal((await exited).signal, "SIGKILL");
+    await stopEnvioGroup(child, "SIGTERM", 100);
+    await stopEnvioGroup(undefined, "SIGTERM", 100);
+  } finally {
+    child.kill("SIGKILL");
+  }
+});
 
 test("resumes on Railway by default and resets only when explicitly requested", async () => {
   const { resolveEnvioArgs } = await loadModule();

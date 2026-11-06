@@ -235,7 +235,7 @@ also resets and starts ingestion, but it must remain an operator-only action.
 Local process fixtures check complete ingestion shutdown before migration,
 restart after success, maintenance after failure, and concurrent reset rejection.
 They also cover incompatible startup without automatic reset, explicit reset
-with no ingestion child, and ordinary storage/runtime failures exiting normally.
+with no ingestion child, and ordinary storage/runtime failures exiting unsuccessfully.
 The Railway command test uses a fake CLI to check explicit environment selection.
 The actual distroless image runs the official reset command against disposable
 Postgres and fixture Hasura responses. A separate image check executes Node through

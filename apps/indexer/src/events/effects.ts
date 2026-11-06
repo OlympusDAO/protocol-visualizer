@@ -65,12 +65,13 @@ const processedContractDataSchema: S.Schema<ProcessedContractData> = S.schema({
   roleToFunctions: S.record(S.array(S.string)),
   functionSelectors: S.record(functionDetailsSchema),
   addressGetters: S.optional(S.array(S.string)),
+  metadataIncomplete: S.optional(S.boolean),
 });
 
 const processContractMetadataEffect = createEffect(
   {
     crossChain: true,
-    name: "processContractMetadataV3",
+    name: "processContractMetadataV4",
     input: {
       chainId: S.number,
       address: S.address,
@@ -80,11 +81,14 @@ const processContractMetadataEffect = createEffect(
     rateLimit: { calls: 5, per: "second" },
     cache: true,
   },
-  async ({ input }) =>
-    getContractProcessor(input.chainId).processContract(
+  async ({ input, context }) => {
+    const result = await getContractProcessor(input.chainId).processContract(
       input.address,
       input.name
-    )
+    );
+    if (result.metadataIncomplete) context.cache = false;
+    return result;
+  }
 );
 
 const resolveCreationHash = Symbol("resolveCreationHash");
@@ -283,6 +287,10 @@ export async function getProcessedContract(
   if (!pending) {
     pending = context
       .effect(processContractMetadataEffect, { chainId, address, name })
+      .then((metadata) => {
+        if (metadata.metadataIncomplete) processedContracts.delete(cacheKey);
+        return metadata;
+      })
       .catch((error) => {
         processedContracts.delete(cacheKey);
         throw error;

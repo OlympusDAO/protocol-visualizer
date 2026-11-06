@@ -1630,7 +1630,10 @@ async function runBenchmark(options) {
           )
         ),
       };
-      if (git("show", `${oracleCommit}:pnpm-lock.yaml`) !== lock)
+      if (
+        git("show", `${oracleCommit}:pnpm-lock.yaml`) !== lock ||
+        !installedLockMatches(root, lock)
+      )
         throw new BenchmarkFailure("oracle_dependency_mismatch");
       const oracleArchive = join(temporary, "oracle.tar");
       oracleSource = join(temporary, "oracle");

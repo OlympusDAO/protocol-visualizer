@@ -12,10 +12,15 @@ const workerRunning = join(root, "worker-running");
 
 if (process.argv[2] === "worker") {
   writeFileSync(workerRunning, String(process.pid));
-  process.on("SIGTERM", () => {
-    unlinkSync(workerRunning);
-    process.exit(0);
-  });
+  let stopping = false;
+  for (const signal of ["SIGTERM", "SIGINT"])
+    process.on(signal, async () => {
+      if (stopping) return;
+      stopping = true;
+      await pause(200);
+      unlinkSync(workerRunning);
+      process.exit(0);
+    });
   setInterval(() => {}, 1000);
 } else if (process.argv[2] === "start") {
   if (Number(process.env.RESET_FIXTURE_START_CODE))
@@ -30,12 +35,13 @@ if (process.argv[2] === "worker") {
   worker.once("exit", () => {
     if (stopping) process.exit(0);
   });
-  process.on("SIGTERM", () => {
-    stopping = true;
-    unlinkSync(running);
-    if (worker.exitCode !== null) process.exit(0);
-    worker.kill("SIGTERM");
-  });
+  for (const signal of ["SIGTERM", "SIGINT"])
+    process.on(signal, () => {
+      stopping = true;
+      unlinkSync(running);
+      if (worker.exitCode !== null) process.exit(0);
+      worker.kill(signal);
+    });
   setInterval(() => {}, 1000);
 } else {
   assert(

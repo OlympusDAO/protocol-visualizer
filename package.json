@@ -53,7 +53,7 @@
     "railway:apply": "node scripts/railway-ops.mjs apply"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
+    "@biomejs/biome": "2.6.4",
     "@types/node": "^24.19.2",
     "@typescript/typescript6": "^6.0.2",
     "semver": "^7.8.5",

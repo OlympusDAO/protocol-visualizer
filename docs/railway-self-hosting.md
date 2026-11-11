@@ -587,6 +587,7 @@ Healthchecks:
 The snapshot gateway uses `/healthz` for storage-independent deployment health.
 This keeps the gateway running while the indexer rebuilds and the publisher waits to create the first manifest.
 `/ready` returns 503 until the active manifest and its referenced artifacts are accessible.
+`/ready` also returns 503 if the gateway did not load the ABI registry.
 After publication, the next readiness request succeeds without a gateway restart.
 Use `/ready` for data-availability monitoring. A successful deployment does not prove that snapshots are available.
 Readiness failures emit sanitized logs with provider error codes, affected chain ids, and check duration.

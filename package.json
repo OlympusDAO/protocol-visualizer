@@ -3,6 +3,8 @@
   "private": true,
   "packageManager": "pnpm@11.28.7",
   "scripts": {
+    "abis:check": "pnpm --filter @protocol-visualizer/contract-abis run check",
+    "abis:sync": "pnpm --filter @protocol-visualizer/contract-abis run sync",
     "build": "turbo run build && pnpm run railway:check && pnpm run test:config",
     "check:runtime-versions": "node scripts/verify-runtime-versions.mjs",
     "benchmark:indexer": "node -- scripts/benchmark-indexer.mjs",

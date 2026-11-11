@@ -1,0 +1,506 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "kernel_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "config_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "configTimelock_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "pool_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "ohm_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "registry_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "roles_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "ocgTimelock_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "daoMS_",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "balance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minimum",
+        "type": "uint256"
+      }
+    ],
+    "name": "CCIPTokenPoolConfigProposalChecker_BackingTooLow",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "binding",
+        "type": "string"
+      },
+      {
+        "internalType": "address",
+        "name": "actual",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "expected",
+        "type": "address"
+      }
+    ],
+    "name": "CCIPTokenPoolConfigProposalChecker_BindingMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "held",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "grantIncluded",
+        "type": "bool"
+      }
+    ],
+    "name": "CCIPTokenPoolConfigProposalChecker_BridgeAdminRoleMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "enabled",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "enableIncluded",
+        "type": "bool"
+      }
+    ],
+    "name": "CCIPTokenPoolConfigProposalChecker_ConfigEnabledMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "configOperator",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "desired",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "setIncluded",
+        "type": "bool"
+      }
+    ],
+    "name": "CCIPTokenPoolConfigProposalChecker_ConfigOperatorMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "role",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "CCIPTokenPoolConfigProposalChecker_MissingRole",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      }
+    ],
+    "name": "CCIPTokenPoolConfigProposalChecker_NotLiquidityContainer",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "administrator",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "pendingAdministrator",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "acceptIncluded",
+        "type": "bool"
+      }
+    ],
+    "name": "CCIPTokenPoolConfigProposalChecker_OhmAdministratorMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "policy",
+        "type": "address"
+      }
+    ],
+    "name": "CCIPTokenPoolConfigProposalChecker_PolicyNotActive",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "expected",
+        "type": "address"
+      }
+    ],
+    "name": "CCIPTokenPoolConfigProposalChecker_PoolOwnerMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "rateLimitAdmin",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "desired",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "setIncluded",
+        "type": "bool"
+      }
+    ],
+    "name": "CCIPTokenPoolConfigProposalChecker_RateLimitAdminMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "rebalancer",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "desired",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "setIncluded",
+        "type": "bool"
+      }
+    ],
+    "name": "CCIPTokenPoolConfigProposalChecker_RebalancerMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "registered",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "expected",
+        "type": "address"
+      }
+    ],
+    "name": "CCIPTokenPoolConfigProposalChecker_RegisteredPoolMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "chainSelector",
+        "type": "uint64"
+      }
+    ],
+    "name": "CCIPTokenPoolConfigProposalChecker_RouteAlreadyExists",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "enabled",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "enableIncluded",
+        "type": "bool"
+      }
+    ],
+    "name": "CCIPTokenPoolConfigProposalChecker_TimelockEnabledMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "parameter",
+        "type": "string"
+      }
+    ],
+    "name": "CCIPTokenPoolConfigProposalChecker_ZeroAddress",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CONFIG",
+    "outputs": [
+      {
+        "internalType": "contract ICCIPTokenPoolConfig",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "CONFIG_TIMELOCK",
+    "outputs": [
+      {
+        "internalType": "contract ICCIPTokenPoolConfigTimelock",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "DAO_MS",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "KERNEL",
+    "outputs": [
+      {
+        "internalType": "contract Kernel",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "OCG_TIMELOCK",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "OHM",
+    "outputs": [
+      {
+        "internalType": "contract IERC20",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "POOL",
+    "outputs": [
+      {
+        "internalType": "contract ICCIPTokenPoolAdmin",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "REGISTRY",
+    "outputs": [
+      {
+        "internalType": "contract ICCIPTokenAdminRegistry",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ROLES",
+    "outputs": [
+      {
+        "internalType": "contract ROLESv1",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "acceptAdminRole",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "grantBridgeAdmin",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "enableConfig",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "acceptPoolOwnership",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "setConfigOperator",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "setRebalancer",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "setRateLimitAdmin",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "enableTimelock",
+            "type": "bool"
+          },
+          {
+            "internalType": "address",
+            "name": "rebalancer",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "rateLimitAdmin",
+            "type": "address"
+          },
+          {
+            "internalType": "uint64[]",
+            "name": "routesToAdd",
+            "type": "uint64[]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minimumPoolBacking",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct ICCIPTokenPoolConfigProposalChecker.Expectations",
+        "name": "expectations_",
+        "type": "tuple"
+      }
+    ],
+    "name": "check",
+    "outputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

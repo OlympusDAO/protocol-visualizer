@@ -77,6 +77,21 @@ export async function checkRegistry({ manifest, files, readAbi, config }) {
       problems.push(`${name}: ${deployment.abi} does not match its abiHash.`);
     }
   }
+  // A chain exclusion has a chain and no address. If config.json no longer
+  // excludes the chain, or gives another reason, the manifest is out of date.
+  for (const exclusion of manifest.exclusions ?? []) {
+    if (!exclusion.chain || exclusion.address) continue;
+    const reason = config.excludedChains?.[exclusion.chain];
+    if (reason === undefined) {
+      problems.push(
+        `${exclusion.chain}: manifest.json excludes the chain, but config.json does not.`
+      );
+    } else if (reason !== exclusion.reason) {
+      problems.push(
+        `${exclusion.chain}: config.json gives another reason to exclude the chain.`
+      );
+    }
+  }
   for (const file of files) {
     if (!listed.has(file)) {
       problems.push(`abis/${file} is not in manifest.json.`);

@@ -6,13 +6,20 @@
     "ref": "c851f7e0a3147bcf312a8d076f7573b681ff3552"
   },
   "snapshotBaseUrl": "https://protocol-visualizer-api.olympusdao.finance",
-  "chains": ["arbitrum", "base", "berachain", "mainnet", "optimism", "sepolia"],
+  "chains": [
+    "arbitrum",
+    "arbitrum-sepolia",
+    "base",
+    "base-sepolia",
+    "berachain",
+    "mainnet",
+    "optimism",
+    "robinhood",
+    "sepolia"
+  ],
   "excludedChains": {
-    "arbitrum-sepolia": "Testnet that the protocol visualizer does not index.",
-    "base-sepolia": "Testnet that the protocol visualizer does not index.",
     "berachain-bartio": "Retired network. Etherscan V2 does not support it.",
     "goerli": "Retired network. Etherscan V2 does not support it.",
-    "robinhood": "Not indexed yet",
     "solana": "Non-EVM chain; Solidity ABIs do not describe Solana programs.",
     "solana-devnet": "Non-EVM chain; Solidity ABIs do not describe Solana programs."
   },

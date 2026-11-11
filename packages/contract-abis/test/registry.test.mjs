@@ -641,3 +641,22 @@ test("checkRegistry finds config.json changes that were not synced", async () =>
     "mainnet/RolesAdmin: olympus.policies.RolesAdmin is in an excluded section.",
   ]);
 });
+
+test("checkRegistry finds chain exclusions that were not synced", async () => {
+  const { manifest, abis } = await build(fakes());
+  const check = (configChanges) =>
+    checkRegistry({
+      manifest,
+      files: [...abis.keys()],
+      readAbi: async (file) => abis.get(file),
+      config: { ...config, ...configChanges },
+    });
+  assert.deepEqual(await check({}), []);
+  assert.deepEqual(
+    await check({ chains: [...config.chains, "goerli"], excludedChains: {} }),
+    ["goerli: manifest.json excludes the chain, but config.json does not."]
+  );
+  assert.deepEqual(await check({ excludedChains: { goerli: "Shut down." } }), [
+    "goerli: config.json gives another reason to exclude the chain.",
+  ]);
+});

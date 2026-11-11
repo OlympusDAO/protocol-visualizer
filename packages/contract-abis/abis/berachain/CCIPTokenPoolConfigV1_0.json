@@ -1,0 +1,1647 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "contract Kernel",
+        "name": "kernel_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "pool_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint32",
+        "name": "gracePeriod_",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "AllowListNotEnabled",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "parameter",
+        "type": "string"
+      }
+    ],
+    "name": "CCIPTokenPoolConfig_AddressUnchanged",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CCIPTokenPoolConfig_AllowListUpdatesEmpty",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CCIPTokenPoolConfig_ChainSelectorZero",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "parameter",
+        "type": "string"
+      }
+    ],
+    "name": "CCIPTokenPoolConfig_InvalidAddress",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "configOperator",
+        "type": "address"
+      }
+    ],
+    "name": "CCIPTokenPoolConfig_InvalidConfigOperator",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      }
+    ],
+    "name": "CCIPTokenPoolConfig_InvalidPool",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "remoteAddress",
+        "type": "bytes"
+      }
+    ],
+    "name": "CCIPTokenPoolConfig_InvalidRemoteAddressLength",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "router",
+        "type": "address"
+      }
+    ],
+    "name": "CCIPTokenPoolConfig_InvalidRouter",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "chainSelector",
+        "type": "uint64"
+      }
+    ],
+    "name": "CCIPTokenPoolConfig_LastRemotePool",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CCIPTokenPoolConfig_NoRoutesConfigured",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CCIPTokenPoolConfig_NotLiquidityContainer",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CCIPTokenPoolConfig_RateLimiterDisabled",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CCIPTokenPoolConfig_RateLimiterReserved",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CCIPTokenPoolConfig_RemotePoolsEmpty",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CCIPTokenPoolConfig_RemoteTokenEmpty",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes5",
+        "name": "keycode",
+        "type": "bytes5"
+      },
+      {
+        "internalType": "uint8",
+        "name": "major",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "minor",
+        "type": "uint8"
+      }
+    ],
+    "name": "CCIPTokenPoolConfig_UnsupportedModuleVersion",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CCIPTokenPoolConfig_ZeroAmount",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "chainSelector",
+        "type": "uint64"
+      }
+    ],
+    "name": "ChainAlreadyExists",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "caller_",
+        "type": "address"
+      }
+    ],
+    "name": "ConfigOperator_Unauthorized",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ConfigOperator_Unchanged",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint48",
+        "name": "deadline",
+        "type": "uint48"
+      }
+    ],
+    "name": "GracePeriod_Expired",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "GracePeriod_NotConfigurable",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "GracePeriod_ZeroPeriod",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "isEnabled",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint128",
+            "name": "capacity",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "rate",
+            "type": "uint128"
+          }
+        ],
+        "internalType": "struct ICCIPRateLimiter.Config",
+        "name": "rateLimiterConfig",
+        "type": "tuple"
+      }
+    ],
+    "name": "InvalidRateLimitRate",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "remoteChainSelector",
+        "type": "uint64"
+      },
+      {
+        "internalType": "bytes",
+        "name": "remotePoolAddress",
+        "type": "bytes"
+      }
+    ],
+    "name": "InvalidRemotePoolForChain",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "caller_",
+        "type": "address"
+      }
+    ],
+    "name": "KernelAdapter_OnlyKernel",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NeverEnabled",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "remoteChainSelector",
+        "type": "uint64"
+      }
+    ],
+    "name": "NonExistentChain",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NotAuthorised",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NotDisabled",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NotEnabled",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "Keycode",
+        "name": "keycode_",
+        "type": "bytes5"
+      }
+    ],
+    "name": "Policy_ModuleDoesNotExist",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "expected_",
+        "type": "bytes"
+      }
+    ],
+    "name": "Policy_WrongModuleVersion",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "remoteChainSelector",
+        "type": "uint64"
+      },
+      {
+        "internalType": "bytes",
+        "name": "remotePoolAddress",
+        "type": "bytes"
+      }
+    ],
+    "name": "PoolAlreadyAdded",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "role_",
+        "type": "bytes32"
+      }
+    ],
+    "name": "ROLES_RequireRole",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ZeroAddressNotAllowed",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address[]",
+        "name": "removes",
+        "type": "address[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "address[]",
+        "name": "adds",
+        "type": "address[]"
+      }
+    ],
+    "name": "AllowListUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "configOperator",
+        "type": "address"
+      }
+    ],
+    "name": "ConfigOperatorSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [],
+    "name": "Disabled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [],
+    "name": "Enabled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "period",
+        "type": "uint32"
+      }
+    ],
+    "name": "GracePeriodSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "from",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "PoolLiquidityTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      }
+    ],
+    "name": "PoolOwnershipAccepted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "PoolOwnershipTransferRequested",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "rateLimitAdmin",
+        "type": "address"
+      }
+    ],
+    "name": "PoolRateLimitAdminSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "rebalancer",
+        "type": "address"
+      }
+    ],
+    "name": "PoolRebalancerSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "router",
+        "type": "address"
+      }
+    ],
+    "name": "PoolRouterSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "chainSelector",
+        "type": "uint64"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "previousRemoteToken",
+        "type": "bytes"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "remoteToken",
+        "type": "bytes"
+      }
+    ],
+    "name": "RemoteTokenSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "chainSelector",
+        "type": "uint64"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint64",
+            "name": "remoteChainSelector",
+            "type": "uint64"
+          },
+          {
+            "internalType": "bytes[]",
+            "name": "remotePoolAddresses",
+            "type": "bytes[]"
+          },
+          {
+            "internalType": "bytes",
+            "name": "remoteTokenAddress",
+            "type": "bytes"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "isEnabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint128",
+                "name": "capacity",
+                "type": "uint128"
+              },
+              {
+                "internalType": "uint128",
+                "name": "rate",
+                "type": "uint128"
+              }
+            ],
+            "internalType": "struct ICCIPRateLimiter.Config",
+            "name": "outboundRateLimiterConfig",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "isEnabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint128",
+                "name": "capacity",
+                "type": "uint128"
+              },
+              {
+                "internalType": "uint128",
+                "name": "rate",
+                "type": "uint128"
+              }
+            ],
+            "internalType": "struct ICCIPRateLimiter.Config",
+            "name": "inboundRateLimiterConfig",
+            "type": "tuple"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct ICCIPTokenPoolAdmin.ChainUpdate",
+        "name": "update",
+        "type": "tuple"
+      }
+    ],
+    "name": "RouteAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "chainSelector",
+        "type": "uint64"
+      }
+    ],
+    "name": "RouteDisabled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "chainSelector",
+        "type": "uint64"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "isEnabled",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint128",
+            "name": "capacity",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "rate",
+            "type": "uint128"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct ICCIPRateLimiter.Config",
+        "name": "previousOutbound",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "isEnabled",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint128",
+            "name": "capacity",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "rate",
+            "type": "uint128"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct ICCIPRateLimiter.Config",
+        "name": "previousInbound",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "isEnabled",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint128",
+            "name": "capacity",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "rate",
+            "type": "uint128"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct ICCIPRateLimiter.Config",
+        "name": "outbound",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "isEnabled",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint128",
+            "name": "capacity",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "rate",
+            "type": "uint128"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct ICCIPRateLimiter.Config",
+        "name": "inbound",
+        "type": "tuple"
+      }
+    ],
+    "name": "RouteRateLimitsSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "chainSelector",
+        "type": "uint64"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "remotePool",
+        "type": "bytes"
+      }
+    ],
+    "name": "RouteRemotePoolAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "chainSelector",
+        "type": "uint64"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "remotePool",
+        "type": "bytes"
+      }
+    ],
+    "name": "RouteRemotePoolRemoved",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "chainSelector",
+        "type": "uint64"
+      }
+    ],
+    "name": "RouteRemoved",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "by",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bool",
+        "name": "enable",
+        "type": "bool"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint48",
+        "name": "at",
+        "type": "uint48"
+      }
+    ],
+    "name": "Transition",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "ROLES",
+    "outputs": [
+      {
+        "internalType": "contract ROLESv1",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "VERSION",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "major",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "minor",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "acceptPoolOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint64",
+            "name": "remoteChainSelector",
+            "type": "uint64"
+          },
+          {
+            "internalType": "bytes[]",
+            "name": "remotePoolAddresses",
+            "type": "bytes[]"
+          },
+          {
+            "internalType": "bytes",
+            "name": "remoteTokenAddress",
+            "type": "bytes"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "isEnabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint128",
+                "name": "capacity",
+                "type": "uint128"
+              },
+              {
+                "internalType": "uint128",
+                "name": "rate",
+                "type": "uint128"
+              }
+            ],
+            "internalType": "struct ICCIPRateLimiter.Config",
+            "name": "outboundRateLimiterConfig",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "isEnabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint128",
+                "name": "capacity",
+                "type": "uint128"
+              },
+              {
+                "internalType": "uint128",
+                "name": "rate",
+                "type": "uint128"
+              }
+            ],
+            "internalType": "struct ICCIPRateLimiter.Config",
+            "name": "inboundRateLimiterConfig",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct ICCIPTokenPoolAdmin.ChainUpdate",
+        "name": "update_",
+        "type": "tuple"
+      }
+    ],
+    "name": "addChain",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "chainSelector_",
+        "type": "uint64"
+      },
+      {
+        "internalType": "bytes",
+        "name": "remotePool_",
+        "type": "bytes"
+      }
+    ],
+    "name": "addRemotePool",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address[]",
+        "name": "removes_",
+        "type": "address[]"
+      },
+      {
+        "internalType": "address[]",
+        "name": "adds_",
+        "type": "address[]"
+      }
+    ],
+    "name": "applyAllowListUpdates",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract Kernel",
+        "name": "newKernel_",
+        "type": "address"
+      }
+    ],
+    "name": "changeKernel",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "configOperator",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "configureDependencies",
+    "outputs": [
+      {
+        "internalType": "Keycode[]",
+        "name": "dependencies",
+        "type": "bytes5[]"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "data_",
+        "type": "bytes"
+      }
+    ],
+    "name": "disable",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "disableAllChains",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "chainSelector_",
+        "type": "uint64"
+      }
+    ],
+    "name": "disableChain",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "data_",
+        "type": "bytes"
+      }
+    ],
+    "name": "enable",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getDisabledRateLimiterConfig",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "isEnabled",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint128",
+            "name": "capacity",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "rate",
+            "type": "uint128"
+          }
+        ],
+        "internalType": "struct ICCIPRateLimiter.Config",
+        "name": "config",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "gracePeriod",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "isActive",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "chainSelector_",
+        "type": "uint64"
+      }
+    ],
+    "name": "isChainDisabled",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "disabled",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "isEnabled",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "isLiquidityContainer",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "isContainer",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "kernel",
+    "outputs": [
+      {
+        "internalType": "contract Kernel",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "lastTransitionAt",
+    "outputs": [
+      {
+        "internalType": "uint48",
+        "name": "",
+        "type": "uint48"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "pool",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "pool_",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "reEnable",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "chainSelector_",
+        "type": "uint64"
+      }
+    ],
+    "name": "removeChain",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "chainSelector_",
+        "type": "uint64"
+      },
+      {
+        "internalType": "bytes",
+        "name": "remotePool_",
+        "type": "bytes"
+      }
+    ],
+    "name": "removeRemotePool",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "requestPermissions",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "Keycode",
+            "name": "keycode",
+            "type": "bytes5"
+          },
+          {
+            "internalType": "bytes4",
+            "name": "funcSelector",
+            "type": "bytes4"
+          }
+        ],
+        "internalType": "struct Permissions[]",
+        "name": "requests",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "chainSelector_",
+        "type": "uint64"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "isEnabled",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint128",
+            "name": "capacity",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "rate",
+            "type": "uint128"
+          }
+        ],
+        "internalType": "struct ICCIPRateLimiter.Config",
+        "name": "outbound_",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "isEnabled",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint128",
+            "name": "capacity",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "rate",
+            "type": "uint128"
+          }
+        ],
+        "internalType": "struct ICCIPRateLimiter.Config",
+        "name": "inbound_",
+        "type": "tuple"
+      }
+    ],
+    "name": "setChainRateLimits",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "configOperator_",
+        "type": "address"
+      }
+    ],
+    "name": "setConfigOperator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint32",
+        "name": "period_",
+        "type": "uint32"
+      }
+    ],
+    "name": "setGracePeriod",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "rateLimitAdmin_",
+        "type": "address"
+      }
+    ],
+    "name": "setRateLimitAdmin",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "rebalancer_",
+        "type": "address"
+      }
+    ],
+    "name": "setRebalancer",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "chainSelector_",
+        "type": "uint64"
+      },
+      {
+        "internalType": "bytes",
+        "name": "remoteToken_",
+        "type": "bytes"
+      }
+    ],
+    "name": "setRemoteToken",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "router_",
+        "type": "address"
+      }
+    ],
+    "name": "setRouter",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes4",
+        "name": "interfaceId_",
+        "type": "bytes4"
+      }
+    ],
+    "name": "supportsInterface",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "from_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount_",
+        "type": "uint256"
+      }
+    ],
+    "name": "transferLiquidity",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner_",
+        "type": "address"
+      }
+    ],
+    "name": "transferPoolOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint64",
+            "name": "remoteChainSelector",
+            "type": "uint64"
+          },
+          {
+            "internalType": "bytes[]",
+            "name": "remotePoolAddresses",
+            "type": "bytes[]"
+          },
+          {
+            "internalType": "bytes",
+            "name": "remoteTokenAddress",
+            "type": "bytes"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "isEnabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint128",
+                "name": "capacity",
+                "type": "uint128"
+              },
+              {
+                "internalType": "uint128",
+                "name": "rate",
+                "type": "uint128"
+              }
+            ],
+            "internalType": "struct ICCIPRateLimiter.Config",
+            "name": "outboundRateLimiterConfig",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "isEnabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint128",
+                "name": "capacity",
+                "type": "uint128"
+              },
+              {
+                "internalType": "uint128",
+                "name": "rate",
+                "type": "uint128"
+              }
+            ],
+            "internalType": "struct ICCIPRateLimiter.Config",
+            "name": "inboundRateLimiterConfig",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct ICCIPTokenPoolAdmin.ChainUpdate",
+        "name": "update_",
+        "type": "tuple"
+      }
+    ],
+    "name": "validateAddChain",
+    "outputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "chainSelector_",
+        "type": "uint64"
+      },
+      {
+        "internalType": "bytes",
+        "name": "remotePool_",
+        "type": "bytes"
+      }
+    ],
+    "name": "validateAddRemotePool",
+    "outputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address[]",
+        "name": "removes_",
+        "type": "address[]"
+      },
+      {
+        "internalType": "address[]",
+        "name": "adds_",
+        "type": "address[]"
+      }
+    ],
+    "name": "validateApplyAllowListUpdates",
+    "outputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "chainSelector_",
+        "type": "uint64"
+      }
+    ],
+    "name": "validateRemoveChain",
+    "outputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "chainSelector_",
+        "type": "uint64"
+      },
+      {
+        "internalType": "bytes",
+        "name": "remotePool_",
+        "type": "bytes"
+      }
+    ],
+    "name": "validateRemoveRemotePool",
+    "outputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "chainSelector_",
+        "type": "uint64"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "isEnabled",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint128",
+            "name": "capacity",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "rate",
+            "type": "uint128"
+          }
+        ],
+        "internalType": "struct ICCIPRateLimiter.Config",
+        "name": "outbound_",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "isEnabled",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint128",
+            "name": "capacity",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "rate",
+            "type": "uint128"
+          }
+        ],
+        "internalType": "struct ICCIPRateLimiter.Config",
+        "name": "inbound_",
+        "type": "tuple"
+      }
+    ],
+    "name": "validateSetChainRateLimits",
+    "outputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "chainSelector_",
+        "type": "uint64"
+      },
+      {
+        "internalType": "bytes",
+        "name": "remoteToken_",
+        "type": "bytes"
+      }
+    ],
+    "name": "validateSetRemoteToken",
+    "outputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

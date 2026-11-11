@@ -132,7 +132,8 @@ same `abiHash` have the same interface.
 package or in the repository root. It also needs `ENVIO_RPC_URL_<chainId>` for
 each chain in `config.json` `chains`. The indexer uses the same variables. The
 names in `chains` are the chain names in `env.json`. The chain ID of each name
-comes from `viem/chains`.
+comes from `viem/chains`. A kebab-case name such as `arbitrum-sepolia` gives
+the viem export `arbitrumSepolia`.
 
 ## Automation
 

@@ -1,43 +1,59 @@
 {
   "deployments": [
     {
-      "abi": "arbitrum/CCIPBurnMintTokenPoolV1_0.json",
+      "abi": "arbitrum/CCIPBurnMintTokenPool.json",
       "abiHash": "6a48511979a034be09a1e3e0ac95fb8de46879de518936f7cc8f5916b758d7da",
       "abiSource": "etherscan",
-      "address": "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a",
+      "address": "0xF35193DA8C10e44aF10853Ba5a3a1a6F7529E39a",
       "chain": "arbitrum",
       "chainId": 42161,
       "contractName": "CCIPBurnMintTokenPool",
-      "label": "CCIPBurnMintTokenPoolV1_0",
+      "label": "CCIPBurnMintTokenPool",
       "origin": {
+        "env": ["olympus.policies.CCIPBurnMintTokenPool"],
         "kernel": "POLICY"
       },
       "version": "1.0"
     },
     {
-      "abi": "arbitrum/CCIPTokenPoolConfigTimelockV1_0.json",
-      "abiHash": "f3af8c47ac7bc5ae9a80cd27d72793dcd2ee9aee5b94e7949192fdfa7fe73baf",
+      "abi": "arbitrum/CCIPCrossChainBridge.json",
+      "abiHash": "4f8351f779caa8ee7e4d481af29b77d16ffe76eb533991411816d0c898e45f68",
       "abiSource": "etherscan",
-      "address": "0x5261fba7b50aa22b19b9edf939b771d109de991f",
+      "address": "0xb4f620c39F3BA4a1E7aD264fEd6239B0C618DB50",
       "chain": "arbitrum",
       "chainId": 42161,
-      "contractName": "CCIPTokenPoolConfigTimelock",
-      "label": "CCIPTokenPoolConfigTimelockV1_0",
+      "contractName": "CCIPCrossChainBridge",
+      "label": "CCIPCrossChainBridge",
       "origin": {
-        "kernel": "POLICY"
-      },
-      "version": "1.0"
+        "env": ["olympus.periphery.CCIPCrossChainBridge"]
+      }
     },
     {
-      "abi": "arbitrum/CCIPTokenPoolConfigV1_0.json",
+      "abi": "arbitrum/CCIPTokenPoolConfig.json",
       "abiHash": "d83d0b75877c30a312803f0bd686646325debf910e591e2189d94b6e69173727",
       "abiSource": "etherscan",
-      "address": "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb",
+      "address": "0x5824850D8A6E46a473445a5AF214C7EbD46c5ECB",
       "chain": "arbitrum",
       "chainId": 42161,
       "contractName": "CCIPTokenPoolConfig",
-      "label": "CCIPTokenPoolConfigV1_0",
+      "label": "CCIPTokenPoolConfig",
       "origin": {
+        "env": ["olympus.policies.CCIPTokenPoolConfig"],
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "arbitrum/CCIPTokenPoolConfigTimelock.json",
+      "abiHash": "f3af8c47ac7bc5ae9a80cd27d72793dcd2ee9aee5b94e7949192fdfa7fe73baf",
+      "abiSource": "etherscan",
+      "address": "0x5261fBA7B50aA22B19B9edF939b771D109dE991F",
+      "chain": "arbitrum",
+      "chainId": 42161,
+      "contractName": "CCIPTokenPoolConfigTimelock",
+      "label": "CCIPTokenPoolConfigTimelock",
+      "origin": {
+        "env": ["olympus.policies.CCIPTokenPoolConfigTimelock"],
         "kernel": "POLICY"
       },
       "version": "1.0"
@@ -296,43 +312,59 @@
       }
     },
     {
-      "abi": "base/CCIPBurnMintTokenPoolV1_0.json",
+      "abi": "base/CCIPBurnMintTokenPool.json",
       "abiHash": "6a48511979a034be09a1e3e0ac95fb8de46879de518936f7cc8f5916b758d7da",
       "abiSource": "etherscan",
-      "address": "0x20a3d8510f2e1176e8db4cea9883a8287a9029db",
+      "address": "0x20a3d8510f2e1176E8Db4CeA9883a8287a9029Db",
       "chain": "base",
       "chainId": 8453,
       "contractName": "CCIPBurnMintTokenPool",
-      "label": "CCIPBurnMintTokenPoolV1_0",
+      "label": "CCIPBurnMintTokenPool",
       "origin": {
+        "env": ["olympus.policies.CCIPBurnMintTokenPool"],
         "kernel": "POLICY"
       },
       "version": "1.0"
     },
     {
-      "abi": "base/CCIPTokenPoolConfigTimelockV1_0.json",
-      "abiHash": "f3af8c47ac7bc5ae9a80cd27d72793dcd2ee9aee5b94e7949192fdfa7fe73baf",
+      "abi": "base/CCIPCrossChainBridge.json",
+      "abiHash": "4f8351f779caa8ee7e4d481af29b77d16ffe76eb533991411816d0c898e45f68",
       "abiSource": "etherscan",
-      "address": "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50",
+      "address": "0xEBDe552D851DD6Dfd3D360C596D3F4aF6e5F9678",
       "chain": "base",
       "chainId": 8453,
-      "contractName": "CCIPTokenPoolConfigTimelock",
-      "label": "CCIPTokenPoolConfigTimelockV1_0",
+      "contractName": "CCIPCrossChainBridge",
+      "label": "CCIPCrossChainBridge",
       "origin": {
-        "kernel": "POLICY"
-      },
-      "version": "1.0"
+        "env": ["olympus.periphery.CCIPCrossChainBridge"]
+      }
     },
     {
-      "abi": "base/CCIPTokenPoolConfigV1_0.json",
+      "abi": "base/CCIPTokenPoolConfig.json",
       "abiHash": "d83d0b75877c30a312803f0bd686646325debf910e591e2189d94b6e69173727",
       "abiSource": "etherscan",
-      "address": "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a",
+      "address": "0xF35193DA8C10e44aF10853Ba5a3a1a6F7529E39a",
       "chain": "base",
       "chainId": 8453,
       "contractName": "CCIPTokenPoolConfig",
-      "label": "CCIPTokenPoolConfigV1_0",
+      "label": "CCIPTokenPoolConfig",
       "origin": {
+        "env": ["olympus.policies.CCIPTokenPoolConfig"],
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "base/CCIPTokenPoolConfigTimelock.json",
+      "abiHash": "f3af8c47ac7bc5ae9a80cd27d72793dcd2ee9aee5b94e7949192fdfa7fe73baf",
+      "abiSource": "etherscan",
+      "address": "0xb4f620c39F3BA4a1E7aD264fEd6239B0C618DB50",
+      "chain": "base",
+      "chainId": 8453,
+      "contractName": "CCIPTokenPoolConfigTimelock",
+      "label": "CCIPTokenPoolConfigTimelock",
+      "origin": {
+        "env": ["olympus.policies.CCIPTokenPoolConfigTimelock"],
         "kernel": "POLICY"
       },
       "version": "1.0"
@@ -661,43 +693,59 @@
       }
     },
     {
-      "abi": "berachain/CCIPBurnMintTokenPoolV1_0.json",
+      "abi": "berachain/CCIPBurnMintTokenPool.json",
       "abiHash": "6a48511979a034be09a1e3e0ac95fb8de46879de518936f7cc8f5916b758d7da",
       "abiSource": "etherscan",
-      "address": "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678",
+      "address": "0xEBDe552D851DD6Dfd3D360C596D3F4aF6e5F9678",
       "chain": "berachain",
       "chainId": 80094,
       "contractName": "CCIPBurnMintTokenPool",
-      "label": "CCIPBurnMintTokenPoolV1_0",
+      "label": "CCIPBurnMintTokenPool",
       "origin": {
+        "env": ["olympus.policies.CCIPBurnMintTokenPool"],
         "kernel": "POLICY"
       },
       "version": "1.0"
     },
     {
-      "abi": "berachain/CCIPTokenPoolConfigTimelockV1_0.json",
-      "abiHash": "f3af8c47ac7bc5ae9a80cd27d72793dcd2ee9aee5b94e7949192fdfa7fe73baf",
+      "abi": "berachain/CCIPCrossChainBridge.json",
+      "abiHash": "4f8351f779caa8ee7e4d481af29b77d16ffe76eb533991411816d0c898e45f68",
       "abiSource": "etherscan",
-      "address": "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb",
+      "address": "0xF35193DA8C10e44aF10853Ba5a3a1a6F7529E39a",
       "chain": "berachain",
       "chainId": 80094,
-      "contractName": "CCIPTokenPoolConfigTimelock",
-      "label": "CCIPTokenPoolConfigTimelockV1_0",
+      "contractName": "CCIPCrossChainBridge",
+      "label": "CCIPCrossChainBridge",
       "origin": {
-        "kernel": "POLICY"
-      },
-      "version": "1.0"
+        "env": ["olympus.periphery.CCIPCrossChainBridge"]
+      }
     },
     {
-      "abi": "berachain/CCIPTokenPoolConfigV1_0.json",
+      "abi": "berachain/CCIPTokenPoolConfig.json",
       "abiHash": "d83d0b75877c30a312803f0bd686646325debf910e591e2189d94b6e69173727",
       "abiSource": "etherscan",
-      "address": "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50",
+      "address": "0xb4f620c39F3BA4a1E7aD264fEd6239B0C618DB50",
       "chain": "berachain",
       "chainId": 80094,
       "contractName": "CCIPTokenPoolConfig",
-      "label": "CCIPTokenPoolConfigV1_0",
+      "label": "CCIPTokenPoolConfig",
       "origin": {
+        "env": ["olympus.policies.CCIPTokenPoolConfig"],
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "berachain/CCIPTokenPoolConfigTimelock.json",
+      "abiHash": "f3af8c47ac7bc5ae9a80cd27d72793dcd2ee9aee5b94e7949192fdfa7fe73baf",
+      "abiSource": "etherscan",
+      "address": "0x5824850D8A6E46a473445a5AF214C7EbD46c5ECB",
+      "chain": "berachain",
+      "chainId": 80094,
+      "contractName": "CCIPTokenPoolConfigTimelock",
+      "label": "CCIPTokenPoolConfigTimelock",
+      "origin": {
+        "env": ["olympus.policies.CCIPTokenPoolConfigTimelock"],
         "kernel": "POLICY"
       },
       "version": "1.0"
@@ -925,29 +973,44 @@
       }
     },
     {
-      "abi": "mainnet/CCIPTokenPoolConfigTimelockV1_0.json",
-      "abiHash": "f3af8c47ac7bc5ae9a80cd27d72793dcd2ee9aee5b94e7949192fdfa7fe73baf",
+      "abi": "mainnet/CCIPTokenPoolConfig.json",
+      "abiHash": "d83d0b75877c30a312803f0bd686646325debf910e591e2189d94b6e69173727",
       "abiSource": "etherscan",
-      "address": "0xf489f38bf8d98a5c10a030f8c16624f6764cd27a",
+      "address": "0x2CEA7B722dbd6b03f0E857d11e53ECB698cC2b4E",
       "chain": "mainnet",
       "chainId": 1,
-      "contractName": "CCIPTokenPoolConfigTimelock",
-      "label": "CCIPTokenPoolConfigTimelockV1_0",
+      "contractName": "CCIPTokenPoolConfig",
+      "label": "CCIPTokenPoolConfig",
       "origin": {
+        "env": ["olympus.policies.CCIPTokenPoolConfig"],
         "kernel": "POLICY"
       },
       "version": "1.0"
     },
     {
-      "abi": "mainnet/CCIPTokenPoolConfigV1_0.json",
-      "abiHash": "d83d0b75877c30a312803f0bd686646325debf910e591e2189d94b6e69173727",
+      "abi": "mainnet/CCIPTokenPoolConfigProposalChecker.json",
+      "abiHash": "cef2b2fa67ed67f79d8ebfa0980517ec2cc2bdee48f487925b2f7bcb301c8f32",
       "abiSource": "etherscan",
-      "address": "0x2cea7b722dbd6b03f0e857d11e53ecb698cc2b4e",
+      "address": "0x1b1FB8C6E0420C6595a016Dd8AD962176aa564c9",
       "chain": "mainnet",
       "chainId": 1,
-      "contractName": "CCIPTokenPoolConfig",
-      "label": "CCIPTokenPoolConfigV1_0",
+      "contractName": "CCIPTokenPoolConfigProposalChecker",
+      "label": "CCIPTokenPoolConfigProposalChecker",
       "origin": {
+        "env": ["olympus.periphery.CCIPTokenPoolConfigProposalChecker"]
+      }
+    },
+    {
+      "abi": "mainnet/CCIPTokenPoolConfigTimelock.json",
+      "abiHash": "f3af8c47ac7bc5ae9a80cd27d72793dcd2ee9aee5b94e7949192fdfa7fe73baf",
+      "abiSource": "etherscan",
+      "address": "0xF489F38BF8d98A5C10a030f8C16624f6764CD27A",
+      "chain": "mainnet",
+      "chainId": 1,
+      "contractName": "CCIPTokenPoolConfigTimelock",
+      "label": "CCIPTokenPoolConfigTimelock",
+      "origin": {
+        "env": ["olympus.policies.CCIPTokenPoolConfigTimelock"],
         "kernel": "POLICY"
       },
       "version": "1.0"
@@ -1782,43 +1845,59 @@
       }
     },
     {
-      "abi": "optimism/CCIPBurnMintTokenPoolV1_0.json",
+      "abi": "optimism/CCIPBurnMintTokenPool.json",
       "abiHash": "6a48511979a034be09a1e3e0ac95fb8de46879de518936f7cc8f5916b758d7da",
       "abiSource": "etherscan",
-      "address": "0xd98b5b2e4d5d6cd554115de19efb7a9084beddd1",
+      "address": "0xD98B5b2E4D5d6Cd554115DE19EfB7A9084BEddd1",
       "chain": "optimism",
       "chainId": 10,
       "contractName": "CCIPBurnMintTokenPool",
-      "label": "CCIPBurnMintTokenPoolV1_0",
+      "label": "CCIPBurnMintTokenPool",
       "origin": {
+        "env": ["olympus.policies.CCIPBurnMintTokenPool"],
         "kernel": "POLICY"
       },
       "version": "1.0"
     },
     {
-      "abi": "optimism/CCIPTokenPoolConfigTimelockV1_0.json",
-      "abiHash": "f3af8c47ac7bc5ae9a80cd27d72793dcd2ee9aee5b94e7949192fdfa7fe73baf",
+      "abi": "optimism/CCIPCrossChainBridge.json",
+      "abiHash": "4f8351f779caa8ee7e4d481af29b77d16ffe76eb533991411816d0c898e45f68",
       "abiSource": "etherscan",
-      "address": "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678",
+      "address": "0xcb4E21Eb404d80F3e1dB781aAd9AD6A1217fbbf2",
       "chain": "optimism",
       "chainId": 10,
-      "contractName": "CCIPTokenPoolConfigTimelock",
-      "label": "CCIPTokenPoolConfigTimelockV1_0",
+      "contractName": "CCIPCrossChainBridge",
+      "label": "CCIPCrossChainBridge",
       "origin": {
-        "kernel": "POLICY"
-      },
-      "version": "1.0"
+        "env": ["olympus.periphery.CCIPCrossChainBridge"]
+      }
     },
     {
-      "abi": "optimism/CCIPTokenPoolConfigV1_0.json",
+      "abi": "optimism/CCIPTokenPoolConfig.json",
       "abiHash": "d83d0b75877c30a312803f0bd686646325debf910e591e2189d94b6e69173727",
       "abiSource": "etherscan",
-      "address": "0x20a3d8510f2e1176e8db4cea9883a8287a9029db",
+      "address": "0x20a3d8510f2e1176E8Db4CeA9883a8287a9029Db",
       "chain": "optimism",
       "chainId": 10,
       "contractName": "CCIPTokenPoolConfig",
-      "label": "CCIPTokenPoolConfigV1_0",
+      "label": "CCIPTokenPoolConfig",
       "origin": {
+        "env": ["olympus.policies.CCIPTokenPoolConfig"],
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "optimism/CCIPTokenPoolConfigTimelock.json",
+      "abiHash": "f3af8c47ac7bc5ae9a80cd27d72793dcd2ee9aee5b94e7949192fdfa7fe73baf",
+      "abiSource": "etherscan",
+      "address": "0xEBDe552D851DD6Dfd3D360C596D3F4aF6e5F9678",
+      "chain": "optimism",
+      "chainId": 10,
+      "contractName": "CCIPTokenPoolConfigTimelock",
+      "label": "CCIPTokenPoolConfigTimelock",
+      "origin": {
+        "env": ["olympus.policies.CCIPTokenPoolConfigTimelock"],
         "kernel": "POLICY"
       },
       "version": "1.0"
@@ -1921,138 +2000,187 @@
       }
     },
     {
-      "abi": "robinhood/CCIPBurnMintTokenPoolV1_0.json",
+      "abi": "robinhood/CCIPBurnMintTokenPool.json",
       "abiHash": "6a48511979a034be09a1e3e0ac95fb8de46879de518936f7cc8f5916b758d7da",
       "abiSource": "etherscan",
-      "address": "0x5824850d8a6e46a473445a5af214c7ebd46c5ecb",
+      "address": "0x5824850D8A6E46a473445a5AF214C7EbD46c5ECB",
       "chain": "robinhood",
       "chainId": 4663,
       "contractName": "CCIPBurnMintTokenPool",
-      "label": "CCIPBurnMintTokenPoolV1_0",
+      "label": "CCIPBurnMintTokenPool",
       "origin": {
+        "env": ["olympus.policies.CCIPBurnMintTokenPool"],
         "kernel": "POLICY"
       },
       "version": "1.0"
     },
     {
-      "abi": "robinhood/CCIPTokenPoolConfigTimelockV1_0.json",
-      "abiHash": "f3af8c47ac7bc5ae9a80cd27d72793dcd2ee9aee5b94e7949192fdfa7fe73baf",
+      "abi": "robinhood/CCIPCrossChainBridge.json",
+      "abiHash": "4f8351f779caa8ee7e4d481af29b77d16ffe76eb533991411816d0c898e45f68",
       "abiSource": "etherscan",
-      "address": "0x9f08c2603e919a46d6d98289c9ada5250b310558",
+      "address": "0x5261fBA7B50aA22B19B9edF939b771D109dE991F",
       "chain": "robinhood",
       "chainId": 4663,
-      "contractName": "CCIPTokenPoolConfigTimelock",
-      "label": "CCIPTokenPoolConfigTimelockV1_0",
+      "contractName": "CCIPCrossChainBridge",
+      "label": "CCIPCrossChainBridge",
       "origin": {
-        "kernel": "POLICY"
-      },
-      "version": "1.0"
+        "env": ["olympus.periphery.CCIPCrossChainBridge"]
+      }
     },
     {
-      "abi": "robinhood/CCIPTokenPoolConfigV1_0.json",
+      "abi": "robinhood/CCIPTokenPoolConfig.json",
       "abiHash": "d83d0b75877c30a312803f0bd686646325debf910e591e2189d94b6e69173727",
       "abiSource": "etherscan",
-      "address": "0x6d94b3745b0ecf908b3b467907b947b43fba5f15",
+      "address": "0x6D94B3745B0eCF908B3B467907b947b43Fba5f15",
       "chain": "robinhood",
       "chainId": 4663,
       "contractName": "CCIPTokenPoolConfig",
-      "label": "CCIPTokenPoolConfigV1_0",
+      "label": "CCIPTokenPoolConfig",
       "origin": {
+        "env": ["olympus.policies.CCIPTokenPoolConfig"],
         "kernel": "POLICY"
       },
       "version": "1.0"
     },
     {
-      "abi": "robinhood/Emergency_0xf35193da.json",
+      "abi": "robinhood/CCIPTokenPoolConfigTimelock.json",
+      "abiHash": "f3af8c47ac7bc5ae9a80cd27d72793dcd2ee9aee5b94e7949192fdfa7fe73baf",
+      "abiSource": "etherscan",
+      "address": "0x9f08c2603e919a46d6D98289C9ADA5250b310558",
+      "chain": "robinhood",
+      "chainId": 4663,
+      "contractName": "CCIPTokenPoolConfigTimelock",
+      "label": "CCIPTokenPoolConfigTimelock",
+      "origin": {
+        "env": ["olympus.policies.CCIPTokenPoolConfigTimelock"],
+        "kernel": "POLICY"
+      },
+      "version": "1.0"
+    },
+    {
+      "abi": "robinhood/Emergency.json",
       "abiHash": "f64dca4490d510d97051ac4ce91558d74b7489ce1c267a9e649303da79f0fc57",
       "abiSource": "etherscan",
-      "address": "0xf35193da8c10e44af10853ba5a3a1a6f7529e39a",
+      "address": "0xF35193DA8C10e44aF10853Ba5a3a1a6F7529E39a",
       "chain": "robinhood",
       "chainId": 4663,
       "contractName": "Emergency",
-      "label": "Emergency_0xf35193da",
+      "label": "Emergency",
       "origin": {
+        "env": ["olympus.policies.Emergency"],
         "kernel": "POLICY"
       }
     },
     {
-      "abi": "robinhood/Kernel_0x02331a4c.json",
+      "abi": "robinhood/Kernel.json",
       "abiHash": "4db221cb34961841903132b48b7a12986889a7bf9c8e6db051acb8f04f8e43be",
       "abiSource": "etherscan",
-      "address": "0x02331a4c97a4841084df54d7c0ec04dd3f1a9f1c",
+      "address": "0x02331A4c97a4841084dF54d7c0eC04DD3f1A9F1c",
       "chain": "robinhood",
       "chainId": 4663,
       "contractName": "Kernel",
-      "label": "Kernel_0x02331a4c",
+      "label": "Kernel",
       "origin": {
+        "env": ["olympus.Kernel"],
         "kernel": "KERNEL"
       }
     },
     {
-      "abi": "robinhood/OlympusMinterV1_0.json",
+      "abi": "robinhood/OHM.json",
+      "abiHash": "db095255ab0e30751d090d0a8c62e0ba4680f77694f5d113d9106d3797b17c70",
+      "abiSource": "etherscan",
+      "address": "0x9c859Dc91DB65bD7375660341231227336dAa134",
+      "chain": "robinhood",
+      "chainId": 4663,
+      "contractName": "OlympusERC20Token",
+      "label": "OHM",
+      "origin": {
+        "env": ["olympus.legacy.OHM"]
+      }
+    },
+    {
+      "abi": "robinhood/OlympusAuthority.json",
+      "abiHash": "cce4ae4f14dad5301880aa9377fcb4049b8f7b1aab138ae1088e6fb7aef1cb1d",
+      "abiSource": "etherscan",
+      "address": "0xcA6cd4F0a0033f8C20cF68d6dF277E7001a386f9",
+      "chain": "robinhood",
+      "chainId": 4663,
+      "contractName": "OlympusAuthority",
+      "label": "OlympusAuthority",
+      "origin": {
+        "env": ["olympus.legacy.OlympusAuthority"]
+      }
+    },
+    {
+      "abi": "robinhood/OlympusMinter.json",
       "abiHash": "79214ef18b773413f8a03e6b8633538a7fc08dcd32f11e01dac2abcb8ca75af2",
       "abiSource": "etherscan",
-      "address": "0xd98b5b2e4d5d6cd554115de19efb7a9084beddd1",
+      "address": "0xD98B5b2E4D5d6Cd554115DE19EfB7A9084BEddd1",
       "chain": "robinhood",
       "chainId": 4663,
       "contractName": "OlympusMinter",
-      "label": "OlympusMinterV1_0",
+      "label": "OlympusMinter",
       "origin": {
+        "env": ["olympus.modules.OlympusMinter"],
         "kernel": "MODULE"
       },
       "version": "1.0"
     },
     {
-      "abi": "robinhood/OlympusRolesV1_0.json",
+      "abi": "robinhood/OlympusRoles.json",
       "abiHash": "b505ebd55f3654e86a01f004ac8c4dc8ab538b756e817e9b8798ad5d9c3dbd85",
       "abiSource": "etherscan",
-      "address": "0xcb4e21eb404d80f3e1db781aad9ad6a1217fbbf2",
+      "address": "0xcb4E21Eb404d80F3e1dB781aAd9AD6A1217fbbf2",
       "chain": "robinhood",
       "chainId": 4663,
       "contractName": "OlympusRoles",
-      "label": "OlympusRolesV1_0",
+      "label": "OlympusRoles",
       "origin": {
+        "env": ["olympus.modules.OlympusRoles"],
         "kernel": "MODULE"
       },
       "version": "1.0"
     },
     {
-      "abi": "robinhood/OlympusTreasuryV1_0.json",
+      "abi": "robinhood/OlympusTreasury.json",
       "abiHash": "6cb6d45a279c4806e0936ff5eebe15f0f35eb8a0535329e99e6054cc83ea428d",
       "abiSource": "etherscan",
-      "address": "0x20a3d8510f2e1176e8db4cea9883a8287a9029db",
+      "address": "0x20a3d8510f2e1176E8Db4CeA9883a8287a9029Db",
       "chain": "robinhood",
       "chainId": 4663,
       "contractName": "OlympusTreasury",
-      "label": "OlympusTreasuryV1_0",
+      "label": "OlympusTreasury",
       "origin": {
+        "env": ["olympus.modules.OlympusTreasury"],
         "kernel": "MODULE"
       },
       "version": "1.0"
     },
     {
-      "abi": "robinhood/RolesAdmin_0xebde552d.json",
+      "abi": "robinhood/RolesAdmin.json",
       "abiHash": "f1772029dce78f0bfe3e36aebe1fd4e540401333b695b1dbf843ee6eedb0c39f",
       "abiSource": "etherscan",
-      "address": "0xebde552d851dd6dfd3d360c596d3f4af6e5f9678",
+      "address": "0xEBDe552D851DD6Dfd3D360C596D3F4aF6e5F9678",
       "chain": "robinhood",
       "chainId": 4663,
       "contractName": "RolesAdmin",
-      "label": "RolesAdmin_0xebde552d",
+      "label": "RolesAdmin",
       "origin": {
+        "env": ["olympus.policies.RolesAdmin"],
         "kernel": "POLICY"
       }
     },
     {
-      "abi": "robinhood/TreasuryCustodian_0xb4f620c3.json",
+      "abi": "robinhood/TreasuryCustodian.json",
       "abiHash": "bfbf90de743fef176a035d6cf60b30ccdd2854772f697d037a9a8c566959055b",
       "abiSource": "etherscan",
-      "address": "0xb4f620c39f3ba4a1e7ad264fed6239b0c618db50",
+      "address": "0xb4f620c39F3BA4a1E7aD264fEd6239B0C618DB50",
       "chain": "robinhood",
       "chainId": 4663,
       "contractName": "TreasuryCustodian",
-      "label": "TreasuryCustodian_0xb4f620c3",
+      "label": "TreasuryCustodian",
       "origin": {
+        "env": ["olympus.policies.TreasuryCustodian"],
         "kernel": "POLICY"
       }
     },
@@ -2736,7 +2864,7 @@
   "env": {
     "branch": "master",
     "path": "src/scripts/env.json",
-    "ref": "c851f7e0a3147bcf312a8d076f7573b681ff3552",
+    "ref": "b5ef05aea90b19d1a317de2a2902ece9d845a59f",
     "repo": "OlympusDAO/olympus-v3"
   },
   "exclusions": [

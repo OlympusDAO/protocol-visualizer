@@ -3,7 +3,7 @@
     "repo": "OlympusDAO/olympus-v3",
     "branch": "master",
     "path": "src/scripts/env.json",
-    "ref": "c851f7e0a3147bcf312a8d076f7573b681ff3552"
+    "ref": "b5ef05aea90b19d1a317de2a2902ece9d845a59f"
   },
   "snapshotBaseUrl": "https://protocol-visualizer-api.olympusdao.finance",
   "chains": [

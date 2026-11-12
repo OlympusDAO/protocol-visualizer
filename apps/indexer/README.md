@@ -21,7 +21,7 @@ surface effect metrics for those reads.
 
 ## Prerequisites
 
-- Node.js 24.22.1 or newer (24.x)
+- Node.js 24.22.3 or newer (24.x)
 - pnpm 11.28.7
 - Docker Desktop, for the local Envio Postgres/Hasura stack
 - RPC URLs for the enabled chains

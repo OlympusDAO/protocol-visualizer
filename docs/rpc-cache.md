@@ -24,7 +24,7 @@ data, and preserve only validated hex revert bytes and numeric RPC codes. A fixe
 classification without forwarding provider text.
 Rebase/review that patch whenever upgrading eRPC. No cache behavior is patched.
 
-Go 1.26.10, `golang.org/x/crypto` 0.57.0 and `golang.org/x/net` 0.60.0 are pinned
+Go 1.26.11, `golang.org/x/crypto` v0.58.0 and `golang.org/x/net` v0.62.0 are pinned
 security updates scoped to this service. The final image contains only the
 binary, JS config, and pinned nonroot distroless static runtime; it omits the
 profiler binary and config SDK. Monorepo dependency versions are unchanged.

@@ -85,8 +85,11 @@ test("snapshot pre-deploy commands fail on missing RPC settings and validate wit
     });
     assert.equal(missing.status, 1);
     assert.match(missing.stderr, /Missing required RPC variables: RPC_URL_1/);
-    if (service === "snapshot-monitor") {
-      const missingWebhook = run(configured);
+    for (const webhook of [undefined, "", "  "]) {
+      const missingWebhook = run({
+        ...configured,
+        DISCORD_WEBHOOK_URL: webhook,
+      });
       assert.equal(missingWebhook.status, 1);
       assert.match(missingWebhook.stderr, /DISCORD_WEBHOOK_URL is required/);
     }
@@ -96,12 +99,36 @@ test("snapshot pre-deploy commands fail on missing RPC settings and validate wit
     });
     assert.equal(valid.status, 0, valid.stderr);
     assert.equal(valid.stdout, "");
-    const subset = run({ RPC_URL_1: configured.RPC_URL_1 });
+    const subset = run({
+      RPC_URL_1: configured.RPC_URL_1,
+      DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+    });
     assert.equal(
       subset.status,
       service === "snapshot-publisher" ? 0 : 1,
       subset.stderr
     );
+  }
+});
+
+test("snapshot jobs log missing webhooks and exit unsuccessfully on startup", () => {
+  for (const [service, entry] of [
+    ["snapshot-publisher", "publish.js"],
+    ["snapshot-monitor", "index.js"],
+  ]) {
+    for (const webhook of [undefined, "", "  "]) {
+      const env = { ...process.env, DISCORD_WEBHOOK_URL: webhook };
+      delete env.SNAPSHOT_OUTPUT_DIR;
+      const result = spawnSync(process.execPath, [`dist/src/${entry}`], {
+        cwd: resolve(`apps/${service}`),
+        env,
+        encoding: "utf8",
+        timeout: 5000,
+      });
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /DISCORD_WEBHOOK_URL is required/);
+      assert.doesNotMatch(result.stdout, /completed successfully/);
+    }
   }
 });
 
@@ -292,13 +319,13 @@ test("Env samples and docs keep optional variables commented", () => {
   }
 
   assert(composeSample.includes("ENVIO_API_TOKEN=CHANGEME"));
-  assert(composeSample.includes("# DISCORD_WEBHOOK_URL="));
+  assert(composeSample.includes("\nDISCORD_WEBHOOK_URL="));
   assert(composeSample.includes("# SNAPSHOT_CHAIN_IDS="));
   assert(indexerSample.includes("HASURA_GRAPHQL_ENDPOINT="));
   assert(indexerSample.includes("# ENVIO_API_TOKEN="));
   assert(indexerSample.includes("# ENVIO_PG_SCHEMA="));
   assert(publisherDocs.includes("# INDEXER_DEPLOYMENT_ID="));
-  assert(publisherDocs.includes("# DISCORD_WEBHOOK_URL="));
+  assert(publisherDocs.includes("\nDISCORD_WEBHOOK_URL="));
   assert(publisherDocs.includes("indexer.PORT=9898"));
   assert(gatewayDocs.includes("# PORT=8080"));
   assert(monitorDocs.includes("indexer.PORT=9898"));
@@ -306,7 +333,7 @@ test("Env samples and docs keep optional variables commented", () => {
   assert(railwayDocs.includes("# ENVIO_RPC_MODE="));
   assert(
     railwayDocs.includes(
-      "# DISCORD_WEBHOOK_URL=${{shared.DISCORD_WEBHOOK_URL}}"
+      "\nDISCORD_WEBHOOK_URL=${{shared.DISCORD_WEBHOOK_URL}}"
     )
   );
 });

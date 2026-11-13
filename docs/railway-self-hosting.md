@@ -138,7 +138,8 @@ IaC sets both snapshot jobs to `${{shared.DISCORD_WEBHOOK_URL}}`; it does not cr
 Use a separate webhook for preview environments. Keep the URL out of source and frontend variables.
 Add the shared value before generating the plan, then review and apply that plan to deploy the references.
 Variable changes require a deployment to reach the jobs. Apply the staged changes to deploy the affected services together.
-The publisher skips optional notifications without a webhook; the monitor requires it for alerts.
+Both jobs require the webhook. Missing or blank values are logged as errors and
+fail pre-deploy checks and job startup before network or storage access.
 See [Discord notification examples](discord-notifications.md) for summaries, warnings, and deployment lifecycle messages.
 
 The PR 82 bootstrap copied existing indexer provider URLs into the cache's upstream
@@ -548,7 +549,7 @@ SECRET_ACCESS_KEY=${{storage.SECRET_ACCESS_KEY}}
 REGION=${{storage.REGION}}
 ENDPOINT=${{storage.ENDPOINT}}
 # INDEXER_DEPLOYMENT_ID=${{shared.INDEXER_DEPLOYMENT_ID}}
-# DISCORD_WEBHOOK_URL=${{shared.DISCORD_WEBHOOK_URL}}
+DISCORD_WEBHOOK_URL=${{shared.DISCORD_WEBHOOK_URL}}
 # MONITOR_STALE_CHAIN_HOURS=24
 ```
 
@@ -582,10 +583,11 @@ ENDPOINT=${{storage.ENDPOINT}}
 # MONITOR_STALE_CHAIN_HOURS=24
 ```
 
-`snapshot-monitor` requires `DISCORD_WEBHOOK_URL` to send indexing alerts and daily summaries.
+`snapshot-publisher` and `snapshot-monitor` require `DISCORD_WEBHOOK_URL` for their notifications.
 Set the shared webhook value in Railway before deployment. IaC supplies the reference to both snapshot jobs.
 Use a separate Discord webhook for PR environments to keep test alerts out of production channels.
-The pre-deploy check rejects a missing webhook without sending a notification.
+Both pre-deploy checks and job startup log and reject a missing or blank webhook
+without sending a notification. Local publisher file exports do not send notifications.
 The monitor also fails fast if `RAILWAY_ENVIRONMENT_NAME` is missing.
 
 Set on `snapshot-gateway`:

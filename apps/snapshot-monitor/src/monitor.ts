@@ -509,6 +509,7 @@ export async function runMonitorFromEnv(logger: MonitorLogger = defaultLogger) {
   let stage = "load_configuration";
 
   try {
+    const webhookUrl = requiredEnv("DISCORD_WEBHOOK_URL");
     const environmentName = requiredEnv("RAILWAY_ENVIRONMENT_NAME");
     const metricsUrl = requiredEnv("INDEXER_METRICS_URL");
     const staleThresholdHours = Number(
@@ -519,7 +520,6 @@ export async function runMonitorFromEnv(logger: MonitorLogger = defaultLogger) {
     }
     const deploymentId = resolveDeploymentId();
     const store = createS3Store();
-    const webhookUrl = requiredEnv("DISCORD_WEBHOOK_URL");
     const stateKey = process.env.MONITOR_STATE_KEY || DEFAULT_MONITOR_STATE_KEY;
 
     logger.info("snapshot monitor starting", {

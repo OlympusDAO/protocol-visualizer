@@ -169,21 +169,23 @@ test("whole-project IaC retains storage and wires services without embedding sec
 });
 
 test("Railway workflow applies only reviewed merges and blocks destructive changes", () => {
-  const workflow = readFileSync(".github/workflows/railway-config.yml", "utf8");
+  const planning = readFileSync(".github/workflows/railway-config.yml", "utf8");
+  const ci = readFileSync(".github/workflows/ci.yml", "utf8");
+  const workflow = `${planning}\n${ci}`;
   assert(workflow.includes("branches: [master]"));
   assert(!workflow.includes("pull_request_target"));
   assert(
     workflow.includes(
-      "github.event.action == 'closed' && github.event.pull_request.merged"
+      "github.event_name == 'push' && github.ref == 'refs/heads/master'"
     )
   );
   assert.equal(
     workflow.match(/head.repo.full_name == github.repository/g).length,
-    2
+    1
   );
-  assert(
-    workflow.includes("ref: ${{ github.event.pull_request.merge_commit_sha }}")
-  );
+  assert(ci.includes("ref: ${{ github.sha }}"));
+  assert(!planning.includes("  apply:"));
+  assert(planning.includes('".github/workflows/ci.yml"'));
   assert(!workflow.includes("--confirm-destructive"));
   assert(!/^\s+RAILWAY_TOKEN:/m.test(workflow));
   assert.equal(
@@ -203,7 +205,7 @@ test("Railway workflow applies only reviewed merges and blocks destructive chang
   );
   assert(
     workflow.includes(
-      '--workflow railway-config.yml --commit "$PR_HEAD_SHA" --event pull_request --status success'
+      'workflow_id: "railway-config.yml", head_sha: pr.head.sha'
     )
   );
   assert(
@@ -218,7 +220,7 @@ test("Railway workflow applies only reviewed merges and blocks destructive chang
   );
   assert(!workflow.includes("railwayapp/config@"));
   assert.equal(workflow.match(/name: railway-production-plan/g).length, 2);
-  assert(workflow.includes("run-id: ${{ steps.plan-run.outputs.run-id }}"));
+  assert(ci.includes("run-id: ${{ needs.railway-plan.outputs.run-id }}"));
   assert(workflow.includes("cancel-in-progress: false"));
   assert(workflow.includes("queue: max"));
   for (const [, action] of workflow.matchAll(/uses: (\S+)/g))

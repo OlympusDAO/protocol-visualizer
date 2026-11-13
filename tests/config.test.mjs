@@ -177,7 +177,11 @@ test("Dependency audit comments are isolated from pull request code", () => {
   assert(!auditWorkflow.includes("github_token:"));
   assert(auditWorkflow.includes("pnpm audit --audit-level moderate --json"));
   assert(auditWorkflow.includes("actions/upload-artifact@"));
-  assert(auditWorkflow.includes("branches: [master]"));
+  assert(auditWorkflow.includes("workflow_call:"));
+  assert(auditWorkflow.includes("pull_request:"));
+  const ciWorkflow = readFileSync(".github/workflows/ci.yml", "utf8");
+  assert(ciWorkflow.includes("branches: [master]"));
+  assert(ciWorkflow.includes("uses: ./.github/workflows/audit.yml"));
   assert(auditWorkflow.includes('cron: "17 5 * * 1"'));
 
   assert(commentWorkflow.includes("workflow_run:"));

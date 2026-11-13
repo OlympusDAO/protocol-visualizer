@@ -192,7 +192,8 @@ The script does not register keys automatically.
 ## Automatic plan and apply
 
 [`.github/workflows/railway-config.yml`](../.github/workflows/railway-config.yml)
-uses Railway CLI 5.71.0 with workspace API authentication.
+creates plans; [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) applies them.
+Both use Railway CLI 5.71.0 with workspace API authentication.
 For same-repository PRs into `master` that affect IaC or its tooling:
 
 - Opening, reopening, or updating the PR produces a **production** plan and a PR comment linking to its run.
@@ -201,7 +202,10 @@ For same-repository PRs into `master` that affect IaC or its tooling:
 - Closing without merging does not apply anything.
 - Fork PRs do not receive the Railway credential or run these jobs.
 
-The apply job downloads the artifact from a successful run of this workflow for the merged PR's exact head commit.
+On a `master` push, CI finds the same-repository PR whose merge commit is that
+exact SHA. Direct pushes and merges without Railway-related changes do not apply
+infrastructure. A relevant merge without a successful plan fails the plan-selection job.
+The apply job downloads the artifact from a successful Railway plan run for the merged PR's exact head commit.
 It verifies the production environment ID. The CLI checks the environment revision and `.railway/` tree before apply.
 A changed environment or configuration requires a fresh PR plan. Destructive
 changes are blocked without `--confirm-destructive`; they need a separate,
@@ -220,12 +224,18 @@ See [Railway CLI authentication](https://docs.railway.com/cli/login#environment-
 Application code continues to use Railway GitHub autodeploys and watch patterns.
 IaC requests `checkSuites: true` on each GitHub source. Verify the effective
 "Wait for CI" setting on newly created services; production `rpc-cache` needed
-a manual correction during initial creation. The apply workflow also waits for
-successful push runs of `pnpm CI`, `Security Audit`, and `Dependency Audit`, plus
-GitHub-managed CodeQL (`dynamic` event, repository workflow ID `255339919`), on
-the exact merge commit. Update that ID if managed CodeQL is recreated. Missing
-or unfinished runs time out after 30 minutes; failed, cancelled, or skipped
-required workflows block the apply. Additional reported commit checks, such as
+a manual correction during initial creation. CI's apply job uses native `needs`
+dependencies on lint, build, and reusable Security Audit and Dependency Audit jobs.
+Failed, cancelled, or skipped prerequisites prevent apply. On PRs, the audits
+retain their separate runs and dependency-audit comments; on `master` pushes,
+CI calls them once through `workflow_call`. Their concurrency groups are separate
+from the caller's group.
+
+The remaining gate waits only for GitHub-managed CodeQL (`dynamic` event,
+repository workflow ID `255339919`) and external commit checks on the exact merge
+commit. Update that ID if managed CodeQL is recreated. Missing or unfinished
+external results time out after 30 minutes; failed, cancelled, or skipped CodeQL
+runs block apply. Additional reported commit checks, such as
 Socket, must finish without failure; neutral or skipped optional checks are allowed.
 The gate excludes only its own workflow run's check suite, since its apply job
 is still running. Checks from other workflow runs remain subject to the gate.
@@ -237,8 +247,8 @@ gh run list --commit <merge-sha> --limit 100 --json workflowName,event,status,co
 gh api repos/OlympusDAO/protocol-visualizer/commits/<merge-sha>/check-runs --paginate --jq '.check_runs[] | {name,status,conclusion}'
 ```
 
-Require successful runs of all four workflows above and no pending or failed
-commit checks. For previews and other non-master targets, verify the equivalent
+Require a successful `pnpm CI` run, including both reusable audit jobs, successful
+CodeQL, and no pending or failed external commit checks. For previews and other non-master targets, verify the equivalent
 PR or manually dispatched runs for the target revision instead of master push runs.
 If required runs are missing, trigger the matching workflows and wait for success;
 do not treat missing runs as a pass.

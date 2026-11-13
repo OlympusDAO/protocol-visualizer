@@ -42,9 +42,10 @@ that switch. The plan is private and ignored by Git.
 Use the [manual deployment procedure](../docs/railway-self-hosting.md#manual-iac-plan-and-deployment)
 for login, project selection, required validation, and common plan messages.
 
-The GitHub workflow plans production changes on PR updates and applies the saved
-plan on merge to `master`, after build, security, dependency, and CodeQL checks pass for
-the merge commit. Set one Olympus workspace API token as the GitHub
+The Railway workflow plans production changes on PR updates. The final apply job
+in `ci.yml` depends on build, lint, security, and dependency jobs, then checks
+external CodeQL and commit results for the merge commit. It applies only the saved
+plan for that merged PR's exact head. Set one Olympus workspace API token as the GitHub
 Actions secret `RAILWAY_TOKEN`. The workflow exports it as `RAILWAY_API_TOKEN`
 and selects the project and production environment explicitly. No token per
 environment is required. Destructive applies are blocked. Preview infrastructure

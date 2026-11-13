@@ -3,13 +3,12 @@ name: Security Audit
 on:
   pull_request:
   workflow_dispatch:
-  push:
-    branches: [master]
+  workflow_call:
   schedule:
     - cron: "17 5 * * 1"
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  group: security-audit-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:

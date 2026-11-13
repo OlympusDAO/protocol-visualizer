@@ -1,13 +1,25 @@
 // Configuration for the pinned eRPC 0.5.0-pv1 build and embedded JS loader.
 const chainIds = [1, 10, 42161, 8453, 80094, 4663, 11155111, 421614, 84532];
-const required = (name, pattern) => {
-  const value = process.env[name]?.trim();
+const required = (name, pattern, trim = true) => {
+  const raw = process.env[name];
+  const value = trim ? raw?.trim() : raw;
   if (!value || !pattern.test(value)) {
     throw new Error(`Missing or invalid ${name}`);
   }
   return value;
 };
-const database = required("RPC_CACHE_DATABASE_URL", /^postgres(ql)?:\/\//);
+const databaseConnection = () => {
+  // biome-ignore lint/suspicious/noUndeclaredEnvVars: eRPC reads runtime settings outside Turbo.
+  if (process.env.RPC_CACHE_DATABASE_URL?.trim())
+    return required("RPC_CACHE_DATABASE_URL", /^postgres(ql)?:\/\//);
+  // Railway references keep the dependency visible; encode only URI components.
+  const user = encodeURIComponent(required("PGUSER", /./, false));
+  const password = encodeURIComponent(required("PGPASSWORD", /./, false));
+  const host = required("PGHOST", /^[a-zA-Z0-9.-]+$/);
+  const port = required("PGPORT", /^\d+$/);
+  const database = encodeURIComponent(required("PGDATABASE", /./, false));
+  return `postgresql://${user}:${password}@${host}:${port}/${database}`;
+};
 // biome-ignore lint/suspicious/noUndeclaredEnvVars: eRPC reads runtime settings outside Turbo.
 const maxRps = Number(process.env.RPC_CACHE_MAX_RPS || "100");
 if (!Number.isSafeInteger(maxRps) || maxRps < 1) {
@@ -45,7 +57,7 @@ export default {
           id: "historical",
           driver: "postgresql",
           postgresql: {
-            connectionUri: database,
+            connectionUri: databaseConnection(),
             table: "rpc_cache",
             maxConns: 10,
           },

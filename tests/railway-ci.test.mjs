@@ -19,7 +19,7 @@ async function runGate(
   const script = match[1].replace(/^ {12}/gm, "");
   await vm.runInNewContext(`(async () => {${script}\n})()`, {
     process: { env: { MERGE_COMMIT_SHA: "merged-release" } },
-    context: { repo: { owner: "fixture", repo: "fixture" } },
+    context: { repo: { owner: "fixture", repo: "fixture" }, runId: 42 },
     core: { info() {} },
     setTimeout(resolve) {
       resolve();
@@ -32,6 +32,10 @@ async function runGate(
       rest: {
         checks: { listForRef() {} },
         actions: {
+          async getWorkflowRun(args) {
+            assert.equal(args.run_id, 42);
+            return { data: { check_suite_id: 100 } };
+          },
           async listWorkflowRuns(args) {
             calls.push({ ...args });
             const attempt = attempts.get(args.workflow_id) ?? 0;
@@ -135,5 +139,23 @@ test("optional neutral or skipped checks do not block successful required workfl
       { status: "completed", conclusion: "neutral" },
       { status: "completed", conclusion: "skipped" },
     ]
+  );
+});
+
+test("production apply excludes its own check suite without ignoring other apply jobs", async () => {
+  const ownCheck = {
+    name: "apply",
+    status: "in_progress",
+    conclusion: null,
+    check_suite: { id: 100 },
+  };
+  const success = { status: "completed", conclusion: "success" };
+  await runGate(() => [success], [ownCheck, success]);
+  await assert.rejects(
+    runGate(
+      () => [success],
+      [ownCheck, { ...ownCheck, check_suite: { id: 101 } }, success]
+    ),
+    /Timed out/
   );
 });

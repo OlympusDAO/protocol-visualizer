@@ -33,9 +33,20 @@ Optional operator settings listed in `variables.ignore` remain outside IaC owner
 | `frontend` | Public UI |
 | `storage` | Private snapshot bucket in `sjc` |
 
-The imported Envio volume is 5,000 MB in production and 50,000 MB in previews.
-The cache volume is 50,000 MB. These are existing capacity limits, not database
-reset commands. Review any later capacity or region change before merging.
+The Envio volume target is 10,000 MB in production and 50,000 MB in previews. Production's
+`destruction-volume`, attached to `Postgres`, was still 5,000 MB on 2026-11-13;
+the reviewed capacity change increases that existing volume to 10,000 MB with
+`allowOnlineResize: true`. Railway normally expands the mounted filesystem
+without downtime; a full volume can require an offline resize and restart.
+See [Railway volume resizing](https://docs.railway.com/volumes/reference).
+This change does not reset the database or remove cached effects. Review the
+production plan and obtain approval before applying the resize.
+
+The declared `postgres-volume` remains 50,000 MB. On 2026-11-13 it was detached;
+the production cache database used a separate `rpc-cache-postgres-volume` of
+50,000 MB. Preserve both volumes and their attachments during this rollout.
+Do not attach the detached volume, replace the cache database volume, or delete
+storage as part of the Envio capacity change.
 
 ## Bootstrap and migration
 
@@ -85,7 +96,7 @@ Before the first merge:
 1. Create a Railway API token scoped to the **Olympus workspace** in Account Settings → Tokens.
 2. Add it as the GitHub Actions repository secret **`RAILWAY_TOKEN`**.
 3. Provision and verify the private cache service and its separate database first.
-4. Supply all nine `UPSTREAM_RPC_URL_<id>` values and a percent-encoded `RPC_CACHE_DATABASE_URL` on `rpc-cache`.
+4. Supply all nine `UPSTREAM_RPC_URL_<id>` values on `rpc-cache` and verify its five `PG*` database references.
 5. Preserve the other operator secrets listed below.
 6. Review the production plan posted on the PR.
 
@@ -97,14 +108,14 @@ workflow before this prerequisite is complete.
 For a new environment, provision the cache resources first through a reviewed,
 cache-only IaC plan or the Railway dashboard. Supply provider credentials manually
 on `rpc-cache`. Configure its Dockerfile as `Dockerfile-rpc-cache`, its healthcheck
-as `/healthcheck`, and its encoded database URI as shown in [rpc-cache.md](rpc-cache.md).
+as `/healthcheck`, and its database references as shown in [rpc-cache.md](rpc-cache.md).
 Verify the proxy before the whole-project apply routes consumers through it.
 
 ## Automatic variables and manual secrets
 
 | Destination | Supplied by IaC | Manual values retained in Railway |
 | --- | --- | --- |
-| `rpc-cache` | `PORT=4000` | Percent-encoded `RPC_CACHE_DATABASE_URL`; nine `UPSTREAM_RPC_URL_<id>` values; optional `RPC_CACHE_MAX_RPS` |
+| `rpc-cache` | `PORT=4000`; five `PG*` references to `rpc-cache-postgres` | Nine `UPSTREAM_RPC_URL_<id>` values; optional `RPC_CACHE_MAX_RPS` |
 | `indexer` | Nine `ENVIO_RPC_URL_<id>` paths through `rpc-cache`; Envio database and Hasura references; `PORT=9898` | `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY`; optional `ENVIO_RPC_MODE` |
 | `snapshot-publisher` | Nine `RPC_URL_<id>` paths; bucket, Hasura, indexer metrics, and shared webhook references | Shared `DISCORD_WEBHOOK_URL` value; optional operator overrides |
 | `snapshot-monitor` | Nine `RPC_URL_<id>` paths; bucket, indexer metrics, and shared webhook references | Shared `DISCORD_WEBHOOK_URL` value; optional operator overrides |
@@ -216,6 +227,8 @@ the exact merge commit. Update that ID if managed CodeQL is recreated. Missing
 or unfinished runs time out after 30 minutes; failed, cancelled, or skipped
 required workflows block the apply. Additional reported commit checks, such as
 Socket, must finish without failure; neutral or skipped optional checks are allowed.
+The gate excludes only its own workflow run's check suite, since its apply job
+is still running. Checks from other workflow runs remain subject to the gate.
 
 Before a manual production apply or operator redeploy, inspect the exact merge SHA:
 

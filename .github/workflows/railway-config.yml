@@ -103,6 +103,11 @@ jobs:
         with:
           script: |
             const workflows = ["ci.yml", "security-scan.yml", "audit.yml"];
+            const { data: currentRun } = await github.rest.actions.getWorkflowRun({
+              ...context.repo,
+              run_id: context.runId,
+            });
+            if (!currentRun.check_suite_id) throw new Error("Cannot identify the Railway workflow's own check suite.");
             // GitHub-managed CodeQL has no workflow file and uses the dynamic event.
             const codeqlWorkflow = 255339919;
             for (let attempt = 0; attempt < 120; attempt++) {
@@ -119,12 +124,14 @@ jobs:
               const failed = runs.find(({ run }) => run?.status === "completed" && run.conclusion !== "success");
               if (failed) throw new Error(`${failed.workflow_id}: ${failed.run.conclusion}`);
               if (runs.every(({ run }) => run?.status === "completed" && run.conclusion === "success")) {
-                const checks = await github.paginate(github.rest.checks.listForRef, {
+                const reportedChecks = await github.paginate(github.rest.checks.listForRef, {
                   ...context.repo,
                   ref: process.env.MERGE_COMMIT_SHA,
                   filter: "latest",
                   per_page: 100,
                 });
+                // This apply job cannot finish until the gate returns.
+                const checks = reportedChecks.filter(check => check.check_suite?.id !== currentRun.check_suite_id);
                 const failedCheck = checks.find(check => check.status === "completed" && !["success", "neutral", "skipped"].includes(check.conclusion));
                 if (failedCheck) throw new Error(`${failedCheck.name}: ${failedCheck.conclusion}`);
                 if (checks.length > 0 && checks.every(check => check.status === "completed")) {

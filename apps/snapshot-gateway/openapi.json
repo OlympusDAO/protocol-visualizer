@@ -174,9 +174,7 @@
     "schemas": {
       "Ready": {
         "type": "object",
-        "required": [
-          "ok"
-        ],
+        "required": ["ok"],
         "properties": {
           "ok": {
             "type": "boolean"
@@ -185,9 +183,7 @@
       },
       "Error": {
         "type": "object",
-        "required": [
-          "error"
-        ],
+        "required": ["error"],
         "properties": {
           "error": {
             "type": "string"
@@ -196,15 +192,11 @@
       },
       "Bounds": {
         "type": "object",
-        "required": [
-          "data"
-        ],
+        "required": ["data"],
         "properties": {
           "data": {
             "type": "object",
-            "required": [
-              "generatedAt"
-            ],
+            "required": ["generatedAt"],
             "properties": {
               "generatedAt": {
                 "type": "string",
@@ -212,35 +204,22 @@
               },
               "indexingProgress": {
                 "type": "object",
-                "required": [
-                  "chains"
-                ],
+                "required": ["chains"],
                 "properties": {
                   "chains": {
                     "type": "object",
                     "additionalProperties": {
                       "type": "object",
-                      "required": [
-                        "chainId",
-                        "date",
-                        "timestamp",
-                        "block"
-                      ],
+                      "required": ["chainId", "date", "timestamp", "block"],
                       "properties": {
                         "chainId": {
                           "type": "integer"
                         },
                         "date": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
+                          "type": ["string", "null"]
                         },
                         "timestamp": {
-                          "type": [
-                            "integer",
-                            "null"
-                          ]
+                          "type": ["integer", "null"]
                         },
                         "block": {
                           "type": "integer"
@@ -256,19 +235,11 @@
       },
       "Manifest": {
         "type": "object",
-        "required": [
-          "schemaVersion",
-          "generatedAt",
-          "schemas",
-          "chains"
-        ],
+        "required": ["schemaVersion", "generatedAt", "schemas", "chains"],
         "additionalProperties": false,
         "properties": {
           "schemaVersion": {
-            "enum": [
-              "1.0.0",
-              "1.1.0"
-            ]
+            "enum": ["1.0.0", "1.1.0"]
           },
           "generatedAt": {
             "type": "string",
@@ -276,11 +247,7 @@
           },
           "schemas": {
             "type": "object",
-            "required": [
-              "openapi",
-              "manifest",
-              "protocolSnapshot"
-            ],
+            "required": ["openapi", "manifest", "protocolSnapshot"],
             "properties": {
               "openapi": {
                 "type": "string"
@@ -326,35 +293,22 @@
           },
           "indexingProgress": {
             "type": "object",
-            "required": [
-              "chains"
-            ],
+            "required": ["chains"],
             "properties": {
               "chains": {
                 "type": "object",
                 "additionalProperties": {
                   "type": "object",
-                  "required": [
-                    "chainId",
-                    "date",
-                    "timestamp",
-                    "block"
-                  ],
+                  "required": ["chainId", "date", "timestamp", "block"],
                   "properties": {
                     "chainId": {
                       "type": "integer"
                     },
                     "date": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     },
                     "timestamp": {
-                      "type": [
-                        "integer",
-                        "null"
-                      ]
+                      "type": ["integer", "null"]
                     },
                     "block": {
                       "type": "integer"
@@ -368,19 +322,13 @@
       },
       "Chains": {
         "type": "object",
-        "required": [
-          "data"
-        ],
+        "required": ["data"],
         "properties": {
           "data": {
             "type": "array",
             "items": {
               "type": "object",
-              "required": [
-                "chainId",
-                "name",
-                "path"
-              ],
+              "required": ["chainId", "name", "path"],
               "properties": {
                 "chainId": {
                   "type": "integer"
@@ -390,17 +338,11 @@
                 },
                 "environment": {
                   "type": "string",
-                  "enum": [
-                    "production",
-                    "testnet"
-                  ]
+                  "enum": ["production", "testnet"]
                 },
                 "availability": {
                   "type": "string",
-                  "enum": [
-                    "indexed",
-                    "historical"
-                  ]
+                  "enum": ["indexed", "historical"]
                 },
                 "path": {
                   "type": "string"
@@ -443,11 +385,7 @@
               },
               "recordCounts": {
                 "type": "object",
-                "required": [
-                  "contracts",
-                  "roles",
-                  "roleAssignments"
-                ],
+                "required": ["contracts", "roles", "roleAssignments"],
                 "properties": {
                   "contracts": {
                     "type": "integer",
@@ -465,11 +403,7 @@
               },
               "data": {
                 "type": "object",
-                "required": [
-                  "contracts",
-                  "roles",
-                  "roleAssignments"
-                ],
+                "required": ["contracts", "roles", "roleAssignments"],
                 "properties": {
                   "contracts": {
                     "type": "array",
@@ -517,11 +451,7 @@
               "recordCounts": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": [
-                  "contracts",
-                  "roles",
-                  "roleAssignments"
-                ],
+                "required": ["contracts", "roles", "roleAssignments"],
                 "properties": {
                   "contracts": {
                     "type": "integer",
@@ -540,11 +470,7 @@
               "data": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": [
-                  "contracts",
-                  "roles",
-                  "roleAssignments"
-                ],
+                "required": ["contracts", "roles", "roleAssignments"],
                 "properties": {
                   "bridgeConfigurations": {
                     "type": "array",
@@ -612,11 +538,7 @@
         "$defs": {
           "bridgeRateLimit": {
             "type": "object",
-            "required": [
-              "isEnabled",
-              "capacity",
-              "rate"
-            ],
+            "required": ["isEnabled", "capacity", "rate"],
             "additionalProperties": false,
             "properties": {
               "isEnabled": {
@@ -634,10 +556,7 @@
           },
           "bridgeRoute": {
             "type": "object",
-            "required": [
-              "selector",
-              "routerSupported"
-            ],
+            "required": ["selector", "routerSupported"],
             "additionalProperties": false,
             "properties": {
               "selector": {
@@ -645,10 +564,7 @@
                 "pattern": "^[0-9]+$"
               },
               "routerSupported": {
-                "type": [
-                  "boolean",
-                  "null"
-                ]
+                "type": ["boolean", "null"]
               },
               "remoteToken": {
                 "type": "string"
@@ -666,10 +582,7 @@
                 "$ref": "#/components/schemas/ProtocolSnapshot/$defs/bridgeRateLimit"
               },
               "trustedRemote": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": ["string", "null"]
               }
             }
           },
@@ -699,10 +612,7 @@
                 "pattern": "^0x[0-9a-f]{40}$"
               },
               "kind": {
-                "enum": [
-                  "pool",
-                  "bridge"
-                ]
+                "enum": ["pool", "bridge"]
               },
               "configuration": {
                 "anyOf": [
@@ -789,13 +699,7 @@
           },
           "heartTasks": {
             "type": "object",
-            "required": [
-              "id",
-              "chainId",
-              "address",
-              "tasks",
-              "verification"
-            ],
+            "required": ["id", "chainId", "address", "tasks", "verification"],
             "properties": {
               "id": {
                 "type": "string"
@@ -815,10 +719,7 @@
                     "type": "array",
                     "items": {
                       "type": "object",
-                      "required": [
-                        "address",
-                        "selector"
-                      ],
+                      "required": ["address", "selector"],
                       "properties": {
                         "address": {
                           "type": "string"
@@ -871,11 +772,7 @@
           },
           "block": {
             "type": "object",
-            "required": [
-              "number",
-              "hash",
-              "timestamp"
-            ],
+            "required": ["number", "hash", "timestamp"],
             "properties": {
               "number": {
                 "type": "string"
@@ -927,42 +824,23 @@
                 "type": "string"
               },
               "category": {
-                "enum": [
-                  "external",
-                  "inactive-core"
-                ]
+                "enum": ["external", "inactive-core"]
               },
               "kernelHistory": {
-                "enum": [
-                  "installed",
-                  "never-installed",
-                  "unknown"
-                ]
+                "enum": ["installed", "never-installed", "unknown"]
               },
               "contractType": {
-                "enum": [
-                  "KERNEL",
-                  "MODULE",
-                  "POLICY"
-                ]
+                "enum": ["KERNEL", "MODULE", "POLICY"]
               },
               "version": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": ["string", "null"]
               },
               "provenance": {
                 "type": "object",
-                "required": [
-                  "source"
-                ],
+                "required": ["source"],
                 "properties": {
                   "source": {
-                    "enum": [
-                      "inventory",
-                      "indexer"
-                    ]
+                    "enum": ["inventory", "indexer"]
                   },
                   "startBlock": {
                     "type": "integer"
@@ -993,18 +871,10 @@
                 "type": "string"
               },
               "kernelMembership": {
-                "enum": [
-                  "active",
-                  "inactive",
-                  "unknown"
-                ]
+                "enum": ["active", "inactive", "unknown"]
               },
               "enablerCapability": {
-                "enum": [
-                  "unknown",
-                  "supported",
-                  "unsupported"
-                ]
+                "enum": ["unknown", "supported", "unsupported"]
               },
               "enablementGetter": {
                 "type": "string"
@@ -1013,10 +883,7 @@
                 "type": "string"
               },
               "enabled": {
-                "type": [
-                  "boolean",
-                  "null"
-                ]
+                "type": ["boolean", "null"]
               },
               "seed": {
                 "anyOf": [
@@ -1050,17 +917,10 @@
               },
               "verification": {
                 "type": "object",
-                "required": [
-                  "outcome"
-                ],
+                "required": ["outcome"],
                 "properties": {
                   "outcome": {
-                    "enum": [
-                      "unperformed",
-                      "match",
-                      "mismatch",
-                      "unavailable"
-                    ]
+                    "enum": ["unperformed", "match", "mismatch", "unavailable"]
                   },
                   "block": {
                     "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
@@ -1106,24 +966,13 @@
                 "type": "string"
               },
               "target": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": ["string", "null"]
               },
               "status": {
-                "enum": [
-                  "current",
-                  "pending",
-                  "reference",
-                  "unset"
-                ]
+                "enum": ["current", "pending", "reference", "unset"]
               },
               "scope": {
-                "type": [
-                  "object",
-                  "null"
-                ]
+                "type": ["object", "null"]
               },
               "provenance": {
                 "$ref": "#/components/schemas/ProtocolSnapshot/$defs/block"
@@ -1135,10 +984,7 @@
                 "type": "string"
               },
               "value": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": ["string", "null"]
               },
               "seed": {
                 "anyOf": [
@@ -1177,16 +1023,11 @@
                 "type": "string"
               },
               "targetCode": {
-                "enum": [
-                  "present",
-                  "absent"
-                ]
+                "enum": ["present", "absent"]
               },
               "functionContext": {
                 "type": "object",
-                "required": [
-                  "signature"
-                ],
+                "required": ["signature"],
                 "properties": {
                   "signature": {
                     "type": "string"
@@ -1211,10 +1052,7 @@
                   },
                   "source": {
                     "type": "object",
-                    "required": [
-                      "url",
-                      "codeHash"
-                    ],
+                    "required": ["url", "codeHash"],
                     "properties": {
                       "url": {
                         "type": "string"
@@ -1223,10 +1061,7 @@
                         "type": "string"
                       },
                       "match": {
-                        "enum": [
-                          "exact",
-                          "code"
-                        ]
+                        "enum": ["exact", "code"]
                       }
                     }
                   }
@@ -1236,10 +1071,7 @@
           },
           "observation": {
             "type": "object",
-            "required": [
-              "chainId",
-              "indexedThrough"
-            ],
+            "required": ["chainId", "indexedThrough"],
             "properties": {
               "chainId": {
                 "type": "integer"
@@ -1288,34 +1120,19 @@
                 "type": "string"
               },
               "version": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": ["string", "null"]
               },
               "contractType": {
-                "enum": [
-                  "KERNEL",
-                  "MODULE",
-                  "POLICY"
-                ]
+                "enum": ["KERNEL", "MODULE", "POLICY"]
               },
               "type": {
-                "enum": [
-                  "kernel",
-                  "module",
-                  "policy"
-                ]
+                "enum": ["kernel", "module", "policy"]
               },
               "isEnabled": {
                 "type": "boolean"
               },
               "kernelHistory": {
-                "enum": [
-                  "installed",
-                  "never-installed",
-                  "unknown"
-                ]
+                "enum": ["installed", "never-installed", "unknown"]
               },
               "policyPermissions": {
                 "$ref": "#/components/schemas/ProtocolSnapshot/$defs/jsonValue"
@@ -1328,11 +1145,7 @@
           "role": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "id",
-              "chainId",
-              "role"
-            ],
+            "required": ["id", "chainId", "role"],
             "properties": {
               "id": {
                 "type": "string"

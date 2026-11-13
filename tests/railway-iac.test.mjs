@@ -13,7 +13,7 @@ async function infrastructure(environment) {
 
 test("whole-project IaC retains storage and wires services without embedding secrets", async () => {
   for (const [environment, envioSize] of [
-    ["production", 5000],
+    ["production", 10000],
     ["protocol-visualizer-pr-82", 50000],
   ]) {
     const { definition, resources } = await infrastructure(environment);
@@ -61,6 +61,8 @@ test("whole-project IaC retains storage and wires services without embedding sec
       "ghcr.io/railwayapp-templates/postgres-ssl:18"
     );
     assert.equal(get("destruction-volume").config.sizeMB, envioSize);
+    assert.equal(get("destruction-volume").config.allowOnlineResize, true);
+    assert.equal(get("destruction-volume").config.region, "us-west2");
     assert.equal(get("postgres-volume").config.sizeMB, 50000);
     assert.equal(get("storage").config.region, "sjc");
     for (const node of resources.filter((r) => r.type === "service")) {
@@ -119,9 +121,19 @@ test("whole-project IaC retains storage and wires services without embedding sec
       assert.deepEqual(get("rpc-cache").variables[`UPSTREAM_RPC_URL_${id}`], {
         type: "preserve",
       });
-    assert.deepEqual(get("rpc-cache").variables.RPC_CACHE_DATABASE_URL, {
-      type: "preserve",
-    });
+    assert.equal(get("rpc-cache").variables.RPC_CACHE_DATABASE_URL, undefined);
+    for (const key of [
+      "PGHOST",
+      "PGPORT",
+      "PGUSER",
+      "PGPASSWORD",
+      "PGDATABASE",
+    ])
+      assert.deepEqual(get("rpc-cache").variables[key], {
+        type: "reference",
+        resource: "database.rpc-cache-postgres",
+        output: key,
+      });
     for (const name of [
       "snapshot-publisher",
       "snapshot-monitor",

@@ -22,7 +22,7 @@ export default defineRailway((ctx) => {
     checkSuites: true,
   });
 
-  // Names and capacities come from Railway's read-only production/PR import.
+  // Retain imported database identities and image majors.
   const envioDatabase = database("Postgres", "postgres", {
     image: "ghcr.io/railwayapp-templates/postgres-ssl:16",
     output: "DATABASE_URL",
@@ -35,7 +35,7 @@ export default defineRailway((ctx) => {
   };
   const envioData = volume("destruction-volume", {
     region: "us-west2",
-    sizeMB: production ? 5000 : 50000,
+    sizeMB: production ? 10000 : 50000,
     allowOnlineResize: true,
     alerts: { usage: { "80": {}, "95": {}, "100": {} } },
   });
@@ -260,8 +260,12 @@ export default defineRailway((ctx) => {
     source,
     env: {
       PORT: "4000",
-      // Preserve the operator-supplied URL with percent-encoded credentials.
-      RPC_CACHE_DATABASE_URL: preserve(),
+      // Encode credentials in eRPC, retaining Railway references and rotation.
+      ...Object.fromEntries(
+        ["PGHOST", "PGPORT", "PGUSER", "PGPASSWORD", "PGDATABASE"].map(
+          (key) => [key, ref(cacheDatabase, key)]
+        )
+      ),
       ...Object.fromEntries(
         chainIds.map((id) => [`UPSTREAM_RPC_URL_${id}`, preserve()])
       ),

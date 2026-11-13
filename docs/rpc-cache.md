@@ -91,16 +91,41 @@ finalized watermark remains safe if a provider later becomes unavailable.
 
 ## Railway variables and private networking
 
-IaC supplies `PORT`. Manually supply `RPC_CACHE_DATABASE_URL` and all nine
-`UPSTREAM_RPC_URL_<id>` values on `rpc-cache` after its creation. Percent-encode
-the database username and password in the connection URI. Existing Railway
-shared variables can supply references instead of copied credentials. IaC uses
-`preserve()` for upstream values and the database URI; it does not generate them
-or contain their values. Update the URI manually when database credentials change.
+IaC supplies `PORT` and references `rpc-cache-postgres.PGHOST`, `PGPORT`,
+`PGUSER`, `PGPASSWORD`, and `PGDATABASE` on `rpc-cache`. The eRPC configuration
+constructs the connection URI and percent-encodes the username, password, and
+database name. These references keep the database dependency visible in Railway
+and resolve updated credentials on deployment.
+
+Manually supply all nine `UPSTREAM_RPC_URL_<id>` values after cache creation.
+Existing Railway shared variables can supply references instead of copied
+provider credentials. IaC uses `preserve()` for upstream values; it does not
+generate them or contain their values.
+
+An explicit `RPC_CACHE_DATABASE_URL` takes precedence for Compose and other
+standalone deployments. Supply a URI with percent-encoded credentials there.
+Railway IaC removes this old override when installing the five `PG*` references;
+deploy the corresponding eRPC configuration with that change. Restoring an older
+image requires restoring its encoded URI first.
+The plan marks removal of the old variable as destructive. The automatic workflow
+blocks it; obtain separate approval for this configuration migration, review a
+cache-only plan, and verify private cache metrics and database sessions afterward.
+No database or volume deletion is needed. Keep the storage resize separate.
+
+The production review on 2026-11-13 found a literal encoded URI targeting the
+correct private cache database, four client sessions from `rpc-cache`, and cache
+activity in private metrics. The missing canvas edge reflected the absence of a
+service-variable reference. The database's raw `DATABASE_URL` failed Go URI
+parsing, so a direct reference to that URL is unsuitable. References to individual
+fields avoid that parsing failure without maintaining a separate credential copy.
 
 ```text
 PORT=4000
-RPC_CACHE_DATABASE_URL=<Postgres URI with percent-encoded credentials>
+PGHOST=${{rpc-cache-postgres.PGHOST}}
+PGPORT=${{rpc-cache-postgres.PGPORT}}
+PGUSER=${{rpc-cache-postgres.PGUSER}}
+PGPASSWORD=${{rpc-cache-postgres.PGPASSWORD}}
+PGDATABASE=${{rpc-cache-postgres.PGDATABASE}}
 UPSTREAM_RPC_URL_1=<Ethereum archive provider URL>
 UPSTREAM_RPC_URL_10=<Optimism archive provider URL>
 UPSTREAM_RPC_URL_42161=<Arbitrum archive provider URL>

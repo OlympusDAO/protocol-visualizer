@@ -88,6 +88,10 @@ test("runtime configuration requires named credentials without printing values",
     );
   }
   assert.throws(
+    () => config({ ...env, RPC_CACHE_DATABASE_URL: "invalid" }),
+    /Missing or invalid RPC_CACHE_DATABASE_URL/
+  );
+  assert.throws(
     () => config({ ...env, RPC_CACHE_MAX_RPS: "zero" }),
     /positive integer/
   );

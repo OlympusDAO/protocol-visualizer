@@ -10,6 +10,10 @@ import {
   service,
   volume,
 } from "railway/iac";
+import {
+  existingServiceNames,
+  postgresPassword,
+} from "./postgres-password-policy.ts";
 
 // Secret values remain in Railway; IaC owns connections, not provider credentials.
 // Long-running services inherit Railway's ON_FAILURE default. CLI 5.71 treats
@@ -22,7 +26,9 @@ export default defineRailway((ctx) => {
     checkSuites: true,
   });
 
-  // Names and capacities come from Railway's read-only production/PR import.
+  // Generate URL-safe passwords only for new databases; preserve existing roles.
+  const existingServices = existingServiceNames(ctx);
+  // Retain imported database identities and image majors.
   const envioDatabase = database("Postgres", "postgres", {
     image: "ghcr.io/railwayapp-templates/postgres-ssl:16",
     output: "DATABASE_URL",
@@ -35,7 +41,7 @@ export default defineRailway((ctx) => {
   };
   const envioData = volume("destruction-volume", {
     region: "us-west2",
-    sizeMB: production ? 5000 : 50000,
+    sizeMB: production ? 10000 : 50000,
     allowOnlineResize: true,
     alerts: { usage: { "80": {}, "95": {}, "100": {} } },
   });
@@ -45,6 +51,11 @@ export default defineRailway((ctx) => {
     defaultMountPath: "/var/lib/postgresql/data",
     region: "us-west2",
   });
+  for (const db of [envioDatabase, cacheDatabase]) {
+    db.variables = {
+      POSTGRES_PASSWORD: postgresPassword(db.name, existingServices),
+    };
+  }
   const cacheData = volume("postgres-volume", {
     region: "us-west2",
     sizeMB: 50000,

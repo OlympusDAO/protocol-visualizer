@@ -2,6 +2,8 @@ name: pnpm CI
 
 on:
   pull_request:
+  push:
+    branches: [master]
   workflow_dispatch:
 
 concurrency:
@@ -73,3 +75,152 @@ jobs:
 
       - name: Run snapshot monitor tests
         run: pnpm --filter snapshot-monitor run test
+
+  security-audit:
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/security-scan.yml
+
+  dependency-audit:
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/audit.yml
+
+  railway-plan:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    outputs:
+      run-id: ${{ steps.plan-run.outputs.run-id }}
+    steps:
+      - name: Find reviewed production plan
+        id: plan-run
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const prs = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, {
+              ...context.repo, commit_sha: context.sha, per_page: 100,
+            });
+            const pr = prs.find(pr => pr.merged_at && pr.merge_commit_sha === context.sha &&
+              pr.base.ref === "master" && pr.head.repo?.full_name === context.payload.repository.full_name);
+            if (!pr) {
+              core.info("No same-repository PR merged at this commit; infrastructure apply is skipped.");
+              return;
+            }
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              ...context.repo, pull_number: pr.number, per_page: 100,
+            });
+            const paths = [".github/workflows/railway-config.yml", ".github/workflows/ci.yml",
+              "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", ".nvmrc", ".node-version"];
+            if (!files.some(({ filename }) => paths.includes(filename) ||
+              filename.startsWith(".railway/") || filename.startsWith(".github/actions/bootstrap/"))) {
+              core.info("The merged PR does not affect Railway configuration; apply is skipped.");
+              return;
+            }
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              ...context.repo, workflow_id: "railway-config.yml", head_sha: pr.head.sha,
+              event: "pull_request", status: "success", per_page: 1,
+            });
+            if (!data.workflow_runs.length) throw new Error("No successful plan for this PR head. Generate and review a fresh plan before applying.");
+            core.setOutput("run-id", data.workflow_runs[0].id);
+
+  railway-apply:
+    needs: [lint-check, build, security-audit, dependency-audit, railway-plan]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.railway-plan.outputs.run-id != ''
+    runs-on: ubuntu-latest
+    concurrency:
+      group: railway-infrastructure-production
+      cancel-in-progress: false
+      queue: max
+    env:
+      RAILWAY_PROJECT_ID: d733dd5c-7076-48ad-ac8b-a147cb428300
+      RAILWAY_ENVIRONMENT_ID: 1b61e496-b565-42b4-9e5d-8096e28e13cd
+    permissions:
+      contents: read
+      actions: read
+      checks: read
+      pull-requests: read
+    steps:
+      - name: Checkout merged configuration
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version-file: .nvmrc
+      - name: Wait for external checks
+        timeout-minutes: 35
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          MERGE_COMMIT_SHA: ${{ github.sha }}
+        with:
+          script: |
+            const { data: currentRun } = await github.rest.actions.getWorkflowRun({
+              ...context.repo,
+              run_id: context.runId,
+            });
+            if (!currentRun.check_suite_id) throw new Error("Cannot identify the CI workflow's own check suite.");
+            // GitHub-managed CodeQL has no workflow file and uses the dynamic event.
+            const codeqlWorkflow = 255339919;
+            for (let attempt = 0; attempt < 120; attempt++) {
+              const { data } = await github.rest.actions.listWorkflowRuns({
+                ...context.repo,
+                workflow_id: codeqlWorkflow,
+                head_sha: process.env.MERGE_COMMIT_SHA,
+                event: "dynamic",
+                per_page: 1,
+              });
+              const run = data.workflow_runs[0];
+              if (run?.status === "completed" && run.conclusion !== "success") throw new Error(`${codeqlWorkflow}: ${run.conclusion}`);
+              if (run?.status === "completed" && run.conclusion === "success") {
+                const reportedChecks = await github.paginate(github.rest.checks.listForRef, {
+                  ...context.repo,
+                  ref: process.env.MERGE_COMMIT_SHA,
+                  filter: "latest",
+                  per_page: 100,
+                });
+                // This apply job cannot finish until the gate returns.
+                const checks = reportedChecks.filter(check => check.check_suite?.id !== currentRun.check_suite_id);
+                const failedCheck = checks.find(check => check.status === "completed" && !["success", "neutral", "skipped"].includes(check.conclusion));
+                if (failedCheck) throw new Error(`${failedCheck.name}: ${failedCheck.conclusion}`);
+                if (checks.length > 0 && checks.every(check => check.status === "completed")) {
+                  core.info("Native CI jobs and external checks passed; production infrastructure apply may proceed.");
+                  return;
+                }
+              }
+              core.info("Waiting for CodeQL and external commit checks on the merge commit.");
+              await new Promise(resolve => setTimeout(resolve, 15_000));
+            }
+            throw new Error("Timed out waiting for external checks; production infrastructure was not applied.");
+      - name: Install Railway CLI
+        run: npm install --global @railway/cli@5.71.0
+      - name: Verify cache password before infrastructure apply
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: node scripts/check-cache-database-password.mjs
+      - name: Download pinned plan
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: railway-production-plan
+          path: ${{ runner.temp }}/railway-plan
+          run-id: ${{ needs.railway-plan.outputs.run-id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify production plan target
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          PLAN_PATH: ${{ runner.temp }}/railway-plan/railway-plan.json
+        with:
+          script: |
+            const plan = JSON.parse(require("fs").readFileSync(process.env.PLAN_PATH, "utf8"));
+            if (plan.environmentId !== process.env.RAILWAY_ENVIRONMENT_ID) {
+              throw new Error("Saved plan targets a different Railway environment. Generate and review a production plan.");
+            }
+      - name: Apply reviewed production plan
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          test -n "$RAILWAY_API_TOKEN" || { echo "Set the RAILWAY_TOKEN Actions secret to an Olympus workspace API token." >&2; exit 1; }
+          railway config apply --environment production --plan "$RUNNER_TEMP/railway-plan/railway-plan.json" --yes

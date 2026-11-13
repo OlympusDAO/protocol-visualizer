@@ -33,9 +33,20 @@ Optional operator settings listed in `variables.ignore` remain outside IaC owner
 | `frontend` | Public UI |
 | `storage` | Private snapshot bucket in `sjc` |
 
-The imported Envio volume is 5,000 MB in production and 50,000 MB in previews.
-The cache volume is 50,000 MB. These are existing capacity limits, not database
-reset commands. Review any later capacity or region change before merging.
+The Envio volume target is 10,000 MB in production and 50,000 MB in previews. Production's
+`destruction-volume`, attached to `Postgres`, was still 5,000 MB on 2026-11-13;
+the reviewed capacity change increases that existing volume to 10,000 MB with
+`allowOnlineResize: true`. Railway normally expands the mounted filesystem
+without downtime; a full volume can require an offline resize and restart.
+See [Railway volume resizing](https://docs.railway.com/volumes/reference).
+This change does not reset the database or remove cached effects. Review the
+production plan and obtain approval before applying the resize.
+
+The declared `postgres-volume` remains 50,000 MB. On 2026-11-13 it was detached;
+the production cache database used a separate `rpc-cache-postgres-volume` of
+50,000 MB. Preserve both volumes and their attachments during this rollout.
+Do not attach the detached volume, replace the cache database volume, or delete
+storage as part of the Envio capacity change.
 
 ## Bootstrap and migration
 
@@ -85,7 +96,7 @@ Before the first merge:
 1. Create a Railway API token scoped to the **Olympus workspace** in Account Settings → Tokens.
 2. Add it as the GitHub Actions repository secret **`RAILWAY_TOKEN`**.
 3. Provision and verify the private cache service and its separate database first.
-4. Supply all nine `UPSTREAM_RPC_URL_<id>` values on `rpc-cache`.
+4. Supply all nine `UPSTREAM_RPC_URL_<id>` values on `rpc-cache` and verify its `RPC_CACHE_DATABASE_URL` reference to `rpc-cache-postgres.DATABASE_URL`. Existing databases must have URL-safe passwords before applying this reference; see [the password policy](../.railway/README.md).
 5. Preserve the other operator secrets listed below.
 6. Review the production plan posted on the PR.
 
@@ -97,14 +108,14 @@ workflow before this prerequisite is complete.
 For a new environment, provision the cache resources first through a reviewed,
 cache-only IaC plan or the Railway dashboard. Supply provider credentials manually
 on `rpc-cache`. Configure its Dockerfile as `Dockerfile-rpc-cache`, its healthcheck
-as `/healthcheck`, and its database reference as shown in [rpc-cache.md](rpc-cache.md).
+as `/healthcheck`, and its database references as shown in [rpc-cache.md](rpc-cache.md).
 Verify the proxy before the whole-project apply routes consumers through it.
 
 ## Automatic variables and manual secrets
 
 | Destination | Supplied by IaC | Manual values retained in Railway |
 | --- | --- | --- |
-| `rpc-cache` | `PORT=4000`, `RPC_CACHE_DATABASE_URL` from `rpc-cache-postgres.DATABASE_URL` | Nine `UPSTREAM_RPC_URL_<id>` values; optional `RPC_CACHE_MAX_RPS` |
+| `rpc-cache` | `PORT=4000`; `RPC_CACHE_DATABASE_URL` references `rpc-cache-postgres.DATABASE_URL` | Nine `UPSTREAM_RPC_URL_<id>` values; optional `RPC_CACHE_MAX_RPS` |
 | `indexer` | Nine `ENVIO_RPC_URL_<id>` paths through `rpc-cache`; Envio database and Hasura references; `PORT=9898` | `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY`; optional `ENVIO_RPC_MODE` |
 | `snapshot-publisher` | Nine `RPC_URL_<id>` paths; bucket, Hasura, indexer metrics, and shared webhook references | Shared `DISCORD_WEBHOOK_URL` value; optional operator overrides |
 | `snapshot-monitor` | Nine `RPC_URL_<id>` paths; bucket, indexer metrics, and shared webhook references | Shared `DISCORD_WEBHOOK_URL` value; optional operator overrides |
@@ -127,7 +138,8 @@ IaC sets both snapshot jobs to `${{shared.DISCORD_WEBHOOK_URL}}`; it does not cr
 Use a separate webhook for preview environments. Keep the URL out of source and frontend variables.
 Add the shared value before generating the plan, then review and apply that plan to deploy the references.
 Variable changes require a deployment to reach the jobs. Apply the staged changes to deploy the affected services together.
-The publisher skips optional notifications without a webhook; the monitor requires it for alerts.
+Both jobs require the webhook. Missing or blank values are logged as errors and
+fail pre-deploy checks and job startup before network or storage access.
 See [Discord notification examples](discord-notifications.md) for summaries, warnings, and deployment lifecycle messages.
 
 The PR 82 bootstrap copied existing indexer provider URLs into the cache's upstream
@@ -181,15 +193,20 @@ The script does not register keys automatically.
 ## Automatic plan and apply
 
 [`.github/workflows/railway-config.yml`](../.github/workflows/railway-config.yml)
-uses Railway CLI 5.71.0 with workspace API authentication.
+creates plans; [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) applies them.
+Both use Railway CLI 5.71.0 with workspace API authentication.
 For same-repository PRs into `master` that affect IaC or its tooling:
 
 - Opening, reopening, or updating the PR produces a **production** plan and a PR comment linking to its run.
-- Merging applies that exact saved plan to production.
+- Merging applies that exact saved plan to production after build, security,
+  dependency, and CodeQL checks pass for the merge commit.
 - Closing without merging does not apply anything.
 - Fork PRs do not receive the Railway credential or run these jobs.
 
-The apply job downloads the artifact from a successful run of this workflow for the merged PR's exact head commit.
+On a `master` push, CI finds the same-repository PR whose merge commit is that
+exact SHA. Direct pushes and merges without Railway-related changes do not apply
+infrastructure. A relevant merge without a successful plan fails the plan-selection job.
+The apply job downloads the artifact from a successful Railway plan run for the merged PR's exact head commit.
 It verifies the production environment ID. The CLI checks the environment revision and `.railway/` tree before apply.
 A changed environment or configuration requires a fresh PR plan. Destructive
 changes are blocked without `--confirm-destructive`; they need a separate,
@@ -206,8 +223,36 @@ Production sources always use `master`, including plans generated from unmerged 
 See [Railway CLI authentication](https://docs.railway.com/cli/login#environment-variables) for the token types.
 
 Application code continues to use Railway GitHub autodeploys and watch patterns.
-Those deployments can start independently of the IaC workflow; this workflow
-does not serialize application deployments behind an infrastructure apply.
+IaC requests `checkSuites: true` on each GitHub source. Verify the effective
+"Wait for CI" setting on newly created services; production `rpc-cache` needed
+a manual correction during initial creation. CI's apply job uses native `needs`
+dependencies on lint, build, and reusable Security Audit and Dependency Audit jobs.
+Failed, cancelled, or skipped prerequisites prevent apply. On PRs, the audits
+retain their separate runs and dependency-audit comments; on `master` pushes,
+CI calls them once through `workflow_call`. Their concurrency groups are separate
+from the caller's group.
+
+The remaining gate waits only for GitHub-managed CodeQL (`dynamic` event,
+repository workflow ID `255339919`) and external commit checks on the exact merge
+commit. Update that ID if managed CodeQL is recreated. Missing or unfinished
+external results time out after 30 minutes; failed, cancelled, or skipped CodeQL
+runs block apply. Additional reported commit checks, such as
+Socket, must finish without failure; neutral or skipped optional checks are allowed.
+The gate excludes only its own workflow run's check suite, since its apply job
+is still running. Checks from other workflow runs remain subject to the gate.
+
+Before a manual production apply or operator redeploy, inspect the exact merge SHA:
+
+```bash
+gh run list --commit <merge-sha> --limit 100 --json workflowName,event,status,conclusion
+gh api repos/OlympusDAO/protocol-visualizer/commits/<merge-sha>/check-runs --paginate --jq '.check_runs[] | {name,status,conclusion}'
+```
+
+Require a successful `pnpm CI` run, including both reusable audit jobs, successful
+CodeQL, and no pending or failed external commit checks. For previews and other non-master targets, verify the equivalent
+PR or manually dispatched runs for the target revision instead of master push runs.
+If required runs are missing, trigger the matching workflows and wait for success;
+do not treat missing runs as a pass.
 This workflow does **not** auto-apply IaC changes to PR environments on every
 commit. Preview infrastructure changes use the manual procedure below.
 
@@ -504,7 +549,7 @@ SECRET_ACCESS_KEY=${{storage.SECRET_ACCESS_KEY}}
 REGION=${{storage.REGION}}
 ENDPOINT=${{storage.ENDPOINT}}
 # INDEXER_DEPLOYMENT_ID=${{shared.INDEXER_DEPLOYMENT_ID}}
-# DISCORD_WEBHOOK_URL=${{shared.DISCORD_WEBHOOK_URL}}
+DISCORD_WEBHOOK_URL=${{shared.DISCORD_WEBHOOK_URL}}
 # MONITOR_STALE_CHAIN_HOURS=24
 ```
 
@@ -538,10 +583,11 @@ ENDPOINT=${{storage.ENDPOINT}}
 # MONITOR_STALE_CHAIN_HOURS=24
 ```
 
-`snapshot-monitor` requires `DISCORD_WEBHOOK_URL` to send indexing alerts and daily summaries.
+`snapshot-publisher` and `snapshot-monitor` require `DISCORD_WEBHOOK_URL` for their notifications.
 Set the shared webhook value in Railway before deployment. IaC supplies the reference to both snapshot jobs.
 Use a separate Discord webhook for PR environments to keep test alerts out of production channels.
-The pre-deploy check rejects a missing webhook without sending a notification.
+Both pre-deploy checks and job startup log and reject a missing or blank webhook
+without sending a notification. Local publisher file exports do not send notifications.
 The monitor also fails fast if `RAILWAY_ENVIRONMENT_NAME` is missing.
 
 Set on `snapshot-gateway`:

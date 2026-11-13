@@ -76,7 +76,6 @@ type DiscordNotificationResult = {
   configured: boolean;
   attempted: boolean;
   delivered: boolean;
-  skipReason?: "missing_webhook_url";
 };
 
 type DiscordEmbedField = {
@@ -580,17 +579,12 @@ const releaseLock = async (
 };
 
 export const sendDiscordMessage = async (
-  webhookUrl: string | undefined,
+  webhookUrl: string,
   message: string | DiscordWebhookPayload
 ): Promise<DiscordNotificationResult> => {
-  const url = webhookUrl?.trim();
+  const url = webhookUrl.trim();
   if (!url) {
-    return {
-      configured: false,
-      attempted: false,
-      delivered: false,
-      skipReason: "missing_webhook_url",
-    };
+    throw new Error("DISCORD_WEBHOOK_URL is required");
   }
   const payload = typeof message === "string" ? { content: message } : message;
   if (payload.embeds?.some((embed) => (embed.fields?.length ?? 0) > 25)) {
@@ -621,8 +615,7 @@ const sendChainNotifications = async (input: {
   progress?: IndexingProgress;
   readiness?: EnvioMetricsReadiness;
 }): Promise<DiscordNotificationResult> => {
-  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
-  if (!webhookUrl?.trim()) return sendDiscordMessage(webhookUrl, input.content);
+  const webhookUrl = getRequiredEnv("DISCORD_WEBHOOK_URL");
   if (
     input.chains.some(
       (chain) => !["production", "testnet"].includes(chain.environment ?? "")
@@ -723,21 +716,15 @@ const notifyHandover = async (
   environmentName: string,
   chains: ChainConfig[]
 ) => {
-  const webhookConfigured = Boolean(process.env.DISCORD_WEBHOOK_URL?.trim());
   console.log(
     JSON.stringify({
       event: "snapshot_publisher_discord_decision",
       notification: "handover",
       environmentName,
       deploymentId: manifest.indexerDeploymentId,
-      webhookConfigured,
+      webhookConfigured: true,
     })
   );
-  if (!webhookConfigured) {
-    console.warn(
-      "Discord handover notification skipped: DISCORD_WEBHOOK_URL is blank"
-    );
-  }
   const result = await sendChainNotifications({
     chains,
     progress: manifest.indexingProgress,
@@ -776,7 +763,6 @@ const notifyIndexingProgress = async (input: {
   readiness: EnvioMetricsReadiness;
   reasons: string[];
 }) => {
-  const webhookConfigured = Boolean(process.env.DISCORD_WEBHOOK_URL?.trim());
   const notification = input.decision;
   console.log(
     JSON.stringify({
@@ -785,15 +771,10 @@ const notifyIndexingProgress = async (input: {
       environmentName: input.environmentName,
       indexingDeploymentId: input.deploymentId,
       activeDeploymentId: input.activeManifest?.indexerDeploymentId,
-      webhookConfigured,
+      webhookConfigured: true,
       reasons: input.reasons,
     })
   );
-  if (!webhookConfigured) {
-    console.warn(
-      `Discord ${notification} notification skipped: DISCORD_WEBHOOK_URL is blank`
-    );
-  }
   const result = await sendChainNotifications({
     chains: input.chains,
     progress: input.readiness.indexingProgress,
@@ -897,11 +878,12 @@ const loadPublisherChains = async () => {
 };
 
 export async function runPublisher(deps: PublisherDependencies = {}) {
+  const outputDir = process.env.SNAPSHOT_OUTPUT_DIR;
+  if (!outputDir) getRequiredEnv("DISCORD_WEBHOOK_URL");
   const publicBasePath =
     process.env.SNAPSHOT_PUBLIC_BASE_PATH || DEFAULT_PUBLIC_BASE_PATH;
   const publicOrigin = process.env.SNAPSHOT_PUBLIC_ORIGIN;
   const chains = await loadPublisherChains();
-  const outputDir = process.env.SNAPSHOT_OUTPUT_DIR;
   const source = (process.env.SNAPSHOT_SOURCE ||
     (outputDir ? "sample" : "hasura")) as SnapshotSource;
   if (source !== "sample" && source !== "hasura") {
@@ -1162,7 +1144,10 @@ export async function runPublisher(deps: PublisherDependencies = {}) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const run = process.argv.includes("--check-config")
-    ? loadPublisherChains().then((chains) => assertRpcConfiguration(chains))
+    ? loadPublisherChains().then((chains) => {
+        assertRpcConfiguration(chains);
+        getRequiredEnv("DISCORD_WEBHOOK_URL");
+      })
     : runPublisher();
   run.catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));

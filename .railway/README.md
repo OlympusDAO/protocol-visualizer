@@ -5,9 +5,27 @@ It is the project definition; there is no named partial. Removing a resource
 can delete it on apply. IaC supplies connection references. Provider URLs and
 operator secrets stay in Railway through `preserve()`; optional overrides remain
 outside IaC ownership. Configure and verify the cache before routing consumers.
+IaC sets `rpc-cache.RPC_CACHE_DATABASE_URL` to a reference to
+`rpc-cache-postgres.DATABASE_URL`, matching the indexer's database linkage.
 Publisher and monitor reference the environment's shared `DISCORD_WEBHOOK_URL`.
 Add its value manually in Project Settings → Shared Variables before applying the plan.
 Use a separate webhook for preview alerts. Do not commit the webhook URL.
+
+Both `Postgres` and `rpc-cache-postgres` use the create-only password policy in
+[`postgres-password-policy.ts`](postgres-password-policy.ts):
+`${{ secret(64, "0123456789abcdef") }}` as a template `defaultValue`, matching
+Railway's official Postgres template. Bare `secret(...)` text is not a generated
+password. New databases request a random, URL-safe password;
+existing passwords use `preserve()`.
+The config reads target-environment service names through `railway api` before
+planning. A failed or incomplete lookup aborts the plan. Offline checks without
+an environment ID preserve passwords instead of requesting generation.
+Before applying the cache URL reference in an existing environment, ensure its
+database password is URL-safe. Existing credentials require a coordinated database
+role and Railway variable update; changing `POSTGRES_PASSWORD` alone is insufficient.
+Automatic production apply checks this password policy before applying the plan
+and stops if rotation is still required. This check does not modify credentials
+or verify that a PostgreSQL role rotation has been completed.
 
 Use the repository-pinned SDK and Railway CLI 5.71.0 or newer:
 
@@ -39,8 +57,10 @@ that switch. The plan is private and ignored by Git.
 Use the [manual deployment procedure](../docs/railway-self-hosting.md#manual-iac-plan-and-deployment)
 for login, project selection, required validation, and common plan messages.
 
-The GitHub workflow plans production changes on PR updates and applies the saved
-plan on merge to `master`. Set one Olympus workspace API token as the GitHub
+The Railway workflow plans production changes on PR updates. The final apply job
+in `ci.yml` depends on build, lint, security, and dependency jobs, then checks
+external CodeQL and commit results for the merge commit. It applies only the saved
+plan for that merged PR's exact head. Set one Olympus workspace API token as the GitHub
 Actions secret `RAILWAY_TOKEN`. The workflow exports it as `RAILWAY_API_TOKEN`
 and selects the project and production environment explicitly. No token per
 environment is required. Destructive applies are blocked. Preview infrastructure

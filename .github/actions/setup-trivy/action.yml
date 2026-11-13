@@ -1,0 +1,21 @@
+name: Install verified Trivy
+description: Install the scan action's Trivy release without executing a mutable installer.
+runs:
+  using: composite
+  steps:
+    - name: Install Trivy 0.69.3
+      shell: bash
+      run: |
+        set -euo pipefail
+        test "$RUNNER_OS/$RUNNER_ARCH" = Linux/X64
+        archive_dir="$(mktemp -d "$RUNNER_TEMP/trivy-download.XXXXXX")"
+        trap 'rm -rf "$archive_dir"' EXIT
+        curl --fail --location --retry 3 \
+          https://github.com/aquasecurity/trivy/releases/download/v0.69.3/trivy_0.69.3_Linux-64bit.tar.gz \
+          --output "$archive_dir/trivy.tar.gz"
+        # SHA-256 from the upstream v0.69.3 release checksums.
+        echo "1816b632dfe529869c740c0913e36bd1629cb7688bd5634f4a858c1d57c88b75  $archive_dir/trivy.tar.gz" | sha256sum --check --strict
+        install_dir="$(mktemp -d "$RUNNER_TEMP/trivy-bin.XXXXXX")"
+        tar -xzf "$archive_dir/trivy.tar.gz" -C "$install_dir" trivy
+        "$install_dir/trivy" --version
+        echo "$install_dir" >> "$GITHUB_PATH"

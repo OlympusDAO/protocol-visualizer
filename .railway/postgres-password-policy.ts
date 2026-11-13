@@ -1,7 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { preserve, type RailwayContext, type VariableValue } from "railway/iac";
 
-export const postgresPasswordGenerator = 'secret(64, "0123456789abcdef")';
+export const postgresPasswordGenerator =
+  '${{ secret(64, "0123456789abcdef") }}';
 
 export function postgresPassword(
   name: string,
@@ -10,7 +11,7 @@ export function postgresPassword(
   // Offline typechecks cannot establish that a database is new. Fail closed.
   return existingServices === undefined || existingServices.has(name)
     ? preserve()
-    : { type: "raw", value: { generator: postgresPasswordGenerator } };
+    : { type: "raw", value: { defaultValue: postgresPasswordGenerator } };
 }
 
 export function existingServiceNames(

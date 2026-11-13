@@ -13,7 +13,9 @@ Use a separate webhook for preview alerts. Do not commit the webhook URL.
 
 Both `Postgres` and `rpc-cache-postgres` use the create-only password policy in
 [`postgres-password-policy.ts`](postgres-password-policy.ts):
-`secret(64, "0123456789abcdef")`. New databases request a random, URL-safe password;
+`${{ secret(64, "0123456789abcdef") }}` as a template `defaultValue`, matching
+Railway's official Postgres template. Bare `secret(...)` text is not a generated
+password. New databases request a random, URL-safe password;
 existing passwords use `preserve()`.
 The config reads target-environment service names through `railway api` before
 planning. A failed or incomplete lookup aborts the plan. Offline checks without

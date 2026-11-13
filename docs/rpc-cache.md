@@ -120,8 +120,10 @@ directly. Percent-encode credentials if that URI contains special characters.
 The production review on 2026-11-13 found a literal encoded URI targeting the
 correct private cache database, four client sessions from `rpc-cache`, and cache
 activity in private metrics. The missing canvas edge reflected the absence of a
-service-variable reference. Its raw `DATABASE_URL` failed Go URI parsing because
-the password was not URI-safe. Rotating that existing password is a prerequisite
+service-variable reference. A later raw/resolved-variable comparison confirmed
+that `POSTGRES_PASSWORD` contained bare `secret(...)` function text, not a
+generated password. Those literal characters caused Go's `invalid_userinfo` error.
+Rotating that existing password is a prerequisite
 for switching to the single reference; a successful application deploy alone does
 not apply the IaC variable change to a preview environment.
 

@@ -244,11 +244,14 @@ test("Railway workflow applies only reviewed merges and blocks destructive chang
 });
 
 test("Postgres password policy generates URL-safe secrets only for new databases", () => {
-  assert.equal(postgresPasswordGenerator, 'secret(64, "0123456789abcdef")');
+  assert.equal(
+    postgresPasswordGenerator,
+    '${{ secret(64, "0123456789abcdef") }}'
+  );
   for (const name of ["Postgres", "rpc-cache-postgres"]) {
     assert.deepEqual(postgresPassword(name, new Set()), {
       type: "raw",
-      value: { generator: postgresPasswordGenerator },
+      value: { defaultValue: postgresPasswordGenerator },
     });
     assert.deepEqual(postgresPassword(name, new Set([name])), {
       type: "preserve",

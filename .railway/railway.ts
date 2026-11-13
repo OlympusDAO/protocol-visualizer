@@ -10,6 +10,10 @@ import {
   service,
   volume,
 } from "railway/iac";
+import {
+  existingServiceNames,
+  postgresPassword,
+} from "./postgres-password-policy.ts";
 
 // Secret values remain in Railway; IaC owns connections, not provider credentials.
 // Long-running services inherit Railway's ON_FAILURE default. CLI 5.71 treats
@@ -22,6 +26,8 @@ export default defineRailway((ctx) => {
     checkSuites: true,
   });
 
+  // Generate URL-safe passwords only for new databases; preserve existing roles.
+  const existingServices = existingServiceNames(ctx);
   // Retain imported database identities and image majors.
   const envioDatabase = database("Postgres", "postgres", {
     image: "ghcr.io/railwayapp-templates/postgres-ssl:16",
@@ -45,6 +51,11 @@ export default defineRailway((ctx) => {
     defaultMountPath: "/var/lib/postgresql/data",
     region: "us-west2",
   });
+  for (const db of [envioDatabase, cacheDatabase]) {
+    db.variables = {
+      POSTGRES_PASSWORD: postgresPassword(db.name, existingServices),
+    };
+  }
   const cacheData = volume("postgres-volume", {
     region: "us-west2",
     sizeMB: 50000,
@@ -260,12 +271,7 @@ export default defineRailway((ctx) => {
     source,
     env: {
       PORT: "4000",
-      // Encode credentials in eRPC, retaining Railway references and rotation.
-      ...Object.fromEntries(
-        ["PGHOST", "PGPORT", "PGUSER", "PGPASSWORD", "PGDATABASE"].map(
-          (key) => [key, ref(cacheDatabase, key)]
-        )
-      ),
+      RPC_CACHE_DATABASE_URL: ref(cacheDatabase, "DATABASE_URL"),
       ...Object.fromEntries(
         chainIds.map((id) => [`UPSTREAM_RPC_URL_${id}`, preserve()])
       ),

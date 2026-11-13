@@ -5,12 +5,25 @@ It is the project definition; there is no named partial. Removing a resource
 can delete it on apply. IaC supplies connection references. Provider URLs and
 operator secrets stay in Railway through `preserve()`; optional overrides remain
 outside IaC ownership. Configure and verify the cache before routing consumers.
-IaC references the cache database's `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`,
-and `PGDATABASE`. eRPC encodes the URI components at runtime, keeping the Railway
-dependency visible without copying credentials into a connection string.
+IaC sets `rpc-cache.RPC_CACHE_DATABASE_URL` to a reference to
+`rpc-cache-postgres.DATABASE_URL`, matching the indexer's database linkage.
 Publisher and monitor reference the environment's shared `DISCORD_WEBHOOK_URL`.
 Add its value manually in Project Settings → Shared Variables before applying the plan.
 Use a separate webhook for preview alerts. Do not commit the webhook URL.
+
+Both `Postgres` and `rpc-cache-postgres` use the create-only password policy in
+[`postgres-password-policy.ts`](postgres-password-policy.ts):
+`secret(64, "0123456789abcdef")`. New databases request a random, URL-safe password;
+existing passwords use `preserve()`.
+The config reads target-environment service names through `railway api` before
+planning. A failed or incomplete lookup aborts the plan. Offline checks without
+an environment ID preserve passwords instead of requesting generation.
+Before applying the cache URL reference in an existing environment, ensure its
+database password is URL-safe. Existing credentials require a coordinated database
+role and Railway variable update; changing `POSTGRES_PASSWORD` alone is insufficient.
+Automatic production apply checks this password policy before applying the plan
+and stops if rotation is still required. This check does not modify credentials
+or verify that a PostgreSQL role rotation has been completed.
 
 Use the repository-pinned SDK and Railway CLI 5.71.0 or newer:
 

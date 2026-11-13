@@ -96,7 +96,7 @@ Before the first merge:
 1. Create a Railway API token scoped to the **Olympus workspace** in Account Settings → Tokens.
 2. Add it as the GitHub Actions repository secret **`RAILWAY_TOKEN`**.
 3. Provision and verify the private cache service and its separate database first.
-4. Supply all nine `UPSTREAM_RPC_URL_<id>` values on `rpc-cache` and verify its five `PG*` database references.
+4. Supply all nine `UPSTREAM_RPC_URL_<id>` values on `rpc-cache` and verify its `RPC_CACHE_DATABASE_URL` reference to `rpc-cache-postgres.DATABASE_URL`. Existing databases must have URL-safe passwords before applying this reference; see [the password policy](../.railway/README.md).
 5. Preserve the other operator secrets listed below.
 6. Review the production plan posted on the PR.
 
@@ -115,7 +115,7 @@ Verify the proxy before the whole-project apply routes consumers through it.
 
 | Destination | Supplied by IaC | Manual values retained in Railway |
 | --- | --- | --- |
-| `rpc-cache` | `PORT=4000`; five `PG*` references to `rpc-cache-postgres` | Nine `UPSTREAM_RPC_URL_<id>` values; optional `RPC_CACHE_MAX_RPS` |
+| `rpc-cache` | `PORT=4000`; `RPC_CACHE_DATABASE_URL` references `rpc-cache-postgres.DATABASE_URL` | Nine `UPSTREAM_RPC_URL_<id>` values; optional `RPC_CACHE_MAX_RPS` |
 | `indexer` | Nine `ENVIO_RPC_URL_<id>` paths through `rpc-cache`; Envio database and Hasura references; `PORT=9898` | `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY`; optional `ENVIO_RPC_MODE` |
 | `snapshot-publisher` | Nine `RPC_URL_<id>` paths; bucket, Hasura, indexer metrics, and shared webhook references | Shared `DISCORD_WEBHOOK_URL` value; optional operator overrides |
 | `snapshot-monitor` | Nine `RPC_URL_<id>` paths; bucket, indexer metrics, and shared webhook references | Shared `DISCORD_WEBHOOK_URL` value; optional operator overrides |

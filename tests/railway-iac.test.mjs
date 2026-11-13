@@ -1,8 +1,16 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 import { createRailwayContext } from "railway/iac";
 import defineInfrastructure from "../.railway/railway.ts";
+import {
+  existingServiceNames,
+  postgresPassword,
+  postgresPasswordGenerator,
+} from "../.railway/postgres-password-policy.ts";
 
 async function infrastructure(environment) {
   const definition = await defineInfrastructure(
@@ -60,6 +68,12 @@ test("whole-project IaC retains storage and wires services without embedding sec
       get("rpc-cache-postgres").image,
       "ghcr.io/railwayapp-templates/postgres-ssl:18"
     );
+    for (const name of ["Postgres", "rpc-cache-postgres"])
+      assert.deepEqual(
+        get(name).variables?.POSTGRES_PASSWORD,
+        { type: "preserve" },
+        `${name} must retain create-time generation without requesting password updates`
+      );
     assert.equal(get("destruction-volume").config.sizeMB, envioSize);
     assert.equal(get("destruction-volume").config.allowOnlineResize, true);
     assert.equal(get("destruction-volume").config.region, "us-west2");
@@ -121,19 +135,16 @@ test("whole-project IaC retains storage and wires services without embedding sec
       assert.deepEqual(get("rpc-cache").variables[`UPSTREAM_RPC_URL_${id}`], {
         type: "preserve",
       });
-    assert.equal(get("rpc-cache").variables.RPC_CACHE_DATABASE_URL, undefined);
-    for (const key of [
-      "PGHOST",
-      "PGPORT",
-      "PGUSER",
-      "PGPASSWORD",
-      "PGDATABASE",
-    ])
-      assert.deepEqual(get("rpc-cache").variables[key], {
-        type: "reference",
-        resource: "database.rpc-cache-postgres",
-        output: key,
-      });
+    assert.deepEqual(get("rpc-cache").variables.RPC_CACHE_DATABASE_URL, {
+      type: "reference",
+      resource: "database.rpc-cache-postgres",
+      output: "DATABASE_URL",
+    });
+    assert.deepEqual(get("indexer").variables.DATABASE_URL, {
+      type: "reference",
+      resource: "database.Postgres",
+      output: "DATABASE_URL",
+    });
     for (const name of [
       "snapshot-publisher",
       "snapshot-monitor",
@@ -191,7 +202,7 @@ test("Railway workflow applies only reviewed merges and blocks destructive chang
   assert.equal(
     workflow.match(/RAILWAY_API_TOKEN: \$\{\{ secrets.RAILWAY_TOKEN \}\}/g)
       .length,
-    2
+    3
   );
   assert(
     workflow.includes(
@@ -221,8 +232,131 @@ test("Railway workflow applies only reviewed merges and blocks destructive chang
   assert(!workflow.includes("railwayapp/config@"));
   assert.equal(workflow.match(/name: railway-production-plan/g).length, 2);
   assert(ci.includes("run-id: ${{ needs.railway-plan.outputs.run-id }}"));
+  const passwordCheck = ci.indexOf(
+    "node scripts/check-cache-database-password.mjs"
+  );
+  const apply = ci.indexOf("railway config apply --environment production");
+  assert(passwordCheck >= 0 && apply > passwordCheck);
   assert(workflow.includes("cancel-in-progress: false"));
   assert(workflow.includes("queue: max"));
   for (const [, action] of workflow.matchAll(/uses: (\S+)/g))
     if (!action.startsWith("./")) assert.match(action, /@[0-9a-f]{40}$/);
+});
+
+test("Postgres password policy generates URL-safe secrets only for new databases", () => {
+  assert.equal(postgresPasswordGenerator, 'secret(64, "0123456789abcdef")');
+  for (const name of ["Postgres", "rpc-cache-postgres"]) {
+    assert.deepEqual(postgresPassword(name, new Set()), {
+      type: "raw",
+      value: { generator: postgresPasswordGenerator },
+    });
+    assert.deepEqual(postgresPassword(name, new Set([name])), {
+      type: "preserve",
+    });
+    assert.deepEqual(postgresPassword(name, undefined), { type: "preserve" });
+  }
+});
+
+test("database password planning rejects failed or incomplete service lookups", () => {
+  const directory = mkdtempSync(join(tmpdir(), "pv-password-policy-"));
+  const executable = join(directory, "railway");
+  const originalPath = process.env.PATH;
+  const ctx = createRailwayContext({ environmentId: "fixture-environment" });
+  const response = (services, hasNextPage = false) => ({
+    data: {
+      environment: {
+        serviceInstances: {
+          edges: services.map((serviceName) => ({ node: { serviceName } })),
+          pageInfo: { hasNextPage },
+        },
+      },
+    },
+  });
+  const fixture = (value) =>
+    writeFileSync(
+      executable,
+      `#!/bin/sh\nprintf '%s' '${JSON.stringify(value)}'\n`,
+      {
+        mode: 0o755,
+      }
+    );
+  try {
+    process.env.PATH = `${directory}:${originalPath}`;
+    fixture(response(["Postgres", "rpc-cache-postgres"]));
+    assert.deepEqual(
+      [...existingServiceNames(ctx)],
+      ["Postgres", "rpc-cache-postgres"]
+    );
+    for (const value of [
+      response(["Postgres"], true),
+      response([null]),
+      response([""]),
+      { errors: [{ message: "Not authorized" }] },
+      {},
+    ]) {
+      fixture(value);
+      assert.throws(
+        () => existingServiceNames(ctx),
+        /refusing to plan database password generation/
+      );
+    }
+    writeFileSync(executable, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+    assert.throws(
+      () => existingServiceNames(ctx),
+      /refusing to plan database password generation/
+    );
+  } finally {
+    if (originalPath === undefined) delete process.env.PATH;
+    else process.env.PATH = originalPath;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("infrastructure apply blocks unsafe cache passwords without exposing credentials", () => {
+  const directory = mkdtempSync(join(tmpdir(), "pv-cache-password-check-"));
+  const executable = join(directory, "railway");
+  const run = (script, extra = {}) => {
+    writeFileSync(executable, script, { mode: 0o755 });
+    return spawnSync(
+      process.execPath,
+      ["scripts/check-cache-database-password.mjs"],
+      {
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          PATH: `${directory}:${process.env.PATH}`,
+          RAILWAY_PROJECT_ID: "fixture-project",
+          RAILWAY_ENVIRONMENT_ID: "fixture-environment",
+          ...extra,
+        },
+      }
+    );
+  };
+  const fixture = (value) =>
+    `#!/bin/sh\nprintf '%s' '${JSON.stringify(value)}'\n`;
+  try {
+    assert.equal(run(fixture({ PGPASSWORD: "a0123._~-" })).status, 0);
+    for (const password of ["fixture^private", "fixture/private", "", null]) {
+      const result = run(fixture({ PGPASSWORD: password }));
+      assert.equal(result.status, 1);
+      assert.match(
+        result.stderr,
+        /Coordinate PostgreSQL role and Railway variable rotation/
+      );
+      if (password) assert(!result.stderr.includes(password));
+    }
+    const failed = run(
+      "#!/bin/sh\nprintf 'fixture-private-cli-output'\nexit 1\n"
+    );
+    assert.equal(failed.status, 1);
+    assert.match(failed.stderr, /infrastructure apply is blocked/);
+    assert(!failed.stderr.includes("fixture-private-cli-output"));
+    assert.equal(
+      run(fixture({ PGPASSWORD: "valid" }), { RAILWAY_ENVIRONMENT_ID: "" })
+        .status,
+      1
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });

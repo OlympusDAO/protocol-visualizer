@@ -197,6 +197,10 @@ jobs:
             throw new Error("Timed out waiting for external checks; production infrastructure was not applied.");
       - name: Install Railway CLI
         run: npm install --global @railway/cli@5.71.0
+      - name: Verify cache password before infrastructure apply
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: node scripts/check-cache-database-password.mjs
       - name: Download pinned plan
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:

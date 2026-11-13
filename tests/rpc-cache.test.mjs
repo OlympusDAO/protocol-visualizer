@@ -80,9 +80,7 @@ test("snapshot RPC routing checks reject missing entries even when indexer entri
 });
 
 test("runtime configuration requires named credentials without printing values", () => {
-  for (const name of Object.keys(env).filter(
-    (name) => name !== "RPC_CACHE_DATABASE_URL"
-  )) {
+  for (const name of Object.keys(env)) {
     const missing = { ...env, [name]: "" };
     assert.throws(
       () => config(missing),
@@ -97,39 +95,6 @@ test("runtime configuration requires named credentials without printing values",
     () => config({ ...env, RPC_CACHE_MAX_RPS: "zero" }),
     /positive integer/
   );
-});
-
-test("Postgres references build an encoded URI while explicit URIs remain supported", () => {
-  const fields = {
-    PGHOST: "rpc-cache-postgres.railway.internal",
-    PGPORT: "5432",
-    PGUSER: "cache@user",
-    PGPASSWORD: " p@ss:#/%?[]+ ",
-    PGDATABASE: "cache/name",
-  };
-  const referenced = { ...env, RPC_CACHE_DATABASE_URL: undefined, ...fields };
-  const connection = (environment) =>
-    config(environment).database.evmJsonRpcCache.connectors[0].postgresql
-      .connectionUri;
-  const uri = new URL(connection(referenced));
-  assert.equal(uri.hostname, fields.PGHOST);
-  assert.equal(uri.port, fields.PGPORT);
-  assert.equal(decodeURIComponent(uri.username), fields.PGUSER);
-  assert.equal(decodeURIComponent(uri.password), fields.PGPASSWORD);
-  assert.equal(decodeURIComponent(uri.pathname.slice(1)), fields.PGDATABASE);
-  assert.equal(
-    connection({
-      ...referenced,
-      RPC_CACHE_DATABASE_URL: env.RPC_CACHE_DATABASE_URL,
-    }),
-    env.RPC_CACHE_DATABASE_URL
-  );
-  for (const name of Object.keys(fields)) {
-    assert.throws(
-      () => connection({ ...referenced, [name]: "" }),
-      new RegExp(`Missing or invalid ${name}`)
-    );
-  }
 });
 
 test("immutable policies require known finality and disable speculative upstream work", () => {

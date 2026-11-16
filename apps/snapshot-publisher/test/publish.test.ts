@@ -129,7 +129,10 @@ const withPublisherEnv = async (
   run: () => Promise<void>
 ) => {
   const originalEnv = { ...process.env };
-  process.env = { ...originalEnv };
+  process.env = {
+    ...originalEnv,
+    DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+  };
   for (const [key, value] of Object.entries(env)) {
     if (value === undefined) {
       delete process.env[key];
@@ -241,6 +244,7 @@ test("publisher rejects missing RPC variables before metrics or storage access",
   const originalEnv = { ...process.env };
   process.env = {
     ...originalEnv,
+    DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
     SNAPSHOT_SOURCE: "hasura",
     SNAPSHOT_CHAIN_IDS: "1",
     INDEXER_DEPLOYMENT_ID: "deployment-a",
@@ -271,6 +275,7 @@ test("publisher skips before Hasura reads when indexer metrics are not ready", a
 
   process.env = {
     ...originalEnv,
+    DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
     SNAPSHOT_SOURCE: "hasura",
     RPC_URL_10: "https://rpc.example/optimism",
     RPC_URL_1: "https://rpc.example/mainnet",
@@ -283,6 +288,8 @@ test("publisher skips before Hasura reads when indexer metrics are not ready", a
   delete process.env.HASURA_GRAPHQL_URL;
 
   globalThis.fetch = async (url) => {
+    if (String(url) === "https://discord.example/webhook")
+      return new Response(null, { status: 204 });
     assert.equal(String(url), "http://indexer:9898/metrics");
     return new Response(
       `
@@ -347,6 +354,8 @@ test("native readiness permits completed canonical observations without a second
       : [];
     let rpcCalls = 0;
     globalThis.fetch = async (url, init) => {
+      if (String(url) === "https://discord.example/webhook")
+        return new Response(null, { status: 204 });
       if (String(url) === "http://indexer/metrics")
         return new Response(
           'hyperindex_synced_to_head 1\nenvio_progress_ready{chainId="1"} 1\nenvio_progress_block{chainId="1"} 2000000\nenvio_progress_block_time_seconds{chainId="1"} 1700000000'
@@ -379,7 +388,7 @@ test("native readiness permits completed canonical observations without a second
           INDEXER_METRICS_URL: "http://indexer/metrics",
           HASURA_GRAPHQL_URL: "http://hasura/v1/graphql",
           RPC_URL_1: "https://private-proxy.example/1",
-          DISCORD_WEBHOOK_URL: undefined,
+          DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
           BUCKET: "bucket",
         },
         () =>
@@ -417,6 +426,7 @@ test("publisher logs continuing indexing for a previously observed deployment", 
 
   process.env = {
     ...originalEnv,
+    DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
     SNAPSHOT_SOURCE: "hasura",
     RPC_URL_1: "https://rpc.example/mainnet",
     SNAPSHOT_CHAIN_IDS: "1",
@@ -564,6 +574,7 @@ test("publisher reports indexer metrics network failures with safe context", asy
 
   process.env = {
     ...originalEnv,
+    DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
     SNAPSHOT_SOURCE: "hasura",
     RPC_URL_1: "https://rpc.example/mainnet",
     SNAPSHOT_CHAIN_IDS: "1",
@@ -604,6 +615,7 @@ test("publisher requires Railway environment name for live Hasura runs", async (
 
   process.env = {
     ...originalEnv,
+    DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
     SNAPSHOT_SOURCE: "hasura",
     RPC_URL_1: "https://rpc.example/mainnet",
     SNAPSHOT_CHAIN_IDS: "1",
@@ -709,49 +721,31 @@ test("publisher uploads snapshots, publishes manifest last, and releases lock", 
   );
 });
 
-test("publisher logs when Discord handover is skipped because webhook is missing", async () => {
-  const consoleCapture = captureConsole();
+test("publisher rejects missing webhooks before network or storage access", async (t) => {
   const client = new MemoryS3Client();
-
-  try {
+  const fetchMock = t.mock.method(globalThis, "fetch", async () => {
+    throw new Error("unexpected network request");
+  });
+  for (const webhook of [undefined, "", "  "]) {
     await withPublisherEnv(
       {
-        SNAPSHOT_SOURCE: "sample",
+        SNAPSHOT_SOURCE: "hasura",
+        SNAPSHOT_OUTPUT_DIR: undefined,
         SNAPSHOT_CHAIN_IDS: "1",
         INDEXER_DEPLOYMENT_ID: "deployment-a",
         RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
         BUCKET: "bucket",
-        DISCORD_WEBHOOK_URL: undefined,
+        DISCORD_WEBHOOK_URL: webhook,
       },
       () =>
-        runPublisher({
-          createS3Client: () => client,
-        })
+        assert.rejects(
+          () => runPublisher({ createS3Client: () => client }),
+          /DISCORD_WEBHOOK_URL is required/
+        )
     );
-  } finally {
-    consoleCapture.restore();
   }
-
-  const decision = JSON.parse(
-    consoleCapture.logs.find((line) =>
-      line.includes('"event":"snapshot_publisher_discord_decision"')
-    ) ?? "{}"
-  );
-  const result = JSON.parse(
-    consoleCapture.logs.find((line) =>
-      line.includes('"event":"snapshot_publisher_discord_result"')
-    ) ?? "{}"
-  );
-  assert.equal(decision.webhookConfigured, false);
-  assert.equal(result.configured, false);
-  assert.equal(result.attempted, false);
-  assert.equal(result.delivered, false);
-  assert.equal(result.skipReason, "missing_webhook_url");
-  assert(
-    consoleCapture.warnings.some((message) =>
-      message.includes("DISCORD_WEBHOOK_URL is blank")
-    )
-  );
+  assert.equal(fetchMock.mock.calls.length, 0);
+  assert.deepEqual(client.calls, []);
 });
 
 test("publisher sends all nine chains in a handover embed within Discord's field limit", async () => {

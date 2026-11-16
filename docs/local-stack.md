@@ -70,7 +70,8 @@ curl http://localhost:8082/v1/chains/1/protocol
 `/ready` returns `503` until `v1/manifest.json` exists in MinIO. After a
 successful publisher run it returns `200`.
 
-Run the monitor job only when `DISCORD_WEBHOOK_URL` is set:
+Set `DISCORD_WEBHOOK_URL` before running publisher or monitor jobs. Both log an
+error and exit unsuccessfully when it is missing or blank. To run the monitor:
 
 ```bash
 pnpm run stack:monitor

@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 import { createRailwayContext } from "railway/iac";
+import {
+  existingResources,
+  postgresPassword,
+} from "../.railway/postgres-policy.ts";
 import defineInfrastructure from "../.railway/railway.ts";
 
 async function infrastructure(environment) {
@@ -12,10 +19,7 @@ async function infrastructure(environment) {
 }
 
 test("whole-project IaC retains storage and wires services without embedding secrets", async () => {
-  for (const [environment, envioSize] of [
-    ["production", 5000],
-    ["protocol-visualizer-pr-82", 50000],
-  ]) {
+  for (const environment of ["production", "protocol-visualizer-pr-82"]) {
     const { definition, resources } = await infrastructure(environment);
     assert.equal(definition.name, "protocol-visualizer");
     assert.equal(definition.variables.managed, true);
@@ -35,7 +39,7 @@ test("whole-project IaC retains storage and wires services without embedding sec
       "service.snapshot-monitor",
       "service.snapshot-publisher",
       "volume.destruction-volume",
-      "volume.postgres-volume",
+      "volume.rpc-cache-postgres-volume",
     ]);
     const get = (name) => resources.find((r) => r.name === name);
     assert.equal(get("Postgres").networking.privateNetworkEndpoint, "postgres");
@@ -60,8 +64,16 @@ test("whole-project IaC retains storage and wires services without embedding sec
       get("rpc-cache-postgres").image,
       "ghcr.io/railwayapp-templates/postgres-ssl:18"
     );
-    assert.equal(get("destruction-volume").config.sizeMB, envioSize);
-    assert.equal(get("postgres-volume").config.sizeMB, 50000);
+    for (const name of ["Postgres", "rpc-cache-postgres"])
+      assert.deepEqual(
+        get(name).variables?.POSTGRES_PASSWORD,
+        { type: "preserve" },
+        `${name} must retain create-time generation without requesting password updates`
+      );
+    assert.equal(get("destruction-volume").config.sizeMB, 20000);
+    assert.equal(get("destruction-volume").config.allowOnlineResize, true);
+    assert.equal(get("destruction-volume").config.region, "us-west2");
+    assert.equal(get("rpc-cache-postgres-volume").config.sizeMB, 20000);
     assert.equal(get("storage").config.region, "sjc");
     for (const node of resources.filter((r) => r.type === "service")) {
       assert.equal(
@@ -124,6 +136,11 @@ test("whole-project IaC retains storage and wires services without embedding sec
       resource: "database.rpc-cache-postgres",
       output: "DATABASE_URL",
     });
+    assert.deepEqual(get("indexer").variables.DATABASE_URL, {
+      type: "reference",
+      resource: "database.Postgres",
+      output: "DATABASE_URL",
+    });
     for (const name of [
       "snapshot-publisher",
       "snapshot-monitor",
@@ -159,27 +176,29 @@ test("whole-project IaC retains storage and wires services without embedding sec
 });
 
 test("Railway workflow applies only reviewed merges and blocks destructive changes", () => {
-  const workflow = readFileSync(".github/workflows/railway-config.yml", "utf8");
+  const planning = readFileSync(".github/workflows/railway-config.yml", "utf8");
+  const ci = readFileSync(".github/workflows/ci.yml", "utf8");
+  const workflow = `${planning}\n${ci}`;
   assert(workflow.includes("branches: [master]"));
   assert(!workflow.includes("pull_request_target"));
   assert(
     workflow.includes(
-      "github.event.action == 'closed' && github.event.pull_request.merged"
+      "github.event_name == 'push' && github.ref == 'refs/heads/master'"
     )
   );
   assert.equal(
     workflow.match(/head.repo.full_name == github.repository/g).length,
-    2
+    1
   );
-  assert(
-    workflow.includes("ref: ${{ github.event.pull_request.merge_commit_sha }}")
-  );
+  assert(ci.includes("ref: ${{ github.sha }}"));
+  assert(!planning.includes("  apply:"));
+  assert(planning.includes('".github/workflows/ci.yml"'));
   assert(!workflow.includes("--confirm-destructive"));
   assert(!/^\s+RAILWAY_TOKEN:/m.test(workflow));
   assert.equal(
     workflow.match(/RAILWAY_API_TOKEN: \$\{\{ secrets.RAILWAY_TOKEN \}\}/g)
       .length,
-    2
+    3
   );
   assert(
     workflow.includes(
@@ -193,7 +212,7 @@ test("Railway workflow applies only reviewed merges and blocks destructive chang
   );
   assert(
     workflow.includes(
-      '--workflow railway-config.yml --commit "$PR_HEAD_SHA" --event pull_request --status success'
+      'workflow_id: "railway-config.yml", head_sha: pr.head.sha'
     )
   );
   assert(
@@ -208,9 +227,176 @@ test("Railway workflow applies only reviewed merges and blocks destructive chang
   );
   assert(!workflow.includes("railwayapp/config@"));
   assert.equal(workflow.match(/name: railway-production-plan/g).length, 2);
-  assert(workflow.includes("run-id: ${{ steps.plan-run.outputs.run-id }}"));
+  assert(ci.includes("run-id: ${{ needs.railway-plan.outputs.run-id }}"));
+  const passwordCheck = ci.indexOf(
+    "node scripts/check-cache-database-password.mjs"
+  );
+  const apply = ci.indexOf("railway config apply --environment production");
+  assert(passwordCheck >= 0 && apply > passwordCheck);
   assert(workflow.includes("cancel-in-progress: false"));
   assert(workflow.includes("queue: max"));
-  for (const [, action] of workflow.matchAll(/uses: (\S+)/g))
+  for (const [, action] of workflow.matchAll(/^ *uses: (\S+)/gm))
     if (!action.startsWith("./")) assert.match(action, /@[0-9a-f]{40}$/);
+});
+
+test("Postgres password policy generates URL-safe secrets only for new databases", () => {
+  for (const name of ["Postgres", "rpc-cache-postgres"]) {
+    assert.deepEqual(postgresPassword(name, new Set()), {
+      type: "raw",
+      value: { defaultValue: '${{ secret(64, "0123456789abcdef") }}' },
+    });
+    assert.deepEqual(postgresPassword(name, new Set([name])), {
+      type: "preserve",
+    });
+    assert.deepEqual(postgresPassword(name, undefined), { type: "preserve" });
+  }
+});
+
+test("database planning preserves larger volumes and rejects incomplete lookups", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "pv-password-policy-"));
+  const executable = join(directory, "railway");
+  const originalPath = process.env.PATH;
+  const ctx = createRailwayContext({ environmentId: "fixture-environment" });
+  const response = (services, hasNextPage = false, volumes = []) => ({
+    data: {
+      environment: {
+        serviceInstances: {
+          edges: services.map((serviceName) => ({ node: { serviceName } })),
+          pageInfo: { hasNextPage },
+        },
+        volumeInstances: {
+          edges: volumes.map(([name, sizeMB]) => ({
+            node: { sizeMB, volume: { name } },
+          })),
+          pageInfo: { hasNextPage: false },
+        },
+      },
+    },
+  });
+  const fixture = (value) =>
+    writeFileSync(
+      executable,
+      `#!/bin/sh\nprintf '%s' '${JSON.stringify(value)}'\n`,
+      {
+        mode: 0o755,
+      }
+    );
+  try {
+    process.env.PATH = `${directory}:${originalPath}`;
+    fixture(response(["Postgres", "rpc-cache-postgres"]));
+    assert.deepEqual(
+      [...existingResources(ctx).serviceNames],
+      ["Postgres", "rpc-cache-postgres"]
+    );
+    fixture(
+      response(["Postgres", "rpc-cache-postgres"], false, [
+        ["destruction-volume", 10000],
+        ["rpc-cache-postgres-volume", 50000],
+      ])
+    );
+    for (const environment of ["production", "protocol-visualizer-pr-97"]) {
+      const definition = await defineInfrastructure(
+        createRailwayContext({
+          environment,
+          environmentId: "fixture-environment",
+        })
+      );
+      const volumes = definition.resources
+        .flat(Infinity)
+        .filter((resource) => resource.type === "volume");
+      assert.deepEqual(
+        volumes.map((resource) => [resource.name, resource.config.sizeMB]),
+        [
+          ["destruction-volume", 20000],
+          ["rpc-cache-postgres-volume", 50000],
+        ]
+      );
+    }
+    for (const value of [
+      response(["Postgres"], true),
+      response([null]),
+      response([""]),
+      response(["Postgres"], false, [["", 50000]]),
+      response(["Postgres"], false, [["destruction-volume", null]]),
+      response(["Postgres"], false, [["destruction-volume", 0]]),
+      response(["Postgres"], false, [
+        ["destruction-volume", 10000],
+        ["destruction-volume", 50000],
+      ]),
+      {
+        data: {
+          environment: {
+            ...response(["Postgres"]).data.environment,
+            volumeInstances: { edges: [], pageInfo: { hasNextPage: true } },
+          },
+        },
+      },
+      { errors: [{ message: "Not authorized" }] },
+      {},
+    ]) {
+      fixture(value);
+      assert.throws(
+        () => existingResources(ctx),
+        /refusing to plan database passwords or capacity/
+      );
+    }
+    writeFileSync(executable, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+    assert.throws(
+      () => existingResources(ctx),
+      /refusing to plan database passwords or capacity/
+    );
+  } finally {
+    if (originalPath === undefined) delete process.env.PATH;
+    else process.env.PATH = originalPath;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("infrastructure apply blocks unsafe cache passwords without exposing credentials", () => {
+  const directory = mkdtempSync(join(tmpdir(), "pv-cache-password-check-"));
+  const executable = join(directory, "railway");
+  const run = (script, extra = {}) => {
+    writeFileSync(executable, script, { mode: 0o755 });
+    return spawnSync(
+      process.execPath,
+      ["scripts/check-cache-database-password.mjs"],
+      {
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          PATH: `${directory}:${process.env.PATH}`,
+          RAILWAY_PROJECT_ID: "fixture-project",
+          RAILWAY_ENVIRONMENT_ID: "fixture-environment",
+          ...extra,
+        },
+      }
+    );
+  };
+  const fixture = (value) =>
+    `#!/bin/sh\nprintf '%s' '${JSON.stringify(value)}'\n`;
+  try {
+    assert.equal(run(fixture({ PGPASSWORD: "a0123._~-" })).status, 0);
+    for (const password of ["fixture^private", "fixture/private", "", null]) {
+      const result = run(fixture({ PGPASSWORD: password }));
+      assert.equal(result.status, 1);
+      assert.match(
+        result.stderr,
+        /Coordinate PostgreSQL role and Railway variable rotation/
+      );
+      if (password) assert(!result.stderr.includes(password));
+    }
+    const failed = run(
+      "#!/bin/sh\nprintf 'fixture-private-cli-output'\nexit 1\n"
+    );
+    assert.equal(failed.status, 1);
+    assert.match(failed.stderr, /infrastructure apply is blocked/);
+    assert(!failed.stderr.includes("fixture-private-cli-output"));
+    assert.equal(
+      run(fixture({ PGPASSWORD: "valid" }), { RAILWAY_ENVIRONMENT_ID: "" })
+        .status,
+      1
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });

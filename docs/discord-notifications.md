@@ -3,7 +3,8 @@
 The publisher sends deployment progress and snapshot handover notifications.
 The monitor sends daily summaries and warnings about indexing or snapshot state.
 Both services use the environment's shared `DISCORD_WEBHOOK_URL` in Railway.
-The publisher treats notifications as optional. The monitor requires the webhook.
+Both jobs require the webhook. Missing or blank values log an error and fail
+pre-deploy validation and startup before network requests or storage access.
 
 These examples use fictional values and show all nine currently indexed chains.
 Both services group configured chains into production chains and testnets.
@@ -341,6 +342,7 @@ Exactly 25 fields per embed are allowed. An oversized embed raises `Discord embe
 Both services attempt the remaining messages after a delivery error.
 The monitor fails its run if any message fails and saves summary state only after all messages succeed.
 The publisher logs notification errors and continues its normal publication or readiness-skip behavior.
-A missing webhook skips publisher notifications.
+A missing or blank webhook fails either job before publication or monitoring.
+Local publisher file exports do not send notifications and do not require a webhook.
 
 See [Railway shared variables](railway-self-hosting.md#automatic-variables-and-manual-secrets) for webhook configuration.

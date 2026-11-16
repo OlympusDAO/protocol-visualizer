@@ -10,6 +10,7 @@ import {
   service,
   volume,
 } from "railway/iac";
+import { existingResources, postgresPassword } from "./postgres-policy.ts";
 
 // Secret values remain in Railway; IaC owns connections, not provider credentials.
 // Long-running services inherit Railway's ON_FAILURE default. CLI 5.71 treats
@@ -22,7 +23,17 @@ export default defineRailway((ctx) => {
     checkSuites: true,
   });
 
-  // Names and capacities come from Railway's read-only production/PR import.
+  // Generate URL-safe passwords only for new databases; preserve existing roles.
+  const existing = existingResources(ctx);
+  // Request 20 GB without shrinking volumes that are already larger.
+  const databaseVolume = (name: string) =>
+    volume(name, {
+      region: "us-west2",
+      sizeMB: Math.max(20000, existing?.volumeSizes.get(name) ?? 0),
+      allowOnlineResize: true,
+      alerts: { usage: { "80": {}, "95": {}, "100": {} } },
+    });
+  // Retain imported database identities and image majors.
   const envioDatabase = database("Postgres", "postgres", {
     image: "ghcr.io/railwayapp-templates/postgres-ssl:16",
     output: "DATABASE_URL",
@@ -33,24 +44,19 @@ export default defineRailway((ctx) => {
   envioDatabase.networking = {
     privateNetworkEndpoint: "postgres",
   };
-  const envioData = volume("destruction-volume", {
-    region: "us-west2",
-    sizeMB: production ? 5000 : 50000,
-    allowOnlineResize: true,
-    alerts: { usage: { "80": {}, "95": {}, "100": {} } },
-  });
+  const envioData = databaseVolume("destruction-volume");
   const cacheDatabase = database("rpc-cache-postgres", "postgres", {
     image: "ghcr.io/railwayapp-templates/postgres-ssl:18",
     output: "DATABASE_URL",
     defaultMountPath: "/var/lib/postgresql/data",
     region: "us-west2",
   });
-  const cacheData = volume("postgres-volume", {
-    region: "us-west2",
-    sizeMB: 50000,
-    allowOnlineResize: true,
-    alerts: { usage: { "80": {}, "95": {}, "100": {} } },
-  });
+  for (const db of [envioDatabase, cacheDatabase]) {
+    db.variables = {
+      POSTGRES_PASSWORD: postgresPassword(db.name, existing?.serviceNames),
+    };
+  }
+  const cacheData = databaseVolume("rpc-cache-postgres-volume");
   const storage = bucket("storage", { region: "sjc" });
   const chainIds = [1, 10, 42161, 8453, 80094, 4663, 11155111, 421614, 84532];
   const rpcUrls = (prefix: string) =>

@@ -233,6 +233,14 @@ jobs:
             if (plan.environmentId !== process.env.RAILWAY_ENVIRONMENT_ID) {
               throw new Error("Saved plan targets a different Railway environment. Generate and review a production plan.");
             }
+            const sourceTree = require("child_process").execFileSync("git", ["rev-parse", "HEAD:.railway"], { encoding: "utf8" }).trim();
+            if (plan.sourceTree !== sourceTree) {
+              throw new Error("Saved plan does not match the merged IaC tree. Update the branch and review a fresh production plan.");
+            }
+            const { data: branch } = await github.rest.repos.getBranch({ ...context.repo, branch: "master" });
+            if (branch.commit.sha !== context.sha) {
+              throw new Error("Production branch advanced; refusing an outdated queued apply.");
+            }
       - name: Apply reviewed production plan
         env:
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

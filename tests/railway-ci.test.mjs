@@ -312,3 +312,71 @@ test("production apply uses the newest status per context and excludes downstrea
     /Timed out/
   );
 });
+
+async function verifyPlan({
+  environmentId = "production",
+  sourceTree = "merged-iac-tree",
+  branchHead = "merged-release",
+} = {}) {
+  const match = workflow.match(
+    / {6}- name: Verify production plan target\n[\s\S]*? {10}script: \|\n([\s\S]*?)(?=^ {6}- name:)/m
+  );
+  assert(match);
+  await vm.runInNewContext(
+    `(async () => {${match[1].replace(/^ {12}/gm, "")}\n})()`,
+    {
+      process: {
+        env: {
+          PLAN_PATH: "reviewed-plan",
+          RAILWAY_ENVIRONMENT_ID: "production",
+        },
+      },
+      context: {
+        repo: { owner: "fixture", repo: "fixture" },
+        sha: "merged-release",
+      },
+      require(name) {
+        if (name === "fs")
+          return {
+            readFileSync(path) {
+              assert.equal(path, "reviewed-plan");
+              return JSON.stringify({ environmentId, sourceTree });
+            },
+          };
+        assert.equal(name, "child_process");
+        return {
+          execFileSync(command, args) {
+            assert.equal(command, "git");
+            assert.equal(JSON.stringify(args), '["rev-parse","HEAD:.railway"]');
+            return "merged-iac-tree\n";
+          },
+        };
+      },
+      github: {
+        rest: {
+          repos: {
+            async getBranch(args) {
+              assert.equal(args.branch, "master");
+              return { data: { commit: { sha: branchHead } } };
+            },
+          },
+        },
+      },
+    }
+  );
+}
+
+test("production apply rejects plans from a different environment or merged IaC tree", async () => {
+  await verifyPlan();
+  await assert.rejects(verifyPlan({ environmentId: "preview" }), /environment/);
+  for (const sourceTree of [null, "older-iac-tree"])
+    await assert.rejects(verifyPlan({ sourceTree }), /merged IaC tree/);
+});
+
+test("production apply rejects an older queued release after master advances", async () => {
+  await assert.rejects(verifyPlan({ branchHead: "newer-release" }), /advanced/);
+  assert(
+    workflow.indexOf("- name: Verify production plan target") <
+      workflow.indexOf("- name: Apply reviewed production plan")
+  );
+});

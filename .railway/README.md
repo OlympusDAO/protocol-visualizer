@@ -72,7 +72,10 @@ external CodeQL, check runs and reported non-deployment commit statuses for the
 merge commit. The latest status per context must succeed. Railway deployment
 statuses are excluded because those deployments wait for this CI workflow;
 they must be checked after deployment. It applies only the saved
-plan for that merged PR's exact head. Set one Olympus workspace API token as the GitHub
+plan for that merged PR's exact head and matching merged `.railway` tree. An
+older queued release is rejected if `master` has advanced. Integrations absent
+from the merge commit, such as PR-only Snyk statuses, are not required; native
+security jobs and CodeQL remain mandatory. Set one Olympus workspace API token as the GitHub
 Actions secret `RAILWAY_TOKEN`. The workflow exports it as `RAILWAY_API_TOKEN`
 and selects the project and production environment explicitly. No token per
 environment is required. Destructive applies are blocked. Preview infrastructure

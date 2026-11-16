@@ -43,8 +43,10 @@ test("preparation checks Etherscan once per miss, preserves prepared metadata, f
     },
     addressGetters: ["owner"],
   };
-  // Mainnet Kernel is in the ABI registry; `address` is not.
+  // Mainnet Kernel is in the ABI registry. The mainnet Operator at
+  // `unregisteredAddress` is in the inventory but not in the registry.
   const registryAddress = "0x2286d7f9639e8158fad1169e76d1fbc38247f54b";
+  const unregisteredAddress = "0x5f15b91b59ad65d490921016d4134c2301197485";
   const run = (seed, responses, normal = false, options = {}) => {
     const target = options.address ?? address;
     writeFileSync(output, JSON.stringify({ 1: { [target]: seed } }));
@@ -310,7 +312,7 @@ globalThis.fetch=async (input)=>{
       registryAbi.filter((item) => item.type === "function").length,
       "ordinary preparation must take the ABI from the ABI registry"
     );
-    check = run({}, [], true);
+    check = run({}, [], true, { address: unregisteredAddress });
     assert.notEqual(check.result.status, 0);
     assert.equal(
       check.calls.length,

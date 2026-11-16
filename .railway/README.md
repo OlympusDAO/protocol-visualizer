@@ -81,5 +81,10 @@ and selects the project and production environment explicitly. No token per
 environment is required. Destructive applies are blocked. Preview infrastructure
 still needs an explicit operator apply; application autodeploys remain enabled.
 
+If a queued apply is rejected after `master` advances, the merged infrastructure
+change remains pending. Generate and review a fresh production plan from current
+`master`, then use the documented manual apply procedure. Re-running the old workflow
+keeps its original commit and cannot recover the rejected release.
+
 See [the Railway guide](../docs/railway-self-hosting.md) for bootstrap, migration,
 variables, plan review, and rollback. Do not commit decrypted plans or secrets.

@@ -43,7 +43,6 @@ test("whole-project IaC retains storage and wires services without embedding sec
       "service.snapshot-monitor",
       "service.snapshot-publisher",
       "volume.destruction-volume",
-      "volume.postgres-volume",
     ]);
     const get = (name) => resources.find((r) => r.name === name);
     assert.equal(get("Postgres").networking.privateNetworkEndpoint, "postgres");
@@ -77,7 +76,6 @@ test("whole-project IaC retains storage and wires services without embedding sec
     assert.equal(get("destruction-volume").config.sizeMB, envioSize);
     assert.equal(get("destruction-volume").config.allowOnlineResize, true);
     assert.equal(get("destruction-volume").config.region, "us-west2");
-    assert.equal(get("postgres-volume").config.sizeMB, 50000);
     assert.equal(get("storage").config.region, "sjc");
     for (const node of resources.filter((r) => r.type === "service")) {
       assert.equal(

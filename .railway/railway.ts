@@ -56,12 +56,6 @@ export default defineRailway((ctx) => {
       POSTGRES_PASSWORD: postgresPassword(db.name, existingServices),
     };
   }
-  const cacheData = volume("postgres-volume", {
-    region: "us-west2",
-    sizeMB: 50000,
-    allowOnlineResize: true,
-    alerts: { usage: { "80": {}, "95": {}, "100": {} } },
-  });
   const storage = bucket("storage", { region: "sjc" });
   const chainIds = [1, 10, 42161, 8453, 80094, 4663, 11155111, 421614, 84532];
   const rpcUrls = (prefix: string) =>
@@ -315,7 +309,6 @@ export default defineRailway((ctx) => {
       cache,
       cacheDatabase,
       envioData,
-      cacheData,
       storage,
       privateIndexing,
       data,

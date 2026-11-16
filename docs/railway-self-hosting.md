@@ -23,7 +23,7 @@ Optional operator settings listed in `variables.ignore` remain outside IaC owner
 | Resource | Role |
 | --- | --- |
 | `Postgres` / `destruction-volume` | Envio data and Hasura metadata; existing Postgres 16 |
-| `rpc-cache-postgres` / `postgres-volume` | Independent RPC cache; existing Postgres 18 |
+| `rpc-cache-postgres` / `rpc-cache-postgres-volume` | Independent RPC cache; existing Postgres 18 |
 | `hasura` | Private GraphQL for publisher and monitor |
 | `indexer` | Private Envio indexer |
 | `rpc-cache` | Private JSON-RPC cache |
@@ -33,20 +33,21 @@ Optional operator settings listed in `variables.ignore` remain outside IaC owner
 | `frontend` | Public UI |
 | `storage` | Private snapshot bucket in `sjc` |
 
-The Envio volume target is 10,000 MB in production and 50,000 MB in previews. Production's
-`destruction-volume`, attached to `Postgres`, was still 5,000 MB on 2026-11-13;
-the reviewed capacity change increases that existing volume to 10,000 MB with
-`allowOnlineResize: true`. Railway normally expands the mounted filesystem
+Both database volumes target 20,000 MB in production and previews. IaC reads
+their live capacities and retains any existing capacity above this target.
+On 2026-11-16, production's `destruction-volume` was 10,000 MB; its plan can grow
+it to 20,000 MB. The existing 50,000 MB cache and preview volumes stay at
+50,000 MB. No shrinking, database replacement, or migration is requested.
+With `allowOnlineResize: true`, Railway normally expands the mounted filesystem
 without downtime; a full volume can require an offline resize and restart.
 See [Railway volume resizing](https://docs.railway.com/volumes/reference).
 This change does not reset the database or remove cached effects. Review the
 production plan and obtain approval before applying the resize.
 
-The declared `postgres-volume` remains 50,000 MB. On 2026-11-13 it was detached;
-the production cache database used a separate `rpc-cache-postgres-volume` of
-50,000 MB. Preserve both volumes and their attachments during this rollout.
-Do not attach the detached volume, replace the cache database volume, or delete
-storage as part of the Envio capacity change.
+The detached legacy `postgres-volume` is no longer declared. The cache uses
+`rpc-cache-postgres-volume`. Removing the legacy declaration does not itself
+clean up the live detached volume; any deletion requires a separate reviewed
+operation. Preserve the attached database volumes during this capacity change.
 
 ## Bootstrap and migration
 

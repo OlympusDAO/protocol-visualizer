@@ -5,12 +5,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { createRailwayContext } from "railway/iac";
-import defineInfrastructure from "../.railway/railway.ts";
 import {
-  existingServiceNames,
+  existingResources,
   postgresPassword,
   postgresPasswordGenerator,
-} from "../.railway/postgres-password-policy.ts";
+} from "../.railway/postgres-policy.ts";
+import defineInfrastructure from "../.railway/railway.ts";
 
 async function infrastructure(environment) {
   const definition = await defineInfrastructure(
@@ -20,10 +20,7 @@ async function infrastructure(environment) {
 }
 
 test("whole-project IaC retains storage and wires services without embedding secrets", async () => {
-  for (const [environment, envioSize] of [
-    ["production", 10000],
-    ["protocol-visualizer-pr-82", 50000],
-  ]) {
+  for (const environment of ["production", "protocol-visualizer-pr-82"]) {
     const { definition, resources } = await infrastructure(environment);
     assert.equal(definition.name, "protocol-visualizer");
     assert.equal(definition.variables.managed, true);
@@ -43,6 +40,7 @@ test("whole-project IaC retains storage and wires services without embedding sec
       "service.snapshot-monitor",
       "service.snapshot-publisher",
       "volume.destruction-volume",
+      "volume.rpc-cache-postgres-volume",
     ]);
     const get = (name) => resources.find((r) => r.name === name);
     assert.equal(get("Postgres").networking.privateNetworkEndpoint, "postgres");
@@ -73,9 +71,10 @@ test("whole-project IaC retains storage and wires services without embedding sec
         { type: "preserve" },
         `${name} must retain create-time generation without requesting password updates`
       );
-    assert.equal(get("destruction-volume").config.sizeMB, envioSize);
+    assert.equal(get("destruction-volume").config.sizeMB, 20000);
     assert.equal(get("destruction-volume").config.allowOnlineResize, true);
     assert.equal(get("destruction-volume").config.region, "us-west2");
+    assert.equal(get("rpc-cache-postgres-volume").config.sizeMB, 20000);
     assert.equal(get("storage").config.region, "sjc");
     for (const node of resources.filter((r) => r.type === "service")) {
       assert.equal(
@@ -258,17 +257,23 @@ test("Postgres password policy generates URL-safe secrets only for new databases
   }
 });
 
-test("database password planning rejects failed or incomplete service lookups", () => {
+test("database planning preserves larger volumes and rejects incomplete lookups", async () => {
   const directory = mkdtempSync(join(tmpdir(), "pv-password-policy-"));
   const executable = join(directory, "railway");
   const originalPath = process.env.PATH;
   const ctx = createRailwayContext({ environmentId: "fixture-environment" });
-  const response = (services, hasNextPage = false) => ({
+  const response = (services, hasNextPage = false, volumes = []) => ({
     data: {
       environment: {
         serviceInstances: {
           edges: services.map((serviceName) => ({ node: { serviceName } })),
           pageInfo: { hasNextPage },
+        },
+        volumeInstances: {
+          edges: volumes.map(([name, sizeMB]) => ({
+            node: { sizeMB, volume: { name } },
+          })),
+          pageInfo: { hasNextPage: false },
         },
       },
     },
@@ -285,26 +290,65 @@ test("database password planning rejects failed or incomplete service lookups", 
     process.env.PATH = `${directory}:${originalPath}`;
     fixture(response(["Postgres", "rpc-cache-postgres"]));
     assert.deepEqual(
-      [...existingServiceNames(ctx)],
+      [...existingResources(ctx).serviceNames],
       ["Postgres", "rpc-cache-postgres"]
     );
+    fixture(
+      response(["Postgres", "rpc-cache-postgres"], false, [
+        ["destruction-volume", 10000],
+        ["rpc-cache-postgres-volume", 50000],
+      ])
+    );
+    for (const environment of ["production", "protocol-visualizer-pr-97"]) {
+      const definition = await defineInfrastructure(
+        createRailwayContext({
+          environment,
+          environmentId: "fixture-environment",
+        })
+      );
+      const volumes = definition.resources
+        .flat(Infinity)
+        .filter((resource) => resource.type === "volume");
+      assert.deepEqual(
+        volumes.map((resource) => [resource.name, resource.config.sizeMB]),
+        [
+          ["destruction-volume", 20000],
+          ["rpc-cache-postgres-volume", 50000],
+        ]
+      );
+    }
     for (const value of [
       response(["Postgres"], true),
       response([null]),
       response([""]),
+      response(["Postgres"], false, [["", 50000]]),
+      response(["Postgres"], false, [["destruction-volume", null]]),
+      response(["Postgres"], false, [["destruction-volume", 0]]),
+      response(["Postgres"], false, [
+        ["destruction-volume", 10000],
+        ["destruction-volume", 50000],
+      ]),
+      {
+        data: {
+          environment: {
+            ...response(["Postgres"]).data.environment,
+            volumeInstances: { edges: [], pageInfo: { hasNextPage: true } },
+          },
+        },
+      },
       { errors: [{ message: "Not authorized" }] },
       {},
     ]) {
       fixture(value);
       assert.throws(
-        () => existingServiceNames(ctx),
-        /refusing to plan database password generation/
+        () => existingResources(ctx),
+        /refusing to plan database passwords or capacity/
       );
     }
     writeFileSync(executable, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
     assert.throws(
-      () => existingServiceNames(ctx),
-      /refusing to plan database password generation/
+      () => existingResources(ctx),
+      /refusing to plan database passwords or capacity/
     );
   } finally {
     if (originalPath === undefined) delete process.env.PATH;

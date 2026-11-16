@@ -10,10 +10,7 @@ import {
   service,
   volume,
 } from "railway/iac";
-import {
-  existingServiceNames,
-  postgresPassword,
-} from "./postgres-password-policy.ts";
+import { existingResources, postgresPassword } from "./postgres-policy.ts";
 
 // Secret values remain in Railway; IaC owns connections, not provider credentials.
 // Long-running services inherit Railway's ON_FAILURE default. CLI 5.71 treats
@@ -27,7 +24,10 @@ export default defineRailway((ctx) => {
   });
 
   // Generate URL-safe passwords only for new databases; preserve existing roles.
-  const existingServices = existingServiceNames(ctx);
+  const existing = existingResources(ctx);
+  // Request 20 GB without shrinking volumes that are already larger.
+  const volumeSize = (name: string) =>
+    Math.max(20000, existing?.volumeSizes.get(name) ?? 0);
   // Retain imported database identities and image majors.
   const envioDatabase = database("Postgres", "postgres", {
     image: "ghcr.io/railwayapp-templates/postgres-ssl:16",
@@ -41,7 +41,7 @@ export default defineRailway((ctx) => {
   };
   const envioData = volume("destruction-volume", {
     region: "us-west2",
-    sizeMB: production ? 10000 : 50000,
+    sizeMB: volumeSize("destruction-volume"),
     allowOnlineResize: true,
     alerts: { usage: { "80": {}, "95": {}, "100": {} } },
   });
@@ -53,9 +53,15 @@ export default defineRailway((ctx) => {
   });
   for (const db of [envioDatabase, cacheDatabase]) {
     db.variables = {
-      POSTGRES_PASSWORD: postgresPassword(db.name, existingServices),
+      POSTGRES_PASSWORD: postgresPassword(db.name, existing?.serviceNames),
     };
   }
+  const cacheData = volume("rpc-cache-postgres-volume", {
+    region: "us-west2",
+    sizeMB: volumeSize("rpc-cache-postgres-volume"),
+    allowOnlineResize: true,
+    alerts: { usage: { "80": {}, "95": {}, "100": {} } },
+  });
   const storage = bucket("storage", { region: "sjc" });
   const chainIds = [1, 10, 42161, 8453, 80094, 4663, 11155111, 421614, 84532];
   const rpcUrls = (prefix: string) =>
@@ -309,6 +315,7 @@ export default defineRailway((ctx) => {
       cache,
       cacheDatabase,
       envioData,
+      cacheData,
       storage,
       privateIndexing,
       data,

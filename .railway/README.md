@@ -12,12 +12,12 @@ Add its value manually in Project Settings → Shared Variables before applying 
 Use a separate webhook for preview alerts. Do not commit the webhook URL.
 
 Both `Postgres` and `rpc-cache-postgres` use the create-only password policy in
-[`postgres-password-policy.ts`](postgres-password-policy.ts):
+[`postgres-policy.ts`](postgres-policy.ts):
 `${{ secret(64, "0123456789abcdef") }}` as a template `defaultValue`, matching
 Railway's official Postgres template. Bare `secret(...)` text is not a generated
 password. New databases request a random, URL-safe password;
 existing passwords use `preserve()`.
-The config reads target-environment service names through `railway api` before
+The config reads target-environment service names and volume capacities through `railway api` before
 planning. A failed or incomplete lookup aborts the plan. Offline checks without
 an environment ID preserve passwords instead of requesting generation.
 Before applying the cache URL reference in an existing environment, ensure its
@@ -26,6 +26,12 @@ role and Railway variable update; changing `POSTGRES_PASSWORD` alone is insuffic
 Automatic production apply checks this password policy before applying the plan
 and stops if rotation is still required. This check does not modify credentials
 or verify that a PostgreSQL role rotation has been completed.
+
+Both database volumes target 20,000 MB in production and previews. Existing
+larger capacities are retained: the requested capacity is the greater of
+20,000 MB and the live volume capacity. Plans can grow smaller volumes without
+requesting a shrink or data migration. The cache volume is
+`rpc-cache-postgres-volume`; the detached legacy `postgres-volume` is not declared.
 
 Use the repository-pinned SDK and Railway CLI 5.71.0 or newer:
 

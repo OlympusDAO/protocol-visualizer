@@ -3,13 +3,12 @@ name: Security Audit
 on:
   pull_request:
   workflow_dispatch:
-  push:
-    branches: [master]
+  workflow_call:
   schedule:
     - cron: "17 5 * * 1"
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  group: security-audit-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
@@ -48,9 +47,13 @@ jobs:
       - name: Tag indexer image for scan
         run: pnpm run container:tag:scan:indexer
 
+      - name: Install verified Trivy
+        uses: ./.github/actions/setup-trivy
+
       - name: Scan indexer image for vulnerabilities
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
+          skip-setup-trivy: "true"
           image-ref: protocol-visualizer/indexer:scan
           format: table
           severity: MEDIUM,HIGH,CRITICAL
@@ -61,6 +64,7 @@ jobs:
       - name: Scan RPC cache image for vulnerabilities
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
+          skip-setup-trivy: "true"
           image-ref: protocol-visualizer/rpc-cache:scan
           format: table
           severity: MEDIUM,HIGH,CRITICAL
@@ -92,9 +96,13 @@ jobs:
           --build-arg VITE_PROTOCOL_SNAPSHOT_BASE_URL=http://localhost:8082
           -t "protocol-visualizer/$IMAGE:scan" .
 
+      - name: Install verified Trivy
+        uses: ./.github/actions/setup-trivy
+
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
+          skip-setup-trivy: "true"
           image-ref: protocol-visualizer/${{ matrix.image }}:scan
           format: table
           severity: MEDIUM,HIGH,CRITICAL
@@ -110,12 +118,16 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Install verified Trivy
+        uses: ./.github/actions/setup-trivy
+
       - name: Scan Dockerfiles for misconfigurations
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         env:
           TRIVY_FILE_PATTERNS: dockerfile:Dockerfile-*
           TRIVY_SKIP_DIRS: node_modules
         with:
+          skip-setup-trivy: "true"
           scan-type: config
           scan-ref: .
           scanners: misconfig

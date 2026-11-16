@@ -651,6 +651,33 @@ test("logs missing storage configuration during configuration loading", async ()
   assert.equal(errors[0]?.details.message, "BUCKET is required");
 });
 
+test("logs a missing webhook before creating storage or fetching metrics", async (t) => {
+  const originalEnv = { ...process.env };
+  const errors: Array<{ message: string; details: Record<string, unknown> }> =
+    [];
+  delete process.env.DISCORD_WEBHOOK_URL;
+  delete process.env.BUCKET;
+  const fetchMock = t.mock.method(globalThis, "fetch", async () => {
+    throw new Error("unexpected network request");
+  });
+  try {
+    await assert.rejects(
+      () =>
+        runMonitorFromEnv({
+          error: (message, details) => errors.push({ message, details }),
+          info: () => undefined,
+        }),
+      /DISCORD_WEBHOOK_URL is required/
+    );
+  } finally {
+    process.env = originalEnv;
+  }
+  assert.equal(fetchMock.mock.calls.length, 0);
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0]?.details.stage, "load_configuration");
+  assert.equal(errors[0]?.details.message, "DISCORD_WEBHOOK_URL is required");
+});
+
 test("rejects over 25 fields per embed before sending, allowing 25 in each embed", async (t) => {
   const fetchMock = t.mock.method(
     globalThis,

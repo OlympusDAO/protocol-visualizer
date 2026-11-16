@@ -24,7 +24,7 @@ data, and preserve only validated hex revert bytes and numeric RPC codes. A fixe
 classification without forwarding provider text.
 Rebase/review that patch whenever upgrading eRPC. No cache behavior is patched.
 
-Go 1.26.10, `golang.org/x/crypto` 0.57.0 and `golang.org/x/net` 0.60.0 are pinned
+Go 1.26.11, `golang.org/x/crypto` v0.58.0 and `golang.org/x/net` v0.62.0 are pinned
 security updates scoped to this service. The final image contains only the
 binary, JS config, and pinned nonroot distroless static runtime; it omits the
 profiler binary and config SDK. Monorepo dependency versions are unchanged.
@@ -91,10 +91,41 @@ finalized watermark remains safe if a provider later becomes unavailable.
 
 ## Railway variables and private networking
 
-IaC supplies `PORT` and `RPC_CACHE_DATABASE_URL`. Manually supply all nine
-`UPSTREAM_RPC_URL_<id>` values on `rpc-cache` after its creation. Existing Railway
-shared variables can supply references instead of copied credentials. IaC uses
-`preserve()` for upstream values; it does not generate them or contain their values.
+IaC supplies `PORT` and sets `RPC_CACHE_DATABASE_URL` to
+`${{rpc-cache-postgres.DATABASE_URL}}`. This is a single database reference,
+matching the indexer's connection to `Postgres`. eRPC uses the resolved URI
+without rebuilding it.
+
+Manually supply all nine `UPSTREAM_RPC_URL_<id>` values after cache creation.
+Existing Railway shared variables can supply references instead of copied
+provider credentials. IaC uses `preserve()` for upstream values; it does not
+generate them or contain their values.
+
+Both managed Postgres databases request 64 random hexadecimal characters when
+newly provisioned. IaC checks existing service names and preserves existing
+passwords, so normal applies do not rotate credentials. See the
+[password policy](../.railway/README.md).
+
+For an existing database with a password containing URI-special characters,
+coordinate a password rotation in PostgreSQL and its Railway variables before
+replacing the encoded literal URI with the database reference. Changing the
+`POSTGRES_PASSWORD` variable alone does not rotate an initialized database role.
+Review a cache-only plan and verify private cache metrics and database sessions
+afterward. No database or volume deletion is needed. Production credential changes
+require separate approval; keep the storage resize separate.
+
+Compose and other standalone deployments still supply `RPC_CACHE_DATABASE_URL`
+directly. Percent-encode credentials if that URI contains special characters.
+
+The production review on 2026-11-13 found a literal encoded URI targeting the
+correct private cache database, four client sessions from `rpc-cache`, and cache
+activity in private metrics. The missing canvas edge reflected the absence of a
+service-variable reference. A later raw/resolved-variable comparison confirmed
+that `POSTGRES_PASSWORD` contained bare `secret(...)` function text, not a
+generated password. Those literal characters caused Go's `invalid_userinfo` error.
+Rotating that existing password is a prerequisite
+for switching to the single reference; a successful application deploy alone does
+not apply the IaC variable change to a preview environment.
 
 ```text
 PORT=4000

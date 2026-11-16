@@ -10,6 +10,8 @@ if (!project || !environment) {
 }
 
 let variables;
+// Whole-project production apply requires a separately provisioned, verified cache.
+// Missing credentials must not silently bootstrap it and switch consumers early.
 try {
   variables = JSON.parse(
     execFileSync(
@@ -30,7 +32,7 @@ try {
   );
 } catch {
   console.error(
-    "Cannot verify cache database credentials; infrastructure apply is blocked."
+    "Cannot verify cache database credentials; infrastructure apply is blocked. Provision and verify the cache separately before enabling whole-project apply."
   );
   process.exit(1);
 }

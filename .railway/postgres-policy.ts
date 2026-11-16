@@ -1,8 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { preserve, type RailwayContext, type VariableValue } from "railway/iac";
 
-export const postgresPasswordGenerator =
-  '${{ secret(64, "0123456789abcdef") }}';
+const postgresPasswordGenerator = '${{ secret(64, "0123456789abcdef") }}';
 
 export function postgresPassword(
   name: string,

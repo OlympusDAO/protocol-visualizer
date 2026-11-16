@@ -26,8 +26,13 @@ export default defineRailway((ctx) => {
   // Generate URL-safe passwords only for new databases; preserve existing roles.
   const existing = existingResources(ctx);
   // Request 20 GB without shrinking volumes that are already larger.
-  const volumeSize = (name: string) =>
-    Math.max(20000, existing?.volumeSizes.get(name) ?? 0);
+  const databaseVolume = (name: string) =>
+    volume(name, {
+      region: "us-west2",
+      sizeMB: Math.max(20000, existing?.volumeSizes.get(name) ?? 0),
+      allowOnlineResize: true,
+      alerts: { usage: { "80": {}, "95": {}, "100": {} } },
+    });
   // Retain imported database identities and image majors.
   const envioDatabase = database("Postgres", "postgres", {
     image: "ghcr.io/railwayapp-templates/postgres-ssl:16",
@@ -39,12 +44,7 @@ export default defineRailway((ctx) => {
   envioDatabase.networking = {
     privateNetworkEndpoint: "postgres",
   };
-  const envioData = volume("destruction-volume", {
-    region: "us-west2",
-    sizeMB: volumeSize("destruction-volume"),
-    allowOnlineResize: true,
-    alerts: { usage: { "80": {}, "95": {}, "100": {} } },
-  });
+  const envioData = databaseVolume("destruction-volume");
   const cacheDatabase = database("rpc-cache-postgres", "postgres", {
     image: "ghcr.io/railwayapp-templates/postgres-ssl:18",
     output: "DATABASE_URL",
@@ -56,12 +56,7 @@ export default defineRailway((ctx) => {
       POSTGRES_PASSWORD: postgresPassword(db.name, existing?.serviceNames),
     };
   }
-  const cacheData = volume("rpc-cache-postgres-volume", {
-    region: "us-west2",
-    sizeMB: volumeSize("rpc-cache-postgres-volume"),
-    allowOnlineResize: true,
-    alerts: { usage: { "80": {}, "95": {}, "100": {} } },
-  });
+  const cacheData = databaseVolume("rpc-cache-postgres-volume");
   const storage = bucket("storage", { region: "sjc" });
   const chainIds = [1, 10, 42161, 8453, 80094, 4663, 11155111, 421614, 84532];
   const rpcUrls = (prefix: string) =>

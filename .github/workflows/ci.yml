@@ -140,6 +140,7 @@ jobs:
       contents: read
       actions: read
       checks: read
+      statuses: read
       pull-requests: read
     steps:
       - name: Checkout merged configuration
@@ -186,7 +187,21 @@ jobs:
                 const checks = reportedChecks.filter(check => check.check_suite?.id !== currentRun.check_suite_id);
                 const failedCheck = checks.find(check => check.status === "completed" && !["success", "neutral", "skipped"].includes(check.conclusion));
                 if (failedCheck) throw new Error(`${failedCheck.name}: ${failedCheck.conclusion}`);
-                if (checks.length > 0 && checks.every(check => check.status === "completed")) {
+                const reportedStatuses = await github.paginate(github.rest.repos.listCommitStatusesForRef, {
+                  ...context.repo,
+                  ref: process.env.MERGE_COMMIT_SHA,
+                  per_page: 100,
+                });
+                // Newest first. Railway deploys wait for this workflow, so its statuses cannot gate this apply.
+                const latestStatuses = new Map();
+                for (const status of reportedStatuses) {
+                  const name = status.context.toLowerCase();
+                  if (!name.startsWith("protocol-visualizer - ") && !latestStatuses.has(name)) latestStatuses.set(name, status);
+                }
+                const statuses = [...latestStatuses.values()];
+                const failedStatus = statuses.find(status => ["failure", "error"].includes(status.state));
+                if (failedStatus) throw new Error(`${failedStatus.context}: ${failedStatus.state}`);
+                if (checks.length > 0 && checks.every(check => check.status === "completed") && statuses.every(status => status.state === "success")) {
                   core.info("Native CI jobs and external checks passed; production infrastructure apply may proceed.");
                   return;
                 }

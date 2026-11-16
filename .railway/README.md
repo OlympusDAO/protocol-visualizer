@@ -26,6 +26,9 @@ role and Railway variable update; changing `POSTGRES_PASSWORD` alone is insuffic
 Automatic production apply checks this password policy before applying the plan
 and stops if rotation is still required. This check does not modify credentials
 or verify that a PostgreSQL role rotation has been completed.
+Automatic whole-project apply requires the cache to be provisioned and verified
+first. Bootstrap it through a separate reviewed cache-only plan; an absent
+database must keep automatic apply blocked until that prerequisite is complete.
 
 Both database volumes target 20,000 MB in production and previews. Existing
 larger capacities are retained: the requested capacity is the greater of
@@ -65,7 +68,10 @@ for login, project selection, required validation, and common plan messages.
 
 The Railway workflow plans production changes on PR updates. The final apply job
 in `ci.yml` depends on build, lint, security, and dependency jobs, then checks
-external CodeQL and commit results for the merge commit. It applies only the saved
+external CodeQL, check runs and reported non-deployment commit statuses for the
+merge commit. The latest status per context must succeed. Railway deployment
+statuses are excluded because those deployments wait for this CI workflow;
+they must be checked after deployment. It applies only the saved
 plan for that merged PR's exact head. Set one Olympus workspace API token as the GitHub
 Actions secret `RAILWAY_TOKEN`. The workflow exports it as `RAILWAY_API_TOKEN`
 and selects the project and production environment explicitly. No token per

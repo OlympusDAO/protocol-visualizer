@@ -8,7 +8,6 @@ import { createRailwayContext } from "railway/iac";
 import {
   existingResources,
   postgresPassword,
-  postgresPasswordGenerator,
 } from "../.railway/postgres-policy.ts";
 import defineInfrastructure from "../.railway/railway.ts";
 
@@ -236,19 +235,15 @@ test("Railway workflow applies only reviewed merges and blocks destructive chang
   assert(passwordCheck >= 0 && apply > passwordCheck);
   assert(workflow.includes("cancel-in-progress: false"));
   assert(workflow.includes("queue: max"));
-  for (const [, action] of workflow.matchAll(/uses: (\S+)/g))
+  for (const [, action] of workflow.matchAll(/^ *uses: (\S+)/gm))
     if (!action.startsWith("./")) assert.match(action, /@[0-9a-f]{40}$/);
 });
 
 test("Postgres password policy generates URL-safe secrets only for new databases", () => {
-  assert.equal(
-    postgresPasswordGenerator,
-    '${{ secret(64, "0123456789abcdef") }}'
-  );
   for (const name of ["Postgres", "rpc-cache-postgres"]) {
     assert.deepEqual(postgresPassword(name, new Set()), {
       type: "raw",
-      value: { defaultValue: postgresPasswordGenerator },
+      value: { defaultValue: '${{ secret(64, "0123456789abcdef") }}' },
     });
     assert.deepEqual(postgresPassword(name, new Set([name])), {
       type: "preserve",

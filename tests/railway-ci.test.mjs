@@ -8,7 +8,8 @@ const required = [255339919];
 
 async function runGate(
   response,
-  checks = [{ status: "completed", conclusion: "success" }]
+  checks = [{ status: "completed", conclusion: "success" }],
+  statuses = []
 ) {
   const match = workflow.match(
     / {6}- name: Wait for external checks\n[\s\S]*? {10}script: \|\n([\s\S]*?)(?=^ {6}- name:)/m
@@ -16,6 +17,7 @@ async function runGate(
   assert(match, "production apply must wait for merge CI");
   const calls = [];
   const attempts = new Map();
+  let statusReads = 0;
   const script = match[1].replace(/^ {12}/gm, "");
   await vm.runInNewContext(`(async () => {${script}\n})()`, {
     process: { env: { MERGE_COMMIT_SHA: "merged-release" } },
@@ -25,12 +27,17 @@ async function runGate(
       resolve();
     },
     github: {
-      async paginate(_method, args) {
+      async paginate(method, args) {
         assert.equal(args.ref, "merged-release");
+        if (method === "statuses")
+          return typeof statuses === "function"
+            ? statuses(statusReads++)
+            : statuses;
         return checks;
       },
       rest: {
         checks: { listForRef() {} },
+        repos: { listCommitStatusesForRef: "statuses" },
         actions: {
           async getWorkflowRun(args) {
             assert.equal(args.run_id, 42);
@@ -54,6 +61,7 @@ async function runGate(
 test("production apply depends on native CI jobs and waits only for external workflows", async () => {
   const apply = workflow.split("\n  railway-apply:")[1];
   assert.match(apply, /^ {6}checks: read$/m);
+  assert.match(apply, /^ {6}statuses: read$/m);
   assert.match(
     apply,
     /needs: \[lint-check, build, security-audit, dependency-audit, railway-plan\]/
@@ -265,6 +273,42 @@ test("production apply excludes its own check suite without ignoring other apply
       () => [success],
       [ownCheck, { ...ownCheck, check_suite: { id: 101 } }, success]
     ),
+    /Timed out/
+  );
+});
+
+test("production apply blocks failed or pending external commit statuses", async () => {
+  const codeql = () => [{ status: "completed", conclusion: "success" }];
+  for (const state of ["failure", "error", "pending"]) {
+    await assert.rejects(
+      runGate(codeql, undefined, [
+        { context: "security/snyk (Olympus DAO)", state },
+      ]),
+      state === "pending" ? /Timed out/ : /security\/snyk/
+    );
+  }
+  const calls = await runGate(codeql, undefined, (attempt) => [
+    {
+      context: "security/snyk (Olympus DAO)",
+      state: attempt === 0 ? "pending" : "success",
+    },
+  ]);
+  assert.equal(calls.length, 2);
+});
+
+test("production apply uses the newest status per context and excludes downstream deployments", async () => {
+  const codeql = () => [{ status: "completed", conclusion: "success" }];
+  await runGate(codeql, undefined, [
+    { context: "security/snyk (Olympus DAO)", state: "success" },
+    { context: "security/snyk (Olympus DAO)", state: "failure" },
+    { context: "protocol-visualizer - snapshot-publisher", state: "pending" },
+    { context: "protocol-visualizer - snapshot-monitor", state: "failure" },
+  ]);
+  await assert.rejects(
+    runGate(codeql, undefined, [
+      { context: "security/snyk (Olympus DAO)", state: "pending" },
+      { context: "security/snyk (Olympus DAO)", state: "success" },
+    ]),
     /Timed out/
   );
 });

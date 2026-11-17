@@ -36,7 +36,9 @@ are rejected.
 running. It does not access snapshot storage.
 
 `/ready` returns `200` only when `v1/manifest.json` is readable and valid and
-every active chain artifact is accessible in the bucket. Railway uses this
+every active chain artifact is accessible in the bucket. The gateway must also
+load the ABI registry of `packages/contract-abis`. If the registry is not
+loaded, `/ready` returns `503` and does not check the bucket. Railway uses this
 route to prevent an unusable deployment from receiving traffic. Manifest and
 artifact operations have a five-second timeout that aborts the underlying S3
 request. Artifact checks run with at most eight concurrent requests, and

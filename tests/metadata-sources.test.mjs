@@ -43,8 +43,13 @@ test("preparation checks Etherscan once per miss, preserves prepared metadata, f
     },
     addressGetters: ["owner"],
   };
+  // Mainnet Kernel is in the ABI registry. The mainnet Operator at
+  // `unregisteredAddress` is in the inventory but not in the registry.
+  const registryAddress = "0x2286d7f9639e8158fad1169e76d1fbc38247f54b";
+  const unregisteredAddress = "0x5f15b91b59ad65d490921016d4134c2301197485";
   const run = (seed, responses, normal = false, options = {}) => {
-    writeFileSync(output, JSON.stringify({ 1: { [address]: seed } }));
+    const target = options.address ?? address;
+    writeFileSync(output, JSON.stringify({ 1: { [target]: seed } }));
     writeFileSync(requests, "[]");
     writeFileSync(
       preload,
@@ -58,7 +63,7 @@ globalThis.fetch=async (input)=>{
  writeFileSync(${JSON.stringify(requests)},JSON.stringify(calls));
  if(url.hostname==="sourcify.dev") return new Response(null,{status:404});
  assert.equal(url.hostname,"api.etherscan.io");assert.equal(url.searchParams.get("action"),"getsourcecode");
- if(!${Boolean(options.multiple)}) assert.equal(url.searchParams.get("address"),${JSON.stringify(address)});
+ if(!${Boolean(options.multiple)}) assert.equal(url.searchParams.get("address")?.toLowerCase(),${JSON.stringify(target)});
  assert.equal(url.searchParams.get("apikey"),${JSON.stringify(canary)});
  const response=responses.shift();assert.ok(response,"unexpected extra explorer call");
  if(response.throw) throw Error(response.throw);
@@ -83,7 +88,7 @@ globalThis.fetch=async (input)=>{
             ]),
         ...(options.multiple
           ? ["--chain-id", "11155111", "--name", "EmissionManager"]
-          : ["--chain-id", "1", "--address", address]),
+          : ["--chain-id", "1", "--address", target]),
         "--force",
         "--output",
         output,
@@ -111,7 +116,7 @@ globalThis.fetch=async (input)=>{
       );
     return {
       result,
-      metadata: JSON.parse(readFileSync(output, "utf8"))[1][address],
+      metadata: JSON.parse(readFileSync(output, "utf8"))[1][target],
       calls: JSON.parse(readFileSync(requests, "utf8")),
       coverage: normal ? undefined : JSON.parse(readFileSync(report, "utf8")),
     };
@@ -290,12 +295,29 @@ globalThis.fetch=async (input)=>{
       check.calls.filter((c) => c.host === "api.etherscan.io").length,
       1
     );
-    check = run({}, [{ body: { status: "1", result: [source] } }], true);
+    check = run({}, [{ body: { status: "1", result: [source] } }], true, {
+      address: registryAddress,
+    });
     assert.equal(check.result.status, 0, check.result.stderr);
     assert.equal(
       check.calls.length,
       1,
-      "ordinary preparation must use ABI and source from one response"
+      "ordinary preparation must read the source from one response"
+    );
+    const registryAbi = JSON.parse(
+      readFileSync("packages/contract-abis/abis/mainnet/Kernel.json", "utf8")
+    );
+    assert.equal(
+      Object.keys(check.metadata.functionSelectors).length,
+      registryAbi.filter((item) => item.type === "function").length,
+      "ordinary preparation must take the ABI from the ABI registry"
+    );
+    check = run({}, [], true, { address: unregisteredAddress });
+    assert.notEqual(check.result.status, 0);
+    assert.equal(
+      check.calls.length,
+      0,
+      "ordinary preparation skips an address that the ABI registry lacks"
     );
   } finally {
     rmSync(root, { recursive: true, force: true });

@@ -76,6 +76,9 @@ jobs:
       - name: Run snapshot monitor tests
         run: pnpm --filter snapshot-monitor run test
 
+      - name: Check ABI registry
+        run: pnpm run abis:check
+
   security-audit:
     if: github.event_name != 'pull_request'
     uses: ./.github/workflows/security-scan.yml

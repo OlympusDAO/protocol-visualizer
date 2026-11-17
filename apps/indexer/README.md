@@ -196,6 +196,27 @@ It skips existing nonempty entries.
 The Etherscan scan does not enumerate `other-contracts.json`.
 For inventory-only contracts, use `--refresh-getters` or a manual verified-source import.
 
+The function selectors come from the ABI registry in
+`packages/contract-abis/abis`. The generator looks up each address in
+`abis/manifest.json` by chain ID and address. In this mode, it does not read
+ABIs from Etherscan. The registry does not hold every address in `src/ContractNames.ts`:
+it excludes inactive policies and some `env.json` sections. For an address that
+the registry does not have, the generator prints a warning and skips it. Then
+any metadata that the generated file already holds stays as it is, and the
+indexer resolves the contract at runtime through its local ABI cache or
+Etherscan, as before.
+
+At runtime, the indexer also reads the ABI registry before it asks Etherscan
+for an ABI. The Docker image has the registry at the same relative path. Set
+`CONTRACT_ABIS_PATH` to use a different directory.
+
+Function roles still come from the contract source code, which the generator
+reads from Etherscan. Therefore it reads `ETHERSCAN_API_KEY` from the
+repository root `.env` and from `apps/indexer/.env`. Without the key, the
+generator warns and skips each contract that needs a new role lookup, and it
+changes no existing entry. A run that targets one contract with `--address` or
+`--name` fails instead of skipping.
+
 **CAUTION:** `--force` replaces each selected metadata entry.
 It can remove imported source verification and documentation, which disables generic getter links for that entry.
 After an Etherscan refresh, run `--refresh-getters` before restarting the indexer.

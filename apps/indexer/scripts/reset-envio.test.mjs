@@ -39,7 +39,14 @@ function command(child) {
   return { child, done, output: () => output };
 }
 
-for (const { checkCode, migrationCode, startCode, shutdownSignal } of [
+for (const {
+  checkCode,
+  migrationCode,
+  startCode,
+  shutdownSignal,
+  stashCode = 0,
+  restoreCode = 0,
+} of [
   { checkCode: 0, migrationCode: 0 },
   { checkCode: 0, migrationCode: 17 },
   { checkCode: 78, migrationCode: 0 },
@@ -49,8 +56,10 @@ for (const { checkCode, migrationCode, startCode, shutdownSignal } of [
   { checkCode: 0, migrationCode: 0, shutdownSignal: "SIGTERM" },
   { checkCode: 0, migrationCode: 0, shutdownSignal: "SIGINT" },
   { checkCode: 78, migrationCode: 0, shutdownSignal: "SIGTERM" },
+  { checkCode: 0, migrationCode: 0, stashCode: 1 },
+  { checkCode: 0, migrationCode: 0, restoreCode: 1 },
 ]) {
-  test(`explicit reset lifecycle (storage ${checkCode}, migration ${migrationCode}, start ${startCode ?? 0}, shutdown ${shutdownSignal ?? "none"})`, {
+  test(`explicit reset lifecycle (storage ${checkCode}, migration ${migrationCode}, start ${startCode ?? 0}, shutdown ${shutdownSignal ?? "none"}, cache stash ${stashCode}, cache restore ${restoreCode})`, {
     timeout: 20_000,
   }, async () => {
     const root = realpathSync(
@@ -61,6 +70,7 @@ for (const { checkCode, migrationCode, startCode, shutdownSignal } of [
     const running = join(root, "running");
     const workerRunning = join(root, "worker-running");
     const migrated = join(root, "migrated");
+    const effectCache = join(root, "effect-cache");
     const migrationBlocked = join(root, "migration-blocked");
     mkdirSync(scripts, { recursive: true });
     mkdirSync(join(app, "node_modules/envio"), { recursive: true });
@@ -74,6 +84,10 @@ for (const { checkCode, migrationCode, startCode, shutdownSignal } of [
     copyFileSync(
       new URL("fixtures/reset-envio.mjs", import.meta.url),
       join(app, "node_modules/envio/bin.mjs")
+    );
+    copyFileSync(
+      new URL("fixtures/effect-cache-stash.mjs", import.meta.url),
+      join(scripts, "effect-cache-stash.mjs")
     );
     const hasura = http.createServer((_req, res) => res.end("{}"));
     await new Promise((accept) => hasura.listen(0, "127.0.0.1", accept));
@@ -93,6 +107,8 @@ for (const { checkCode, migrationCode, startCode, shutdownSignal } of [
       RESET_FIXTURE_ROOT: root,
       RESET_FIXTURE_MIGRATION_CODE: String(migrationCode),
       RESET_FIXTURE_START_CODE: String(startCode ?? 0),
+      RESET_FIXTURE_STASH_CODE: String(stashCode),
+      RESET_FIXTURE_RESTORE_CODE: String(restoreCode),
     };
     for (const id of [1, 10, 42161, 8453, 80094, 4663, 11155111, 421614, 84532])
       env[`ENVIO_RPC_URL_${id}`] = "http://fixture.invalid";
@@ -169,6 +185,20 @@ for (const { checkCode, migrationCode, startCode, shutdownSignal } of [
           shell: false,
         })
       );
+      if (stashCode) {
+        const reset = await resetting.done;
+        assert.equal(reset.code, 1, reset.output);
+        assert.match(reset.output, /Could not move the effect cache aside/);
+        assert.equal(readFileSync(effectCache, "utf8"), "stash\n");
+        assert(!existsSync(migrated), "a failed stash must not reset storage");
+        assert(!existsSync(running) && !existsSync(workerRunning));
+        assert.equal(wrapper.child.exitCode, null, wrapper.output());
+        assert.equal(
+          (await fetch(`http://127.0.0.1:${port}/ready`)).status,
+          503
+        );
+        return;
+      }
       await until(() => existsSync(migrated));
       for (const route of ["ready", "metrics"])
         assert.equal(
@@ -188,6 +218,13 @@ for (const { checkCode, migrationCode, startCode, shutdownSignal } of [
       const reset = await resetting.done;
       assert.equal(reset.code, migrationCode, reset.output);
       assert.equal(readFileSync(migrated, "utf8"), "local db-migrate setup\n");
+      assert.equal(
+        readFileSync(effectCache, "utf8"),
+        migrationCode === 0 ? "stash\nrestore\n" : "stash\n",
+        "the effect cache is restored only after a successful migration"
+      );
+      if (restoreCode)
+        assert.match(reset.output, /Could not restore the effect cache/);
       if (migrationCode === 0) {
         await until(() => existsSync(running) && existsSync(workerRunning));
         assert.notEqual(readFileSync(running, "utf8"), oldPid);

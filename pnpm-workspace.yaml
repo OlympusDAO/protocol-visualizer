@@ -50,3 +50,10 @@ overrides:
   "vitest@<4.1.11": "4.1.11"
 allowBuilds:
   "esbuild@0.28.2": true
+auditConfig:
+  ignoreGhsas:
+    # picomatch 4.0.7 (ReDoS in repeated extglobs). No patched version exists.
+    # Only apps/frontend > vite (and tinyglobby/fdir) uses it, at build time,
+    # with glob patterns from the repository config. Remove this entry when a
+    # patched picomatch release is available.
+    - GHSA-fc5q-39xc-vjpf

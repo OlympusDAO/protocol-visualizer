@@ -95,7 +95,7 @@ jobs:
           path: ${{ runner.temp }}/abis-sync
 
       - name: Apply the patch
-        run: git apply "$RUNNER_TEMP/abis-sync/abis.patch"
+        run: git apply --include='packages/contract-abis/**' "$RUNNER_TEMP/abis-sync/abis.patch"
 
       # The action does not push if the branch already has these changes.
       - name: Open or update the pull request

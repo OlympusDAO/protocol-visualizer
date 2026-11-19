@@ -58,24 +58,33 @@ try {
     throw new Error(
       "The container engine did not return an immutable image ID"
     );
+  if (
+    /^(sha256:)?[0-9a-f]{64}$/.test(image) &&
+    id.replace(/^sha256:/, "") !== image.replace(/^sha256:/, "")
+  )
+    throw new Error(
+      "The container engine returned a different immutable image ID"
+    );
   console.log(`Scanning ${service}: ${id}`);
   const archive = path.join(directory, "image.tar");
   container("save", "--output", archive, id);
   run("trivy", [
     "image",
+    "--format",
+    "table",
     "--input",
     archive,
     "--cache-dir",
     path.join(cache, "trivy"),
     "--scanners",
-    "vuln",
+    "vuln,secret",
     "--severity",
     "MEDIUM,HIGH,CRITICAL",
     "--ignorefile",
     path.join(root, ".trivyignore"),
     "--exit-code",
     "1",
-    ...(service === "hasura" ? ["--ignore-unfixed"] : []),
+    `--ignore-unfixed=${["hasura", "indexer"].includes(service)}`,
   ]);
 } catch (error) {
   console.error(error.message);

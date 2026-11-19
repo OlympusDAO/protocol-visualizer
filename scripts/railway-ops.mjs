@@ -1,5 +1,4 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const [operation, ...input] = process.argv.slice(2);
@@ -24,8 +23,8 @@ function readRailway(args, env = process.env) {
 }
 
 try {
-  if (!["metrics", "plan", "apply", "reset"].includes(operation))
-    throw new Error("Choose metrics, plan, apply, or reset.");
+  if (!["metrics", "reset"].includes(operation))
+    throw new Error("Choose metrics or reset.");
   // biome-ignore lint/suspicious/noUndeclaredEnvVars: Local Railway operations run outside Turbo.
   let requested = process.env.RAILWAY_ENVIRONMENT?.trim();
   const args = [];
@@ -43,13 +42,8 @@ try {
     throw new Error(
       "Set RAILWAY_ENVIRONMENT to the target Railway environment before resetting the indexer."
     );
-  if (["metrics", "reset"].includes(operation) && args.length)
+  if (args.length)
     throw new Error("Only --environment is supported for this operation.");
-  if (args.some((arg) => /^(--plan|--out)(=|$)/.test(arg)))
-    throw new Error(
-      "Scripts use railway-plan.json. Use the direct Railway CLI for another artifact path."
-    );
-
   const project = readRailway(["status", "--json"]);
   if (!project.id || !project.name)
     throw new Error("No linked Railway project.");
@@ -80,7 +74,7 @@ try {
     commandArgs = [
       fileURLToPath(new URL("rpc-cache-metrics.sh", import.meta.url)),
     ];
-  } else if (operation === "reset") {
+  } else {
     commandArgs = [
       "ssh",
       "--service",
@@ -90,33 +84,6 @@ try {
       "--",
       "/nodejs/bin/node",
       "/app/apps/indexer/scripts/reset-envio.mjs",
-    ];
-  } else {
-    if (operation === "apply") {
-      let plan;
-      try {
-        plan = JSON.parse(readFileSync("railway-plan.json", "utf8"));
-      } catch {
-        throw new Error(
-          "Cannot read railway-plan.json. Generate and review a plan first."
-        );
-      }
-      if (
-        plan.environmentId !== target.id ||
-        (plan.projectId && plan.projectId !== project.id)
-      )
-        throw new Error(
-          "Saved plan does not match the selected Railway target. Generate and review a new plan."
-        );
-    }
-    commandArgs = [
-      "config",
-      operation,
-      "--environment",
-      target.id,
-      operation === "plan" ? "--out" : "--plan",
-      "railway-plan.json",
-      ...args,
     ];
   }
   const result = spawnSync(command, commandArgs, { env, stdio: "inherit" });

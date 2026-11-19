@@ -1,24 +1,20 @@
 # AGENTS
 
-## Validation Skill
+## Validation contract
 
-When asked to validate this repository, run `pnpm validate`. It calls `./scripts/validate.sh`, which executes these commands in order:
+Use the canonical [validation commands, prerequisites and policy](docs/validation.md). Invoke scripts unchanged with tool-level cwd/output/polling; do not add wrappers, redirection, tee or environment prefixes merely to manage output.
 
-1. `pnpm run check:runtime-versions`
-2. `pnpm install --frozen-lockfile`
-3. `pnpm run lint:check`
-4. `pnpm --filter @protocol-visualizer/snapshot-artifacts run build`
-5. `pnpm run openapi:check`
-6. `pnpm run build`
-7. `pnpm run snapshots:generate:local`
-8. `pnpm run container:build:indexer`
-9. `pnpm run container:build:frontend`
-10. `pnpm run container:build:snapshot-gateway`
-11. `pnpm run container:build:snapshot-publisher`
+Before committing run `pnpm validate`; before requesting a push run `pnpm validate:all`. Stop at the first failed command and report it before independent diagnostics. Missing tools/images/databases fail; required integration cannot skip reset isolation. Source validation has no Docker dependency.
 
-If a command fails, stop and report the first failure with actionable context.
+Scripts save command/log/exit/timing/revision receipts under ignored `.validation/`. Native test/scanner output and per-build IID files are evidence; receipts do not reconstruct test counts, inventory or scanner reports. Report counts/policy/skips from actual output, immutable IDs and blockers. Never call unrun images, excluded fixtures or live checks passed. Historical detailed receipts remain historical.
 
-Invoke `pnpm validate`, `pnpm run container:build` (all seven images), and individual `pnpm run container:build:<image>` scripts as standalone commands. Avoid shell wrappers, pipes, environment prefixes and output redirection so reusable command approvals can match. Capture output through the execution tool instead.
+## History and publication
+
+Ask before rewriting, collapsing, discarding or publishing history, including rebase, reset, push and PR actions. Before creating/describing commits or pushing, run the privacy-gate skill and stop on findings. Never bypass hooks. Before PR operations use github-account; before pushing/updating PRs also use coderabbit-local-review. Publication and live infrastructure apply require explicit approval.
+
+## Crit reviews
+
+For explicit Crit requests use crit-review for diff-mode, Tailscale and standing authorization preferences.
 
 ## Indexer Benchmark
 

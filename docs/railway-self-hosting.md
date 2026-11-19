@@ -20,18 +20,18 @@ majors and volume names. IaC supplies service connections through Railway refere
 Provider URLs and operator secrets use `preserve()`; their values stay in Railway.
 Optional operator settings listed in `variables.ignore` remain outside IaC ownership.
 
-| Resource | Role |
-| --- | --- |
-| `Postgres` / `destruction-volume` | Envio data and Hasura metadata; existing Postgres 16 |
-| `rpc-cache-postgres` / `rpc-cache-postgres-volume` | Independent RPC cache; existing Postgres 18 |
-| `hasura` | Private GraphQL for publisher and monitor |
-| `indexer` | Private Envio indexer |
-| `rpc-cache` | Private JSON-RPC cache |
-| `snapshot-publisher` | Hourly bucket publisher |
-| `snapshot-monitor` | Daily indexing monitor |
-| `snapshot-gateway` | Public REST API |
-| `frontend` | Public UI |
-| `storage` | Private snapshot bucket in `sjc` |
+| Resource                                           | Role                                                 |
+| -------------------------------------------------- | ---------------------------------------------------- |
+| `Postgres` / `destruction-volume`                  | Envio data and Hasura metadata; existing Postgres 16 |
+| `rpc-cache-postgres` / `rpc-cache-postgres-volume` | Independent RPC cache; existing Postgres 18          |
+| `hasura`                                           | Private GraphQL for publisher and monitor            |
+| `indexer`                                          | Private Envio indexer                                |
+| `rpc-cache`                                        | Private JSON-RPC cache                               |
+| `snapshot-publisher`                               | Hourly bucket publisher                              |
+| `snapshot-monitor`                                 | Daily indexing monitor                               |
+| `snapshot-gateway`                                 | Public REST API                                      |
+| `frontend`                                         | Public UI                                            |
+| `storage`                                          | Private snapshot bucket in `sjc`                     |
 
 Both database volumes target 20,000 MB in production and previews. IaC reads
 their live capacities and retains any existing capacity above this target.
@@ -51,7 +51,7 @@ operation. Preserve the attached database volumes during this capacity change.
 
 ## Bootstrap and migration
 
-Use Railway CLI 5.71.0 or newer, Node and pnpm from this repository, and the
+Use the repository-pinned native Railway CLI 5.75.0, Node and pnpm from this repository, and the
 pinned Railway SDK installed by `pnpm install --frozen-lockfile`.
 
 The local migration used Railway's `config migrate --show` preview and
@@ -114,15 +114,15 @@ Verify the proxy before the whole-project apply routes consumers through it.
 
 ## Automatic variables and manual secrets
 
-| Destination | Supplied by IaC | Manual values retained in Railway |
-| --- | --- | --- |
-| `rpc-cache` | `PORT=4000`; `RPC_CACHE_DATABASE_URL` references `rpc-cache-postgres.DATABASE_URL` | Nine `UPSTREAM_RPC_URL_<id>` values; optional `RPC_CACHE_MAX_RPS` |
-| `indexer` | Nine `ENVIO_RPC_URL_<id>` paths through `rpc-cache`; Envio database and Hasura references; `PORT=9898` | `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY`; optional `ENVIO_RPC_MODE` |
-| `snapshot-publisher` | Nine `RPC_URL_<id>` paths; bucket, Hasura, indexer metrics, and shared webhook references | Shared `DISCORD_WEBHOOK_URL` value; optional operator overrides |
-| `snapshot-monitor` | Nine `RPC_URL_<id>` paths; bucket, indexer metrics, and shared webhook references | Shared `DISCORD_WEBHOOK_URL` value; optional operator overrides |
-| `snapshot-gateway` | Five bucket references; `PORT=8080` | Optional operator overrides |
-| `hasura` | Envio database reference; shared admin-secret reference; `PORT=8080` | The shared `HASURA_GRAPHQL_ADMIN_SECRET` value |
-| `frontend` | HTTPS URL from `snapshot-gateway.RAILWAY_PUBLIC_DOMAIN` | None for these connections |
+| Destination          | Supplied by IaC                                                                                        | Manual values retained in Railway                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| `rpc-cache`          | `PORT=4000`; `RPC_CACHE_DATABASE_URL` references `rpc-cache-postgres.DATABASE_URL`                     | Nine `UPSTREAM_RPC_URL_<id>` values; optional `RPC_CACHE_MAX_RPS` |
+| `indexer`            | Nine `ENVIO_RPC_URL_<id>` paths through `rpc-cache`; Envio database and Hasura references; `PORT=9898` | `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY`; optional `ENVIO_RPC_MODE` |
+| `snapshot-publisher` | Nine `RPC_URL_<id>` paths; bucket, Hasura, indexer metrics, and shared webhook references              | Shared `DISCORD_WEBHOOK_URL` value; optional operator overrides   |
+| `snapshot-monitor`   | Nine `RPC_URL_<id>` paths; bucket, indexer metrics, and shared webhook references                      | Shared `DISCORD_WEBHOOK_URL` value; optional operator overrides   |
+| `snapshot-gateway`   | Five bucket references; `PORT=8080`                                                                    | Optional operator overrides                                       |
+| `hasura`             | Envio database reference; shared admin-secret reference; `PORT=8080`                                   | The shared `HASURA_GRAPHQL_ADMIN_SECRET` value                    |
+| `frontend`           | HTTPS URL from `snapshot-gateway.RAILWAY_PUBLIC_DOMAIN`                                                | None for these connections                                        |
 
 The bucket references use `storage.BUCKET`, `storage.ACCESS_KEY_ID`,
 `storage.SECRET_ACCESS_KEY`, `storage.REGION`, and `storage.ENDPOINT`.
@@ -150,7 +150,7 @@ Before any consumer switch, retain the previous provider values for rollback.
 
 ## SSH key registration
 
-Use Railway CLI 5.71.0 or newer.
+Use the repository-pinned native Railway CLI 5.75.0.
 To use your personal login, unset local `RAILWAY_TOKEN` and `RAILWAY_API_TOKEN` values first.
 Then sign in:
 
@@ -195,7 +195,7 @@ The script does not register keys automatically.
 
 [`.github/workflows/railway-config.yml`](../.github/workflows/railway-config.yml)
 creates plans; [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) applies them.
-Both use Railway CLI 5.71.0 with workspace API authentication.
+Both use the repository-pinned native Railway CLI 5.75.0 with workspace API authentication.
 For same-repository PRs into `master` that affect IaC or its tooling:
 
 - Opening, reopening, or updating the PR produces a **production** plan and a PR comment linking to its run.
@@ -293,7 +293,7 @@ protocol requests can then reach frontend Nginx and return HTML instead of JSON.
 ## Manual IaC plan and deployment
 
 Run these commands from the repository root on your local machine.
-Use Railway CLI 5.71.0 or newer and the repository-pinned Node and pnpm versions.
+Use the repository-pinned native Railway CLI 5.75.0 and the repository-pinned Node and pnpm versions.
 The target Railway environment must already exist.
 
 A plan reads Railway configuration without changing resources or service variables.
@@ -327,9 +327,9 @@ railway status
 ```
 
 Select `protocol-visualizer` if prompted. Verify the project and environment names.
-The plan and apply scripts use this linked context without repeated environment exports.
-Metrics, plan, apply, and reset print the project and environment names and IDs before their operation.
-The selector order is `--environment`, then `RAILWAY_ENVIRONMENT`, then the linked environment.
+Native plan/apply commands use the linked project and an explicit target environment.
+The retained metrics/reset helpers print the project and environment names and IDs before their operation.
+For these helpers, the selector order is `--environment`, then `RAILWAY_ENVIRONMENT`, then the linked environment.
 Reset still requires an explicit selector because it removes indexer data.
 Railway gets the source branch from its PR environment metadata when creating services.
 Existing preview services retain their configured branch. Production sources always use `master`.
@@ -340,24 +340,23 @@ Changing Git branches does not change the Railway link. Link again when switchin
 
 ```bash
 pnpm run railway:check
+set +x
 umask 077
-pnpm run railway:plan
+touch railway-plan.json
+chmod 600 railway-plan.json
+railway config plan --environment <target-environment> --out railway-plan.json
 ```
 
-The script saves `railway-plan.json` for the linked environment.
-To select production explicitly, use `pnpm run railway:plan --environment production`.
+Set this umask in the **current operator shell** before the first plan. Precreate the artifact with `touch` under 077 and restrict any pre-existing file with `chmod 600` before a native write; stop if these commands fail. CLI 5.75 uses ordinary file writes and does not itself establish owner-only permissions. Keep shell tracing/session logging disabled when handling private artifacts.
+
+The native CLI saves `railway-plan.json` for the explicitly selected environment.
+To select production explicitly, use `railway config plan --environment production --out railway-plan.json`.
 Pass the same environment to apply. Verify the target in the plan before continuing.
 
-The equivalent direct command is:
-
-```bash
-railway config plan --out railway-plan.json
-```
-
-For a terminal-only preview, run `railway config plan`.
-For a different artifact path, use the direct CLI command with `--out <path>`.
+For a terminal-only preview, run `railway config plan --environment <target-environment>`.
+For a different artifact path, pass `--out <path>` to the same native command.
 The saved artifact pins the proposed changes and environment revision for the later apply.
-`railway-plan.json` is ignored by Git. Treat it as private even though terminal values are redacted.
+`railway-plan.json` is ignored by Git; Gitignore is not filesystem protection. Treat it as private even though terminal values are redacted. Archive only with owner-readable/writable file permissions (600) inside an owner-only directory (700).
 Do not commit, share, or force-add the artifact.
 
 ### 4. Review the plan
@@ -400,16 +399,30 @@ If the configuration, checkout revision, or live environment changes, generate a
 Only after reviewing the saved plan, run:
 
 ```bash
-pnpm run railway:apply
+umask 077
+railway_apply_directory="$(mktemp -d)"
+railway config apply --environment <target-environment> --plan railway-plan.json --json >"$railway_apply_directory/result.json" 2>"$railway_apply_directory/stderr.txt"
 ```
 
-For an explicit production plan, use `pnpm run railway:apply --environment production`.
+For an explicit production plan, use `--environment production` with the same private output capture.
+
+The equivalent package command is `pnpm railway:apply production --json`, with the same private output capture; a target value is mandatory. Pass `--json` explicitly: it bypasses native confirmation, so review the plan first. The alias itself does not enable JSON. Automatic merge apply blocks an existing main database source-image transition even when the native plan labels it safe. Use the separately approved [PG18 reset/reindex procedure](postgresql18-rebuild.md) and direct native apply for that release.
 Keep the target environment unchanged between plan and apply.
-The apply script rejects a saved plan for another environment or project before it calls Railway apply.
+Before calling native apply, use `railway status` to verify the linked project and selected environment. Match that environment ID against the saved artifact's `environmentId`; CLI 5.75 saved plans have no `projectId`. Keep the reviewed artifact unchanged. The CI apply gate additionally checks the environment, merged IaC tree and current master revision.
 The command applies the saved changes without re-evaluating the authoring file.
 If Railway rejects a stale plan, generate a fresh plan and review it again.
 Do not add `--confirm-destructive` to bypass an unexpected destructive change.
 A manual production apply can invalidate an older saved plan from the GitHub workflow.
+
+#### Verify native apply results
+
+CLI 5.75's saved-plan path can exit zero and print success for failed or partial provider results. The native command/explicit environment remains the interface; no custom mutation wrapper is required. With native `--json`, inspect the top-level result in the restricted private directory above. Its `status` must be `applied` or `noop`, `changes` must be an array, and every change must have status `applied` or `noop`. Reject `failed`, `partially_applied`, `applying`, `staged`, missing/malformed or unknown statuses at either level, even when the process exits zero. A nonzero process exit is also failure. Do not retry a failed/uncertain apply blindly.
+
+Raw results, outputs, diagnostics and stderr can contain sensitive values. Do not print them to shared terminal/GitHub logs, commit them or upload them as artifacts. Keep them private and share only sanitized status/count evidence. The existing CI apply step captures both streams only in memory and checks the same accepted statuses before reporting success; it retains the exact native saved-plan/environment arguments.
+
+After an accepted result, generate a fresh **read-only plan** for the same project, environment and reviewed revision. Keep its artifact/output private too, for example with native `railway config plan --environment <target-environment> --out "$railway_apply_directory/verification-plan.json"` and private stdout/stderr capture. Review all remaining drift; do not infer convergence from the apply result alone.
+
+Then complete the provider **HTTP/TCP** inventory for every service/database in that exact environment, including unknown/unexpected resources: generated HTTP domains, custom HTTP domains and TCP proxies/ports. Match frontend/gateway against the public allowlist and verify no private service has public domains/proxies. Check actual public/private reachability, ingestion docs absence, health/readiness and storage bindings as described in [security posture](security-posture.md#operator-acceptance-before-deployment). Source empty maps, a clean plan, process exit zero and success text cannot replace this verification. No native plan/apply/provider action is performed by this documentation change.
 
 ### 6. Verify the application deployments
 
@@ -425,16 +438,16 @@ See [Deployment checks](#deployment-checks) and [the cache checks](rpc-cache.md#
 
 ### Troubleshooting
 
-| Message | Action |
-| --- | --- |
-| `Set RAILWAY_SOURCE_BRANCH to the target PR branch` | Update the checkout. Current IaC follows Railway's PR branch metadata without this export. |
-| No linked project or wrong environment | Run `railway link` and verify `railway status`, or pass `--environment <name>` to both scripts. |
-| `Invalid RAILWAY_TOKEN` with a workspace token | Use `RAILWAY_API_TOKEN` for workspace authentication. The current workflow maps the existing Actions secret correctly; publish this fix before starting a new workflow run. |
-| `variables.ignore pattern ... matches no variable` | If the optional operator variable is absent, no action is required. |
-| `preserve() → «hidden»` | Read this as a hidden current value changing to the value declared in IaC. |
-| `CI check suite failed` / deployment `SKIPPED` | Fix the failing GitHub check and publish the fix to the configured source branch. An IaC apply uses published application code; local fixes are not uploaded. |
-| Stale saved plan or environment revision mismatch | Generate and review a fresh plan for the same target environment. |
-| Service still managed by a repository config file | Follow [Bootstrap and migration](#bootstrap-and-migration) before applying. |
+| Message                                             | Action                                                                                                                                                                      |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Set RAILWAY_SOURCE_BRANCH to the target PR branch` | Update the checkout. Current IaC follows Railway's PR branch metadata without this export.                                                                                  |
+| No linked project or wrong environment              | Run `railway link` and verify `railway status`, or pass `--environment <name>` to both scripts.                                                                             |
+| `Invalid RAILWAY_TOKEN` with a workspace token      | Use `RAILWAY_API_TOKEN` for workspace authentication. The current workflow maps the existing Actions secret correctly; publish this fix before starting a new workflow run. |
+| `variables.ignore pattern ... matches no variable`  | If the optional operator variable is absent, no action is required.                                                                                                         |
+| `preserve() → «hidden»`                             | Read this as a hidden current value changing to the value declared in IaC.                                                                                                  |
+| `CI check suite failed` / deployment `SKIPPED`      | Fix the failing GitHub check and publish the fix to the configured source branch. An IaC apply uses published application code; local fixes are not uploaded.               |
+| Stale saved plan or environment revision mismatch   | Generate and review a fresh plan for the same target environment.                                                                                                           |
+| Service still managed by a repository config file   | Follow [Bootstrap and migration](#bootstrap-and-migration) before applying.                                                                                                 |
 
 ## Rollback
 
@@ -461,7 +474,6 @@ Public REST responses never expose deployment ids or S3 object keys.
 ## Public REST API
 
 ```text
-GET /
 GET /healthz
 GET /ready
 GET /v1/openapi.json
@@ -470,6 +482,8 @@ GET /v1/manifest
 GET /v1/chains
 GET /v1/chains/{chainId}/protocol
 ```
+
+GET/HEAD `/` return 404. There is no separate `/docs` route; `/v1/openapi.json` remains the JSON API specification. See the [PG18.6 reset/reindex preparation](postgresql18-rebuild.md) before changing the main database major version.
 
 `/v1/bounds` includes `indexingProgress.chains[*] = { chainId, date,
 timestamp, block }`. Static JSON paths such as `/v1/manifest.json` and
@@ -654,10 +668,9 @@ paths outside the public REST surface. Let Cloudflare handle edge compression.
 
 ## Validation
 
-Run `pnpm validate` for the eleven-step sequence in `AGENTS.md`. It checks
+Run `pnpm validate` for the source-only sequence in `AGENTS.md`. It checks
 OpenAPI after building the shared snapshot-artifacts package and before the full
-build can regenerate the file. The `validate:local` script uses the same ordering
-and builds the additional service images, including the monitor.
+build can regenerate the file. `pnpm validate:all` then builds/scans all seven images and Dockerfiles and runs required container integration. See [validation.md](validation.md) for prerequisites and evidence.
 
 
 ## Recorded initial migration checks (2026-10-29)

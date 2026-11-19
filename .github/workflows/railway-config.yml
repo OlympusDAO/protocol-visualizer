@@ -12,6 +12,8 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
+      - "mise.toml"
+      - "mise.lock"
       - ".nvmrc"
       - ".node-version"
 
@@ -46,8 +48,6 @@ jobs:
         uses: ./.github/actions/bootstrap
       - name: Verify IaC
         run: pnpm run railway:check
-      - name: Install Railway CLI
-        run: npm install --global @railway/cli@5.71.0
       - name: Plan production changes
         env:
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
@@ -68,7 +68,7 @@ jobs:
           script: |
             const marker = "<!-- railway-config-plan -->";
             const url = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const body = `${marker}\nProduction infrastructure plan: [review changes and the pinned artifact](${url}).\nMerge applies this saved plan. Destructive changes require a separate operator action.`;
+            const body = `${marker}\nProduction infrastructure plan: [review changes and the pinned artifact](${url}).\nMerge applies this saved plan only when automatic-apply gates pass. Main database image changes and destructive changes require a separately approved operator release.`;
             const args = { ...context.repo, issue_number: context.issue.number };
             const comments = await github.paginate(github.rest.issues.listComments, args);
             const existing = comments.find(c => c.user?.login === "github-actions[bot]" && c.body?.includes(marker));

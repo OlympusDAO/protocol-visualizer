@@ -1,57 +1,91 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-test("validation checks the existing OpenAPI artifact before the full build and stops on drift", () => {
+test("bare source validation installs first, records native output and preserves first failure", () => {
   const directory = mkdtempSync(join(tmpdir(), "pv-validation-"));
-  const trace = join(directory, "trace");
-  writeFileSync(
-    join(directory, "pnpm"),
-    `#!/bin/sh
-printf '%s\\n' "$*" >> "$VALIDATION_TRACE"
-if [ "$*" = 'run openapi:check' ] && [ "$VALIDATION_STALE" = 1 ]; then
-  echo 'OpenAPI fixture is stale' >&2
-  exit 23
-fi
-`,
-    { mode: 0o755 }
-  );
-  const commands = [
-    "run check:runtime-versions",
-    "install --frozen-lockfile",
-    "run lint:check",
-    "--filter @protocol-visualizer/snapshot-artifacts run build",
-    "run openapi:check",
-    "run build",
-    "run snapshots:generate:local",
-    "run container:build:indexer",
-    "run container:build:frontend",
-    "run container:build:snapshot-gateway",
-    "run container:build:snapshot-publisher",
-  ];
   try {
-    for (const stale of [true, false]) {
-      writeFileSync(trace, "");
-      const result = spawnSync("bash", ["scripts/validate.sh"], {
+    mkdirSync(join(directory, "scripts"));
+    mkdirSync(join(directory, "bin"));
+    symlinkSync(process.execPath, join(directory, "bin/node"));
+    for (const file of ["validate.sh", "validation-evidence.mjs"])
+      copyFileSync(
+        new URL("../scripts/" + file, import.meta.url),
+        join(directory, "scripts", file)
+      );
+    copyFileSync(".node-version", join(directory, ".node-version"));
+    writeFileSync(
+      join(directory, "bin/git"),
+      '#!/bin/sh\nif [ "$1" = rev-parse ]; then echo fixture-head; fi\n',
+      { mode: 0o755 }
+    );
+    function pnpm() {
+      const fs = require("node:fs"),
+        args = process.argv.slice(2).join(" ");
+      fs.appendFileSync("calls", args + "\n");
+      if (args === "install --frozen-lockfile") {
+        if (process.env.INSTALL_FAIL) process.exit(17);
+        fs.writeFileSync("installed", "");
+      }
+      if (!fs.existsSync("installed")) process.exit(18);
+      if (process.env.STALE && args === "run openapi:check") {
+        console.error("native drift failure");
+        process.exit(23);
+      }
+    }
+    writeFileSync(
+      join(directory, "bin/pnpm"),
+      "#!" + process.execPath + "\n(" + pnpm.toString() + ")();",
+      { mode: 0o755 }
+    );
+    for (const [extra, code, count] of [
+      [{}, 0, 13],
+      [{ STALE: "1" }, 23, 7],
+      [{ INSTALL_FAIL: "1" }, 17, 1],
+    ]) {
+      rmSync(join(directory, "installed"), { force: true });
+      writeFileSync(join(directory, "calls"), "");
+      const result = spawnSync("/bin/bash", ["scripts/validate.sh"], {
+        cwd: directory,
         encoding: "utf8",
         env: {
           ...process.env,
-          PATH: `${directory}:${process.env.PATH}`,
+          PATH: join(directory, "bin") + ":/usr/bin:/bin",
           NVM_DIR: directory,
-          VALIDATION_TRACE: trace,
-          VALIDATION_STALE: stale ? "1" : "0",
+          PV_VALIDATION_CHILD: "",
+          ...extra,
         },
       });
-      assert.equal(result.status, stale ? 23 : 0, result.stderr);
-      assert.deepEqual(
-        readFileSync(trace, "utf8").trim().split("\n"),
-        stale ? commands.slice(0, 5) : commands
+      assert.equal(result.status, code, result.stderr);
+      const calls = readFileSync(join(directory, "calls"), "utf8")
+        .trim()
+        .split("\n");
+      assert.equal(calls[0], "install --frozen-lockfile");
+      assert.equal(calls.length, count);
+      const receipt = JSON.parse(
+        readFileSync(
+          result.stdout.match(/Validation evidence: (.+)/)[1],
+          "utf8"
+        )
       );
-      if (stale) assert.match(result.stderr, /step 5\/11/);
-      else assert.match(result.stdout, /All 11 validation steps passed/);
+      assert.equal(receipt.exitCode, code);
+      assert.equal(receipt.head, "fixture-head");
+      assert(receipt.finishedAt);
+      if (code === 23)
+        assert(
+          readFileSync(receipt.log, "utf8").includes("native drift failure")
+        );
     }
   } finally {
     rmSync(directory, { recursive: true, force: true });

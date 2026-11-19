@@ -14,11 +14,11 @@
   },
   "dependencies": {
     "envio": "3.14.1",
-    "viem": "^2.57.7"
+    "viem": "2.57.14"
   },
   "devDependencies": {
-    "@types/node": "^24.19.2",
-    "typescript": "^7.0.2"
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2"
   },
   "engines": {
     "node": ">=24.22.3"

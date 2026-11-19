@@ -122,11 +122,11 @@ same `abiHash` have the same interface.
 
 ## Commands
 
-| Command                  | Purpose                                                                | Network                    |
-| ------------------------ | ---------------------------------------------------------------------- | -------------------------- |
-| `pnpm abis:sync`         | Update the registry. Gets ABIs only for new addresses and changed proxies. | GitHub, gateway, Etherscan, RPC |
-| `pnpm abis:sync --latest` | Move `env.ref` to the last olympus-v3 `master` commit that changed env.json, then update. | Same |
-| `pnpm abis:check`        | Check that the manifest and the ABI files agree. Writes nothing.        | None                       |
+| Command                   | Purpose                                                                                   | Network                         |
+| ------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------- |
+| `pnpm abis:sync`          | Update the registry. Gets ABIs only for new addresses and changed proxies.                | GitHub, gateway, Etherscan, RPC |
+| `pnpm abis:sync --latest` | Move `env.ref` to the last olympus-v3 `master` commit that changed env.json, then update. | Same                            |
+| `pnpm abis:check`         | Check that the manifest and the ABI files agree. Writes nothing.                          | None                            |
 
 `pnpm abis:sync` needs `ETHERSCAN_API_KEY`. It reads a `.env` file in this
 package or in the repository root. It also needs `ENVIO_RPC_URL_<chainId>` for

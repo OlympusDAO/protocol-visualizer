@@ -15,6 +15,14 @@ const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 
 const dockerfileContent = (path) => readFileSync(path, "utf8");
 
+test("frontend builds retain dependency ordering and dist output without caching external sources", () => {
+  assert.deepEqual(readJson("turbo.json").tasks["frontend#build"], {
+    dependsOn: ["^build"],
+    outputs: ["dist/**"],
+    cache: false,
+  });
+});
+
 test("chain catalog and indexer agree on indexed networks", () => {
   const chains = readJson("packages/protocol-config/protocol-chains.json");
   assert.equal(
@@ -132,10 +140,11 @@ test("snapshot jobs log missing webhooks and exit unsuccessfully on startup", ()
   }
 });
 
-test("CI scans every Dockerfile and local image", () => {
+test("CI delegates complete image and Dockerfile coverage to canonical validation", () => {
   const workflow = readFileSync(".github/workflows/security-scan.yml", "utf8");
-  const packageJson = readFileSync("package.json", "utf8");
-  const matrixImages = workflow.match(/image: \[([^\]]+)\]/)[1].split(/,\s*/);
+  const { scripts } = readJson("package.json");
+  const validator = readFileSync("scripts/validate-images.sh", "utf8");
+  const dockerfiles = readFileSync("scripts/scan-dockerfiles.mjs", "utf8");
   for (const name of [
     "indexer",
     "frontend",
@@ -145,12 +154,8 @@ test("CI scans every Dockerfile and local image", () => {
     "snapshot-monitor",
     "rpc-cache",
   ]) {
-    assert(packageJson.includes(`"container:build:${name}"`));
-    assert(packageJson.includes(`"container:tag:scan:${name}"`));
-    assert(
-      matrixImages.includes(name) ||
-        workflow.includes(`protocol-visualizer/${name}:scan`)
-    );
+    assert(scripts["container:build"].includes(`container:build:${name}`));
+    assert(validator.includes(name));
   }
   for (const dockerfile of [
     "Dockerfile-indexer",
@@ -163,22 +168,14 @@ test("CI scans every Dockerfile and local image", () => {
   ]) {
     assert(existsSync(dockerfile));
   }
-  assert.match(workflow, /TRIVY_FILE_PATTERNS: dockerfile:Dockerfile-\*/);
-  assert.match(workflow, /TRIVY_SKIP_DIRS: node_modules/);
-  assert.match(
-    workflow,
-    /image-ref: protocol-visualizer\/indexer:scan[\s\S]*?ignore-unfixed: true/
-  );
-  assert.match(
-    workflow,
-    /image-ref: protocol-visualizer\/\$\{\{ matrix.image \}\}:scan/
-  );
-  assert.match(
-    workflow,
-    /ignore-unfixed: \$\{\{ matrix.image == 'hasura' \}\}/
-  );
-  assert.match(workflow, /fail-fast: false/);
-  assert.match(workflow, /run: pnpm run test:rpc-cache/);
+  assert.match(workflow, /run: pnpm validate:images/);
+  assert.match(workflow, /run: pnpm test:integration/);
+  assert.match(validator, /pnpm run "container:build:\$image" --iidfile/);
+  assert.match(validator, /pnpm run container:scan -- "\$image"/);
+  assert.match(validator, /pnpm run container:scan:dockerfiles/);
+  assert.match(validator, /pnpm run container:scan:runtime/);
+  assert(dockerfiles.includes("dockerfile:Dockerfile-*"));
+  assert(dockerfiles.includes('"node_modules"'));
   assert.match(workflow, /workflow_dispatch:/);
   assert(!workflow.includes("pnpm audit"));
   const ci = readFileSync(".github/workflows/ci.yml", "utf8");
@@ -338,6 +335,42 @@ test("Env samples and docs keep optional variables commented", () => {
   );
 });
 
+test("every local Compose host binding is explicitly loopback-only", () => {
+  const compose = readFileSync("docker-compose.yml", "utf8");
+  const blocks = [...compose.matchAll(/^    ports:\n((?:      - .+\n)+)/gm)];
+  assert(blocks.length > 0);
+  for (const [, ports] of blocks)
+    for (const line of ports.trim().split("\n"))
+      assert.match(
+        line.trim(),
+        /^- "127\.0\.0\.1:\$\{[A-Z_]+:-\d+\}:\d+"$/,
+        line
+      );
+});
+
+test("fresh local PG18 volumes use the official image parent mount and versioned names", () => {
+  const compose = readFileSync("docker-compose.yml", "utf8");
+  const ref =
+    "postgres:18.6-alpine3.24@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b";
+  assert.equal(compose.split(ref).length - 1, 2);
+  assert(compose.includes("postgres18-data:/var/lib/postgresql"));
+  assert(compose.includes("rpc-cache-postgres18-data:/var/lib/postgresql"));
+  assert.equal(
+    compose.match(/PGDATA: \/var\/lib\/postgresql\/18\/docker/g).length,
+    2
+  );
+  assert(!compose.includes("postgres:17"));
+  const runbook = readFileSync("docs/postgresql18-rebuild.md", "utf8");
+  assert(
+    runbook.includes(
+      "After the approved volume operation, generate and review a fresh native plan"
+    )
+  );
+  assert(runbook.includes("Obtain renewed approval for that exact plan"));
+  assert(runbook.includes("railway-self-hosting.md#5-apply-the-reviewed-plan"));
+  assert(runbook.includes("Keep all writers paused until verification passes"));
+});
+
 test("Compose third-party images are pinned by digest", () => {
   const compose = readFileSync("docker-compose.yml", "utf8");
   const imageLines = compose
@@ -367,7 +400,6 @@ test("Docker context excludes local, generated, and secret-prone artifacts", () 
     "**/coverage",
     "**/.gitignore",
     "**/.dockerignore",
-    "**/.eslintrc.json",
     "**/README.md",
     ".github",
     ".vscode",
@@ -458,7 +490,12 @@ test("Snapshot monitor runs tests in CI, not during image builds", () => {
 
   assert.equal(monitorPackage.scripts.build, "tsc");
   assert.equal(monitorPackage.scripts.test, "node --test dist/test/*.test.js");
-  assert(workflow.includes("pnpm --filter snapshot-monitor run test"));
+  assert(workflow.includes("run: pnpm validate"));
+  assert(
+    readFileSync("scripts/validate.sh", "utf8").includes(
+      "pnpm --filter snapshot-monitor run test"
+    )
+  );
   assert(
     !monitorDockerfile.includes(
       "COPY packages/protocol-config/protocol-chains.json ./packages/protocol-config/protocol-chains.json"
@@ -470,16 +507,11 @@ test("Snapshot monitor runs tests in CI, not during image builds", () => {
 test("Frontend and indexer Dockerfiles prune scaffold and local-only files", () => {
   const frontend = dockerfileContent("Dockerfile-frontend");
   assert(frontend.includes("libxml2"));
-  for (const asset of [
-    "50x.html",
-    "file.svg",
-    "globe.svg",
-    "next.svg",
-    "vercel.svg",
-    "window.svg",
-  ]) {
-    assert(frontend.includes(`/usr/share/nginx/html/${asset}`));
-  }
+  assert(frontend.includes("/usr/share/nginx/html/50x.html"));
+  assert(existsSync("apps/frontend/public/token.svg"));
+  assert(
+    readFileSync("apps/frontend/index.html", "utf8").includes("/token.svg")
+  );
 
   const indexer = dockerfileContent("Dockerfile-indexer");
   assert(!indexer.includes("/app/apps/indexer/.env"));

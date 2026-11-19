@@ -26,11 +26,11 @@ Each chain occupies one full-width field. Its indicator and `Status` line replac
 Discord supports color on the whole embed border, rather than individual fields.
 A group has an orange border when any chain is behind, green when all are synced, and gray otherwise.
 
-| Indicator | Status |
-| --- | --- |
-| 🟠 | Behind head, according to Envio readiness metrics |
-| 🟢 | Synced to head, according to Envio readiness metrics |
-| ⚪ | Progress or readiness unavailable; never inferred as synced |
+| Indicator | Status                                                      |
+| --------- | ----------------------------------------------------------- |
+| 🟠        | Behind head, according to Envio readiness metrics           |
+| 🟢        | Synced to head, according to Envio readiness metrics        |
+| ⚪        | Progress or readiness unavailable; never inferred as synced |
 
 Missing metrics show `Block: Unavailable` and `Time: Timestamp unavailable`.
 A missing timestamp alone does not change the readiness status.
@@ -327,14 +327,14 @@ Time: <t:1700000000:F>
 
 Each chain uses one field with its block and timestamp. No chain is removed to fit the field limit.
 
-| Notification | Fields with nine chains |
-| --- | ---: |
-| Monitor production summary | 7: deployment ID plus six chains |
-| Monitor testnet summary | 4: deployment ID plus three chains |
-| Publisher production handover | 7: deployment ID plus six chains |
-| Publisher testnet handover | 4: deployment ID plus three chains |
-| Publisher production indexing progress | 10: four metadata fields plus six chains |
-| Publisher testnet indexing progress | 7: four metadata fields plus three chains |
+| Notification                           |                   Fields with nine chains |
+| -------------------------------------- | ----------------------------------------: |
+| Monitor production summary             |          7: deployment ID plus six chains |
+| Monitor testnet summary                |        4: deployment ID plus three chains |
+| Publisher production handover          |          7: deployment ID plus six chains |
+| Publisher testnet handover             |        4: deployment ID plus three chains |
+| Publisher production indexing progress |  10: four metadata fields plus six chains |
+| Publisher testnet indexing progress    | 7: four metadata fields plus three chains |
 
 Both senders reject an embed with more than 25 fields before any HTTP request.
 Exactly 25 fields per embed are allowed. An oversized embed raises `Discord embeds must have at most 25 fields`.

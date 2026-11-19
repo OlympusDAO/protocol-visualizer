@@ -194,27 +194,6 @@ export const uploadSnapshotFiles = async (
   }
 };
 
-const objectBodyToString = async (body: unknown): Promise<string> => {
-  if (typeof body === "string") return body;
-  if (body instanceof Uint8Array) return Buffer.from(body).toString("utf8");
-  if (
-    body &&
-    typeof body === "object" &&
-    "transformToString" in body &&
-    typeof body.transformToString === "function"
-  ) {
-    return body.transformToString();
-  }
-  if (body && typeof body === "object" && Symbol.asyncIterator in body) {
-    const chunks: Buffer[] = [];
-    for await (const chunk of body as AsyncIterable<Uint8Array | string>) {
-      chunks.push(Buffer.from(chunk));
-    }
-    return Buffer.concat(chunks).toString("utf8");
-  }
-  return "";
-};
-
 const isConditionalWriteFailure = (error: unknown) =>
   error instanceof Error &&
   ["PreconditionFailed", "ConditionalRequestConflict", "NotModified"].includes(
@@ -231,7 +210,7 @@ const getJsonObjectWithMetadata = async <T>(
       new GetObjectCommand({ Bucket: bucket, Key: key })
     );
     return {
-      value: JSON.parse(await objectBodyToString(output.Body)) as T,
+      value: JSON.parse((await output.Body?.transformToString()) ?? "") as T,
       etag: typeof output.ETag === "string" ? output.ETag : undefined,
     };
   } catch {

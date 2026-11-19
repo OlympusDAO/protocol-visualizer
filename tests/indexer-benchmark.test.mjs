@@ -831,6 +831,40 @@ test("explicit dependency installation uses a temporary snapshot, frozen lockfil
   const directory = mkdtempSync(join(tmpdir(), "pv-benchmark-install-"));
   const output = join(directory, "result.json");
   const installLog = join(directory, "install.json");
+  // Keep this installation fixture independent of uncommitted manifest updates.
+  // Only dependency metadata in its disposable archives is substituted; the
+  // production driver's oracle/lock consistency checks remain unchanged.
+  const realGit = spawnSync("which", ["git"], {
+    encoding: "utf8",
+  }).stdout.trim();
+  copyFileSync(
+    new URL("../package.json", import.meta.url),
+    join(directory, "package.json")
+  );
+  copyFileSync(
+    new URL("../node_modules/.pnpm/lock.yaml", import.meta.url),
+    join(directory, "pnpm-lock.yaml")
+  );
+  writeFileSync(
+    join(directory, "git"),
+    `#!/usr/bin/env node
+const {spawnSync} = require("node:child_process");
+const fs = require("node:fs");
+const args = process.argv.slice(2);
+if (args[0] === "show" && args[1].endsWith(":pnpm-lock.yaml")) {
+  process.stdout.write(fs.readFileSync(${JSON.stringify(join(directory, "pnpm-lock.yaml"))}));
+} else {
+  const result = spawnSync(${JSON.stringify(realGit)}, args, {stdio:"inherit"});
+  if (result.status !== 0) process.exit(result.status || 1);
+  if (args[0] === "archive") {
+    const archive = args.find(arg => arg.startsWith("--output=")).slice(9);
+    const append = spawnSync("tar", ["-rf", archive, "-C", ${JSON.stringify(directory)}, "package.json", "pnpm-lock.yaml"], {stdio:"inherit"});
+    if (append.status !== 0) process.exit(append.status || 1);
+  }
+}
+`,
+    { mode: 0o755 }
+  );
   const pnpmVersion = JSON.parse(
     readFileSync(new URL("../package.json", import.meta.url), "utf8")
   )

@@ -8,6 +8,7 @@ import { createRailwayContext } from "railway/iac";
 import {
   existingResources,
   postgresPassword,
+  tcpRemovals,
 } from "../.railway/postgres-policy.ts";
 import defineInfrastructure from "../.railway/railway.ts";
 
@@ -15,7 +16,12 @@ async function infrastructure(environment) {
   const definition = await defineInfrastructure(
     createRailwayContext({ environment })
   );
-  return { definition, resources: definition.resources.flat(Infinity) };
+  // Assert the evaluated, serialized SDK/project output, not authoring inputs.
+  // Native CLI compilation is a separate boundary and is not modeled here.
+  return {
+    definition,
+    resources: JSON.parse(JSON.stringify(definition)).resources.flat(Infinity),
+  };
 }
 
 test("whole-project IaC retains storage and wires services without embedding secrets", async () => {
@@ -42,10 +48,21 @@ test("whole-project IaC retains storage and wires services without embedding sec
       "volume.rpc-cache-postgres-volume",
     ]);
     const get = (name) => resources.find((r) => r.name === name);
+    assert.deepEqual(
+      resources
+        .filter(
+          (r) => Object.keys(r.networking?.customDomains ?? {}).length > 0
+        )
+        .map((r) => r.name)
+        .sort(),
+      environment === "production" ? ["frontend", "snapshot-gateway"] : []
+    );
     assert.equal(get("Postgres").networking.privateNetworkEndpoint, "postgres");
     for (const resource of resources) {
       assert.deepEqual(
-        Object.keys(resource.networking?.tcpProxies ?? {}),
+        Object.entries(resource.networking?.tcpProxies ?? {})
+          .filter(([, value]) => value !== null)
+          .map(([port]) => port),
         [],
         `${resource.name} must not expose a public TCP proxy`
       );
@@ -55,15 +72,31 @@ test("whole-project IaC retains storage and wires services without embedding sec
           [],
           `${resource.name} must not expose a public domain`
         );
+      if (["service", "database"].includes(resource.type)) {
+        assert.deepEqual(
+          resource.networking.tcpProxies,
+          tcpRemovals(resource.name)
+        );
+        if (!["frontend", "snapshot-gateway"].includes(resource.name)) {
+          assert.deepEqual(resource.networking.serviceDomains, {});
+          assert.deepEqual(resource.networking.customDomains, {});
+        }
+      }
     }
     assert.equal(
       get("Postgres").image,
-      "ghcr.io/railwayapp-templates/postgres-ssl:16"
+      "ghcr.io/railwayapp-templates/postgres-ssl:18@sha256:4fc833b43d2aaf6ecc9b18615f5533602b723a32d0e2efe2dae8ca0f7217c863"
     );
     assert.equal(
       get("rpc-cache-postgres").image,
-      "ghcr.io/railwayapp-templates/postgres-ssl:18"
+      "ghcr.io/railwayapp-templates/postgres-ssl:18@sha256:4fc833b43d2aaf6ecc9b18615f5533602b723a32d0e2efe2dae8ca0f7217c863"
     );
+    for (const name of ["Postgres", "rpc-cache-postgres"])
+      assert.equal(
+        get(name).defaultMountPath,
+        "/var/lib/postgresql/data",
+        `${name} must preserve the native production mount contract`
+      );
     for (const name of ["Postgres", "rpc-cache-postgres"])
       assert.deepEqual(
         get(name).variables?.POSTGRES_PASSWORD,
@@ -101,8 +134,16 @@ test("whole-project IaC retains storage and wires services without embedding sec
     assert.equal(get("snapshot-publisher").deploy.cronSchedule, "0 * * * *");
     assert.equal(get("snapshot-monitor").deploy.cronSchedule, "5 0 * * *");
     assert.equal(get("rpc-cache").deploy.healthcheckPath, "/healthcheck");
-    assert.equal(get("rpc-cache").networking, undefined);
-    assert.equal(get("rpc-cache-postgres").networking, undefined);
+    assert.deepEqual(get("rpc-cache").networking, {
+      serviceDomains: {},
+      customDomains: {},
+      tcpProxies: { 4000: null, 4001: null },
+    });
+    assert.deepEqual(get("rpc-cache-postgres").networking, {
+      serviceDomains: {},
+      customDomains: {},
+      tcpProxies: { 5432: null },
+    });
     const ids = [
       ...readFileSync("apps/indexer/config.yaml", "utf8").matchAll(
         /^ {2}- id: (\d+)$/gm
@@ -222,7 +263,7 @@ test("Railway workflow applies only reviewed merges and blocks destructive chang
   );
   assert(
     workflow.includes(
-      'railway config apply --environment production --plan "$RUNNER_TEMP/railway-plan/railway-plan.json" --yes'
+      '"config", "apply", "--environment", "production", "--plan"'
     )
   );
   assert(!workflow.includes("railwayapp/config@"));
@@ -231,7 +272,7 @@ test("Railway workflow applies only reviewed merges and blocks destructive chang
   const passwordCheck = ci.indexOf(
     "node scripts/check-cache-database-password.mjs"
   );
-  const apply = ci.indexOf("railway config apply --environment production");
+  const apply = ci.indexOf('spawnSync("railway"');
   assert(passwordCheck >= 0 && apply > passwordCheck);
   assert(workflow.includes("cancel-in-progress: false"));
   assert(workflow.includes("queue: max"));
@@ -261,8 +302,17 @@ test("database planning preserves larger volumes and rejects incomplete lookups"
     data: {
       environment: {
         serviceInstances: {
-          edges: services.map((serviceName) => ({ node: { serviceName } })),
+          edges: services.map((serviceName) => ({
+            node: {
+              serviceName,
+              serviceId: serviceName,
+              domains: { serviceDomains: [], customDomains: [] },
+            },
+          })),
           pageInfo: { hasNextPage },
+        },
+        config: {
+          services: Object.fromEntries(services.map((name) => [name, {}])),
         },
         volumeInstances: {
           edges: volumes.map(([name, sizeMB]) => ({
@@ -287,6 +337,114 @@ test("database planning preserves larger volumes and rejects incomplete lookups"
     assert.deepEqual(
       [...existingResources(ctx).serviceNames],
       ["Postgres", "rpc-cache-postgres"]
+    );
+    for (const marker of [null, { isDeleted: true }]) {
+      const deleted = response(["indexer"]);
+      deleted.data.environment.config.services["removed-id"] = marker;
+      fixture(deleted);
+      assert.deepEqual([...existingResources(ctx).serviceNames], ["indexer"]);
+    }
+    for (const marker of [
+      false,
+      "true",
+      { isDeleted: false },
+      { isDeleted: "true" },
+      {},
+      [],
+    ]) {
+      const active = response(["indexer"]);
+      active.data.environment.config.services["unmatched-id"] = marker;
+      fixture(active);
+      assert.throws(() => existingResources(ctx), /safe existing Railway/);
+    }
+    for (const marker of [null, false, "true", []]) {
+      const incomplete = response(["indexer"]);
+      incomplete.data.environment.config.services.indexer = marker;
+      fixture(incomplete);
+      assert.throws(() => existingResources(ctx), /safe existing Railway/);
+    }
+    const imported = response([
+      "Postgres",
+      "hasura",
+      "indexer",
+      "snapshot-publisher",
+      "snapshot-monitor",
+    ]);
+    for (const name of [
+      "hasura",
+      "indexer",
+      "snapshot-publisher",
+      "snapshot-monitor",
+    ])
+      imported.data.environment.config.services[name] = {
+        networking: { tcpProxies: { 15432: {} } },
+      };
+    fixture(imported);
+    const desired = await defineInfrastructure(
+      createRailwayContext({
+        environment: "production",
+        environmentId: "fixture-environment",
+      })
+    );
+    const serialized = JSON.parse(JSON.stringify(desired)).resources.flat(
+      Infinity
+    );
+    for (const name of [
+      "hasura",
+      "indexer",
+      "snapshot-publisher",
+      "snapshot-monitor",
+    ]) {
+      const networking = serialized.find((r) => r.name === name).networking;
+      assert.deepEqual(networking.serviceDomains, {});
+      assert.deepEqual(networking.customDomains, {});
+      assert.deepEqual(networking.tcpProxies, tcpRemovals(name, ["15432"]));
+      assert.equal(networking.tcpProxies["15432"], null);
+    }
+    assert.deepEqual(
+      serialized.find((r) => r.name === "Postgres").networking.tcpProxies,
+      { 5432: null }
+    );
+    for (const kind of ["serviceDomains", "customDomains"]) {
+      const exposed = response(["hasura"]);
+      exposed.data.environment.serviceInstances.edges[0].node.domains[
+        kind
+      ].push({ domain: "fixture.example" });
+      fixture(exposed);
+      assert.throws(
+        () => existingResources(ctx),
+        /Verify private HTTP domains/
+      );
+    }
+    const incompleteDomain = response(["indexer"]);
+    delete incompleteDomain.data.environment.serviceInstances.edges[0].node
+      .domains;
+    const incompleteConfig = response(["indexer"]);
+    delete incompleteConfig.data.environment.config.services.indexer;
+    const unaccountedConfig = response(["indexer"]);
+    unaccountedConfig.data.environment.config.services["unaccounted-id"] = {};
+    const badPort = response(["indexer"]);
+    badPort.data.environment.config.services.indexer = {
+      networking: { tcpProxies: { invalid: {} } },
+    };
+    for (const incomplete of [
+      incompleteDomain,
+      incompleteConfig,
+      unaccountedConfig,
+      badPort,
+      response(["unexpected-service"]),
+    ]) {
+      fixture(incomplete);
+      assert.throws(
+        () => existingResources(ctx),
+        /Verify private HTTP domains/
+      );
+    }
+    fixture(response([]));
+    assert.equal(
+      existingResources(ctx).serviceNames.size,
+      0,
+      "new previews may have no existing services"
     );
     fixture(
       response(["Postgres", "rpc-cache-postgres"], false, [

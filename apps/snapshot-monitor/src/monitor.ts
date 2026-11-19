@@ -149,20 +149,6 @@ const describeFetchError = (error: unknown): string => {
   return `${error.message}${cause}`;
 };
 
-const objectBodyToString = async (body: unknown): Promise<string> => {
-  if (typeof body === "string") return body;
-  if (body instanceof Uint8Array) return Buffer.from(body).toString("utf8");
-  if (
-    body &&
-    typeof body === "object" &&
-    "transformToString" in body &&
-    typeof body.transformToString === "function"
-  ) {
-    return body.transformToString();
-  }
-  return "";
-};
-
 function createS3Store(): MonitorStore {
   const bucket = requiredEnv("BUCKET");
   const client = new S3Client({
@@ -181,7 +167,7 @@ function createS3Store(): MonitorStore {
         const output = await client.send(
           new GetObjectCommand({ Bucket: bucket, Key: key })
         );
-        return JSON.parse(await objectBodyToString(output.Body));
+        return JSON.parse((await output.Body?.transformToString()) ?? "");
       } catch {
         return undefined;
       }

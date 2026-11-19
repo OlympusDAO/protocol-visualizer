@@ -2,6 +2,10 @@ name: Bootstrap CI environment
 description: Standardized repository setup for CI.
 
 inputs:
+  install-dependencies:
+    description: Install dependencies (validate performs its own frozen installation).
+    required: false
+    default: "true"
   install-foundry:
     description: Install foundry toolchain if required by the project.
     required: false
@@ -10,20 +14,16 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Setup Node.js
-      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+    - name: Install pinned runtime and validation tools
+      uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834 # v5.1.0
       with:
-        node-version-file: .nvmrc
-
-    - name: Install pnpm
-      uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
-      with:
-        version: 11.28.7
+        install_args: node pnpm railway trivy jactionlint
 
     - name: Install Foundry
       if: ${{ inputs.install-foundry == 'true' }}
       uses: foundry-rs/foundry-toolchain@8789b3e21e6c11b2697f5eb56eddae542f746c10 # v1.7.0
 
     - name: Install dependencies
+      if: ${{ inputs.install-dependencies == 'true' }}
       run: pnpm install --frozen-lockfile
       shell: bash

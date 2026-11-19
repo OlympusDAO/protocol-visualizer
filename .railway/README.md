@@ -36,35 +36,9 @@ larger capacities are retained: the requested capacity is the greater of
 requesting a shrink or data migration. The cache volume is
 `rpc-cache-postgres-volume`; the detached legacy `postgres-volume` is not declared.
 
-Use the repository-pinned SDK and Railway CLI 5.71.0 or newer:
+For local plan/apply, project/environment selection, private plan permissions and native JSON-result verification, use the [manual deployment procedure](../docs/railway-self-hosting.md#manual-iac-plan-and-deployment). It is the authoritative operator runbook; native exit zero alone is not deployment acceptance.
 
-```bash
-railway link
-railway status
-pnpm run railway:check
-umask 077
-pnpm run railway:plan
-```
-
-Select the intended project and environment, then verify them with `railway status`.
-The commands use the linked project and environment. Railway selects the PR
-branch from its environment metadata; production always uses `master`. Changing
-Git branches does not change the Railway link. Verify the plan target before apply.
-For production, pass `--environment production` to both commands.
-Metrics, plan, apply, and reset print the selected project and environment names and IDs before proceeding.
-Command-line `--environment` takes precedence over `RAILWAY_ENVIRONMENT`, then the current link.
-Apply rejects a saved plan for a different target. Reset requires an explicit environment.
-
-After reviewing the saved whole-project plan, apply those exact changes:
-
-```bash
-pnpm run railway:apply
-```
-
-This can redeploy services and change consumer RPC URLs. Verify the cache before
-that switch. The plan is private and ignored by Git.
-Use the [manual deployment procedure](../docs/railway-self-hosting.md#manual-iac-plan-and-deployment)
-for login, project selection, required validation, and common plan messages.
+The prepared main PG18 image transition is blocked from automatic apply. Its [reset/reindex release](../docs/postgresql18-rebuild.md) requires separate approval; cache data and production mounts remain unchanged.
 
 The Railway workflow plans production changes on PR updates. The final apply job
 in `ci.yml` depends on build, lint, security, and dependency jobs, then checks

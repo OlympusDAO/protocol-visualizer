@@ -292,6 +292,27 @@ async function request(
   }
 }
 
+for (const method of ["GET", "HEAD"]) {
+  test(`${method} / has no HTML catalogue and returns 404 without storage access`, async () => {
+    const reader = new FakeReader({});
+    const { response, text } = await request("/", { method, reader });
+    assert.equal(response.status, 404);
+    assert.deepEqual(reader.keys, []);
+    assert.equal(response.headers.get("content-type"), "application/json");
+    if (method === "HEAD") assert.equal(text, "");
+    else assert.deepEqual(JSON.parse(text), { error: "not found" });
+  });
+}
+
+test("public OpenAPI remains available without an HTML catalogue", async () => {
+  for (const method of ["GET", "HEAD"]) {
+    const { response, text } = await request("/v1/openapi.json", { method });
+    assert.equal(response.status, 200);
+    if (method === "HEAD") assert.equal(text, "");
+    else assert(JSON.parse(text).paths["/v1/chains/{chainId}/protocol"]);
+  }
+});
+
 test("serves REST protocol snapshots through active manifest artifact keys", async () => {
   const { response, text, reader } = await request("/v1/chains/1/protocol");
   assert.equal(response.status, 200);

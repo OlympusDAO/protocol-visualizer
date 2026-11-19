@@ -69,7 +69,10 @@ class MemoryS3Client implements SnapshotS3Client {
       this.calls.push(`get:${key}`);
       const body = this.objects[key];
       if (body === undefined) throw new Error(`missing ${key}`);
-      return { Body: body, ETag: etagFor(body) };
+      return {
+        Body: { transformToString: async () => body },
+        ETag: etagFor(body),
+      };
     }
     if (command instanceof PutObjectCommand) {
       const key = String(command.input.Key);

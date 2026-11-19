@@ -64,7 +64,7 @@ test("production apply depends on native CI jobs and waits only for external wor
   assert.match(apply, /^ {6}statuses: read$/m);
   assert.match(
     apply,
-    /needs: \[lint-check, build, security-audit, dependency-audit, railway-plan\]/
+    /needs: \[build, security-audit, dependency-audit, railway-plan\]/
   );
   assert.match(apply, /needs.railway-plan.outputs.run-id != ''/);
   assert.match(apply, /group: railway-infrastructure-production/);
@@ -172,6 +172,14 @@ test("CI selects the successful plan for the exact merged PR head", async () => 
   assert.equal(calls[0].head_sha, "reviewed-head");
   assert.equal(calls[0].event, "pull_request");
   assert.equal(calls[0].status, "success");
+  const planWorkflow = readFileSync(
+    ".github/workflows/railway-config.yml",
+    "utf8"
+  );
+  for (const file of ["mise.toml", "mise.lock"]) {
+    assert(planWorkflow.includes(`      - "${file}"`));
+    assert.equal((await findPlan({ files: [file] })).outputs["run-id"], 99);
+  }
   await assert.rejects(findPlan({ runs: [] }), /No successful plan/);
 });
 
@@ -317,6 +325,9 @@ async function verifyPlan({
   environmentId = "production",
   sourceTree = "merged-iac-tree",
   branchHead = "merged-release",
+  kind = "railway.config.plan",
+  version = 1,
+  changeSet = { version: 1, changes: [] },
 } = {}) {
   const match = workflow.match(
     / {6}- name: Verify production plan target\n[\s\S]*? {10}script: \|\n([\s\S]*?)(?=^ {6}- name:)/m
@@ -340,7 +351,13 @@ async function verifyPlan({
           return {
             readFileSync(path) {
               assert.equal(path, "reviewed-plan");
-              return JSON.stringify({ environmentId, sourceTree });
+              return JSON.stringify({
+                environmentId,
+                sourceTree,
+                kind,
+                version,
+                changeSet,
+              });
             },
           };
         assert.equal(name, "child_process");
@@ -373,10 +390,185 @@ test("production apply rejects plans from a different environment or merged IaC 
     await assert.rejects(verifyPlan({ sourceTree }), /merged IaC tree/);
 });
 
+test("automatic apply blocks existing main DB image transitions but permits normal unrelated changes", async () => {
+  const sourceUpdate = {
+    kind: "resource.update",
+    address: "database.Postgres",
+    field: "source",
+    before: {
+      type: "image",
+      image: "ghcr.io/railwayapp-templates/postgres-ssl:16",
+    },
+    after: {
+      type: "image",
+      image: "ghcr.io/railwayapp-templates/postgres-ssl:18@sha256:fixture",
+    },
+    severity: "safe",
+    deployEffect: "deploy",
+  };
+  const check = (changes) => verifyPlan({ changeSet: { version: 1, changes } });
+  await assert.rejects(
+    check([sourceUpdate]),
+    /separately approved manual reset/
+  );
+  await assert.rejects(
+    check([{ ...sourceUpdate, before: null }]),
+    /manual reset/
+  );
+  await assert.rejects(check([{ ...sourceUpdate, after: {} }]), /manual reset/);
+  await check([{ ...sourceUpdate, address: "service.frontend" }]);
+  await check([{ ...sourceUpdate, field: "deploy", before: {}, after: {} }]);
+  await check([{ ...sourceUpdate, before: sourceUpdate.after }]);
+  await check([
+    {
+      kind: "resource.create",
+      address: "database.Postgres",
+      resource: { source: sourceUpdate.after },
+    },
+  ]);
+  for (const changeSet of [
+    null,
+    {},
+    { version: 2, changes: [] },
+    { version: 1, changes: [null] },
+  ])
+    await assert.rejects(verifyPlan({ changeSet }), /saved plan/i);
+  await assert.rejects(verifyPlan({ kind: "unknown" }), /saved plan/i);
+  await assert.rejects(verifyPlan({ version: 2 }), /saved plan/i);
+});
+
 test("production apply rejects an older queued release after master advances", async () => {
   await assert.rejects(verifyPlan({ branchHead: "newer-release" }), /advanced/);
   assert(
     workflow.indexOf("- name: Verify production plan target") <
       workflow.indexOf("- name: Apply reviewed production plan")
   );
+});
+
+async function checkNativeApplyResult(
+  result,
+  { exitCode = 0, raw, error } = {}
+) {
+  const script = workflow.match(
+    / {6}- name: Apply reviewed production plan\n[\s\S]*? {10}script: \|\n([\s\S]*)$/m
+  )?.[1];
+  assert(script, "the existing CI native apply step must check its result");
+  const privateMarker = "fixture-private-output-do-not-log";
+  const logs = [];
+  try {
+    await vm.runInNewContext(
+      `(async () => {${script.replace(/^ {12}/gm, "")}\n})()`,
+      {
+        process: {
+          env: {
+            RAILWAY_API_TOKEN: "fixture-only",
+            RUNNER_TEMP: "/fixture-private",
+          },
+        },
+        core: {
+          info(message) {
+            logs.push(message);
+          },
+        },
+        require(name) {
+          assert.equal(name, "child_process");
+          return {
+            spawnSync(command, args, options) {
+              assert.equal(command, "railway");
+              assert.equal(
+                JSON.stringify(args),
+                JSON.stringify([
+                  "config",
+                  "apply",
+                  "--environment",
+                  "production",
+                  "--plan",
+                  "/fixture-private/railway-plan/railway-plan.json",
+                  "--yes",
+                  "--json",
+                ])
+              );
+              assert.equal(
+                JSON.stringify(options.stdio),
+                '["ignore","pipe","pipe"]'
+              );
+              return {
+                status: exitCode,
+                error,
+                stdout:
+                  raw ?? JSON.stringify({ ...result, outputs: privateMarker }),
+                stderr: privateMarker,
+              };
+            },
+          };
+        },
+      }
+    );
+    assert.equal(logs.length, 1);
+  } catch (failure) {
+    assert(!failure.message.includes(privateMarker));
+    throw failure;
+  } finally {
+    assert(logs.every((message) => !message.includes(privateMarker)));
+  }
+}
+
+test("native CI apply requires applied/noop result and every change, never exit zero or raw output", async () => {
+  for (const status of ["applied", "noop"])
+    await checkNativeApplyResult({
+      status,
+      changes: [{ status: "applied" }, { status: "noop" }],
+    });
+  await checkNativeApplyResult({ status: "noop", changes: [] });
+  for (const status of [
+    "failed",
+    "partially_applied",
+    "applying",
+    "staged",
+    "unknown",
+    null,
+  ]) {
+    await assert.rejects(
+      checkNativeApplyResult({ status, changes: [] }),
+      /did not report applied\/noop/
+    );
+    await assert.rejects(
+      checkNativeApplyResult({ status: "applied", changes: [{ status }] }),
+      /did not report applied\/noop/
+    );
+  }
+  for (const result of [
+    {},
+    { status: "applied" },
+    { status: "applied", changes: {} },
+    { status: "applied", changes: [null] },
+  ])
+    await assert.rejects(
+      checkNativeApplyResult(result),
+      /did not report applied\/noop/
+    );
+  await assert.rejects(
+    checkNativeApplyResult(
+      {},
+      { raw: "not JSON fixture-private-output-do-not-log" }
+    ),
+    /malformed JSON/
+  );
+  await assert.rejects(
+    checkNativeApplyResult({ status: "applied", changes: [] }, { exitCode: 7 }),
+    /Native Railway apply failed/
+  );
+  await assert.rejects(
+    checkNativeApplyResult({}, { error: { code: "ENOENT" } }),
+    /Native Railway apply failed/
+  );
+  const runbook = readFileSync("docs/railway-self-hosting.md", "utf8");
+  for (const text of [
+    "`applied`",
+    "`noop`",
+    "`partially_applied`",
+    "read-only plan",
+    "HTTP/TCP",
+  ])
+    assert(runbook.includes(text));
 });

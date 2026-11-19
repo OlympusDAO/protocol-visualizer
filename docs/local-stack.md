@@ -17,6 +17,11 @@ Use Docker Compose to run the Railway-like topology locally:
 
 ## Ports
 
+Both PostgreSQL services use the shared pinned official `postgres:18.6-alpine3.24` image with fresh `postgres18-data` / `rpc-cache-postgres18-data` volumes at `/var/lib/postgresql` and `PGDATA=/var/lib/postgresql/18/docker`. Local PG data is disposable; old PG17 volumes are not reused or migrated. This is distinct from the Railway SSL image and production native mount contract. No volumes are deleted by the source update. See [PG18.6 reset/reindex boundaries](postgresql18-rebuild.md).
+
+All published ports bind `127.0.0.1`; none defaults to a LAN-facing host binding.
+See [security posture](security-posture.md) for local credentials and production boundaries.
+
 | Service            | Host URL                | Purpose                      |
 | ------------------ | ----------------------- | ---------------------------- |
 | `frontend`         | `http://localhost:3000` | Protocol visualizer UI       |
@@ -91,10 +96,10 @@ MinIO, and the independent persistent RPC cache.
 
 ```bash
 pnpm run stack:config
-pnpm run validate:local
+pnpm validate:all
 ```
 
-`validate:local` builds production images. It does not require the local indexer
+`validate:all` builds production images. It does not require the local indexer
 to complete a full backfill.
 
 `stack:config` and `stack:up` require `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY`,

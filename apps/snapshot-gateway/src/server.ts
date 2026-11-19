@@ -159,27 +159,6 @@ const requiredEnv = (key: string): string => {
   return value;
 };
 
-const objectBodyToString = async (body: unknown): Promise<string> => {
-  if (typeof body === "string") return body;
-  if (body instanceof Uint8Array) return Buffer.from(body).toString("utf8");
-  if (
-    body &&
-    typeof body === "object" &&
-    "transformToString" in body &&
-    typeof body.transformToString === "function"
-  ) {
-    return body.transformToString();
-  }
-  if (body && typeof body === "object" && Symbol.asyncIterator in body) {
-    const chunks: Buffer[] = [];
-    for await (const chunk of body as AsyncIterable<Uint8Array | string>) {
-      chunks.push(Buffer.from(chunk));
-    }
-    return Buffer.concat(chunks).toString("utf8");
-  }
-  return "";
-};
-
 export function createS3Reader(): ObjectReader {
   const bucket = requiredEnv("BUCKET");
   const client = new S3Client({
@@ -199,7 +178,7 @@ export function createS3Reader(): ObjectReader {
         { abortSignal: signal }
       );
       return {
-        body: await objectBodyToString(output.Body),
+        body: (await output.Body?.transformToString()) ?? "",
         contentLength:
           typeof output.ContentLength === "number"
             ? output.ContentLength
@@ -479,24 +458,6 @@ const activeArtifactKeyForChain = (
   return deploymentArtifactKey(manifest.indexerDeploymentId, chainId);
 };
 
-const publicIndexHtml = `<!doctype html>
-<html lang="en">
-  <head><meta charset="utf-8"><title>Protocol Visualizer Snapshot API</title></head>
-  <body>
-    <main>
-      <h1>Protocol Visualizer Snapshot API</h1>
-      <ul>
-        <li><a href="/v1/openapi.json">OpenAPI</a></li>
-        <li><a href="/v1/bounds">Bounds</a></li>
-        <li><a href="/v1/manifest">Manifest</a></li>
-        <li><a href="/v1/chains">Chains</a></li>
-        <li><a href="/v1/abis">ABIs</a></li>
-      </ul>
-    </main>
-  </body>
-</html>
-`;
-
 function handleAbiRequest(
   request: IncomingMessage,
   response: ServerResponse,
@@ -621,13 +582,7 @@ export function createSnapshotGateway(config: GatewayConfig) {
     const startedAt = performance.now();
     try {
       if (url.pathname === "/") {
-        send(
-          response,
-          200,
-          request.method === "HEAD" ? "" : publicIndexHtml,
-          "text/html; charset=utf-8",
-          "public, s-maxage=300, stale-while-revalidate=3600"
-        );
+        sendJson(request, response, 404, { error: "not found" });
         return;
       }
 

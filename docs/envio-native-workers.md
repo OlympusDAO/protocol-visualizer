@@ -9,11 +9,11 @@ see [indexer operations](indexer-operations.md).
 
 Envio derives processing groups from its PostgreSQL connection budget:
 
-| `ENVIO_PG_MAX_CONNECTIONS` | Processing configuration |
-| --- | --- |
-| 2 (default) | One process |
-| 4 | Two workers plus supervisor |
-| 8 | Four workers plus supervisor |
+| `ENVIO_PG_MAX_CONNECTIONS` | Processing configuration     |
+| -------------------------- | ---------------------------- |
+| 2 (default)                | One process                  |
+| 4                          | Two workers plus supervisor  |
+| 8                          | Four workers plus supervisor |
 
 Allow additional database capacity for the supervisor and other consumers.
 The default remains one process. Extra workers increase memory and startup cost;

@@ -8,8 +8,6 @@ does not expose Hasura, bucket keys, or deployment ids publicly.
 ## Public Routes
 
 ```text
-GET  /
-HEAD /
 GET  /healthz
 HEAD /healthz
 GET  /ready
@@ -29,6 +27,8 @@ HEAD /v1/chains/{chainId}/protocol
 `OPTIONS` is supported for allowlisted routes. Request bodies, unsupported
 methods, unknown paths, unsupported query parameters, and unsupported chain ids
 are rejected.
+
+GET/HEAD `/` return 404; the optional HTML catalogue formerly served there was removed. No standalone `/docs` route is implemented. The JSON specification remains at `/v1/openapi.json`, and the frontend and actual data/ABI endpoints remain available.
 
 ## Health and readiness
 

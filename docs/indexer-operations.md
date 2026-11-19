@@ -164,6 +164,8 @@ namespace. Leave the RPC cache service, database, and volume intact.
 
 ## Plan a production rebuild
 
+For the prepared main PG16→PG18.6 reset/full reindex, use the dedicated [PostgreSQL 18.6 runbook](postgresql18-rebuild.md). It traces derived versus non-rebuildable data, preserves the separate cache and production native mount, and requires separately reviewed live destruction. The existing schema reset command does not migrate PostgreSQL cluster formats.
+
 Production resets require explicit approval for the selected database and release.
 This procedure is preparation, not authorization to reset production.
 The native per-chain schema requires a full rebuild of an existing shared schema.

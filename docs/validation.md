@@ -1,0 +1,33 @@
+# Validation
+
+Use the repository pins in `mise.toml`/`mise.lock`: Node 24.22.3, pnpm 11.28.13, native Railway CLI 5.75.0, Trivy 0.76.2 and jactionlint 2.4.0. Install with `mise install node pnpm railway trivy jactionlint`. CI uses the same mise bootstrap. The Railway SDK is separately pinned at 3.16.0. TypeScript 7.0.2 compiles the workspace; `@typescript/typescript6` 6.0.2 remains necessary for contract-metadata AST APIs. Envio 3.14.1 and its native storage adapters remain unchanged.
+
+| Command                     | Coverage                                                                                                                                                                                                                                                                     |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm validate`             | Frozen install first, runtime alignment, offline Envio codegen, workflow lint, read-only lint/format, shared build/OpenAPI drift, workspace builds/ordinary tests, snapshots, indexer typecheck, monitor tests, ABI check and moderate audit. No Docker/provider connection. |
+| `pnpm validate:images`      | All seven owned builds and immutable image scans, every Dockerfile, then offline deployment inventory and required external scans.                                                                                                                                           |
+| `pnpm test:integration`     | Actual PG18 state/rollback, eRPC persistence/restart, native reset/cache isolation and ingestion docs404/health checks. Docker required; prerequisites cannot skip.                                                                                                          |
+| `pnpm validate:all`         | Source, then `validate:images --integration`, which explicitly hands the current IID directory to the unchanged integration entry point. Stops at first failure.                                                                                                             |
+| `pnpm scan:images:provider` | Optional native provider vulnerability report only; findings advisory, execution/registry errors fail. No builds/local fixtures/Docker daemon.                                                                                                                               |
+
+The source PostgreSQL case is deliberately deferred to integration. Codegen uses loopback interpolation fixtures, not live RPCs. Missing prerequisites fail; `RPC_CACHE_TEST_SKIP_RESET=1` is rejected. An independently requested integration run may follow a failed security gate, but the fail-fast aggregate does not do this automatically.
+
+## Image policy
+
+The fixed owned list is rpc-cache, indexer, frontend, hasura, snapshot-gateway, snapshot-publisher and snapshot-monitor. Each existing build alias writes a unique `--iidfile` in its recorder directory; scanning uses that ID without resolving its shared tag again. Invalid/missing IIDs fail. Docker or Podman is supported. Trivy gates owned MEDIUM/HIGH/CRITICAL vulnerability and secret findings, using native censored output. Indexer/Hasura explicitly set `--ignore-unfixed=true`; all other owned/external scans explicitly set false. Dockerfiles use native misconfiguration scanning. No new CVE exceptions are added.
+
+The inventory evaluates the existing SDK definition offline for a context with **no environmentId**; `existingResources` returns before any provider lookup. It examines normalized resource type/engine/source, so SDK default images are included without a custom source interpreter. Repository services must match the fixed builds. Unsupported sources fail, and owned use wins a reference shared with provider/local uses.
+
+Configured Railway PostgreSQL template resources retain their exact pinned reference and resource names as `advisory-provider/not-run` by default. Upstream maintains image contents; this repository selects the pin; findings are reviewed separately, not owned-app failures. Optional provider reporting uses native remote Trivy on linux/amd64, vulnerability-only, MEDIUM/HIGH/CRITICAL including unfixed findings and advisory vulnerability exit 0. Scanner/registry execution errors still fail.
+
+Compose PG18.6, MinIO and MC are each a **local development/test fixture, not deployed by Railway IaC, excluded by explicit user policy**. Inventory output retains refs/origins/reasons. Neither provider advisories nor local exclusions mean scanned/clean. Native output is the report; no raw ImageConfig/environment/history JSON is retained. The scanner cleans only disposable exports, never shared caches.
+
+## Integration and evidence
+
+Integration prepares only its exact official PG18.6 fixture if absent. It never substitutes missing owned images with registry pulls. Combined runs pass `--images <current-IID-directory>` explicitly; a missing current IID cannot fall back to tags. Standalone prebuilt mode inspects each indexer/eRPC reference once and pins those IDs for all owned fixture containers with `--pull=never`. No historical receipt discovery is used.
+
+Fixtures own uniquely named containers/volumes, including disposable anonymous mounts. Real tests preserve native SQL/effect behavior and every original eRPC cache key/value across reset, allowing legitimate appended rows. Ingestion `/docs`, `/openapi.json`, `/llms.txt` must return 404; health must return 200 and readiness JSON remain available. Gateway OpenAPI belongs to the separate public service. No project volume or production database is reset by validation.
+
+Canonical scripts write `output.log` and a small `result.json` under ignored `.validation/<timestamp>-<group>-<pid>/`, recording command, exit, timing and revision/dirty filenames. They preserve child failure status. Read native test/scanner output and IID files directly; no counter/schema/event protocol reconstructs them. Do not add command wrappers/redirection to collect logs. Earlier detailed receipts and scans remain historical, not fresh validation of later edits.
+
+The approved picomatch advisory remains under `audit.ignore`; zero audit exit is not zero advisories. No new advisory waiver is added. Source/image tests do not prove live deployment privacy or successful apply. See [security posture](security-posture.md) and the [native operator runbook](railway-self-hosting.md#manual-iac-plan-and-deployment).

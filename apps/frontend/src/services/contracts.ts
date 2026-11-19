@@ -186,7 +186,3 @@ export function getAdditionalGraphContracts(
   }
   return [...unique.values()];
 }
-
-export async function getContracts(chainId: number): Promise<Contract[]> {
-  return (await getProtocolVisualizerData(chainId)).contracts;
-}

@@ -4,7 +4,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**"]
     },
     "lint": {
       "dependsOn": ["^lint"],
@@ -17,6 +17,20 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "indexer#build": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "cache": false
+    },
+    "frontend#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "cache": false
+    },
+    "@protocol-visualizer/contract-abis#build": {
+      "dependsOn": ["^build"],
+      "outputs": []
     }
   }
 }

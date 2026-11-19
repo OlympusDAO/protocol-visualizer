@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import semver from "semver";
@@ -50,15 +50,6 @@ function readText(relativePath) {
   return readFileSync(path.join(ROOT, relativePath), "utf8");
 }
 
-function extractMajor(value, label) {
-  const cleaned = value.trim().replace(/^v/, "");
-  const match = cleaned.match(/(\d+)/);
-  if (!match) {
-    throw new Error(`Could not extract major version from ${label}: ${value}`);
-  }
-  return Number(match[1]);
-}
-
 function fail(message) {
   console.error(`Runtime version check failed: ${message}`);
   process.exit(1);
@@ -90,38 +81,18 @@ for (const packageManagerName of expectedPackageManagerGuards) {
 
 const nvmrc = readText(".nvmrc").trim();
 const nodeVersionFile = readText(".node-version").trim();
-
-const nodeEngineMajor = extractMajor(nodeEngine, "package.json engines.node");
-const nvmrcMajor = extractMajor(nvmrc, ".nvmrc");
-const nodeVersionFileMajor = extractMajor(nodeVersionFile, ".node-version");
-
-if (nodeEngineMajor !== nvmrcMajor) {
+const expectedNode = semver.minVersion(nodeEngine)?.version;
+if (
+  expectedNode !== nvmrc ||
+  nvmrc !== nodeVersionFile ||
+  process.versions.node !== nvmrc
+)
   fail(
-    `package.json engines.node (${nodeEngine}) and .nvmrc (${nvmrc}) do not match.`
+    `Node must exactly match ${nvmrc} across runtime, engines minimum, .nvmrc and .node-version.`
   );
-}
-
-if (nodeEngineMajor !== nodeVersionFileMajor) {
-  fail(
-    `package.json engines.node (${nodeEngine}) and .node-version (${nodeVersionFile}) do not match.`
-  );
-}
-
-const runtimeNodeMajor = extractMajor(
-  process.versions.node,
-  "current runtime node version"
-);
-
-if (runtimeNodeMajor !== nodeEngineMajor) {
-  fail(
-    `current Node.js version (${process.versions.node}) does not match engines.node (${nodeEngine}).`
-  );
-}
 
 const packageManagerVersion = packageManager.slice("pnpm@".length).trim();
-const pnpmEngineVersion = pnpmEngine.startsWith(">=")
-  ? pnpmEngine.slice(2).trim()
-  : pnpmEngine.trim();
+const pnpmEngineVersion = semver.minVersion(pnpmEngine)?.version;
 if (!semver.valid(pnpmEngineVersion) || !semver.valid(packageManagerVersion)) {
   fail(
     `packageManager (${packageManagerVersion}) and engines.pnpm minimum (${pnpmEngineVersion}) must be valid semver versions.`
@@ -150,22 +121,7 @@ for (const workflowPath of WORKFLOW_FILES) {
   const usesBootstrap = /uses:\s*\.\/\.github\/actions\/bootstrap/.test(
     content
   );
-  if (usesBootstrap) {
-    const bootstrapContent = readText(BOOTSTRAP_ACTION);
-    if (!/node-version-file:\s*\.nvmrc/.test(bootstrapContent)) {
-      fail(
-        `${BOOTSTRAP_ACTION} must configure actions/setup-node with node-version-file: .nvmrc.`
-      );
-    }
-
-    if (/\bnode-version\s*:/.test(bootstrapContent)) {
-      fail(
-        `${BOOTSTRAP_ACTION} should not hardcode node-version; use node-version-file: .nvmrc.`
-      );
-    }
-
-    continue;
-  }
+  if (usesBootstrap) continue; // Bootstrap uses the mise pins checked below.
 
   if (!/node-version-file:\s*\.nvmrc/.test(content)) {
     fail(
@@ -191,12 +147,11 @@ for (const dockerfilePath of DOCKERFILES) {
     continue;
   }
 
-  const dockerNodeMajor = extractMajor(
-    nodeImageMatch[1],
-    `${dockerfilePath} Node.js image tag`
-  );
+  const dockerNodeVersion = nodeImageMatch[1].match(
+    /^([0-9]+\.[0-9]+\.[0-9]+)/
+  )?.[1];
 
-  if (dockerNodeMajor !== nodeEngineMajor) {
+  if (dockerNodeVersion !== nvmrc) {
     fail(
       `${dockerfilePath} uses Node.js ${nodeImageMatch[1]} but engines.node is ${nodeEngine}.`
     );
@@ -218,5 +173,66 @@ for (const dockerfilePath of DOCKERFILES) {
     );
   }
 }
+
+const mise = readText("mise.toml");
+for (const [tool, expected, args] of [
+  ["node", nvmrc, ["--version"]],
+  ["pnpm", packageManagerVersion, ["--version"]],
+  ["railway", "5.75.0", ["--version"]],
+  ["trivy", "0.76.2", ["--version"]],
+  ["jactionlint", "2.4.0", ["--version"]],
+]) {
+  if (!mise.includes(`${tool} = "${expected}"`))
+    fail(`mise.toml must pin ${tool} ${expected}.`);
+  const actual = execSync(`${tool} ${args.join(" ")}`, {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "inherit"],
+  }).match(/(\d+\.\d+\.\d+)/)?.[1];
+  if (actual !== expected)
+    fail(`${tool} runtime ${actual} must match ${expected}.`);
+}
+const bootstrap = readText(BOOTSTRAP_ACTION);
+if (!bootstrap.includes("install_args: node pnpm railway trivy jactionlint"))
+  fail("CI bootstrap must install every pinned runtime/validation tool.");
+for (const workflow of [
+  ".github/workflows/ci.yml",
+  ".github/workflows/railway-config.yml",
+])
+  if (
+    !readText(workflow).includes("uses: ./.github/actions/bootstrap") ||
+    /npm install --global @railway/.test(readText(workflow))
+  )
+    fail(
+      `${workflow} must use bootstrap and the native repository-pinned Railway CLI.`
+    );
+const declarations = [
+  packageJson,
+  ...["apps", "packages"].flatMap((directory) =>
+    readdirSync(path.join(ROOT, directory), { withFileTypes: true })
+      .filter(
+        (entry) =>
+          entry.isDirectory() &&
+          existsSync(path.join(ROOT, directory, entry.name, "package.json"))
+      )
+      .map((entry) =>
+        JSON.parse(readText(`${directory}/${entry.name}/package.json`))
+      )
+  ),
+];
+for (const manifest of declarations)
+  for (const section of ["dependencies", "devDependencies"])
+    for (const [name, version] of Object.entries(manifest[section] ?? {})) {
+      const expected = {
+        envio: "3.14.1",
+        viem: "2.57.14",
+        "@aws-sdk/client-s3": "3.1152.0",
+        "@biomejs/biome": "2.6.3",
+        "@types/node": "24.19.2",
+        typescript: "7.0.2",
+        "@typescript/typescript6": "6.0.2",
+      }[name];
+      if (expected && version !== expected)
+        fail(`${manifest.name}: ${name} must equal ${expected}.`);
+    }
 
 console.log("Runtime version check passed.");

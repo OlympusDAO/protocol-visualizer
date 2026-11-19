@@ -2,6 +2,7 @@ name: protocol-visualizer
 
 x-hasura-admin-secret: &hasura-admin-secret ${HASURA_GRAPHQL_ADMIN_SECRET:-local-hasura-admin-secret}
 x-postgres-env: &postgres-env
+  PGDATA: /var/lib/postgresql/18/docker
   POSTGRES_DB: ${POSTGRES_DB:-protocol_visualizer}
   POSTGRES_USER: ${POSTGRES_USER:-postgres}
   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -26,13 +27,14 @@ x-snapshot-rpc-env: &snapshot-rpc-env
 
 services:
   rpc-cache-postgres:
-    image: postgres:17-alpine@sha256:979c4379dd698aba0b890599a6104e082035f98ef31d9b9291ec22f2b13059ca
+    image: postgres:18.6-alpine3.24@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b
     environment:
       POSTGRES_DB: rpc_cache
+      PGDATA: /var/lib/postgresql/18/docker
       POSTGRES_USER: rpc_cache
       POSTGRES_PASSWORD: ${RPC_CACHE_POSTGRES_PASSWORD:-local-rpc-cache}
     volumes:
-      - rpc-cache-postgres-data:/var/lib/postgresql/data
+      - rpc-cache-postgres18-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U rpc_cache -d rpc_cache"]
       interval: 5s
@@ -62,18 +64,14 @@ services:
         condition: service_healthy
 
   postgres:
-    image: postgres:17-alpine@sha256:979c4379dd698aba0b890599a6104e082035f98ef31d9b9291ec22f2b13059ca
+    image: postgres:18.6-alpine3.24@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b
     environment: *postgres-env
     ports:
-      - "${POSTGRES_HOST_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres18-data:/var/lib/postgresql
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}",
-        ]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -89,7 +87,7 @@ services:
       HASURA_GRAPHQL_DEV_MODE: ${HASURA_GRAPHQL_DEV_MODE:-true}
       PORT: "8080"
     ports:
-      - "${HASURA_HOST_PORT:-8080}:8080"
+      - "127.0.0.1:${HASURA_HOST_PORT:-8080}:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -119,7 +117,7 @@ services:
       ENVIO_INDEXER_INTERNAL_PORT: "9899"
       PORT: "9898"
     ports:
-      - "${INDEXER_HOST_PORT:-9898}:9898"
+      - "127.0.0.1:${INDEXER_HOST_PORT:-9898}:9898"
     depends_on:
       rpc-cache:
         condition: service_started
@@ -135,8 +133,8 @@ services:
       MINIO_ROOT_USER: ${ACCESS_KEY_ID:-minioadmin}
       MINIO_ROOT_PASSWORD: ${SECRET_ACCESS_KEY:-minioadmin}
     ports:
-      - "${MINIO_API_HOST_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_HOST_PORT:-9001}:9001"
+      - "127.0.0.1:${MINIO_API_HOST_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_HOST_PORT:-9001}:9001"
     volumes:
       - minio-data:/data
 
@@ -165,7 +163,7 @@ services:
       dockerfile: Dockerfile-snapshot-gateway
     environment: *snapshot-s3-env
     ports:
-      - "${SNAPSHOT_GATEWAY_HOST_PORT:-8082}:8080"
+      - "127.0.0.1:${SNAPSHOT_GATEWAY_HOST_PORT:-8082}:8080"
     depends_on:
       minio-create-bucket:
         condition: service_completed_successfully
@@ -197,7 +195,7 @@ services:
       args:
         VITE_PROTOCOL_SNAPSHOT_BASE_URL: ${VITE_PROTOCOL_SNAPSHOT_BASE_URL:-http://localhost:8082}
     ports:
-      - "${FRONTEND_HOST_PORT:-3000}:8080"
+      - "127.0.0.1:${FRONTEND_HOST_PORT:-3000}:8080"
     depends_on:
       snapshot-gateway:
         condition: service_started
@@ -249,6 +247,6 @@ services:
     restart: "no"
 
 volumes:
-  rpc-cache-postgres-data:
-  postgres-data:
+  rpc-cache-postgres18-data:
+  postgres18-data:
   minio-data:

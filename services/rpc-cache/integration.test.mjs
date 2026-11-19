@@ -86,8 +86,15 @@ const keyFor = (value) =>
       : v
   );
 const pgImage =
-  "postgres:17-alpine@sha256:979c4379dd698aba0b890599a6104e082035f98ef31d9b9291ec22f2b13059ca";
-const image = "protocol-visualizer/rpc-cache:local";
+  "postgres:18.6-alpine3.24@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b";
+const image =
+  process.env.PV_RPC_CACHE_TEST_IMAGE_ID ??
+  "protocol-visualizer/rpc-cache:local";
+const indexerImage =
+  process.env.PV_INDEXER_TEST_IMAGE_ID ?? "protocol-visualizer/indexer:local";
+for (const key of ["PV_RPC_CACHE_TEST_IMAGE_ID", "PV_INDEXER_TEST_IMAGE_ID"])
+  if (process.env[key] !== undefined)
+    assert.match(process.env[key], /^sha256:[a-f0-9]{64}$/);
 const docker = (...args) =>
   execFileSync("docker", args, {
     encoding: "utf8",
@@ -121,10 +128,11 @@ test("indexer image supports a non-root administrative shell", () => {
   try {
     docker(
       "run",
+      "--pull=never",
       "-d",
       "--name",
       name,
-      "protocol-visualizer/indexer:local",
+      indexerImage,
       "-e",
       "setInterval(() => {}, 1000)"
     );
@@ -143,13 +151,14 @@ test("indexer image supports a non-root administrative shell", () => {
     );
     assert.equal(result.uid, 65532);
   } finally {
-    docker("rm", "-f", name);
+    docker("rm", "-f", "-v", name);
   }
 });
 
 test("indexer image loads every handler and its runtime imports offline", () => {
   const result = docker(
     "run",
+    "--pull=never",
     "--rm",
     "--network=none",
     "-e",
@@ -164,7 +173,7 @@ test("indexer image loads every handler and its runtime imports offline", () => 
       "-e",
       `ENVIO_RPC_URL_${chain}=http://127.0.0.1:1`,
     ]),
-    "protocol-visualizer/indexer:local",
+    indexerImage,
     "--import",
     "./scripts/typescript-loader.mjs",
     "--input-type=module",
@@ -358,15 +367,18 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
     for (const name of skipReset ? [pg] : [pg, envioPg]) {
       docker(
         "run",
+        "--pull=never",
         "-d",
         "--name",
         name,
         "--network",
         prefix,
         "--tmpfs",
-        "/var/lib/postgresql/data",
+        "/var/lib/postgresql",
         "-e",
         "POSTGRES_PASSWORD=fixture",
+        "-e",
+        "PGDATA=/var/lib/postgresql/18/docker",
         pgImage
       );
       created.push(name);
@@ -388,6 +400,7 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
       );
     docker(
       "run",
+      "--pull=never",
       "-d",
       "--name",
       erpc,
@@ -723,6 +736,7 @@ export default config;
     const multi = `${prefix}-multi`;
     docker(
       "run",
+      "--pull=never",
       "-d",
       "--name",
       multi,
@@ -785,6 +799,7 @@ export default config;
     const budget = 20;
     docker(
       "run",
+      "--pull=never",
       "-d",
       "--name",
       limited,
@@ -882,21 +897,32 @@ export default config;
     docker("start", erpc);
     base = `http://127.0.0.1:${docker("port", erpc, "4000/tcp").split(":").at(-1)}`;
     await eventually(health, "original eRPC did not resume");
-    const resetBaseline = docker(
-      "exec",
-      pg,
-      "psql",
-      "-U",
-      "postgres",
-      "-Atc",
-      "SELECT count(*) FROM rpc_cache"
-    );
+    const cacheContents = () =>
+      new Map(
+        JSON.parse(
+          docker(
+            "exec",
+            pg,
+            "psql",
+            "-U",
+            "postgres",
+            "-Atc",
+            "SELECT COALESCE(json_agg(json_build_array(partition_key, range_key, value)), '[]'::json) FROM rpc_cache"
+          )
+        ).map(([partition, range, value]) => [
+          JSON.stringify([partition, range]),
+          value,
+        ])
+      );
+    const resetBaseline = cacheContents();
+    assert(resetBaseline.size > 0);
     console.log(
-      `Proxy resume verified; published port changed: ${base !== originalBase}; cache rows after probes: ${resetBaseline}.`
+      `Proxy resume verified; published port changed: ${base !== originalBase}; cache rows after probes: ${resetBaseline.size}.`
     );
     if (!skipReset) {
       // The reset command must run in the actual distroless deployed image, with
-      // its real config and a separate disposable Envio DB. No indexer is running.
+      // its real config and a separate disposable Envio DB. The operator reset
+      // later resumes ingestion, which can append legitimate cache entries.
       const indexerEnv = [
         "-e",
         `DATABASE_URL=postgresql://postgres:fixture@${envioPg}:5432/postgres`,
@@ -917,13 +943,14 @@ export default config;
           "docker",
           [
             "run",
+            "--pull=never",
             "--rm",
             "--network",
             prefix,
             "--add-host",
             "host.docker.internal:host-gateway",
             ...indexerEnv,
-            "protocol-visualizer/indexer:local",
+            indexerImage,
             "scripts/start-envio.mjs",
             "local",
             "db-migrate",
@@ -969,6 +996,7 @@ export default config;
             "docker",
             [
               "run",
+              "--pull=never",
               "--rm",
               "--network",
               prefix,
@@ -991,7 +1019,7 @@ export default config;
               "ENVIO_THROTTLE_CHAIN_METADATA_INTERVAL_MILLIS=500",
               "-e",
               "ENVIO_THROTTLE_PRUNE_STALE_DATA_INTERVAL_MILLIS=30000",
-              "protocol-visualizer/indexer:local",
+              indexerImage,
               "scripts/check-envio-storage.mjs",
               "start",
             ],
@@ -1026,6 +1054,7 @@ export default config;
       const beforeStartup = databaseHash();
       docker(
         "run",
+        "--pull=never",
         "-d",
         "--name",
         waitingIndexer,
@@ -1038,7 +1067,7 @@ export default config;
         ...indexerEnv,
         "-e",
         "PORT=9898",
-        "protocol-visualizer/indexer:local"
+        indexerImage
       );
       created.push(waitingIndexer);
       const waitingPort = docker("port", waitingIndexer, "9898/tcp")
@@ -1079,6 +1108,25 @@ export default config;
         operatorReset.stdout,
         /Envio migration completed. Envio restarted inside the existing container/
       );
+      // Exercise the real wrapper/proxied Envio HTTP server in the built image.
+      const indexerBase = `http://127.0.0.1:${waitingPort}`;
+      await eventually(
+        async () => (await fetch(`${indexerBase}/docs`)).status === 404,
+        "Normal indexer HTTP server did not become available after reset"
+      );
+      for (const route of ["/docs", "/openapi.json", "/llms.txt"])
+        assert.equal(
+          (await fetch(`${indexerBase}${route}`)).status,
+          404,
+          route
+        );
+      assert.equal((await fetch(`${indexerBase}/healthz`)).status, 200);
+      const readyResponse = await fetch(`${indexerBase}/ready`);
+      assert([200, 503].includes(readyResponse.status));
+      assert.equal(typeof (await readyResponse.json()).ready, "boolean");
+      console.log(
+        "Actual ingestion image returns 404 for docs/openapi/llms while health/readiness remain available."
+      );
       docker("stop", waitingIndexer);
       sql("GRANT SELECT ON ALL TABLES IN SCHEMA public TO reset_reader");
       await checkStorage(0);
@@ -1116,18 +1164,20 @@ export default config;
         "t",
         "Envio setup did not reset its own schema"
       );
-      assert.equal(
-        docker(
-          "exec",
-          pg,
-          "psql",
-          "-U",
-          "postgres",
-          "-Atc",
-          "SELECT count(*) FROM rpc_cache"
-        ),
-        resetBaseline,
-        "Envio reset touched cache storage"
+      const afterReset = cacheContents();
+      for (const [key, value] of resetBaseline) {
+        assert(
+          afterReset.has(key),
+          "Envio reset removed an original cache key"
+        );
+        assert.deepEqual(
+          afterReset.get(key),
+          value,
+          "Envio reset changed an original cached value"
+        );
+      }
+      console.log(
+        `Envio reset preserved all ${resetBaseline.size} original cache keys and values; ${afterReset.size} rows remain after resumed ingestion.`
       );
       assert.equal((await rpc(1, "eth_call", call)).cached, "HIT");
     } else
@@ -1152,7 +1202,7 @@ export default config;
       );
     throw error;
   } finally {
-    for (const name of created.reverse()) docker("rm", "-f", name);
+    for (const name of created.reverse()) docker("rm", "-f", "-v", name);
     try {
       docker("network", "rm", prefix);
     } catch {}

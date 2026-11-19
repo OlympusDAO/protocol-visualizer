@@ -22,7 +22,7 @@ surface effect metrics for those reads.
 ## Prerequisites
 
 - Node.js 24.22.3 or newer (24.x)
-- pnpm 11.28.7
+- pnpm 11.28.13
 - Docker Desktop, for the local Envio Postgres/Hasura stack
 - RPC URLs for the enabled chains
 - `ENVIO_API_TOKEN` is strongly recommended and required by the local Docker
@@ -142,11 +142,11 @@ Etherscan requests require `ETHERSCAN_API_KEY`.
 1. Verify the chain, deployed address, contract name, and creation block against deployment receipts and verified source.
 2. Add the contract to the appropriate inventory:
 
-   | Contract | File | Fields |
-   | --- | --- | --- |
-   | Kernel, module, or policy | `apps/indexer/src/ContractNames.ts` | Chain, address, `name`, `type`, verified `startBlock`, and available `version` |
-   | Periphery or external contract | `packages/protocol-config/other-contracts.json` | `chainId`, lowercase `address`, `name`, and verified `startBlock` for tracked state |
-   | Name for a referenced address only | `packages/protocol-config/other-contracts.json` | `chainId`, lowercase `address`, `name`, and `labelOnly: true` |
+   | Contract                           | File                                            | Fields                                                                              |
+   | ---------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------- |
+   | Kernel, module, or policy          | `apps/indexer/src/ContractNames.ts`             | Chain, address, `name`, `type`, verified `startBlock`, and available `version`      |
+   | Periphery or external contract     | `packages/protocol-config/other-contracts.json` | `chainId`, lowercase `address`, `name`, and verified `startBlock` for tracked state |
+   | Name for a referenced address only | `packages/protocol-config/other-contracts.json` | `chainId`, lowercase `address`, `name`, and `labelOnly: true`                       |
 
    A label-only entry does not create a standalone snapshot contract.
    A reference can still introduce that address into the graph.
@@ -399,7 +399,7 @@ pnpm run container:build:indexer
 Full repository validation is defined at the repository root:
 
 ```bash
-pnpm run validate:local
+pnpm validate:all
 ```
 
 ## Benchmarking Startup

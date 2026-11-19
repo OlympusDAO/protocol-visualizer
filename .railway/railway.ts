@@ -10,7 +10,12 @@ import {
   service,
   volume,
 } from "railway/iac";
-import { existingResources, postgresPassword } from "./postgres-policy.ts";
+import {
+  existingResources,
+  postgresPassword,
+  publicServices,
+  tcpRemovals,
+} from "./postgres-policy.ts";
 
 // Secret values remain in Railway; IaC owns connections, not provider credentials.
 // Long-running services inherit Railway's ON_FAILURE default. CLI 5.71 treats
@@ -33,9 +38,10 @@ export default defineRailway((ctx) => {
       allowOnlineResize: true,
       alerts: { usage: { "80": {}, "95": {}, "100": {} } },
     });
-  // Retain imported database identities and image majors.
+  // Prepare the approved main-DB rebuild on PG18.6; live reset remains separate.
   const envioDatabase = database("Postgres", "postgres", {
-    image: "ghcr.io/railwayapp-templates/postgres-ssl:16",
+    image:
+      "ghcr.io/railwayapp-templates/postgres-ssl:18@sha256:4fc833b43d2aaf6ecc9b18615f5533602b723a32d0e2efe2dae8ca0f7217c863",
     output: "DATABASE_URL",
     defaultMountPath: "/var/lib/postgresql/data",
     region: "us-west2",
@@ -43,14 +49,23 @@ export default defineRailway((ctx) => {
   // Retain the Envio database alias without exposing a public TCP proxy.
   envioDatabase.networking = {
     privateNetworkEndpoint: "postgres",
+    serviceDomains: {},
+    customDomains: {},
+    tcpProxies: {},
   };
   const envioData = databaseVolume("destruction-volume");
   const cacheDatabase = database("rpc-cache-postgres", "postgres", {
-    image: "ghcr.io/railwayapp-templates/postgres-ssl:18",
+    image:
+      "ghcr.io/railwayapp-templates/postgres-ssl:18@sha256:4fc833b43d2aaf6ecc9b18615f5533602b723a32d0e2efe2dae8ca0f7217c863",
     output: "DATABASE_URL",
     defaultMountPath: "/var/lib/postgresql/data",
     region: "us-west2",
   });
+  cacheDatabase.networking = {
+    serviceDomains: {},
+    customDomains: {},
+    tcpProxies: {},
+  };
   for (const db of [envioDatabase, cacheDatabase]) {
     db.variables = {
       POSTGRES_PASSWORD: postgresPassword(db.name, existing?.serviceNames),
@@ -110,6 +125,7 @@ export default defineRailway((ctx) => {
   });
 
   const snapshotGateway = service("snapshot-gateway", {
+    tcp: [],
     source,
     env: { ...bucketVariables, PORT: "8080" },
     build: {
@@ -200,6 +216,7 @@ export default defineRailway((ctx) => {
   });
 
   const frontend = service("frontend", {
+    tcp: [],
     source,
     env: {
       VITE_PROTOCOL_SNAPSHOT_BASE_URL:
@@ -290,7 +307,7 @@ export default defineRailway((ctx) => {
 
   const privateIndexing = group("Private Indexing", [hasura, indexer]);
   const data = group("Data", [envioDatabase]);
-  const publicServices = group("Public", [snapshotGateway, frontend]);
+  const publicGroup = group("Public", [snapshotGateway, frontend]);
   const definition = {
     variables: {
       managed: true,
@@ -316,8 +333,23 @@ export default defineRailway((ctx) => {
       storage,
       privateIndexing,
       data,
-      publicServices,
+      publicGroup,
     ],
   };
+  // Apply native maps AFTER SDK normalization. TCP maps are sparse patches:
+  // null deletes each known/imported port; an empty map cannot remove a proxy.
+  for (const resource of definition.resources.flat()) {
+    if (resource.type !== "service" && resource.type !== "database") continue;
+    resource.networking = {
+      ...resource.networking,
+      tcpProxies: tcpRemovals(
+        resource.name,
+        existing?.tcpPorts.get(resource.name)
+      ),
+      ...(!publicServices.has(resource.name)
+        ? { serviceDomains: {}, customDomains: {} }
+        : {}),
+    };
+  }
   return project("protocol-visualizer", definition);
 });

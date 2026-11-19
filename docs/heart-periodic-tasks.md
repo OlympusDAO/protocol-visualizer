@@ -14,11 +14,11 @@ The optional `periodicTasks` extension lets readers accept older 1.0/1.1 snapsho
 without task data.
 Task status reuses `contractStates`; Kernel membership remains independent.
 
-| Task interface | Status tracking |
-| --- | --- |
-| `isEnabled()` | Existing IEnabler event replay and getter verification |
-| ReserveMigrator `locallyActive()` | `Activated` / `Deactivated` replay and getter verification |
-| Operator `active()` | Checkpoint observations; no status events |
+| Task interface                               | Status tracking                                                                                          |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `isEnabled()`                                | Existing IEnabler event replay and getter verification                                                   |
+| ReserveMigrator `locallyActive()`            | `Activated` / `Deactivated` replay and getter verification                                               |
+| Operator `active()`                          | Checkpoint observations; no status events                                                                |
 | Older YieldRepurchaseFacility `isShutdown()` | Inverted getter observations plus `Shutdown` replay; initialization can re-enable without a unique event |
 
 The legacy getter is selected only when the deployed ABI lacks `isEnabled()` and

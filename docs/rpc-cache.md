@@ -67,17 +67,17 @@ that fallback from authorizing storage. This is a release-specific workaround,
 covered by an actual-image test with a high head and an unsupported finalized
 tag. Keep that regression test when upgrading eRPC.
 
-| Chain | ID | Required finality signal and verification boundary |
-| --- | --- | --- |
-| Ethereum | 1 | Execution RPC `finalized`, from Ethereum consensus |
-| Optimism | 10 | OP Stack finalized L2 head derived from finalized L1 data |
-| Arbitrum | 42161 | Nitro finalized batch inherited from Ethereum finality |
-| Base | 8453 | OP Stack finalized L2 head derived from finalized L1 data |
-| Berachain | 80094 | Provider's finalized execution head backed by BeaconKit consensus |
-| Robinhood | 4663 | Verify the deployed chain/provider's Nitro parent-finality configuration before relying on its tag |
-| Sepolia | 11155111 | Execution RPC `finalized`, from Sepolia consensus |
-| Arbitrum Sepolia | 421614 | Nitro finalized batch inherited from Sepolia finality |
-| Base Sepolia | 84532 | OP Stack finalized L2 head derived from finalized Sepolia data |
+| Chain            | ID       | Required finality signal and verification boundary                                                 |
+| ---------------- | -------- | -------------------------------------------------------------------------------------------------- |
+| Ethereum         | 1        | Execution RPC `finalized`, from Ethereum consensus                                                 |
+| Optimism         | 10       | OP Stack finalized L2 head derived from finalized L1 data                                          |
+| Arbitrum         | 42161    | Nitro finalized batch inherited from Ethereum finality                                             |
+| Base             | 8453     | OP Stack finalized L2 head derived from finalized L1 data                                          |
+| Berachain        | 80094    | Provider's finalized execution head backed by BeaconKit consensus                                  |
+| Robinhood        | 4663     | Verify the deployed chain/provider's Nitro parent-finality configuration before relying on its tag |
+| Sepolia          | 11155111 | Execution RPC `finalized`, from Sepolia consensus                                                  |
+| Arbitrum Sepolia | 421614   | Nitro finalized batch inherited from Sepolia finality                                              |
+| Base Sepolia     | 84532    | OP Stack finalized L2 head derived from finalized Sepolia data                                     |
 
 See [Arbitrum's finality guidance](https://developer.arbitrum.io/how-arbitrum-works/reference/finality-and-reorgs),
 [OP Stack finality](https://specs.optimism.io/protocol/derivation.html),
@@ -88,6 +88,14 @@ finalized-tag semantics for **each selected provider** before cutover, especiall
 Robinhood. Unsupported or unavailable finality leaves numeric requests uncached;
 it does not cause recent blocks to be guessed final. A previously observed
 finalized watermark remains safe if a provider later becomes unavailable.
+
+## Persistent cache capacity and retention
+
+There are two persistent caches with separate databases and lifecycles. Envio's `cache: true` effects in `effects.ts` and `code-cache.ts` persist successful pinned observations in the indexer database. Canonical block hashes are part of pinned inputs, so observations at new blocks can create new entries even for the same contract. Rollbacks retain effect results; a process restart does not make this an in-memory cache. Unavailable/incomplete results explicitly disable effect caching. eRPC separately persists eligible finalized method/parameter responses in `rpc-cache-postgres`; its immutable policies have NULL expiry. Neither repository configuration defines a lifetime TTL or automatic capacity bound for these entries.
+
+Use the existing `pnpm indexer:metrics` effect/progress metrics and private `pnpm rpc-cache:metrics` hit/miss/upstream counters to relate new work to cache activity. Counters measure requests, not disk bytes. Track Railway volume usage and PostgreSQL database/relation sizes for **both** databases over the same intervals, together with progress and unique-block workload. Existing production capacities are preserved when above the requested 20,000 MB minimum; that minimum is not a retention guarantee or a measured lifetime estimate. No observed growth rate is established by this change.
+
+Operations must provide persistent storage, backups, free-space alerts and capacity growth for the intended indexing/rebuild horizon. Keep caches through ordinary deploys and resumes. There is no supported automated eviction or deletion procedure in this change; a finite retention policy requires a separately reviewed design and verification of Envio rollback/replay and eRPC refill behavior. Do not truncate cache tables or reset project volumes as routine maintenance. The reset-isolation integration check establishes that an intentional indexer schema reset leaves the separate eRPC cache intact; it does not establish a safe purge policy for Envio effects.
 
 ## Railway variables and private networking
 
@@ -278,6 +286,8 @@ This is bounded recovery, not a guarantee of uninterrupted indexing.
 
 Run controlled throttling checks with the repository-pinned runtime:
 
+This standalone command requires the prebuilt eRPC image and the exact local PostgreSQL fixture `postgres:18.6-alpine3.24@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b` already present. The canonical `pnpm test:integration` command prepares that fixture, pinned in [scripts/test-integration.mjs](../scripts/test-integration.mjs), independently of security scans. Standalone fixture containers use `--pull=never`; they do not prepare missing images.
+
 ```sh
 RPC_CACHE_TEST_SKIP_RESET=1 pnpm test:rpc-cache
 ```
@@ -290,13 +300,13 @@ configuration, not the production selection policy. Native Envio memory-store
 tests separately check that exhausted HTTP 429 leaves staged entity state
 uncommitted and the same block can resume after recovery.
 
-| Controlled case | Observed provider calls |
-|---|---:|
-| Two HTTP or JSON-RPC 429 failures, then recovery | 3 |
-| One persistently throttled provider | 6; reader throws |
-| Primary throttled, secondary healthy; one proxy request | 1 per provider |
-| Both providers persistently throttled | 6 per provider; reader throws |
-| EVM revert with two providers available | 1; no retry or failover |
+| Controlled case                                         |       Observed provider calls |
+| ------------------------------------------------------- | ----------------------------: |
+| Two HTTP or JSON-RPC 429 failures, then recovery        |                             3 |
+| One persistently throttled provider                     |              6; reader throws |
+| Primary throttled, secondary healthy; one proxy request |                1 per provider |
+| Both providers persistently throttled                   | 6 per provider; reader throws |
+| EVM revert with two providers available                 |       1; no retry or failover |
 
 Separate bounded probes of Alchemy's documented public low-throughput test app
 on November 3, 2026 used eight concurrent requests and no user credentials:
@@ -324,14 +334,14 @@ cache service and its database intact during an indexer rebuild.
 
 Copy `.env.compose.sample` to `.env` and supply the nine `UPSTREAM_RPC_URL_*`
 values, Envio token, and Etherscan key. Compose routes consumers to eRPC without
-requiring per-consumer URL edits. `rpc-cache-postgres-data` is a new named volume;
-existing `postgres-data` and `minio-data` are unchanged. `docker compose down`
+requiring per-consumer URL edits. Ephemeral local PG18.6 uses fresh versioned
+`rpc-cache-postgres18-data` and `postgres18-data` parent-mounted volumes; old PG17 data is not reused. `minio-data` is unchanged. See the [PG18.6 runbook](postgresql18-rebuild.md). `docker compose down`
 keeps all volumes; do not use `down --volumes` for this stack.
 
 ```bash
 pnpm run container:build:rpc-cache
 pnpm run container:build:indexer
-pnpm run test:rpc-cache
+pnpm test:integration
 ```
 
 The integration check uses the real pinned images, disposable Postgres

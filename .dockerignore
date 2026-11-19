@@ -12,12 +12,13 @@ build
 **/build
 **/dist
 coverage
+.validation
+railway-plan.json
 **/coverage
 **/.DS_Store
 **/.git
 **/.gitignore
 **/.dockerignore
-**/.eslintrc.json
 **/README.md
 .github
 .vscode

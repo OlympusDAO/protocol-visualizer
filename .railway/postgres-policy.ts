@@ -3,6 +3,35 @@ import { preserve, type RailwayContext, type VariableValue } from "railway/iac";
 
 const postgresPasswordGenerator = '${{ secret(64, "0123456789abcdef") }}';
 
+export const publicServices = new Set(["frontend", "snapshot-gateway"]);
+const managedServices = new Set([
+  ...publicServices,
+  "Postgres",
+  "rpc-cache-postgres",
+  "indexer",
+  "hasura",
+  "rpc-cache",
+  "snapshot-publisher",
+  "snapshot-monitor",
+]);
+
+export function tcpRemovals(name: string, imported: readonly string[] = []) {
+  const known: Record<string, number[]> = {
+    Postgres: [5432],
+    "rpc-cache-postgres": [5432],
+    indexer: [9898, 9899],
+    hasura: [8080],
+    "rpc-cache": [4000, 4001],
+    frontend: [8080],
+    "snapshot-gateway": [8080],
+  };
+  return Object.fromEntries(
+    [...new Set([...(known[name] ?? []).map(String), ...imported])].map(
+      (port) => [port, null]
+    )
+  );
+}
+
 export function postgresPassword(
   name: string,
   existingServices: ReadonlySet<string> | undefined
@@ -17,6 +46,7 @@ export function existingResources(ctx: RailwayContext):
   | {
       serviceNames: ReadonlySet<string>;
       volumeSizes: ReadonlyMap<string, number>;
+      tcpPorts: ReadonlyMap<string, readonly string[]>;
     }
   | undefined {
   if (!ctx.environmentId) return undefined;
@@ -26,7 +56,7 @@ export function existingResources(ctx: RailwayContext):
         "railway",
         [
           "api",
-          "query($id: String!) { environment(id: $id) { serviceInstances(first: 100) { edges { node { serviceName } } pageInfo { hasNextPage } } volumeInstances(first: 100) { edges { node { sizeMB volume { name } } } pageInfo { hasNextPage } } } }",
+          "query($id: String!) { environment(id: $id) { config(decryptVariables: false) serviceInstances(first: 100) { edges { node { serviceId serviceName domains { serviceDomains { domain } customDomains { domain } } } } pageInfo { hasNextPage } } volumeInstances(first: 100) { edges { node { sizeMB volume { name } } } pageInfo { hasNextPage } } } }",
           "--var",
           `id=${ctx.environmentId}`,
           "--compact",
@@ -67,6 +97,89 @@ export function existingResources(ctx: RailwayContext):
     );
     if (volumeSizes.size !== volumes.edges.length)
       throw new Error("Ambiguous volume lookup");
+    // Config is captured in memory only; never print or persist its variables.
+    const configured = result.data?.environment?.config?.services;
+    if (
+      !configured ||
+      typeof configured !== "object" ||
+      Array.isArray(configured)
+    )
+      throw new Error("Missing environment networking configuration");
+    const serviceIds = new Set(
+      services.edges.map(
+        ({ node }: { node: { serviceId: string } }) => node.serviceId
+      )
+    );
+    if (
+      serviceIds.size !== services.edges.length ||
+      new Set(
+        services.edges.map(
+          ({ node }: { node: { serviceName: string } }) => node.serviceName
+        )
+      ).size !== services.edges.length ||
+      Object.entries(configured).some(([id, config]) =>
+        serviceIds.has(id)
+          ? !config || typeof config !== "object" || Array.isArray(config)
+          : config !== null &&
+            (!config ||
+              typeof config !== "object" ||
+              Array.isArray(config) ||
+              (config as { isDeleted?: unknown }).isDeleted !== true)
+      )
+    )
+      throw new Error("Unaccounted active environment service configuration");
+    const tcpPorts = new Map<string, readonly string[]>();
+    for (const { node } of services.edges) {
+      if (!managedServices.has(node.serviceName))
+        throw new Error("Unexpected service in whole-project exposure lookup");
+      if (
+        typeof node.serviceId !== "string" ||
+        !Object.hasOwn(configured, node.serviceId)
+      )
+        throw new Error("Incomplete service networking lookup");
+      const domains = node.domains;
+      if (
+        ![domains?.serviceDomains, domains?.customDomains].every(Array.isArray)
+      )
+        throw new Error("Incomplete domain lookup");
+      if (
+        [...domains.serviceDomains, ...domains.customDomains].some(
+          (domain) =>
+            typeof domain?.domain !== "string" || !domain.domain.trim()
+        )
+      )
+        throw new Error("Invalid domain metadata");
+      if (
+        !publicServices.has(node.serviceName) &&
+        (domains.serviceDomains.length || domains.customDomains.length)
+      )
+        throw new Error(
+          "Existing private service has public HTTP domains; provider removal and verification required"
+        );
+      const networking = configured[node.serviceId]?.networking;
+      if (
+        networking != null &&
+        (typeof networking !== "object" || Array.isArray(networking))
+      )
+        throw new Error("Invalid networking metadata");
+      const proxies = networking?.tcpProxies ?? {};
+      if (
+        !proxies ||
+        typeof proxies !== "object" ||
+        Array.isArray(proxies) ||
+        Object.values(proxies).some(
+          (value) =>
+            value !== null &&
+            (typeof value !== "object" || Array.isArray(value))
+        ) ||
+        Object.keys(proxies).some(
+          (port) =>
+            !/^\d+$/.test(port) || Number(port) < 1 || Number(port) > 65535
+        )
+      )
+        throw new Error("Invalid TCP proxy metadata");
+      tcpPorts.set(node.serviceName, Object.keys(proxies));
+    }
     return {
       serviceNames: new Set(
         services.edges.map(
@@ -74,10 +187,11 @@ export function existingResources(ctx: RailwayContext):
         )
       ),
       volumeSizes,
+      tcpPorts,
     };
   } catch {
     throw new Error(
-      "Cannot establish existing Railway services and volumes; refusing to plan database passwords or capacity."
+      "Cannot establish safe existing Railway services, volumes and exposure; refusing to plan database passwords or capacity. Verify private HTTP domains were removed separately and networking metadata is complete."
     );
   }
 }

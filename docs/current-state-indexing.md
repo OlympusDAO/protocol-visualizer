@@ -45,15 +45,15 @@ check at manifest promotion.
 
 ## Decisions and limits
 
-| Decision | Reason and remaining cost |
-| --- | --- |
+| Decision                                                 | Reason and remaining cost                                                                                                                                                                                                                                           |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Remove cross-block immutable/deployment and Kernel reuse | Current-only verification removes most repeated sweeps. Deployment lifetime, custom proxy and event-invalidation assumptions no longer justify a separate reuse system. New contracts receive fresh reads; immutable detection is no longer a runtime optimization. |
-| Remove the raw-call effect layer | eRPC and existing domain effects already cache calls. Deletion trades a small increase in proxy traffic for a simpler read path; eRPC cannot absorb every hash-bound call when finality is unknown. |
-| Keep block-hash bytecode/domain effects | Their cache identity and opening/closing canonical checks protect against forks. Failures do not become reusable successful observations. |
-| Keep bounded RPC recovery and HTTP batching | They cap private-proxy pressure and prevent exhausted capacity reads from being committed as missing values. Long outages can still exhaust recovery and require restart. |
-| Keep the two-subject scheduler | It overlaps independent I/O while preserving same-address ordering and draining sibling work on failure. No generic worker scheduler is added. |
-| Keep ownership dialects and proof provenance | OZ, Solmate and Chainlink have different pending-owner semantics; some nominees have no public getter. This is now correctness/provenance code, not a getter-saving claim. Readable getters are checked at every full observation. |
-| Keep metadata prefetch/cache and admission | Source-service quotas remain independent of RPC capacity. Metadata admission depends on Envio's internal worker description and the pinned maximum of four workers. Recheck that compatibility on Envio upgrades or topology changes. |
+| Remove the raw-call effect layer                         | eRPC and existing domain effects already cache calls. Deletion trades a small increase in proxy traffic for a simpler read path; eRPC cannot absorb every hash-bound call when finality is unknown.                                                                 |
+| Keep block-hash bytecode/domain effects                  | Their cache identity and opening/closing canonical checks protect against forks. Failures do not become reusable successful observations.                                                                                                                           |
+| Keep bounded RPC recovery and HTTP batching              | They cap private-proxy pressure and prevent exhausted capacity reads from being committed as missing values. Long outages can still exhaust recovery and require restart.                                                                                           |
+| Keep the two-subject scheduler                           | It overlaps independent I/O while preserving same-address ordering and draining sibling work on failure. No generic worker scheduler is added.                                                                                                                      |
+| Keep ownership dialects and proof provenance             | OZ, Solmate and Chainlink have different pending-owner semantics; some nominees have no public getter. This is now correctness/provenance code, not a getter-saving claim. Readable getters are checked at every full observation.                                  |
+| Keep metadata prefetch/cache and admission               | Source-service quotas remain independent of RPC capacity. Metadata admission depends on Envio's internal worker description and the pinned maximum of four workers. Recheck that compatibility on Envio upgrades or topology changes.                               |
 
 The static review found no demonstrated correctness blocker in the retained
 runtime. It did not attribute the whole-branch timing gain to individual retained
@@ -108,12 +108,12 @@ Both revisions used the same recorded proxy image. The later pgx v5 security
 migration has separate integration/security validation; these numbers do not
 measure a speed change from that driver upgrade.
 
-| Median | Robinhood base | Current branch |
-| --- | ---: | ---: |
-| Committed time | 170.550s | 25.035s |
-| Blocks/second | 293.2 | 1,997.3 |
-| Requests reaching eRPC | 20,385 | 902 |
-| Upstream requests, including health probes | 10,491 | 898 |
+| Median                                     | Robinhood base | Current branch |
+| ------------------------------------------ | -------------: | -------------: |
+| Committed time                             |       170.550s |        25.035s |
+| Blocks/second                              |          293.2 |        1,997.3 |
+| Requests reaching eRPC                     |         20,385 |            902 |
+| Upstream requests, including health probes |         10,491 |            898 |
 
 Throughput improved **581.26% (6.81×)**; elapsed time fell **85.32%**. Requests
 reaching eRPC fell **95.58%**, and upstream requests fell **91.44%**. These are

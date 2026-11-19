@@ -1,4 +1,9 @@
 [tools]
+node = "24.22.3"
+pnpm = "11.28.13"
+railway = "5.75.0"
+jactionlint = "2.4.0"
+trivy = "0.76.2"
 "aqua:vercel-labs/agent-browser" = "0.41.2"
 
 [tools."http:coderabbit"]

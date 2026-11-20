@@ -26,7 +26,7 @@
     "indexer:metrics": "sh -c 'curl -s \"http://localhost:${ENVIO_INDEXER_PORT:-9898}/metrics\" | rg \"envio_progress_|hyperindex_synced_to_head|envio_effect_\"'",
     "rpc-cache:metrics": "node scripts/railway-ops.mjs metrics",
     "lint:check": "turbo run lint:check && biome format .",
-    "lint": "turbo run lint && biome format --write .",
+    "lint": "turbo run lint && biome format --write . && pnpm run lint:actions",
     "openapi:check": "pnpm --filter snapshot-gateway run openapi:check",
     "snapshots:generate:local": "pnpm --filter snapshot-publisher run build && env SNAPSHOT_OUTPUT_DIR=/tmp/protocol-visualizer-snapshots SNAPSHOT_SOURCE=sample pnpm --filter snapshot-publisher start",
     "stack:config": "node scripts/container.mjs compose config",

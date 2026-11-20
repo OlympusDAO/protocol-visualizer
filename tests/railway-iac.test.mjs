@@ -5,11 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { createRailwayContext } from "railway/iac";
-import {
-  existingResources,
-  postgresPassword,
-  tcpRemovals,
-} from "../.railway/postgres-policy.ts";
+import { existingResources, tcpRemovals } from "../.railway/postgres-policy.ts";
 import defineInfrastructure from "../.railway/railway.ts";
 
 async function infrastructure(environment) {
@@ -280,19 +276,6 @@ test("Railway workflow applies only reviewed merges and blocks destructive chang
     if (!action.startsWith("./")) assert.match(action, /@[0-9a-f]{40}$/);
 });
 
-test("Postgres password policy generates URL-safe secrets only for new databases", () => {
-  for (const name of ["Postgres", "rpc-cache-postgres"]) {
-    assert.deepEqual(postgresPassword(name, new Set()), {
-      type: "raw",
-      value: { defaultValue: '${{ secret(64, "0123456789abcdef") }}' },
-    });
-    assert.deepEqual(postgresPassword(name, new Set([name])), {
-      type: "preserve",
-    });
-    assert.deepEqual(postgresPassword(name, undefined), { type: "preserve" });
-  }
-});
-
 test("database planning preserves larger volumes and rejects incomplete lookups", async () => {
   const directory = mkdtempSync(join(tmpdir(), "pv-password-policy-"));
   const executable = join(directory, "railway");
@@ -335,14 +318,17 @@ test("database planning preserves larger volumes and rejects incomplete lookups"
     process.env.PATH = `${directory}:${originalPath}`;
     fixture(response(["Postgres", "rpc-cache-postgres"]));
     assert.deepEqual(
-      [...existingResources(ctx).serviceNames],
+      [...existingResources(ctx).tcpPorts.keys()],
       ["Postgres", "rpc-cache-postgres"]
     );
     for (const marker of [null, { isDeleted: true }]) {
       const deleted = response(["indexer"]);
       deleted.data.environment.config.services["removed-id"] = marker;
       fixture(deleted);
-      assert.deepEqual([...existingResources(ctx).serviceNames], ["indexer"]);
+      assert.deepEqual(
+        [...existingResources(ctx).tcpPorts.keys()],
+        ["indexer"]
+      );
     }
     for (const marker of [
       false,
@@ -441,8 +427,16 @@ test("database planning preserves larger volumes and rejects incomplete lookups"
       );
     }
     fixture(response([]));
+    const fresh = await defineInfrastructure(ctx);
+    for (const db of fresh.resources
+      .flat(Infinity)
+      .filter((r) => r.type === "database"))
+      assert.deepEqual(db.variables.POSTGRES_PASSWORD, {
+        type: "raw",
+        value: { defaultValue: '${{ secret(64, "0123456789abcdef") }}' },
+      });
     assert.equal(
-      existingResources(ctx).serviceNames.size,
+      existingResources(ctx).tcpPorts.size,
       0,
       "new previews may have no existing services"
     );
@@ -459,6 +453,10 @@ test("database planning preserves larger volumes and rejects incomplete lookups"
           environmentId: "fixture-environment",
         })
       );
+      for (const db of definition.resources
+        .flat(Infinity)
+        .filter((r) => r.type === "database"))
+        assert.deepEqual(db.variables.POSTGRES_PASSWORD, { type: "preserve" });
       const volumes = definition.resources
         .flat(Infinity)
         .filter((resource) => resource.type === "volume");

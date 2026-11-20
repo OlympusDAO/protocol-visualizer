@@ -15,29 +15,29 @@ consumers through the proxy.
 
 [`.railway/railway.ts`](../.railway/railway.ts) defines the whole project:
 all seven application services, both databases, both volumes, the storage bucket,
-production domains, and canvas groups. It preserves the current database image
-majors and volume names. IaC supplies service connections through Railway references.
+production domains, and canvas groups. Both database image pins now target PG18.6;
+the main database transition requires the separately approved [reset/reindex release](postgresql18-rebuild.md).
+Volume names and production mount paths remain unchanged. IaC supplies service connections through Railway references.
 Provider URLs and operator secrets use `preserve()`; their values stay in Railway.
 Optional operator settings listed in `variables.ignore` remain outside IaC ownership.
 
-| Resource                                           | Role                                                 |
-| -------------------------------------------------- | ---------------------------------------------------- |
-| `Postgres` / `destruction-volume`                  | Envio data and Hasura metadata; existing Postgres 16 |
-| `rpc-cache-postgres` / `rpc-cache-postgres-volume` | Independent RPC cache; existing Postgres 18          |
-| `hasura`                                           | Private GraphQL for publisher and monitor            |
-| `indexer`                                          | Private Envio indexer                                |
-| `rpc-cache`                                        | Private JSON-RPC cache                               |
-| `snapshot-publisher`                               | Hourly bucket publisher                              |
-| `snapshot-monitor`                                 | Daily indexing monitor                               |
-| `snapshot-gateway`                                 | Public REST API                                      |
-| `frontend`                                         | Public UI                                            |
-| `storage`                                          | Private snapshot bucket in `sjc`                     |
+| Resource                                           | Role                                                  |
+| -------------------------------------------------- | ----------------------------------------------------- |
+| `Postgres` / `destruction-volume`                  | Envio data and Hasura metadata; prepared PG18.6 reset |
+| `rpc-cache-postgres` / `rpc-cache-postgres-volume` | Independent RPC cache; PG18.6, preserved data         |
+| `hasura`                                           | Private GraphQL for publisher and monitor             |
+| `indexer`                                          | Private Envio indexer                                 |
+| `rpc-cache`                                        | Private JSON-RPC cache                                |
+| `snapshot-publisher`                               | Hourly bucket publisher                               |
+| `snapshot-monitor`                                 | Daily indexing monitor                                |
+| `snapshot-gateway`                                 | Public REST API                                       |
+| `frontend`                                         | Public UI                                             |
+| `storage`                                          | Private snapshot bucket in `sjc`                      |
 
 Both database volumes target 20,000 MB in production and previews. IaC reads
 their live capacities and retains any existing capacity above this target.
-On 2026-11-16, production's `destruction-volume` was 10,000 MB; its plan can grow
-it to 20,000 MB. The existing 50,000 MB cache and preview volumes stay at
-50,000 MB. No shrinking, database replacement, or migration is requested.
+This capacity policy never requests a shrink. It does not authorize the separate
+main database reset; preserve the cache and existing larger volumes.
 With `allowOnlineResize: true`, Railway normally expands the mounted filesystem
 without downtime; a full volume can require an offline resize and restart.
 See [Railway volume resizing](https://docs.railway.com/volumes/reference).
@@ -208,7 +208,7 @@ On a `master` push, CI finds the same-repository PR whose merge commit is that
 exact SHA. Direct pushes and merges without Railway-related changes do not apply
 infrastructure. A relevant merge without a successful plan fails the plan-selection job.
 The apply job downloads the artifact from a successful Railway plan run for the merged PR's exact head commit.
-It verifies the production environment ID. The CLI checks the environment revision and `.railway/` tree before apply.
+It verifies the production environment ID. CI checks the environment ID, merged `.railway/` tree and current `master` revision; native apply checks the environment revision.
 A changed environment or configuration requires a fresh PR plan. Destructive
 changes are blocked without `--confirm-destructive`; they need a separate,
 explicitly approved operator action. Workflow runs are serialized for production
@@ -227,18 +227,19 @@ Application code continues to use Railway GitHub autodeploys and watch patterns.
 IaC requests `checkSuites: true` on each GitHub source. Verify the effective
 "Wait for CI" setting on newly created services; production `rpc-cache` needed
 a manual correction during initial creation. CI's apply job uses native `needs`
-dependencies on lint, build, and reusable Security Audit and Dependency Audit jobs.
-Failed, cancelled, or skipped prerequisites prevent apply. On PRs, the audits
-retain their separate runs and dependency-audit comments; on `master` pushes,
-CI calls them once through `workflow_call`. Their concurrency groups are separate
-from the caller's group.
+dependencies on source check, build, indexer typecheck, monitor tests and reusable
+Security Audit jobs. Failed, cancelled, or skipped prerequisites prevent apply.
+Dependency Audit runs independently; its push run must succeed for the exact merge SHA.
+Its PR run skips forks and retains native dependency-audit comments.
 
-The remaining gate waits only for GitHub-managed CodeQL (`dynamic` event,
-repository workflow ID `255339919`) and external commit checks on the exact merge
-commit. Update that ID if managed CodeQL is recreated. Missing or unfinished
-external results time out after 30 minutes; failed, cancelled, or skipped CodeQL
-runs block apply. Additional reported commit checks, such as
-Socket, must finish without failure; neutral or skipped optional checks are allowed.
+The external gate waits for that standalone Dependency Audit push run,
+GitHub-managed CodeQL (`dynamic` event, repository workflow ID `255339919`),
+and reported commit checks on the exact merge commit. Update that ID if managed
+CodeQL is recreated. Missing or unfinished required runs time out after 30 minutes;
+failed, cancelled, or skipped required runs block apply. Additional reported commit
+checks, such as Socket, must finish without failure; neutral or skipped optional
+checks are allowed. The latest status per context must succeed; Railway deployment
+statuses are checked afterward because deployments wait for this workflow.
 The gate excludes only its own workflow run's check suite, since its apply job
 is still running. Checks from other workflow runs remain subject to the gate.
 
@@ -247,15 +248,23 @@ Before a manual production apply or operator redeploy, inspect the exact merge S
 ```bash
 gh run list --commit <merge-sha> --limit 100 --json workflowName,event,status,conclusion
 gh api repos/OlympusDAO/protocol-visualizer/commits/<merge-sha>/check-runs --paginate --jq '.check_runs[] | {name,status,conclusion}'
+gh api "repos/OlympusDAO/protocol-visualizer/commits/<merge-sha>/statuses" --paginate --jq '.[] | {context,state}'
 ```
 
-Require a successful `pnpm CI` run, including both reusable audit jobs, successful
-CodeQL, and no pending or failed external commit checks. For previews and other non-master targets, verify the equivalent
+Require successful `pnpm CI`, standalone Dependency Audit and CodeQL runs,
+and no pending or failed external commit checks. For previews and other non-master targets, verify the equivalent
 PR or manually dispatched runs for the target revision instead of master push runs.
+Commit statuses are newest first: review the first entry for each lowercase context and require
+`success`, excluding only contexts whose lowercase name starts with
+`protocol-visualizer - ` because those deployments wait for CI.
 If required runs are missing, trigger the matching workflows and wait for success;
 do not treat missing runs as a pass.
 This workflow does **not** auto-apply IaC changes to PR environments on every
 commit. Preview infrastructure changes use the manual procedure below.
+
+If a queued apply is rejected after `master` advances, generate and review a
+fresh production plan from current `master` and use the [manual procedure](#manual-iac-plan-and-deployment).
+Re-running the old workflow retains its original revision and cannot recover it.
 
 Preview branches follow Railway's PR metadata. No production custom domains are attached to
 previews. Operator secrets and generated Railway domains remain on Railway.
@@ -337,6 +346,13 @@ No PR number or source branch export is required by the scripts.
 Changing Git branches does not change the Railway link. Link again when switching deployment targets.
 
 ### 3. Generate a plan without deploying
+
+Before planning, inventory generated/custom HTTP domains and active TCP proxies
+for every service/database in the selected environment, including unexpected
+resources without decrypting variables. Check the frontend/gateway public allowlist.
+Existing private HTTP domains need separately approved native removal and a fresh
+inventory before planning because config apply cannot delete them. Leave imported
+TCP proxies in the inventory for the native plan's explicit `null` removals.
 
 ```bash
 pnpm run railway:check
@@ -422,7 +438,7 @@ Raw results, outputs, diagnostics and stderr can contain sensitive values. Do no
 
 After an accepted result, generate a fresh **read-only plan** for the same project, environment and reviewed revision. Keep its artifact/output private too, for example with native `railway config plan --environment <target-environment> --out "$railway_apply_directory/verification-plan.json"` and private stdout/stderr capture. Review all remaining drift; do not infer convergence from the apply result alone.
 
-Then complete the provider **HTTP/TCP** inventory for every service/database in that exact environment, including unknown/unexpected resources: generated HTTP domains, custom HTTP domains and TCP proxies/ports. Match frontend/gateway against the public allowlist and verify no private service has public domains/proxies. Check actual public/private reachability, ingestion docs absence, health/readiness and storage bindings as described in [security posture](security-posture.md#operator-acceptance-before-deployment). Source empty maps, a clean plan, process exit zero and success text cannot replace this verification. No native plan/apply/provider action is performed by this documentation change.
+Then complete the provider **HTTP/TCP** inventory for every service/database in that exact environment, including unknown/unexpected resources: generated HTTP domains, custom HTTP domains and TCP proxies/ports. Match frontend/gateway against the public allowlist and verify no private service has public domains/proxies. Verify actual public/private reachability and database mounts, effective PGDATA, TLS and persistence. After services are running, verify indexer `/docs`, `/openapi.json`, `/llms.txt` and `/llms-full.txt` return 404, `/healthz` returns 200 and readiness/indexing progress are appropriate for the deployment. Readiness may return 503 during normal reindexing; the [PG18 rebuild sequence](postgresql18-rebuild.md) controls when writers resume. See [security posture](security-posture.md) for trust boundaries. Source empty maps, a clean plan, process exit zero and success text cannot replace this verification. No native plan/apply/provider action is performed by this documentation change.
 
 ### 6. Verify the application deployments
 

@@ -12,7 +12,7 @@ Add its value manually in Project Settings → Shared Variables before applying 
 Use a separate webhook for preview alerts. Do not commit the webhook URL.
 
 Both `Postgres` and `rpc-cache-postgres` use the create-only password policy in
-[`postgres-policy.ts`](postgres-policy.ts):
+[`railway.ts`](railway.ts):
 `${{ secret(64, "0123456789abcdef") }}` as a template `defaultValue`, matching
 Railway's official Postgres template. Bare `secret(...)` text is not a generated
 password. New databases request a random, URL-safe password;
@@ -36,29 +36,14 @@ larger capacities are retained: the requested capacity is the greater of
 requesting a shrink or data migration. The cache volume is
 `rpc-cache-postgres-volume`; the detached legacy `postgres-volume` is not declared.
 
-For local plan/apply, project/environment selection, private plan permissions and native JSON-result verification, use the [manual deployment procedure](../docs/railway-self-hosting.md#manual-iac-plan-and-deployment). It is the authoritative operator runbook; native exit zero alone is not deployment acceptance.
+The prepared main PG18 image transition is blocked from automatic apply. Its
+[reset/reindex release](../docs/postgresql18-rebuild.md) requires separate approval;
+cache data and production mounts remain unchanged.
 
-The prepared main PG18 image transition is blocked from automatic apply. Its [reset/reindex release](../docs/postgresql18-rebuild.md) requires separate approval; cache data and production mounts remain unchanged.
+See the [automatic CI gates and release recovery](../docs/railway-self-hosting.md#automatic-plan-and-apply)
+for merge prerequisites, authentication and queued-release recovery.
 
-The Railway workflow plans production changes on PR updates. The final apply job
-in `ci.yml` depends on build, lint, security, and dependency jobs, then checks
-external CodeQL, check runs and reported non-deployment commit statuses for the
-merge commit. The latest status per context must succeed. Railway deployment
-statuses are excluded because those deployments wait for this CI workflow;
-they must be checked after deployment. It applies only the saved
-plan for that merged PR's exact head and matching merged `.railway` tree. An
-older queued release is rejected if `master` has advanced. Integrations absent
-from the merge commit, such as PR-only Snyk statuses, are not required; native
-security jobs and CodeQL remain mandatory. Set one Olympus workspace API token as the GitHub
-Actions secret `RAILWAY_TOKEN`. The workflow exports it as `RAILWAY_API_TOKEN`
-and selects the project and production environment explicitly. No token per
-environment is required. Destructive applies are blocked. Preview infrastructure
-still needs an explicit operator apply; application autodeploys remain enabled.
-
-If a queued apply is rejected after `master` advances, the merged infrastructure
-change remains pending. Generate and review a fresh production plan from current
-`master`, then use the documented manual apply procedure. Re-running the old workflow
-keeps its original commit and cannot recover the rejected release.
-
-See [the Railway guide](../docs/railway-self-hosting.md) for bootstrap, migration,
-variables, plan review, and rollback. Do not commit decrypted plans or secrets.
+For local native plan/review/apply, private artifact permissions and deployment
+acceptance, use the [operator runbook](../docs/railway-self-hosting.md#manual-iac-plan-and-deployment).
+Native exit zero alone does not establish success. Bootstrap, public-domain
+provisioning, troubleshooting and rollback remain in that guide.

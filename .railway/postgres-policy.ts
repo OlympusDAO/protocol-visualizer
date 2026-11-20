@@ -1,7 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { preserve, type RailwayContext, type VariableValue } from "railway/iac";
-
-const postgresPasswordGenerator = '${{ secret(64, "0123456789abcdef") }}';
+import type { RailwayContext } from "railway/iac";
 
 export const publicServices = new Set(["frontend", "snapshot-gateway"]);
 const managedServices = new Set([
@@ -34,20 +32,8 @@ export function tcpRemovals(name: string, imported: readonly string[] = []) {
   );
 }
 
-export function postgresPassword(
-  name: string,
-  existingServices: ReadonlySet<string> | undefined
-): VariableValue {
-  // Offline typechecks cannot establish that a database is new. Fail closed.
-  // Generating for an existing service would rotate its role's password.
-  return existingServices === undefined || existingServices.has(name)
-    ? preserve()
-    : { type: "raw", value: { defaultValue: postgresPasswordGenerator } };
-}
-
 export function existingResources(ctx: RailwayContext):
   | {
-      serviceNames: ReadonlySet<string>;
       volumeSizes: ReadonlyMap<string, number>;
       tcpPorts: ReadonlyMap<string, readonly string[]>;
     }
@@ -188,11 +174,6 @@ export function existingResources(ctx: RailwayContext):
       tcpPorts.set(node.serviceName, Object.keys(proxies));
     }
     return {
-      serviceNames: new Set(
-        services.edges.map(
-          (edge: { node: { serviceName: string } }) => edge.node.serviceName
-        )
-      ),
       volumeSizes,
       tcpPorts,
     };

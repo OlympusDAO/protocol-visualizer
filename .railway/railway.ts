@@ -12,7 +12,6 @@ import {
 } from "railway/iac";
 import {
   existingResources,
-  postgresPassword,
   publicServices,
   tcpRemovals,
 } from "./postgres-policy.ts";
@@ -49,9 +48,6 @@ export default defineRailway((ctx) => {
   // Retain the Envio database alias without exposing a public TCP proxy.
   envioDatabase.networking = {
     privateNetworkEndpoint: "postgres",
-    serviceDomains: {},
-    customDomains: {},
-    tcpProxies: {},
   };
   const envioData = databaseVolume("destruction-volume");
   const cacheDatabase = database("rpc-cache-postgres", "postgres", {
@@ -61,14 +57,16 @@ export default defineRailway((ctx) => {
     defaultMountPath: "/var/lib/postgresql/data",
     region: "us-west2",
   });
-  cacheDatabase.networking = {
-    serviceDomains: {},
-    customDomains: {},
-    tcpProxies: {},
-  };
   for (const db of [envioDatabase, cacheDatabase]) {
     db.variables = {
-      POSTGRES_PASSWORD: postgresPassword(db.name, existing?.serviceNames),
+      // Offline checks cannot establish a new database; preserve existing roles.
+      POSTGRES_PASSWORD:
+        existing === undefined || existing.tcpPorts.has(db.name)
+          ? preserve()
+          : {
+              type: "raw",
+              value: { defaultValue: '${{ secret(64, "0123456789abcdef") }}' },
+            },
     };
   }
   const cacheData = databaseVolume("rpc-cache-postgres-volume");

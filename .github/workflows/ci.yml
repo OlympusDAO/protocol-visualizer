@@ -71,7 +71,7 @@ jobs:
         env:
           PV_REQUIRE_POSTGRES: "1"
           PV_CACHE_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
-        run: node --import ./scripts/register-typescript.mjs --test scripts/state-postgres.test.mjs
+        run: node --import ./scripts/register-typescript.mjs --test scripts/state-postgres.test.mjs scripts/effect-cache-stash.test.mjs
 
       - name: Run snapshot monitor tests
         run: pnpm --filter snapshot-monitor run test

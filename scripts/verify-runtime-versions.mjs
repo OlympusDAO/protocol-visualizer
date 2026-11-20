@@ -10,7 +10,6 @@ const WORKFLOW_FILES = [
   ".github/workflows/ci.yml",
   ".github/workflows/audit.yml",
   ".github/workflows/security-scan.yml",
-  ".github/workflows/railway-config.yml",
 ];
 
 const BOOTSTRAP_ACTION = ".github/actions/bootstrap/action.yml";
@@ -186,10 +185,7 @@ if (
   fail(
     "CI bootstrap must install all five locked tools with pinned Mise and caching."
   );
-for (const workflow of [
-  ".github/workflows/ci.yml",
-  ".github/workflows/railway-config.yml",
-])
+for (const workflow of [".github/workflows/ci.yml"])
   if (
     !readText(workflow).includes("uses: ./.github/actions/bootstrap") ||
     /npm install --global @railway/.test(readText(workflow))

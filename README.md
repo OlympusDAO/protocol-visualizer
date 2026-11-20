@@ -52,8 +52,9 @@ The full local stack guide is in `docs/local-stack.md`.
 
 Railway self-hosting is documented in `docs/railway-self-hosting.md`. The
 deployable Railway services and storage are defined in
-[`.railway/railway.ts`](.railway/railway.ts). The Railway infrastructure workflow
-plans changes on PR updates and applies the reviewed production plan on merge.
+[`.railway/railway.ts`](.railway/railway.ts). The existing CI release job
+freshly plans and applies relevant trusted `master` merges after its source/image
+and external gates. PR checks have no production Railway token or live plan.
 See [the Railway setup guide](docs/railway-self-hosting.md) for bootstrap and
 secrets.
 

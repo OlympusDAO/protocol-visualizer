@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -224,67 +230,44 @@ test("whole-project IaC retains storage and wires services without embedding sec
   }
 });
 
-test("Railway workflow applies only reviewed merges and blocks destructive changes", () => {
-  const planning = readFileSync(".github/workflows/railway-config.yml", "utf8");
+test("production release uses trusted merged code and no PR Railway workflow or plan artifacts", () => {
   const ci = readFileSync(".github/workflows/ci.yml", "utf8");
-  const workflow = `${planning}\n${ci}`;
-  assert(workflow.includes("branches: [master]"));
-  assert(!workflow.includes("pull_request_target"));
+  assert(!existsSync(".github/workflows/railway-config.yml"));
+  assert(!ci.includes("pull_request_target"));
+  const release = ci.split("\n  railway-apply:")[1];
   assert(
-    workflow.includes(
+    release.includes(
       "github.event_name == 'push' && github.ref == 'refs/heads/master'"
     )
   );
+  assert.match(
+    release,
+    /environment:\n      name: production\n      deployment: false/
+  );
+  assert(release.includes("ref: ${{ github.sha }}"));
+  assert(!ci.includes("secrets.RAILWAY_TOKEN"));
+  assert(!ci.includes("--confirm-destructive"));
+  assert(!ci.includes("plan.environmentId !=="));
+  assert(!ci.includes("plan.sourceTree !=="));
+  assert(
+    ci.includes(
+      '"config", "apply", "--environment", process.env.RAILWAY_ENVIRONMENT_ID, "--plan"'
+    )
+  );
   assert.equal(
-    workflow.match(/head.repo.full_name == github.repository/g).length,
+    (ci.match(/node scripts\/check-cache-database-password.mjs/g) ?? []).length,
     1
   );
-  assert(ci.includes("ref: ${{ github.sha }}"));
-  assert(!planning.includes("  apply:"));
-  assert(planning.includes('".github/workflows/ci.yml"'));
-  assert(!workflow.includes("--confirm-destructive"));
-  assert(!/^\s+RAILWAY_TOKEN:/m.test(workflow));
-  assert.equal(
-    workflow.match(/RAILWAY_API_TOKEN: \$\{\{ secrets.RAILWAY_TOKEN \}\}/g)
-      .length,
-    3
-  );
-  assert(
-    workflow.includes(
-      "RAILWAY_PROJECT_ID: d733dd5c-7076-48ad-ac8b-a147cb428300"
-    )
-  );
-  assert(
-    workflow.includes(
-      "RAILWAY_ENVIRONMENT_ID: 1b61e496-b565-42b4-9e5d-8096e28e13cd"
-    )
-  );
-  assert(
-    workflow.includes(
-      'workflow_id: "railway-config.yml", head_sha: pr.head.sha'
-    )
-  );
-  assert(
-    workflow.includes(
-      "plan.environmentId !== process.env.RAILWAY_ENVIRONMENT_ID"
-    )
-  );
-  assert(
-    workflow.includes(
-      '"config", "apply", "--environment", "production", "--plan"'
-    )
-  );
-  assert(!workflow.includes("railwayapp/config@"));
-  assert.equal(workflow.match(/name: railway-production-plan/g).length, 2);
-  assert(ci.includes("run-id: ${{ needs.railway-plan.outputs.run-id }}"));
-  const passwordCheck = ci.indexOf(
+  const cache = release.indexOf(
     "node scripts/check-cache-database-password.mjs"
   );
-  const apply = ci.indexOf('spawnSync("railway"');
-  assert(passwordCheck >= 0 && apply > passwordCheck);
-  assert(workflow.includes("cancel-in-progress: false"));
-  assert(workflow.includes("queue: max"));
-  for (const [, action] of workflow.matchAll(/^ *uses: (\S+)/gm))
+  const plan = release.indexOf("- name: Plan production changes");
+  const apply = release.indexOf("- name: Apply reviewed production plan");
+  assert(plan >= 0 && plan < cache && cache < apply);
+  assert(release.indexOf('test -n "$RAILWAY_API_TOKEN"') < cache);
+  assert(release.includes("cancel-in-progress: false"));
+  assert(release.includes("queue: max"));
+  for (const [, action] of ci.matchAll(/^ *uses: (\S+)/gm))
     if (!action.startsWith("./")) assert.match(action, /@[0-9a-f]{40}$/);
 });
 
@@ -329,6 +312,22 @@ test("database planning preserves larger volumes and rejects incomplete lookups"
   try {
     process.env.PATH = `${directory}:${originalPath}`;
     fixture(response(["Postgres", "rpc-cache-postgres"]));
+    const production = await defineInfrastructure(
+      createRailwayContext({
+        environment: "production",
+        environmentId: "1b61e496-b565-42b4-9e5d-8096e28e13cd",
+      })
+    );
+    const renamedProduction = await defineInfrastructure(
+      createRailwayContext({
+        environment: "renamed-production",
+        environmentId: "1b61e496-b565-42b4-9e5d-8096e28e13cd",
+      })
+    );
+    assert.deepEqual(
+      JSON.parse(JSON.stringify(renamedProduction)),
+      JSON.parse(JSON.stringify(production))
+    );
     assert.deepEqual(
       [...existingResources(ctx).tcpPorts.keys()],
       ["Postgres", "rpc-cache-postgres"]

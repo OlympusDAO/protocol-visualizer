@@ -92,14 +92,13 @@ an empty string; sending `null` leaves the old value unchanged. For a preview,
 verify its `sourceEnvironment` and compare other environments before and after
 the update. Do not clear production settings as part of preview recovery.
 
-Before the first merge:
+Before activating automatic production releases:
 
-1. Create a Railway API token scoped to the **Olympus workspace** in Account Settings → Tokens.
-2. Add it as the GitHub Actions repository secret **`RAILWAY_TOKEN`**.
+1. Create/configure the GitHub environment **`production`** with deployment branches explicitly limited to **`master`**. Configure repository/branch protection for reviewed merges and required source, image, dependency-audit and CodeQL checks; restrict bypasses, repository write/admin access and deployment permissions. For unattended releases, configure no required reviewer approvals; `deployment: false` is incompatible with custom deployment-protection apps. Master-only deployment branches and environment-only secrets remain required. A YAML environment reference does not establish these live protections.
+2. Add **`RAILWAY_DEPLOY_TOKEN` only as a secret of that environment**, with the least Railway workspace/API privileges needed for this project. Do not create a repository secret with that name. Separately approve and remove the old repository **`RAILWAY_TOKEN`** secret before activation; the workflow never falls back to it. Existing GitHub secret values cannot be retrieved to copy them: supply the credential securely through the authorized operator process. No secret/environment/ruleset changes are performed by this source edit.
 3. Provision and verify the private cache service and its separate database first.
 4. Supply all nine `UPSTREAM_RPC_URL_<id>` values on `rpc-cache` and verify its `RPC_CACHE_DATABASE_URL` reference to `rpc-cache-postgres.DATABASE_URL`. Existing databases must have URL-safe passwords before applying this reference; see [the password policy](../.railway/README.md).
-5. Preserve the other operator secrets listed below.
-6. Review the production plan posted on the PR.
+5. Preserve the other operator secrets listed below. Confirm the environment restrictions, secret placement and branch protections independently before enabling the token; repository code alone does not prove live settings or deployed privacy.
 
 IaC supplies all nine consumer RPC URLs. The production rollout must wait until
 the cache service passes private-network and provider checks. Otherwise, a whole-project
@@ -193,55 +192,52 @@ The script does not register keys automatically.
 
 ## Automatic plan and apply
 
-[`.github/workflows/railway-config.yml`](../.github/workflows/railway-config.yml)
-creates plans; [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) applies them.
-Both use the repository-pinned native Railway CLI 5.75.0 with workspace API authentication.
-For same-repository PRs into `master` that affect IaC or its tooling:
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) owns routine production
+releases in its existing `railway-apply` job. PRs run offline IaC/typechecks and
+source/image checks with **no Railway production credential or live plan**.
+Native plan previews infrastructure changes, but evaluating the authoring code
+runs repository JavaScript with its token. A preview operation is not a safe
+place to execute untrusted PR code with production credentials.
 
-- Opening, reopening, or updating the PR produces a **production** plan and a PR comment linking to its run.
-- Merging applies that exact saved plan to production after build, security,
-  dependency, and CodeQL checks pass for the merge commit.
-- Closing without merging does not apply anything.
-- Fork PRs do not receive the Railway credential or run these jobs.
+On a `master` push, after all five source checks and Image security and integration
+succeed, the job selects a relevant PR merged at that exact SHA into this repository's
+`master`. A reviewed fork PR is trusted after merge too. Direct pushes, unmerged
+PRs and unrelated/Markdown-only changes skip infrastructure release. The job then:
 
-On a `master` push, CI finds the same-repository PR whose merge commit is that
-exact SHA. Direct pushes and merges without Railway-related changes do not apply
-infrastructure. A relevant merge without a successful plan fails the plan-selection job.
-The apply job downloads the artifact from a successful Railway plan run for the merged PR's exact head commit.
-It verifies the production environment ID. CI checks the environment ID, merged `.railway/` tree and current `master` revision; native apply checks the environment revision.
-A changed environment or configuration requires a fresh PR plan. Destructive
-changes are blocked without `--confirm-destructive`; they need a separate,
-explicitly approved operator action. Workflow runs are serialized for production
-and do not cancel an apply already in progress.
+1. Waits for the newest exact-SHA Dependency Audit **push** run, managed CodeQL **dynamic** run (workflow `255339919`), and reported external checks/statuses. Missing/pending results time out; failed/cancelled/skipped required runs block release. It then rejects an outdated `master` SHA before checkout, dependency installation or Railway token use; the final pre-apply current-master check remains.
+2. Checks out the exact merged SHA and uses the locked shared bootstrap with dependencies for SDK evaluation. A missing deployment token fails before the native plan or any other provider command.
+3. Runs native `railway config plan --environment "$RAILWAY_ENVIRONMENT_ID" --out <temporary-plan>` under umask 077, capturing stdout/stderr privately. The plan reads/evaluates/previews; it does not apply infrastructure changes. No PR plan, uploaded/downloaded artifact or cross-run state is used.
+4. After the fresh plan captures its ETag, checks the cache-password prerequisite once, before apply. Validates the plan shape/main database image-transition policy and rejects an outdated queued release if current `master` differs. Native saved-plan apply binds the environment, source tree, revision/ETag and hash; CI does not duplicate those checks in JavaScript.
+5. Applies that fresh local plan with the native CLI and accepts only `applied`/`noop` at the top level and for every change, never exit zero alone. No `--confirm-destructive` is supplied. The existing main PostgreSQL source-image transition gate still requires the separately approved [PG18 reset/reindex release](postgresql18-rebuild.md).
 
-One workspace token covers all environments. The existing GitHub secret name
-remains `RAILWAY_TOKEN`; both CLI steps export its value as `RAILWAY_API_TOKEN`.
-They do not set the CLI's `RAILWAY_TOKEN` variable, which expects a project token.
-The workflow selects project `d733dd5c-7076-48ad-ac8b-a147cb428300` and production
-environment `1b61e496-b565-42b4-9e5d-8096e28e13cd` explicitly.
-These IDs are configuration, not credentials. Environment selection is independent of authentication.
-Production sources always use `master`, including plans generated from unmerged PRs.
-See [Railway CLI authentication](https://docs.railway.com/cli/login#environment-variables) for the token types.
+Plan and apply remain inside the CI dependency graph, serialized together with
+`railway-infrastructure-production`, without cancelling an active release. Both
+use the repository-pinned native CLI 5.75.0. The single job references GitHub
+environment name `production` with `deployment: false`: secrets and branch policy
+still apply, without GitHub deployment records for skipped releases. Railway owns
+actual application deployment status. The job maps only the environment-only
+`RAILWAY_DEPLOY_TOKEN` to native `RAILWAY_API_TOKEN`; it never uses the old repository secret. The
+[activation prerequisites above](#bootstrap-and-migration) must be configured live.
+The target project is `d733dd5c-7076-48ad-ac8b-a147cb428300` and production environment
+`1b61e496-b565-42b4-9e5d-8096e28e13cd`. Both native plan and apply pass this exact environment ID from
+`RAILWAY_ENVIRONMENT_ID`, rather than the mutable name `production`, matching the
+cache precondition. IaC recognizes this pinned production ID even if Railway renames the environment; the name `production` still works for offline/self-hosted evaluation. These IDs select the destination; they do not restrict token permissions. Production application sources use `master`.
 
-Application code continues to use Railway GitHub autodeploys and watch patterns.
-IaC requests `checkSuites: true` on each GitHub source. Verify the effective
-"Wait for CI" setting on newly created services; production `rpc-cache` needed
-a manual correction during initial creation. CI's apply job uses native `needs`
-dependencies on the complete five-check source matrix and reusable
-Image security and integration jobs. Failed, cancelled, or skipped prerequisites prevent apply.
-Dependency Audit runs independently; its push run must succeed for the exact merge SHA.
-Its PR run skips forks and retains native dependency-audit comments.
+Apply can change infrastructure **and** service/build/source/environment/network
+settings. Some changes trigger builds, deployments or restarts; this is not merely
+a file upload. It performs no automatic database migration/reset. Application code
+continues through Railway GitHub autodeploys and watch patterns with `checkSuites: true`;
+verify effective "Wait for CI" settings and actual deployment health after release.
+The CI success message is not proof of live HTTP/TCP privacy or application readiness.
 
-The external gate waits for that standalone Dependency Audit push run,
-GitHub-managed CodeQL (`dynamic` event, repository workflow ID `255339919`),
-and reported commit checks on the exact merge commit. Update that ID if managed
-CodeQL is recreated. Missing or unfinished required runs time out after 30 minutes;
-failed, cancelled, or skipped required runs block apply. Additional reported commit
-checks, such as Socket, must finish without failure; neutral or skipped optional
-checks are allowed. The latest status per context must succeed; Railway deployment
-statuses are checked afterward because deployments wait for this workflow.
-The gate excludes only its own workflow run's check suite, since its apply job
-is still running. Checks from other workflow runs remain subject to the gate.
+The external gate retains latest-per-context commit-status checks, excluding
+Railway deployment statuses that wait for CI and its own workflow suite to avoid
+waiting on itself. Other workflow suites remain checked. The wait step allows
+35 minutes (the polling loop stops after about 30); the full release job allows
+60 minutes. Dependency Audit remains standalone, with same-repository PR comments
+and no fork token use. Routine production release is automatic; the native manual
+procedure below is only for separately approved maintenance/recovery, not a bypass
+for missing or failed release gates.
 
 Before a manual production apply or operator redeploy, inspect the exact merge SHA:
 
@@ -266,12 +262,16 @@ Commit statuses are newest first: review the first entry for each lowercase cont
 `protocol-visualizer - ` because those deployments wait for CI.
 Missing required runs are not a pass; obtain matching event/commit results
 before production release.
-This workflow does **not** auto-apply IaC changes to PR environments on every
-commit. Preview infrastructure changes use the manual procedure below.
+Preview infrastructure/domain bootstrap requires separately approved operator
+work; PRs do not run authenticated production planning.
 
-If a queued apply is rejected after `master` advances, generate and review a
-fresh production plan from current `master` and use the [manual procedure](#manual-iac-plan-and-deployment).
-Re-running the old workflow retains its original revision and cannot recover it.
+If a queued release is rejected after `master` advances, follow the latest reviewed
+`master` push CI run, or re-run that exact latest push run after its gates pass.
+This reconciles infrastructure only if that merge passes the Railway relevance
+check. An unrelated/app-only/Markdown-only merge that fails that check skips release;
+make a reviewed Railway-relevant follow-up merge for automatic reconciliation.
+Re-running an older revision cannot recover the superseded release. Local native
+operations remain separately approved maintenance/recovery only.
 
 Preview branches follow Railway's PR metadata. No production custom domains are attached to
 previews. Operator secrets and generated Railway domains remain on Railway.
@@ -308,6 +308,9 @@ protocol requests can then reach frontend Nginx and return HTML instead of JSON.
 
 ## Manual IaC plan and deployment
 
+Routine production releases use CI above. Use this procedure only for separately
+approved maintenance/recovery, including the deliberate PG18 rebuild.
+
 Run these commands from the repository root on your local machine.
 Use the repository-pinned native Railway CLI 5.75.0 and the repository-pinned Node and pnpm versions.
 The target Railway environment must already exist.
@@ -330,7 +333,7 @@ railway whoami
 
 If a valid CLI login already exists, omit `railway login`.
 If using a workspace token locally, set `RAILWAY_API_TOKEN` and leave `RAILWAY_TOKEN` unset.
-The GitHub workflow maps its existing `RAILWAY_TOKEN` secret to `RAILWAY_API_TOKEN` automatically.
+The production CI job maps its environment-only `RAILWAY_DEPLOY_TOKEN` secret to `RAILWAY_API_TOKEN`; local maintenance uses separately authorized operator credentials.
 The same workspace credential can access different environments; the CLI's link or explicit selectors choose the destination.
 
 ### 2. Select the environment
@@ -431,11 +434,11 @@ For an explicit production plan, use `--environment production` with the same pr
 
 The equivalent package command is `pnpm railway:apply production --json`, with the same private output capture; a target value is mandatory. Pass `--json` explicitly: it bypasses native confirmation, so review the plan first. The alias itself does not enable JSON. Automatic merge apply blocks an existing main database source-image transition even when the native plan labels it safe. Use the separately approved [PG18 reset/reindex procedure](postgresql18-rebuild.md) and direct native apply for that release.
 Keep the target environment unchanged between plan and apply.
-Before calling native apply, use `railway status` to verify the linked project and selected environment. Match that environment ID against the saved artifact's `environmentId`; CLI 5.75 saved plans have no `projectId`. Keep the reviewed artifact unchanged. The CI apply gate additionally checks the environment, merged IaC tree and current master revision.
+Before calling native apply, use `railway status` to verify the linked project and selected environment. Match that environment ID against the saved artifact's `environmentId`; CLI 5.75 saved plans have no `projectId`. Keep the reviewed artifact unchanged. CI retains the main database transition/current-master guards; native saved-plan validation enforces environment/source-tree/revision binding.
 The command applies the saved changes without re-evaluating the authoring file.
 If Railway rejects a stale plan, generate a fresh plan and review it again.
 Do not add `--confirm-destructive` to bypass an unexpected destructive change.
-A manual production apply can invalidate an older saved plan from the GitHub workflow.
+A manual production apply can invalidate an in-flight CI plan; coordinate separately approved maintenance with automatic releases.
 
 #### Verify native apply results
 
@@ -692,8 +695,8 @@ paths outside the public REST surface. Let Cloudflare handle edge compression.
 ## Validation
 
 Run `pnpm validate` for the source-only sequence in `AGENTS.md`. It checks
-OpenAPI after building the shared snapshot-artifacts package and before the full
-build can regenerate the file. `pnpm validate:all` then builds/scans all seven images and Dockerfiles and runs required container integration. See [validation.md](validation.md) for prerequisites and evidence.
+OpenAPI drift during gateway build; explicit regeneration first builds shared
+snapshot artifacts from current source. `pnpm validate:all` then builds/scans all seven images and Dockerfiles and runs required container integration. See [validation.md](validation.md) for prerequisites and evidence.
 
 
 ## Recorded initial migration checks (2026-10-29)
@@ -710,7 +713,8 @@ cover the resource inventory, database images, capacities, branch/domain rules,
 variable ownership, and merge workflow guards. Checksum-verified Actionlint
 1.7.12 validated the workflow. The workflow itself has not run against GitHub.
 The current GitHub credential received HTTP 403 when listing secret names, so
-the presence and scope of `RAILWAY_TOKEN` must be confirmed by a repository admin.
+that historical secret configuration was not verified. It is not evidence for
+today's environment-only deployment secret or master-only protections.
 These initial checks were read-only. Later PR 82 cache creation, upstream variable
 setup and deployment follow [rpc-cache.md](rpc-cache.md).
 No production apply was run.

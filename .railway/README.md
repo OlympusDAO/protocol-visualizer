@@ -23,7 +23,7 @@ an environment ID preserve passwords instead of requesting generation.
 Before applying the cache URL reference in an existing environment, ensure its
 database password is URL-safe. Existing credentials require a coordinated database
 role and Railway variable update; changing `POSTGRES_PASSWORD` alone is insufficient.
-Automatic production apply checks this password policy before applying the plan
+Automatic production release checks this password policy once after fresh planning, before apply
 and stops if rotation is still required. This check does not modify credentials
 or verify that a PostgreSQL role rotation has been completed.
 Automatic whole-project apply requires the cache to be provisioned and verified
@@ -41,7 +41,9 @@ The prepared main PG18 image transition is blocked from automatic apply. Its
 cache data and production mounts remain unchanged.
 
 See the [automatic CI gates and release recovery](../docs/railway-self-hosting.md#automatic-plan-and-apply)
-for merge prerequisites, authentication and queued-release recovery.
+for trusted merged-master planning/apply, environment-only deployment credentials,
+activation prerequisites and queued-release recovery. PRs have no production token
+or live plan; source policy does not prove live GitHub protections or deployed privacy.
 
 For local native plan/review/apply, private artifact permissions and deployment
 acceptance, use the [operator runbook](../docs/railway-self-hosting.md#manual-iac-plan-and-deployment).

@@ -14,7 +14,7 @@ The saved [CLI 5.75 PostgreSQL compiler branch](https://github.com/railwayapp/cl
 
 Both production resources now select one immutable Railway image; the provider inventory retains both resource names and deduplicates their reference. Provider advisory reporting and local fixture exclusions remain unchanged. Main PG16 is retired from current source inventory; prior PG16 scan/validation receipts remain historical evidence. A source pin update alone cannot convert a PG16 cluster. Do not apply the image change against old cluster files and expect a migration.
 
-CI may generate the reviewed plan artifact, but its existing production-target verification step rejects source-image changes on the existing main `database.Postgres`, including PG16→PG18. Native `safe` severity does not authorize a database-major transition. There is no CI bypass or automatic reset: perform the separately approved fresh-data release and direct native apply below. Once live main already matches the reviewed image, unrelated normal automation can resume.
+On a relevant trusted merged-`master` release, CI creates a fresh private temporary native plan, but its production-target verification step rejects source-image changes on the existing main `database.Postgres`, including PG16→PG18. Native `safe` severity does not authorize a database-major transition. There is no CI bypass or automatic reset: perform the separately approved fresh-data release and direct native apply below. Once live main already matches the reviewed image, unrelated normal automation can resume.
 
 ## Data inventory before calling a reset safe
 

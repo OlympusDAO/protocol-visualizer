@@ -45,7 +45,9 @@ test("documented plan preparation restricts both fresh and pre-existing artifact
   const preparation =
     "umask 077\ntouch railway-plan.json\nchmod 600 railway-plan.json";
   for (const file of ["docs/railway-self-hosting.md"]) {
-    const text = readFileSync(file, "utf8");
+    const text = readFileSync(file, "utf8").split(
+      "## Manual IaC plan and deployment"
+    )[1];
     assert(text.includes(preparation));
     assert(
       text.indexOf(preparation) <

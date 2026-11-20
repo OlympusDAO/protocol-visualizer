@@ -20,7 +20,9 @@ import {
 // Long-running services inherit Railway's ON_FAILURE default. CLI 5.71 treats
 // explicitly declaring that omitted platform default as perpetual deploy drift.
 export default defineRailway((ctx) => {
-  const production = ctx.isEnvironment("production");
+  const production =
+    ctx.isEnvironment("production") ||
+    ctx.environmentId === "1b61e496-b565-42b4-9e5d-8096e28e13cd";
   const source = github("OlympusDAO/protocol-visualizer", {
     // Explicit undefined overrides the SDK's "main" default for PR environments.
     branch: production ? "master" : undefined,

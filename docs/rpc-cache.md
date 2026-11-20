@@ -4,7 +4,7 @@
 in [`.railway/railway.ts`](../.railway/railway.ts) defines the whole project,
 including `rpc-cache` and its separate `rpc-cache-postgres` database and volume.
 Use [the project migration guide](railway-self-hosting.md) for bootstrap and the
-plan-on-PR/apply-on-merge workflow. IaC supplies connection references and preserves
+trusted merged-master fresh-plan/automatic-apply CI flow. IaC supplies connection references and preserves
 provider credentials supplied in Railway.
 No resources or live variables are changed by building this repository.
 Do not reuse the Envio database or role for cache storage.
@@ -379,8 +379,10 @@ must pass without the old exception before cutover.
 ## Infrastructure deployment and PR environments
 
 The whole-project definition and merge workflow are documented in
-[railway-self-hosting.md](railway-self-hosting.md). The workflow plans production
-changes on PR updates and applies the reviewed plan on merge to `master`.
+[railway-self-hosting.md](railway-self-hosting.md). PRs run offline checks without
+production credentials or a live plan. After a relevant reviewed merge to `master`,
+CI gates a fresh private temporary native plan and automatic apply from that exact
+trusted revision.
 Application GitHub autodeploys continue according to watch patterns.
 Preview infrastructure is applied explicitly against the linked target
 environment; it is not auto-applied on each PR commit.

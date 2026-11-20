@@ -16,6 +16,8 @@ const managedServices = new Set([
 ]);
 
 export function tcpRemovals(name: string, imported: readonly string[] = []) {
+  // CLI TCP maps are sparse: only explicit nulls remove proxies. Include imported
+  // ports so an unexpected existing exposure cannot survive the managed defaults.
   const known: Record<string, number[]> = {
     Postgres: [5432],
     "rpc-cache-postgres": [5432],
@@ -37,6 +39,7 @@ export function postgresPassword(
   existingServices: ReadonlySet<string> | undefined
 ): VariableValue {
   // Offline typechecks cannot establish that a database is new. Fail closed.
+  // Generating for an existing service would rotate its role's password.
   return existingServices === undefined || existingServices.has(name)
     ? preserve()
     : { type: "raw", value: { defaultValue: postgresPasswordGenerator } };
@@ -110,6 +113,8 @@ export function existingResources(ctx: RailwayContext):
         ({ node }: { node: { serviceId: string } }) => node.serviceId
       )
     );
+    // Reconcile both views; unknown or missing active metadata could hide a public
+    // service or misclassify an existing database as new.
     if (
       serviceIds.size !== services.edges.length ||
       new Set(
@@ -149,6 +154,8 @@ export function existingResources(ctx: RailwayContext):
         )
       )
         throw new Error("Invalid domain metadata");
+      // Empty domain maps cannot remove live HTTP domains through native apply.
+      // Stop until separately approved provider removal has been verified.
       if (
         !publicServices.has(node.serviceName) &&
         (domains.serviceDomains.length || domains.customDomains.length)

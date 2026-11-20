@@ -336,7 +336,8 @@ export default defineRailway((ctx) => {
       publicGroup,
     ],
   };
-  // Apply native maps AFTER SDK normalization. TCP maps are sparse patches:
+  // Apply native maps AFTER SDK normalization so its networking defaults cannot
+  // replace the explicit CLI removals. TCP maps are sparse patches:
   // null deletes each known/imported port; an empty map cannot remove a proxy.
   for (const resource of definition.resources.flat()) {
     if (resource.type !== "service" && resource.type !== "database") continue;

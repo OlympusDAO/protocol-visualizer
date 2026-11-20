@@ -51,7 +51,7 @@
     "validate:all": "pnpm validate && pnpm validate:images && pnpm test:integration",
     "container:scan:dockerfiles": "node scripts/scan-dockerfiles.mjs",
     "container:scan:runtime": "node scripts/scan-runtime-images.mjs",
-    "scan:images:provider": "node scripts/scan-runtime-images.mjs --provider",
+    "docker:scan:provider": "node scripts/scan-runtime-images.mjs --provider",
     "codegen": "node scripts/codegen-offline.mjs",
     "check": "pnpm run lint:check && pnpm run lint:actions"
   },

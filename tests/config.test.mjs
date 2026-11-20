@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
-import { test } from "node:test";
 import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { test } from "node:test";
 
 import { createRailwayContext } from "railway/iac";
 import defineInfrastructure from "../.railway/railway.ts";
@@ -197,33 +197,30 @@ test("Dependabot treats the snapshot gateway as TypeScript", () => {
   );
 });
 
-test("Dependency audit comments are isolated from pull request code", () => {
+test("Dependency audit skips fork PRs and uses the pinned action for same-repository PRs", () => {
   const auditWorkflow = readFileSync(".github/workflows/audit.yml", "utf8");
-  const commentWorkflow = readFileSync(
-    ".github/workflows/audit-comment.yml",
-    "utf8"
+  assert(
+    auditWorkflow.includes(
+      "if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository"
+    )
   );
-
-  assert(!auditWorkflow.includes("pull-requests: write"));
-  assert(!auditWorkflow.includes("github_token:"));
-  assert(auditWorkflow.includes("pnpm audit --audit-level moderate --json"));
-  assert(auditWorkflow.includes('run: exit "$AUDIT_EXIT_CODE"'));
-  assert(auditWorkflow.includes("actions/upload-artifact@"));
-  assert(auditWorkflow.includes("workflow_call:"));
+  assert(
+    auditWorkflow.includes(
+      "JamesRobertWiseman/pnpm-audit@ef62519bd4eb8b0b063989599c2ebbf5dd5f5f28"
+    )
+  );
+  assert(auditWorkflow.includes("if: github.event_name == 'pull_request'"));
+  assert(auditWorkflow.includes("if: github.event_name != 'pull_request'"));
+  assert(auditWorkflow.includes("run: pnpm audit --audit-level moderate"));
+  assert(auditWorkflow.includes("level: moderate"));
+  assert(auditWorkflow.includes("fails: true"));
+  assert(!auditWorkflow.includes("workflow_call:"));
   assert(auditWorkflow.includes("pull_request:"));
   const ciWorkflow = readFileSync(".github/workflows/ci.yml", "utf8");
   assert(ciWorkflow.includes("branches: [master]"));
-  assert(ciWorkflow.includes("uses: ./.github/workflows/audit.yml"));
-  assert(auditWorkflow.includes('cron: "17 5 * * 1"'));
-
-  assert(commentWorkflow.includes("workflow_run:"));
-  assert(commentWorkflow.includes("pull-requests: write"));
-  assert(commentWorkflow.includes("actions/download-artifact@"));
-  assert(commentWorkflow.includes("actions/github-script@"));
-  assert(!commentWorkflow.includes("actions/checkout@"));
-  assert(!commentWorkflow.includes("./.github/actions/bootstrap"));
-  assert(!commentWorkflow.includes("pnpm install"));
-  assert(commentWorkflow.includes("conclusion != 'cancelled'"));
+  assert(!ciWorkflow.includes("uses: ./.github/workflows/audit.yml"));
+  assert(auditWorkflow.includes("branches: [master]"));
+  assert(auditWorkflow.includes('cron: "0 0 * * 1"'));
 });
 
 test("Compose includes the Railway-like snapshot services", () => {

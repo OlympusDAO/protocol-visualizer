@@ -51,7 +51,7 @@
   "linter": {
     "enabled": true,
     "includes": [
-      "**/*.{js,mjs,cjs,jsx,ts,tsx}",
+      "**/*.{js,mjs,cjs,jsx,ts,tsx,yml,yaml}",
       "!**/*.config.ts",
       "!**/eslint.config.mjs"
     ],

@@ -103,14 +103,10 @@ jobs:
       - name: Run monitor tests
         run: pnpm --filter snapshot-monitor run test
 
-  # PRs have dedicated audit workflows; merged master runs also gate native apply.
+  # Image checks share this workflow; the standalone dependency audit is checked below.
   security-audit:
     if: github.event_name != 'pull_request'
     uses: ./.github/workflows/security-scan.yml
-
-  dependency-audit:
-    if: github.event_name != 'pull_request'
-    uses: ./.github/workflows/audit.yml
 
   railway-plan:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -162,7 +158,6 @@ jobs:
         indexer-typecheck,
         monitor-tests,
         security-audit,
-        dependency-audit,
         railway-plan,
       ]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.railway-plan.outputs.run-id != ''
@@ -203,18 +198,22 @@ jobs:
             });
             if (!currentRun.check_suite_id) throw new Error("Cannot identify the CI workflow's own check suite.");
             // GitHub-managed CodeQL has no workflow file and uses the dynamic event.
-            const codeqlWorkflow = 255339919;
+            const requiredWorkflows = [[255339919, "dynamic"], ["audit.yml", "push"]];
             for (let attempt = 0; attempt < 120; attempt++) {
-              const { data } = await github.rest.actions.listWorkflowRuns({
-                ...context.repo,
-                workflow_id: codeqlWorkflow,
-                head_sha: process.env.MERGE_COMMIT_SHA,
-                event: "dynamic",
-                per_page: 1,
-              });
-              const run = data.workflow_runs[0];
-              if (run?.status === "completed" && run.conclusion !== "success") throw new Error(`${codeqlWorkflow}: ${run.conclusion}`);
-              if (run?.status === "completed" && run.conclusion === "success") {
+              let workflowsPassed = true;
+              for (const [workflow, event] of requiredWorkflows) {
+                const { data } = await github.rest.actions.listWorkflowRuns({
+                  ...context.repo,
+                  workflow_id: workflow,
+                  head_sha: process.env.MERGE_COMMIT_SHA,
+                  event,
+                  per_page: 1,
+                });
+                const run = data.workflow_runs[0];
+                if (run?.status === "completed" && run.conclusion !== "success") throw new Error(`${workflow}: ${run.conclusion}`);
+                workflowsPassed &&= run?.status === "completed" && run.conclusion === "success";
+              }
+              if (workflowsPassed) {
                 const reportedChecks = await github.paginate(github.rest.checks.listForRef, {
                   ...context.repo,
                   ref: process.env.MERGE_COMMIT_SHA,
@@ -244,7 +243,7 @@ jobs:
                   return;
                 }
               }
-              core.info("Waiting for CodeQL and external commit checks on the merge commit.");
+              core.info("Waiting for dependency audit, CodeQL and external commit checks on the merge commit.");
               await new Promise(resolve => setTimeout(resolve, 15_000));
             }
             throw new Error("Timed out waiting for external checks; production infrastructure was not applied.");

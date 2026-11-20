@@ -4,7 +4,7 @@ import { test } from "node:test";
 import vm from "node:vm";
 
 const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
-const required = [255339919];
+const required = [255339919, "audit.yml"];
 
 async function runGate(
   response,
@@ -77,7 +77,6 @@ test("production apply depends on native CI jobs and waits only for external wor
       "indexer-typecheck",
       "monitor-tests",
       "security-audit",
-      "dependency-audit",
       "railway-plan",
     ].sort()
   );
@@ -96,7 +95,10 @@ test("production apply depends on native CI jobs and waits only for external wor
   );
   for (const call of calls) {
     assert.equal(call.head_sha, "merged-release");
-    assert.equal(call.event, "dynamic");
+    assert.equal(
+      call.event,
+      call.workflow_id === "audit.yml" ? "push" : "dynamic"
+    );
   }
   assert.equal(
     calls.filter((call) => call.workflow_id === 255339919).length,
@@ -104,10 +106,7 @@ test("production apply depends on native CI jobs and waits only for external wor
   );
   const ci = readFileSync(".github/workflows/ci.yml", "utf8");
   assert.match(ci, /^ {2}push:\n {4}branches: \[master\]$/m);
-  for (const [job, path] of [
-    ["security-audit", "security-scan.yml"],
-    ["dependency-audit", "audit.yml"],
-  ]) {
+  for (const [job, path] of [["security-audit", "security-scan.yml"]]) {
     assert.match(
       ci,
       new RegExp(
@@ -120,6 +119,10 @@ test("production apply depends on native CI jobs and waits only for external wor
     assert(!/^ {2}push:/m.test(reusable));
     assert(!reusable.includes("group: ${{ github.workflow }}"));
   }
+  const audit = readFileSync(".github/workflows/audit.yml", "utf8");
+  assert.match(audit, /^ {2}push:\n {4}branches: \[master\]$/m);
+  assert(!audit.includes("workflow_call:"));
+  assert(!ci.includes("uses: ./.github/workflows/audit.yml"));
 });
 
 const mergedPR = {
@@ -249,12 +252,18 @@ test("production apply blocks failed managed CodeQL and additional commit checks
 });
 
 test("production apply rejects failed or skipped merge CI", async () => {
-  for (const conclusion of ["failure", "cancelled", "skipped"]) {
-    await assert.rejects(
-      runGate(() => [{ status: "completed", conclusion }]),
-      new RegExp(conclusion)
-    );
-  }
+  for (const workflow of required)
+    for (const conclusion of ["failure", "cancelled", "skipped"]) {
+      await assert.rejects(
+        runGate((name) => [
+          {
+            status: "completed",
+            conclusion: name === workflow ? conclusion : "success",
+          },
+        ]),
+        new RegExp(conclusion)
+      );
+    }
 });
 
 test("production apply times out when merge CI never finishes", async () => {
@@ -264,6 +273,14 @@ test("production apply times out when merge CI never finishes", async () => {
   );
   await assert.rejects(
     runGate(() => []),
+    /Timed out/
+  );
+  await assert.rejects(
+    runGate((name) =>
+      name === "audit.yml"
+        ? []
+        : [{ status: "completed", conclusion: "success" }]
+    ),
     /Timed out/
   );
   await assert.rejects(
@@ -316,7 +333,7 @@ test("production apply blocks failed or pending external commit statuses", async
       state: attempt === 0 ? "pending" : "success",
     },
   ]);
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, required.length * 2);
 });
 
 test("production apply uses the newest status per context and excludes downstream deployments", async () => {

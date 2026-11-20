@@ -144,6 +144,7 @@ async function main() {
         "./scripts/register-typescript.mjs",
         "--test",
         "scripts/state-postgres.test.mjs",
+        "scripts/effect-cache-stash.test.mjs",
       ],
       {
         cwd: fileURLToPath(new URL("../apps/indexer/", import.meta.url)),

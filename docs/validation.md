@@ -10,7 +10,7 @@ Use the repository pins in `mise.toml`/`mise.lock`: Node 24.22.3, pnpm 11.28.13,
 | `pnpm validate:all`         | Source, then `validate:images --integration`, which explicitly hands the current IID directory to the unchanged integration entry point. Stops at first failure.                                                                                                             |
 | `pnpm scan:images:provider` | Optional native provider vulnerability report only; findings advisory, execution/registry errors fail. No builds/local fixtures/Docker daemon.                                                                                                                               |
 
-The source PostgreSQL case is deliberately deferred to integration. Codegen uses loopback interpolation fixtures, not live RPCs. Missing prerequisites fail; `RPC_CACHE_TEST_SKIP_RESET=1` is rejected. An independently requested integration run may follow a failed security gate, but the fail-fast aggregate does not do this automatically.
+The source PostgreSQL cases are deliberately deferred to integration: native state/rollback and effect-cache preservation across the real Envio schema migration. Codegen uses loopback interpolation fixtures, not live RPCs. Missing prerequisites fail; `RPC_CACHE_TEST_SKIP_RESET=1` is rejected. An independently requested integration run may follow a failed security gate, but the fail-fast aggregate does not do this automatically.
 
 ## Image policy
 

@@ -68,10 +68,11 @@ if (command === "docker") {
 `,
       { mode: 0o755 }
     );
-  writeFileSync(
-    path.join(directory, "apps/indexer/scripts/state-postgres.test.mjs"),
-    `import fs from "node:fs"; const command="mock-sql", args=[]; ${record}`
-  );
+  for (const file of ["state-postgres.test.mjs", "effect-cache-stash.test.mjs"])
+    writeFileSync(
+      path.join(directory, "apps/indexer/scripts", file),
+      `import fs from "node:fs"; const command="mock-sql", args=[${JSON.stringify(file)}]; ${record}`
+    );
   writeFileSync(
     path.join(directory, "apps/indexer/scripts/register-typescript.mjs"),
     ""
@@ -129,6 +130,13 @@ test("integration prepares only missing pinned PG18 independently of security sc
     assert(
       calls.some((c) => c[0] === "mock-sql"),
       JSON.stringify(calls)
+    );
+    assert.deepEqual(
+      calls
+        .filter((c) => c[0] === "mock-sql")
+        .map((c) => c[1])
+        .sort(),
+      ["effect-cache-stash.test.mjs", "state-postgres.test.mjs"]
     );
     assert(calls.some((c) => c[0] === "pnpm" && c[2] === "test:rpc-cache"));
     assert(calls.some((c) => c[1] === "rm" && c.includes("--volumes")));

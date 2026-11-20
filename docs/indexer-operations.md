@@ -136,14 +136,24 @@ The command always targets the `indexer` service in the linked project.
 The remote script connects to a private Unix socket owned by the indexer user.
 The startup wrapper stops the entire Envio process group and waits for it to exit.
 If shutdown exceeds 30 seconds, the wrapper refuses to start the migration.
+
+The migration drops Envio's schema, including its effect cache (cached contract
+reads). Envio's own cache dump needs `psql`, which the image does not have, so the
+wrapper first moves the cache tables into the `envio_effect_cache_stash` schema
+(`scripts/effect-cache-stash.mjs`). If that fails, the migration does not start
+and ingestion remains stopped.
 The wrapper then runs the deployed Envio command, with its configuration and variables:
 
 ```text
 /nodejs/bin/node /app/apps/indexer/node_modules/envio/bin.mjs local db-migrate setup
 ```
 
-After a successful migration, the wrapper starts Envio again inside the same
-container. No Railway service restart, deployment, or start-command change is needed.
+After a successful migration, the wrapper moves the cache tables back and starts
+Envio again inside the same container. Envio resumes with the cached reads, so the
+rebuild refetches only reads that are not cached. If the restore fails, Envio
+still starts and refetches those reads; the tables stay in the stash schema and
+the next reset restores them. A cached result is reused under the same rules as
+a normal resume: when an effect's output changes, give the effect a new name. No Railway service restart, deployment, or start-command change is needed.
 The command prints a completion message and exits with the migration status.
 A successful launch does not mean that indexing has caught up.
 
@@ -236,6 +246,10 @@ also resets and starts ingestion, but it must remain an operator-only action.
 
 Local process fixtures check complete ingestion shutdown before migration,
 restart after success, maintenance after failure, and concurrent reset rejection.
+They also check that the effect cache is stashed after shutdown and restored only
+after a successful migration, before Envio restarts. A disposable PostgreSQL test
+runs the real Envio migration between stash and restore and checks the cache
+through Envio's resume path, including a stash left by an interrupted reset.
 They also cover incompatible startup without automatic reset, explicit reset
 with no ingestion child, and ordinary storage/runtime failures exiting unsuccessfully.
 The Railway command test uses a fake CLI to check explicit environment selection.

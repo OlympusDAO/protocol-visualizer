@@ -62,9 +62,24 @@ test("production apply depends on native CI jobs and waits only for external wor
   const apply = workflow.split("\n  railway-apply:")[1];
   assert.match(apply, /^ {6}checks: read$/m);
   assert.match(apply, /^ {6}statuses: read$/m);
-  assert.match(
-    apply,
-    /needs: \[build, security-audit, dependency-audit, railway-plan\]/
+  const needs = apply.match(/^\s+needs:\s*\[([\s\S]*?)\]/m)?.[1];
+  assert(needs, "production apply must declare its deployment gates");
+  assert.deepEqual(
+    needs
+      .split(",")
+      .map((job) => job.trim())
+      .filter(Boolean)
+      .sort(),
+    [
+      "runtime-check",
+      "lint-check",
+      "build",
+      "indexer-typecheck",
+      "monitor-tests",
+      "security-audit",
+      "dependency-audit",
+      "railway-plan",
+    ].sort()
   );
   assert.match(apply, /needs.railway-plan.outputs.run-id != ''/);
   assert.match(apply, /group: railway-infrastructure-production/);

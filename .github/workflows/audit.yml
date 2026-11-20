@@ -32,6 +32,7 @@ jobs:
         id: audit
         shell: bash
         run: |
+          # Capture the unprivileged report for the separate artifact-only commenter.
           mkdir -p "$RUNNER_TEMP/pnpm-audit-result"
           set +e
           pnpm audit --audit-level moderate --json \
@@ -46,8 +47,9 @@ jobs:
           name: pnpm-audit-result
           path: ${{ runner.temp }}/pnpm-audit-result/audit.json
           if-no-files-found: error
-          retention-days: 1
 
       - name: Enforce audit result
         if: steps.audit.outputs.exit_code != '0'
-        run: exit 1
+        env:
+          AUDIT_EXIT_CODE: ${{ steps.audit.outputs.exit_code }}
+        run: exit "$AUDIT_EXIT_CODE"

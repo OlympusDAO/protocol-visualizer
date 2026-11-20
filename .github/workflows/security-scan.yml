@@ -27,8 +27,71 @@ jobs:
         uses: ./.github/actions/bootstrap
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
-      - name: Build and scan repository-owned application images and Dockerfiles
-        # Provider PostgreSQL is advisory/not-run; local fixtures are excluded.
-        run: pnpm validate:images
-      - name: Verify cache persistence, restart and reset isolation
-        run: pnpm test:integration
+      # Keep all builds on this runner so integration uses these exact images.
+      - name: Prepare current image ID directory
+        run: mkdir -p "$RUNNER_TEMP/visualizer-images"
+      - name: Build rpc-cache image
+        run: pnpm run container:build:rpc-cache --iidfile "$RUNNER_TEMP/visualizer-images/rpc-cache.iid"
+      - name: Build indexer image
+        run: pnpm run container:build:indexer --iidfile "$RUNNER_TEMP/visualizer-images/indexer.iid"
+      - name: Build frontend image
+        run: pnpm run container:build:frontend --iidfile "$RUNNER_TEMP/visualizer-images/frontend.iid"
+      - name: Build hasura image
+        run: pnpm run container:build:hasura --iidfile "$RUNNER_TEMP/visualizer-images/hasura.iid"
+      - name: Build snapshot-gateway image
+        run: pnpm run container:build:snapshot-gateway --iidfile "$RUNNER_TEMP/visualizer-images/snapshot-gateway.iid"
+      - name: Build snapshot-publisher image
+        run: pnpm run container:build:snapshot-publisher --iidfile "$RUNNER_TEMP/visualizer-images/snapshot-publisher.iid"
+      - name: Build snapshot-monitor image
+        run: pnpm run container:build:snapshot-monitor --iidfile "$RUNNER_TEMP/visualizer-images/snapshot-monitor.iid"
+      # Read build IIDs, never shared tags: concurrent worktrees may retag images.
+      - name: Scan rpc-cache immutable image
+        shell: bash
+        run: |
+          image_id="$(< "$RUNNER_TEMP/visualizer-images/rpc-cache.iid")"
+          [[ "$image_id" =~ ^(sha256:)?[a-f0-9]{64}$ ]] || exit 1
+          pnpm run container:scan -- rpc-cache "$image_id"
+      - name: Scan indexer immutable image
+        shell: bash
+        run: |
+          image_id="$(< "$RUNNER_TEMP/visualizer-images/indexer.iid")"
+          [[ "$image_id" =~ ^(sha256:)?[a-f0-9]{64}$ ]] || exit 1
+          pnpm run container:scan -- indexer "$image_id"
+      - name: Scan frontend immutable image
+        shell: bash
+        run: |
+          image_id="$(< "$RUNNER_TEMP/visualizer-images/frontend.iid")"
+          [[ "$image_id" =~ ^(sha256:)?[a-f0-9]{64}$ ]] || exit 1
+          pnpm run container:scan -- frontend "$image_id"
+      - name: Scan hasura immutable image
+        shell: bash
+        run: |
+          image_id="$(< "$RUNNER_TEMP/visualizer-images/hasura.iid")"
+          [[ "$image_id" =~ ^(sha256:)?[a-f0-9]{64}$ ]] || exit 1
+          pnpm run container:scan -- hasura "$image_id"
+      - name: Scan snapshot-gateway immutable image
+        shell: bash
+        run: |
+          image_id="$(< "$RUNNER_TEMP/visualizer-images/snapshot-gateway.iid")"
+          [[ "$image_id" =~ ^(sha256:)?[a-f0-9]{64}$ ]] || exit 1
+          pnpm run container:scan -- snapshot-gateway "$image_id"
+      - name: Scan snapshot-publisher immutable image
+        shell: bash
+        run: |
+          image_id="$(< "$RUNNER_TEMP/visualizer-images/snapshot-publisher.iid")"
+          [[ "$image_id" =~ ^(sha256:)?[a-f0-9]{64}$ ]] || exit 1
+          pnpm run container:scan -- snapshot-publisher "$image_id"
+      - name: Scan snapshot-monitor immutable image
+        shell: bash
+        run: |
+          image_id="$(< "$RUNNER_TEMP/visualizer-images/snapshot-monitor.iid")"
+          [[ "$image_id" =~ ^(sha256:)?[a-f0-9]{64}$ ]] || exit 1
+          pnpm run container:scan -- snapshot-monitor "$image_id"
+      - name: Scan all Dockerfiles
+        run: pnpm run container:scan:dockerfiles
+      - name: Check required external images and record exclusions
+        # Railway PostgreSQL is advisory/not-run; local fixtures are excluded.
+        run: pnpm run container:scan:runtime
+      - name: Verify PostgreSQL, effect stash, cache restart and reset isolation
+        # Missing prerequisites or skipped reset isolation fail required integration.
+        run: pnpm test:integration --images "$RUNNER_TEMP/visualizer-images"

@@ -140,7 +140,7 @@ test("snapshot jobs log missing webhooks and exit unsuccessfully on startup", ()
   }
 });
 
-test("CI delegates complete image and Dockerfile coverage to canonical validation", () => {
+test("CI exposes complete image coverage using existing build, scan and integration commands", () => {
   const workflow = readFileSync(".github/workflows/security-scan.yml", "utf8");
   const { scripts } = readJson("package.json");
   const validator = readFileSync("scripts/validate-images.sh", "utf8");
@@ -156,6 +156,11 @@ test("CI delegates complete image and Dockerfile coverage to canonical validatio
   ]) {
     assert(scripts["container:build"].includes(`container:build:${name}`));
     assert(validator.includes(name));
+    assert(workflow.includes(`name: Build ${name} image`));
+    assert(workflow.includes(`pnpm run container:build:${name} --iidfile`));
+    assert(workflow.includes(`name: Scan ${name} immutable image`));
+    assert(workflow.includes(`pnpm run container:scan -- ${name} "$image_id"`));
+    assert(workflow.includes(`visualizer-images/${name}.iid`));
   }
   for (const dockerfile of [
     "Dockerfile-indexer",
@@ -168,8 +173,10 @@ test("CI delegates complete image and Dockerfile coverage to canonical validatio
   ]) {
     assert(existsSync(dockerfile));
   }
-  assert.match(workflow, /run: pnpm validate:images/);
-  assert.match(workflow, /run: pnpm test:integration/);
+  assert.match(workflow, /run: pnpm run container:scan:dockerfiles/);
+  assert.match(workflow, /run: pnpm run container:scan:runtime/);
+  assert.match(workflow, /run: pnpm test:integration --images/);
+  assert(workflow.includes('[[ "$image_id" =~ ^(sha256:)?[a-f0-9]{64}$ ]]'));
   assert.match(validator, /pnpm run "container:build:\$image" --iidfile/);
   assert.match(validator, /pnpm run container:scan -- "\$image"/);
   assert.match(validator, /pnpm run container:scan:dockerfiles/);
@@ -200,6 +207,7 @@ test("Dependency audit comments are isolated from pull request code", () => {
   assert(!auditWorkflow.includes("pull-requests: write"));
   assert(!auditWorkflow.includes("github_token:"));
   assert(auditWorkflow.includes("pnpm audit --audit-level moderate --json"));
+  assert(auditWorkflow.includes('run: exit "$AUDIT_EXIT_CODE"'));
   assert(auditWorkflow.includes("actions/upload-artifact@"));
   assert(auditWorkflow.includes("workflow_call:"));
   assert(auditWorkflow.includes("pull_request:"));
@@ -490,7 +498,9 @@ test("Snapshot monitor runs tests in CI, not during image builds", () => {
 
   assert.equal(monitorPackage.scripts.build, "tsc");
   assert.equal(monitorPackage.scripts.test, "node --test dist/test/*.test.js");
-  assert(workflow.includes("run: pnpm validate"));
+  assert(workflow.includes("  monitor-tests:"));
+  assert(workflow.includes("run: pnpm --filter snapshot-monitor run build"));
+  assert(workflow.includes("run: pnpm --filter snapshot-monitor run test"));
   assert(
     readFileSync("scripts/validate.sh", "utf8").includes(
       "pnpm --filter snapshot-monitor run test"

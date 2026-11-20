@@ -5,8 +5,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
     open-pull-requests-limit: 0
     labels:
       - "dependencies"
@@ -16,8 +15,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/apps/frontend"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
     open-pull-requests-limit: 0
     labels:
       - "dependencies"
@@ -27,8 +25,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/apps/indexer"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
     open-pull-requests-limit: 0
     labels:
       - "dependencies"
@@ -38,8 +35,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/apps/snapshot-publisher"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
     open-pull-requests-limit: 0
     labels:
       - "dependencies"
@@ -49,8 +45,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/apps/snapshot-gateway"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
     open-pull-requests-limit: 0
     labels:
       - "dependencies"

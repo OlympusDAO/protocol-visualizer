@@ -14,7 +14,8 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  runtime-check:
+    name: Runtime and workflow checks
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -23,11 +24,86 @@ jobs:
           persist-credentials: false
       - name: Bootstrap
         uses: ./.github/actions/bootstrap
-        with:
-          install-dependencies: "false"
-      - name: Validate source and ordinary tests
-        run: pnpm validate
+      - name: Verify runtime version alignment
+        run: pnpm run check:runtime-versions
+      - name: Lint workflow correctness offline
+        run: pnpm run lint:actions
 
+  lint-check:
+    name: Read-only lint and formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Bootstrap
+        uses: ./.github/actions/bootstrap
+      # Codegen uses loopback fixtures; source checks need no Docker or live RPC.
+      - name: Generate offline Envio types
+        run: pnpm run codegen
+      - name: Check lint and formatting
+        run: pnpm run lint:check
+
+  build:
+    name: Workspace builds and ordinary tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Bootstrap
+        uses: ./.github/actions/bootstrap
+      # Codegen uses loopback fixtures; source checks need no Docker or live RPC.
+      - name: Generate offline Envio types
+        run: pnpm run codegen
+      - name: Build shared snapshot artifacts
+        run: pnpm --filter @protocol-visualizer/snapshot-artifacts run build
+      - name: Check OpenAPI schema drift
+        run: pnpm run openapi:check
+      - name: Build workspaces and run ordinary tests
+        run: pnpm run build
+      - name: Generate sample snapshots
+        run: pnpm run snapshots:generate:local
+      - name: Check ABI registry
+        run: pnpm run abis:check
+
+  indexer-typecheck:
+    name: Indexer typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Bootstrap
+        uses: ./.github/actions/bootstrap
+      # Codegen uses loopback fixtures; source checks need no Docker or live RPC.
+      - name: Generate offline Envio types
+        run: pnpm run codegen
+      - name: Typecheck indexer
+        run: pnpm --filter indexer run typecheck
+
+  monitor-tests:
+    name: Snapshot monitor tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Bootstrap
+        uses: ./.github/actions/bootstrap
+      # The monitor build compiles tests; its dedicated test command executes them.
+      - name: Build shared snapshot artifacts
+        run: pnpm --filter @protocol-visualizer/snapshot-artifacts run build
+      - name: Compile monitor and test fixtures
+        run: pnpm --filter snapshot-monitor run build
+      - name: Run monitor tests
+        run: pnpm --filter snapshot-monitor run test
+
+  # PRs have dedicated audit workflows; merged master runs also gate native apply.
   security-audit:
     if: github.event_name != 'pull_request'
     uses: ./.github/workflows/security-scan.yml
@@ -78,7 +154,17 @@ jobs:
             core.setOutput("run-id", data.workflow_runs[0].id);
 
   railway-apply:
-    needs: [build, security-audit, dependency-audit, railway-plan]
+    needs:
+      [
+        runtime-check,
+        lint-check,
+        build,
+        indexer-typecheck,
+        monitor-tests,
+        security-audit,
+        dependency-audit,
+        railway-plan,
+      ]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.railway-plan.outputs.run-id != ''
     runs-on: ubuntu-latest
     concurrency:

@@ -18,6 +18,8 @@ jobs:
       contents: read
       pull-requests: write
     steps:
+      # This privileged workflow parses only the bounded report; never checkout or run PR code.
+      # Setup failures remain native CI failures; only completed audit reports are published here.
       - name: Download audit result
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
@@ -37,7 +39,21 @@ jobs:
             const fs = require("fs");
 
             const marker = "<!-- pnpm-audit -->";
-            const pullRequests = context.payload.workflow_run.pull_requests;
+            const run = context.payload.workflow_run;
+            let pullRequests = run.pull_requests;
+            // Include closed matches so a result cannot move to another PR on the same fork head.
+            if (Array.isArray(pullRequests) && pullRequests.length === 0) {
+              if (!run.head_repository?.id || !run.head_repository.owner?.login || !run.head_branch || !run.head_sha) {
+                core.setFailed("Missing fork audit head identity");
+                return;
+              }
+              const candidates = await github.paginate(github.rest.pulls.list, {
+                ...context.repo, state: "all",
+                head: `${run.head_repository.owner.login}:${run.head_branch}`, per_page: 100,
+              });
+              pullRequests = candidates.filter(candidate => candidate.head?.repo?.id === run.head_repository.id &&
+                candidate.head?.ref === run.head_branch && candidate.head?.sha === run.head_sha);
+            }
             if (!Array.isArray(pullRequests) || pullRequests.length !== 1) {
               core.setFailed("Expected exactly one pull request for the audit run");
               return;
@@ -48,7 +64,6 @@ jobs:
               core.setFailed("Invalid pull request number");
               return;
             }
-
             const resultPath = process.env.AUDIT_RESULT_PATH;
             const resultSize = fs.statSync(resultPath).size;
             if (resultSize > 1024 * 1024) {
@@ -72,7 +87,7 @@ jobs:
               )
               .slice(0, 50);
 
-            const { data: comments } = await github.rest.issues.listComments({
+            const comments = await github.paginate(github.rest.issues.listComments, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issueNumber,
@@ -82,6 +97,14 @@ jobs:
               (comment) =>
                 comment.user?.type === "Bot" && comment.body?.includes(marker)
             );
+            // Check after comment lookup so an older run cannot overwrite a newer head.
+            const { data: pullRequest } = await github.rest.pulls.get({
+              ...context.repo, pull_number: issueNumber,
+            });
+            if (pullRequest.state !== "open" || !run.head_sha || pullRequest.head?.sha !== run.head_sha) {
+              core.info("Skipping audit result: the pull request closed or its head changed.");
+              return;
+            }
 
             if (
               reportable.length === 0 &&
@@ -97,17 +120,19 @@ jobs:
               return;
             }
 
-            const escapeMarkdown = (value) =>
+            // Bound single-line fields and neutralize every embedded backtick before
+            // wrapping them in code spans, where Markdown and mentions stay inert.
+            const escapeMarkdown = (value, limit = 120) =>
               String(value ?? "")
-                .replaceAll("\\", "\\\\")
-                .replaceAll("`", "\\`")
-                .replaceAll("<", "&lt;")
-                .replaceAll(">", "&gt;");
+                .replaceAll("`", "'")
+                .replace(/[\s\u0000-\u001f\u007f]+/g, " ")
+                .trim()
+                .slice(0, limit);
             const lines = reportable.map((advisory) => {
               const severity = escapeMarkdown(advisory.severity);
-              const packageName = escapeMarkdown(advisory.module_name);
+              const packageName = escapeMarkdown(advisory.module_name, 80);
               const title = escapeMarkdown(advisory.title);
-              return `- **${severity}** \`${packageName}\`: ${title}`;
+              return `- \`${severity}\`: \`${packageName}\`: \`${title}\``;
             });
             if (lines.length === 0) {
               lines.push("- The audit did not complete successfully.");

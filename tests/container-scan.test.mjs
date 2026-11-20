@@ -21,7 +21,6 @@ import {
   runtimeImageInventory,
 } from "../scripts/runtime-image-inventory.mjs";
 
-const id = "sha256:" + "ab".repeat(32);
 function fixture(t) {
   const directory = realpathSync(mkdtempSync(path.join(tmpdir(), "pv-scan-")));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
@@ -47,14 +46,11 @@ function fixture(t) {
     mkdirSync(path.dirname(target), { recursive: true });
     copyFileSync(new URL("../" + file, import.meta.url), target);
   }
-  const evidence = path.join(directory, "evidence");
-  mkdirSync(evidence);
   function tool() {
     const fs = require("node:fs"),
       path = require("node:path");
     const name = path.basename(process.argv[1]),
-      args = process.argv.slice(2),
-      id = process.env.PV_TEST_ID;
+      args = process.argv.slice(2);
     fs.appendFileSync(
       process.env.PV_TEST_LOG,
       JSON.stringify([name, ...args]) + "\n"
@@ -65,30 +61,17 @@ function fixture(t) {
       process.exit(0);
     }
     if (name === "pnpm") {
-      if (args[1]?.startsWith("container:build:")) {
-        if (process.env.PV_TEST_MISSING_IID) process.exit(0);
-        fs.writeFileSync(args[args.indexOf("--iidfile") + 1], id);
-      }
-      if (args[1] === "container:scan") {
-        if (args.at(-1) !== id) process.exit(46);
-        process.exit(Number(process.env.PV_TEST_SCAN_EXIT || 0));
-      }
       process.exit(
-        args[0] === "test:integration"
-          ? Number(process.env.PV_TEST_INTEGRATION_EXIT || 0)
+        args[1] === "container:scan"
+          ? Number(process.env.PV_TEST_SCAN_EXIT || 0)
           : 0
       );
     }
-    if (name === "podman") {
+    if (name === "docker" || name === "podman") {
       if (args[0] === "image") {
         if (process.env.PV_TEST_IMAGE_MISSING) process.exit(17);
-        console.log(
-          process.env.PV_TEST_RETAGGED && args[2] !== id
-            ? "sha256:" + "cd".repeat(32)
-            : id
-        );
-      } else
-        fs.writeFileSync(args[args.indexOf("--output") + 1], "fixture archive");
+        console.log(`${name} local tag`);
+      }
       process.exit(0);
     }
     fs.mkdirSync(args[args.indexOf("--cache-dir") + 1], { recursive: true });
@@ -101,7 +84,7 @@ function fixture(t) {
     }
     process.exit(Number(process.env.PV_TEST_SCAN_EXIT || 0));
   }
-  for (const name of ["podman", "trivy", "pnpm", "git", "railway"])
+  for (const name of ["docker", "podman", "trivy", "pnpm", "git", "railway"])
     writeFileSync(
       path.join(directory, name),
       "#!" + process.execPath + "\n(" + tool.toString() + ")();",
@@ -113,8 +96,6 @@ function fixture(t) {
     PATH: directory,
     CONTAINER_ENGINE: "podman",
     PV_TEST_LOG: log,
-    PV_TEST_ID: id,
-    PV_VALIDATION_DIRECTORY: evidence,
   };
   return {
     run: (file, args = [], extra = {}) =>
@@ -124,7 +105,7 @@ function fixture(t) {
         encoding: "utf8",
       }),
     pipeline: (extra = {}) =>
-      spawnSync("/bin/bash", ["scripts/validate-images.sh", "--integration"], {
+      spawnSync("/bin/bash", ["scripts/validate-images.sh"], {
         cwd: directory,
         env: { ...env, PV_VALIDATION_CHILD: "images", ...extra },
         encoding: "utf8",
@@ -133,7 +114,6 @@ function fixture(t) {
       existsSync(log)
         ? readFileSync(log, "utf8").trim().split("\n").map(JSON.parse)
         : [],
-    evidence,
     directory,
   };
 }
@@ -185,22 +165,27 @@ test("offline SDK production/preview inventory covers actual refs without Railwa
   );
 });
 
-test("owned scans pin IDs, preserve unfixed/secret policy, and clean only exports", (t) => {
+test("owned scans use local tags and preserve unfixed/secret policy without exports", (t) => {
   const f = fixture(t);
-  const result = f.run("scripts/scan-container.mjs", ["hasura", id], {
-    PV_TEST_RETAGGED: "1",
+  const result = f.run("scripts/scan-container.mjs", ["hasura"], {
     TRIVY_IGNORE_UNFIXED: "false",
     TRIVY_FORMAT: "json",
   });
   assert.equal(result.status, 0, result.stderr);
-  const [inspect, save, scan] = f.calls();
-  assert.equal(inspect[3], id);
-  assert.equal(save.at(-1), id);
+  const [inspect, scan] = f.calls();
+  assert.equal(
+    inspect[0],
+    "podman",
+    "honor the selected engine when both have the local tag"
+  );
+  assert.equal(inspect[3], "protocol-visualizer/hasura:local");
+  assert.equal(scan.at(-1), "protocol-visualizer/hasura:local");
+  assert.equal(scan[scan.indexOf("--image-src") + 1], "podman");
+  assert(!f.calls().some((call) => call[0] === "docker"));
   assert(scan.includes("--ignore-unfixed=true"));
   assert.equal(scan[scan.indexOf("--scanners") + 1], "vuln,secret");
   assert.equal(scan[scan.indexOf("--format") + 1], "table");
-  assert.equal(existsSync(save[save.indexOf("--output") + 1]), false);
-  assert(existsSync(scan[scan.indexOf("--cache-dir") + 1]));
+  assert(!f.calls().some((c) => c.includes("save") || c.includes("--input")));
   const negative = fixture(t);
   assert.equal(
     negative.run("scripts/scan-container.mjs", ["frontend"], {
@@ -269,7 +254,7 @@ test("provider native reporting is remote/advisory, but execution errors fail", 
   );
 });
 
-test("combined image phase uses current IID files, hands them explicitly to integration and stays fail-fast", (t) => {
+test("image validation builds and scans all local tags and preserves fail-fast policy", (t) => {
   const f = fixture(t);
   const result = f.pipeline();
   assert.equal(result.status, 0, result.stderr);
@@ -280,24 +265,18 @@ test("combined image phase uses current IID files, hands them explicitly to inte
       .map((c) => c[2].slice("container:build:".length)),
     ownedImages
   );
-  assert(
-    calls.filter((c) => c[2] === "container:scan").every((c) => c.at(-1) === id)
+  assert.deepEqual(
+    calls.filter((c) => c[2] === "container:scan").map((c) => c.at(-1)),
+    ownedImages
   );
-  assert.deepEqual(calls.at(-1), [
-    "pnpm",
-    "test:integration",
-    "--images",
-    f.evidence,
-  ]);
-  assert(!calls.some((c) => c.includes("--provider")));
-  for (const extra of [
-    { PV_TEST_MISSING_IID: "1" },
-    { PV_TEST_SCAN_EXIT: "43" },
-  ]) {
-    const blocked = fixture(t);
-    assert.notEqual(blocked.pipeline(extra).status, 0);
-    assert(!blocked.calls().some((c) => c[1] === "test:integration"));
-  }
+  assert(calls.some((c) => c[2] === "container:scan:dockerfiles"));
+  assert(calls.some((c) => c[2] === "container:scan:runtime"));
+  assert(
+    !calls.some(
+      (c) => c.includes("--provider") || c.includes("test:integration")
+    )
+  );
   const failure = fixture(t);
-  assert.equal(failure.pipeline({ PV_TEST_INTEGRATION_EXIT: "37" }).status, 37);
+  assert.equal(failure.pipeline({ PV_TEST_SCAN_EXIT: "43" }).status, 43);
+  assert(!failure.calls().some((c) => c[2] === "container:scan:dockerfiles"));
 });

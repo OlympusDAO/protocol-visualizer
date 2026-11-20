@@ -1,8 +1,6 @@
 // Required integration: fixtures own their containers and never touch project volumes.
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { setTimeout } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { runRecorded } from "./validation-evidence.mjs";
@@ -11,7 +9,6 @@ import { runRecorded } from "./validation-evidence.mjs";
 if (process.env.PV_VALIDATION_CHILD !== "integration") {
   process.exitCode = await runRecorded("integration", process.execPath, [
     fileURLToPath(import.meta.url),
-    ...process.argv.slice(2),
   ]);
 } else {
   await main();
@@ -45,45 +42,16 @@ async function main() {
       throw new Error(
         "test:integration requires reset isolation; unset RPC_CACHE_TEST_SKIP_RESET."
       );
-    console.log("[1/3] Check required Docker and immutable application images");
-    const args = process.argv.slice(2);
-    if (
-      args.length &&
-      (args.length !== 2 || args[0] !== "--images" || !args[1])
-    )
-      throw new Error(
-        "Usage: test-integration.mjs [--images <current-IID-directory>]"
-      );
-    const buildDirectory = args[1];
-    const imageIDs = {};
+    console.log("[1/3] Check required Docker and prebuilt application images");
     run("docker", ["info", "--format", "{{.ServerVersion}}"]);
-    for (const image of ["indexer", "rpc-cache"]) {
-      // An explicit batch never falls through to tags. Standalone inspects once.
-      const expected =
-        buildDirectory &&
-        readFileSync(path.join(buildDirectory, `${image}.iid`), "utf8").trim();
-      if (buildDirectory && !/^(sha256:)?[a-f0-9]{64}$/.test(expected))
-        throw new Error(`Missing immutable build ID for ${image}.`);
-      const id = run(
-        "docker",
-        [
-          "image",
-          "inspect",
-          expected || `protocol-visualizer/${image}:local`,
-          "--format",
-          "{{.Id}}",
-        ],
-        { stdio: ["ignore", "pipe", "inherit"] }
-      );
-      if (
-        !/^(sha256:)?[a-f0-9]{64}$/.test(id) ||
-        (expected &&
-          id.replace(/^sha256:/, "") !== expected.replace(/^sha256:/, ""))
-      )
-        throw new Error(`Cannot verify immutable integration image ${image}.`);
-      imageIDs[image] = `sha256:${id.replace(/^sha256:/, "")}`;
-      console.log(`Integration image ${image}: ${imageIDs[image]}`);
-    }
+    for (const image of ["indexer", "rpc-cache"])
+      run("docker", [
+        "image",
+        "inspect",
+        `protocol-visualizer/${image}:local`,
+        "--format",
+        "{{.RepoTags}}",
+      ]);
     // Integration owns preparation of its exact local fixture, independently of
     // production image security scans. Never pull/build missing application images.
     const fixtureImage = spawnSync("docker", ["image", "inspect", pgImage], {
@@ -158,13 +126,7 @@ async function main() {
     console.log(
       "[3/3] Actual eRPC/indexer persistence, restart, docs isolation and reset"
     );
-    run("pnpm", ["run", "test:rpc-cache"], {
-      env: {
-        ...process.env,
-        PV_INDEXER_TEST_IMAGE_ID: imageIDs.indexer,
-        PV_RPC_CACHE_TEST_IMAGE_ID: imageIDs["rpc-cache"],
-      },
-    });
+    run("pnpm", ["run", "test:rpc-cache"]);
   } catch (error) {
     console.error(error.message);
     process.exitCode = error.status || 1;

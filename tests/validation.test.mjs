@@ -50,8 +50,8 @@ test("bare source validation installs first, records native output and preserves
       { mode: 0o755 }
     );
     for (const [extra, code, count] of [
-      [{}, 0, 13],
-      [{ STALE: "1" }, 23, 7],
+      [{}, 0, 12],
+      [{ STALE: "1" }, 23, 6],
       [{ INSTALL_FAIL: "1" }, 17, 1],
     ]) {
       rmSync(join(directory, "installed"), { force: true });

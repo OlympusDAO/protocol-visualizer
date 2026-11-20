@@ -71,8 +71,7 @@ test("production apply depends on native CI jobs and waits only for external wor
       .filter(Boolean)
       .sort(),
     [
-      "runtime-check",
-      "lint-check",
+      "check",
       "build",
       "indexer-typecheck",
       "monitor-tests",

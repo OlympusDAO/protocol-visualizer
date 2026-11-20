@@ -87,14 +87,8 @@ const keyFor = (value) =>
   );
 const pgImage =
   "postgres:18.6-alpine3.24@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b";
-const image =
-  process.env.PV_RPC_CACHE_TEST_IMAGE_ID ??
-  "protocol-visualizer/rpc-cache:local";
-const indexerImage =
-  process.env.PV_INDEXER_TEST_IMAGE_ID ?? "protocol-visualizer/indexer:local";
-for (const key of ["PV_RPC_CACHE_TEST_IMAGE_ID", "PV_INDEXER_TEST_IMAGE_ID"])
-  if (process.env[key] !== undefined)
-    assert.match(process.env[key], /^sha256:[a-f0-9]{64}$/);
+const image = "protocol-visualizer/rpc-cache:local";
+const indexerImage = "protocol-visualizer/indexer:local";
 const docker = (...args) =>
   execFileSync("docker", args, {
     encoding: "utf8",

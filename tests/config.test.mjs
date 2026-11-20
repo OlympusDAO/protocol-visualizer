@@ -156,11 +156,7 @@ test("CI exposes complete image coverage using existing build, scan and integrat
   ]) {
     assert(scripts["container:build"].includes(`container:build:${name}`));
     assert(validator.includes(name));
-    assert(workflow.includes(`name: Build ${name} image`));
-    assert(workflow.includes(`pnpm run container:build:${name} --iidfile`));
-    assert(workflow.includes(`name: Scan ${name} immutable image`));
-    assert(workflow.includes(`pnpm run container:scan -- ${name} "$image_id"`));
-    assert(workflow.includes(`visualizer-images/${name}.iid`));
+    assert(workflow.includes(`- image: ${name}\n`));
   }
   for (const dockerfile of [
     "Dockerfile-indexer",
@@ -173,11 +169,39 @@ test("CI exposes complete image coverage using existing build, scan and integrat
   ]) {
     assert(existsSync(dockerfile));
   }
-  assert.match(workflow, /run: pnpm run container:scan:dockerfiles/);
+  assert(workflow.includes("fail-fast: false"));
+  assert(
+    workflow.includes("run: pnpm run container:build:${{ matrix.image }}")
+  );
+  assert(
+    workflow.includes("run: pnpm run container:scan -- ${{ matrix.image }}")
+  );
+  assert(workflow.includes("Dockerfile-${{ matrix.image }}"));
+  assert(workflow.includes("name: Cache + integration"));
+  assert(workflow.includes("run: pnpm run container:build:indexer"));
+  assert(
+    workflow.includes(
+      "name: Scan application image\n        if: ${{ !cancelled() && steps.build.outcome == 'success' }}"
+    )
+  );
+  assert(
+    workflow.includes(
+      "name: Check Dockerfile\n        if: ${{ !cancelled() && steps.bootstrap.outcome == 'success' }}"
+    )
+  );
+  assert(
+    workflow.includes(
+      "name: Check runtime image policy\n        if: ${{ !cancelled() && matrix.image == 'rpc-cache' && steps.bootstrap.outcome == 'success' }}"
+    )
+  );
+  assert(
+    workflow.includes(
+      "!cancelled() && matrix.image == 'rpc-cache' && steps.build.outcome == 'success' && steps.companion.outcome == 'success'"
+    )
+  );
   assert.match(workflow, /run: pnpm run container:scan:runtime/);
-  assert.match(workflow, /run: pnpm test:integration --images/);
-  assert(workflow.includes('[[ "$image_id" =~ ^(sha256:)?[a-f0-9]{64}$ ]]'));
-  assert.match(validator, /pnpm run "container:build:\$image" --iidfile/);
+  assert.match(workflow, /run: pnpm test:integration/);
+  assert.match(validator, /pnpm run "container:build:\$image"/);
   assert.match(validator, /pnpm run container:scan -- "\$image"/);
   assert.match(validator, /pnpm run container:scan:dockerfiles/);
   assert.match(validator, /pnpm run container:scan:runtime/);

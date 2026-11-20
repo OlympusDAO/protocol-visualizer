@@ -16,23 +16,12 @@ import { test } from "node:test";
 
 const pgImage =
   "postgres:18.6-alpine3.24@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b";
-const imageID = `sha256:${"ab".repeat(32)}`;
 
-function fixture(
-  t,
-  { cached = false, batch = false, missingIID = false, ...env } = {}
-) {
+function fixture(t, { cached = false, ...env } = {}) {
   const directory = mkdtempSync(path.join(tmpdir(), "pv-integration-routing-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const log = path.join(directory, "calls.jsonl");
   const present = path.join(directory, "pg-present");
-  const buildDirectory = path.join(directory, "current-images");
-  if (batch) {
-    mkdirSync(buildDirectory, { recursive: true });
-    writeFileSync(path.join(buildDirectory, "indexer.iid"), imageID);
-    if (!missingIID)
-      writeFileSync(path.join(buildDirectory, "rpc-cache.iid"), imageID);
-  }
   if (cached) writeFileSync(present, "cached");
   mkdirSync(path.join(directory, "scripts"));
   mkdirSync(path.join(directory, "apps/indexer/scripts"), { recursive: true });
@@ -41,7 +30,7 @@ function fixture(
       new URL(`../scripts/${file}`, import.meta.url),
       path.join(directory, "scripts", file)
     );
-  const record = `fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify([command, ...args, ...(command === "pnpm" ? [process.env.PV_INDEXER_TEST_IMAGE_ID, process.env.PV_RPC_CACHE_TEST_IMAGE_ID] : [])]) + "\\n");`;
+  const record = `fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify([command, ...args]) + "\\n");`;
   for (const command of ["docker", "pnpm", "git"])
     writeFileSync(
       path.join(directory, command),
@@ -57,13 +46,13 @@ if (command === "docker") {
   if (args[0] === "image" && args[1] === "inspect") {
     if (args[2].startsWith("protocol-visualizer/") && process.env.FIXTURE_APP_MISSING) process.exit(18);
     if (args[2] === ${JSON.stringify(pgImage)} && !fs.existsSync(${JSON.stringify(present)})) process.exit(1);
-    console.log(process.env.FIXTURE_RETAGGED && args[2] !== ${JSON.stringify(imageID)} ? "sha256:"+"cd".repeat(32) : ${JSON.stringify(imageID)});
+    console.log("[local tag]");
   } else if (args[0] === "pull") {
     if (args[1] !== ${JSON.stringify(pgImage)}) process.exit(42);
     if (process.env.FIXTURE_PULL_FAILURE) process.exit(23);
     fs.writeFileSync(${JSON.stringify(present)}, "pulled exact fixture");
   } else if (args[0] === "port") console.log("127.0.0.1:54999");
-  else if (args[0] === "inspect") console.log(${JSON.stringify(imageID)});
+  else if (args[0] === "inspect") console.log("fixture image");
 }
 `,
       { mode: 0o755 }
@@ -86,18 +75,11 @@ if (command === "docker") {
   };
   delete environment.NODE_TEST_CONTEXT;
   const run = () =>
-    spawnSync(
-      process.execPath,
-      [
-        "scripts/test-integration.mjs",
-        ...(batch ? ["--images", buildDirectory] : []),
-      ],
-      {
-        cwd: directory,
-        encoding: "utf8",
-        env: environment,
-      }
-    );
+    spawnSync(process.execPath, ["scripts/test-integration.mjs"], {
+      cwd: directory,
+      encoding: "utf8",
+      env: environment,
+    });
   return {
     run,
     calls: () =>
@@ -207,48 +189,4 @@ test("failed PostgreSQL startup removes the created fixture and anonymous volume
     name,
   ]);
   assert(!calls.some((c) => c[0] === "mock-sql" || c[0] === "pnpm"));
-});
-
-test("integration pins explicitly passed IDs despite tag replacement and fails missing current IID", (t) => {
-  const f = fixture(t, { batch: true, cached: true, FIXTURE_RETAGGED: "1" });
-  const result = f.run();
-  assert.equal(result.status, 0, result.stderr);
-  const inspections = f
-    .calls()
-    .filter((c) => c[1] === "image" && c[3] !== pgImage);
-  assert.equal(inspections.length, 2);
-  assert(inspections.every((c) => c[3] === imageID));
-  assert.deepEqual(
-    f
-      .calls()
-      .find((c) => c[0] === "pnpm")
-      .slice(-2),
-    [imageID, imageID]
-  );
-  const incomplete = fixture(t, {
-    batch: true,
-    missingIID: true,
-    cached: true,
-  });
-  assert.equal(incomplete.run().status, 1);
-  assert(
-    !incomplete
-      .calls()
-      .some(
-        (c) =>
-          c[1] === "create" ||
-          (c[1] === "image" && c[3].startsWith("protocol-visualizer/"))
-      )
-  );
-  const source = readFileSync(
-    new URL("../services/rpc-cache/integration.test.mjs", import.meta.url),
-    "utf8"
-  );
-  assert.equal(
-    source.match(/"protocol-visualizer\/indexer:local"/g).length,
-    1,
-    "only the standalone default may name the mutable indexer tag"
-  );
-  assert(source.includes("PV_RPC_CACHE_TEST_IMAGE_ID"));
-  assert(source.includes("PV_INDEXER_TEST_IMAGE_ID"));
 });

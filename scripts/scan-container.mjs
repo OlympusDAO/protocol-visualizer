@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { runContainer } from "./container.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const services = [
@@ -15,27 +15,16 @@ const services = [
 ];
 const args = process.argv.slice(2);
 if (args[0] === "--") args.shift();
-const [service, image = `protocol-visualizer/${service}:local`] = args;
-if (!services.includes(service) || args.length > 2) {
-  console.error("Usage: pnpm run container:scan -- <service> [local-image]");
+const [service] = args;
+if (!services.includes(service) || args.length !== 1) {
+  console.error("Usage: pnpm run container:scan -- <service>");
   process.exit(1);
 }
-
-const cache = path.join(root, "node_modules/.cache/container-scan");
-mkdirSync(cache, { recursive: true });
-const directory = mkdtempSync(path.join(cache, "run-"));
-const env = {
-  ...process.env,
-  TMPDIR: directory,
-  TMP: directory,
-  TEMP: directory,
-};
-const run = (command, parameters, capture = false) => {
+const image = `protocol-visualizer/${service}:local`;
+function run(command, parameters) {
   const result = spawnSync(command, parameters, {
     cwd: root,
-    env,
-    encoding: "utf8",
-    stdio: capture ? ["ignore", "pipe", "inherit"] : "inherit",
+    stdio: "inherit",
   });
   if (result.error || result.signal || result.status !== 0) {
     process.exitCode = result.status || 1;
@@ -43,39 +32,24 @@ const run = (command, parameters, capture = false) => {
       `Command failed: ${command} (${result.error?.code ?? result.signal ?? result.status})`
     );
   }
-  return result.stdout?.trim();
-};
-const container = (...parameters) =>
-  run(
-    process.execPath,
-    [path.join(root, "scripts/container.mjs"), ...parameters],
-    true
-  );
-
+}
 try {
-  const id = container("image", "inspect", image, "--format", "{{.Id}}");
-  if (!/^(sha256:)?[0-9a-f]{64}$/.test(id ?? ""))
-    throw new Error(
-      "The container engine did not return an immutable image ID"
-    );
-  if (
-    /^(sha256:)?[0-9a-f]{64}$/.test(image) &&
-    id.replace(/^sha256:/, "") !== image.replace(/^sha256:/, "")
-  )
-    throw new Error(
-      "The container engine returned a different immutable image ID"
-    );
-  console.log(`Scanning ${service}: ${id}`);
-  const archive = path.join(directory, "image.tar");
-  container("save", "--output", archive, id);
+  // Owned images must exist locally; Trivy cannot fall back to a registry pull.
+  const engine = runContainer([
+    "image",
+    "inspect",
+    image,
+    "--format",
+    "{{.RepoTags}}",
+  ]);
   run("trivy", [
     "image",
+    "--image-src",
+    engine,
     "--format",
     "table",
-    "--input",
-    archive,
     "--cache-dir",
-    path.join(cache, "trivy"),
+    path.join(root, "node_modules/.cache/container-scan/trivy"),
     "--scanners",
     "vuln,secret",
     "--severity",
@@ -85,10 +59,9 @@ try {
     "--exit-code",
     "1",
     `--ignore-unfixed=${["hasura", "indexer"].includes(service)}`,
+    image,
   ]);
 } catch (error) {
   console.error(error.message);
-  process.exitCode ||= 1;
-} finally {
-  rmSync(directory, { recursive: true, force: true });
+  process.exitCode ||= error.status || 1;
 }

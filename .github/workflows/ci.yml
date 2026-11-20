@@ -14,8 +14,8 @@ permissions:
   contents: read
 
 jobs:
-  runtime-check:
-    name: Runtime and workflow checks
+  check:
+    name: Code and workflow checks
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -26,24 +26,11 @@ jobs:
         uses: ./.github/actions/bootstrap
       - name: Verify runtime version alignment
         run: pnpm run check:runtime-versions
-      - name: Lint workflow correctness offline
-        run: pnpm run lint:actions
-
-  lint-check:
-    name: Read-only lint and formatting
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - name: Bootstrap
-        uses: ./.github/actions/bootstrap
       # Codegen uses loopback fixtures; source checks need no Docker or live RPC.
       - name: Generate offline Envio types
         run: pnpm run codegen
-      - name: Check lint and formatting
-        run: pnpm run lint:check
+      - name: Check formatting, lint and workflows
+        run: pnpm check
 
   build:
     name: Workspace builds and ordinary tests
@@ -152,8 +139,7 @@ jobs:
   railway-apply:
     needs:
       [
-        runtime-check,
-        lint-check,
+        check,
         build,
         indexer-typecheck,
         monitor-tests,

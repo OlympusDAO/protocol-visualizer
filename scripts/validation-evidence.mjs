@@ -50,7 +50,6 @@ export async function runRecorded(group, command, args) {
         env: {
           ...process.env,
           PV_VALIDATION_CHILD: group,
-          PV_VALIDATION_DIRECTORY: directory,
         },
         stdio: ["inherit", "pipe", "pipe"],
       });

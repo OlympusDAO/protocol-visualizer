@@ -6,7 +6,7 @@ Use the canonical [validation commands, prerequisites and policy](docs/validatio
 
 Before committing run `pnpm validate`; before requesting a push run `pnpm validate:all`. Stop at the first failed command and report it before independent diagnostics. Missing tools/images/databases fail; required integration cannot skip reset isolation. Source validation has no Docker dependency.
 
-Scripts save command/log/exit/timing/revision receipts under ignored `.validation/`. Native test/scanner output and per-build IID files are evidence; receipts do not reconstruct test counts, inventory or scanner reports. Report counts/policy/skips from actual output, immutable IDs and blockers. Never call unrun images, excluded fixtures or live checks passed. Historical detailed receipts remain historical.
+Scripts save command/log/exit/timing/revision receipts under ignored `.validation/`. Native test/scanner output is evidence; receipts do not reconstruct test counts, inventory or scanner reports. Report counts/policy/skips from actual output and blockers. Never call unrun images, excluded fixtures or live checks passed. Historical detailed receipts remain historical.
 
 ## History and publication
 

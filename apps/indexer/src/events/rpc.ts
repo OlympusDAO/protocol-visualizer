@@ -1,11 +1,11 @@
 import {
   createPublicClient,
   createTransport,
-  http,
-  withRetry,
   type EIP1193RequestFn,
+  http,
   type PublicClient,
   type Transport,
+  withRetry,
 } from "viem";
 
 const publicClients = new Map<number, PublicClient<Transport>>();

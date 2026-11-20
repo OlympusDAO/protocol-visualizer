@@ -1,6 +1,6 @@
-import { ContractVisualizer } from "./components/contract-visualizer";
-import { BridgeLanes } from "./components/bridge-lanes";
 import { useEffect, useState } from "react";
+import { BridgeLanes } from "./components/bridge-lanes";
+import { ContractVisualizer } from "./components/contract-visualizer";
 import { ThemeSelector } from "./components/theme-selector";
 
 function App() {

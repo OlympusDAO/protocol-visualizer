@@ -1,21 +1,21 @@
-import {
-  assertRpcConfiguration,
-  resolveEnvioProgressTimestamps,
-} from "@protocol-visualizer/snapshot-artifacts/indexer-progress";
+import { readFile } from "node:fs/promises";
 import {
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
-import { readFile } from "node:fs/promises";
 import {
   ACTIVE_MANIFEST_KEY,
   DEFAULT_MONITOR_STATE_KEY,
+  type IndexingProgress,
   parseDeploymentId,
   parseEnvioMetricsReadiness,
-  type IndexingProgress,
   type SnapshotManifest,
 } from "@protocol-visualizer/snapshot-artifacts";
+import {
+  assertRpcConfiguration,
+  resolveEnvioProgressTimestamps,
+} from "@protocol-visualizer/snapshot-artifacts/indexer-progress";
 
 type MonitorState = {
   activeGeneratedAt?: string;

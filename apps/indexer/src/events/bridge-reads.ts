@@ -1,13 +1,13 @@
-import { rethrowTransientRpc } from "./rpc";
-import { keccak256, type Abi, type Address, type Hex } from "viem";
+import { type Abi, type Address, type Hex, keccak256 } from "viem";
+import externalChains from "../../../../packages/protocol-config/ccip-external-chains.json";
 import type {
   BridgeConfiguration,
   BridgeRateLimit,
   BridgeRoute,
 } from "../../../../packages/snapshot-artifacts/src/index";
 import type { BridgeReadResult } from "./bridge-config";
-import externalChains from "../../../../packages/protocol-config/ccip-external-chains.json";
-import { emptyCodeHash, type BytecodePin } from "./code-cache";
+import { type BytecodePin, emptyCodeHash } from "./code-cache";
+import { rethrowTransientRpc } from "./rpc";
 
 type Client = {
   getBlock: (input: { blockNumber: bigint }) => Promise<{ hash: Hex | null }>;

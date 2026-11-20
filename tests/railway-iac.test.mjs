@@ -54,6 +54,16 @@ test("whole-project IaC retains storage and wires services without embedding sec
       environment === "production" ? ["frontend", "snapshot-gateway"] : []
     );
     assert.equal(get("Postgres").networking.privateNetworkEndpoint, "postgres");
+    assert(
+      get("frontend").build.watchPatterns.includes(
+        "/packages/snapshot-artifacts/src/**"
+      )
+    );
+    assert(
+      get("indexer").build.watchPatterns.includes(
+        "/packages/snapshot-artifacts/src/observation-constants.ts"
+      )
+    );
     for (const resource of resources) {
       assert.deepEqual(
         Object.entries(resource.networking?.tcpProxies ?? {})
@@ -113,7 +123,9 @@ test("whole-project IaC retains storage and wires services without embedding sec
       assert.equal(node.build.builder, "DOCKERFILE");
       assert.equal(node.build.dockerfilePath, `Dockerfile-${node.name}`);
       assert(node.build.watchPatterns.every((path) => path.startsWith("/")));
-      assert(node.build.watchPatterns.includes("/.railway/**"));
+      assert(
+        !node.build.watchPatterns.some((path) => path.startsWith("/.railway/"))
+      );
       assert(node.build.watchPatterns.includes(`/Dockerfile-${node.name}`));
       if (!["hasura", "rpc-cache"].includes(node.name))
         assert(node.build.watchPatterns.includes("/package.json"));

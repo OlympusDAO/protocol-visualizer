@@ -1,61 +1,61 @@
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ReactFlow, {
   Background,
   Controls,
-  MiniMap,
-  type Node,
-  useEdgesState,
-  useNodesState,
-  type NodeTypes,
   type Edge,
-  Position,
   Handle,
   MarkerType,
+  MiniMap,
+  type Node,
+  type NodeTypes,
+  Position,
   type ReactFlowInstance,
+  useEdgesState,
+  useNodesState,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { useQuery } from "@tanstack/react-query";
+import { SUPPORTED_CHAINS } from "@/lib/constants";
 import {
   type Contract,
-  getProtocolVisualizerData,
   getAdditionalGraphContracts,
-  type RoleAssignment,
+  getProtocolVisualizerData,
   type PolicyFunction,
   type PolicyPermission,
+  type RoleAssignment,
 } from "@/services/contracts";
-import { ConnectionLabel, FunctionDocumentation } from "./function-context";
+import otherContracts from "../../../../../packages/protocol-config/other-contracts.json";
 import { ChainSelector } from "../chain-selector";
-import { SUPPORTED_CHAINS } from "@/lib/constants";
-import { useGraphNavigation } from "./navigation";
 import {
-  getArchitectureView,
-  layoutArchitectureSections,
-  layoutContractGraph,
-  getSubsystem,
-  SUBSYSTEMS,
-  SIDE_SECTION_IDS,
   type ConnectionFilters,
+  type ConnectionKind,
   DEFAULT_CONNECTION_FILTERS,
   FOCUSED_CONNECTION_FILTERS,
-  type ConnectionKind,
+  getArchitectureView,
+  getSubsystem,
+  layoutArchitectureSections,
+  layoutContractGraph,
+  SIDE_SECTION_IDS,
+  SUBSYSTEMS,
 } from "./architecture";
-import { RelationshipEdge } from "./relationship-edge";
-import otherContracts from "../../../../../packages/protocol-config/other-contracts.json";
+import { ConnectionLabel, FunctionDocumentation } from "./function-context";
 import {
-  getFunctionTooltip,
-  getPolicyModuleKeycodes,
-  getPoliciesUsingModule,
+  getContractDeploymentLabel,
+  getContractNodeWidth,
+  getContractPalette,
   getEnablementPresentation,
+  getFunctionTooltip,
+  getGraphContractName,
+  getKernelLabel,
+  getPoliciesUsingModule,
+  getPolicyModuleKeycodes,
   getRelationshipGraph,
   getRelationshipPath,
-  getContractPalette,
-  getContractDeploymentLabel,
-  getGraphContractName,
-  getContractNodeWidth,
-  getKernelLabel,
-  refreshGraph,
   groupInactiveContracts,
+  refreshGraph,
 } from "./graph";
+import { useGraphNavigation } from "./navigation";
+import { RelationshipEdge } from "./relationship-edge";
 
 interface NodeData {
   name: string;

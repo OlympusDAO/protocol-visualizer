@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
-import { tmpdir } from "node:os";
-import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
+import { tmpdir } from "node:os";
+import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 const validEnv = {
   DATABASE_URL:

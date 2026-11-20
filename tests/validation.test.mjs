@@ -39,7 +39,7 @@ test("bare source validation installs first, records native output and preserves
         fs.writeFileSync("installed", "");
       }
       if (!fs.existsSync("installed")) process.exit(18);
-      if (process.env.STALE && args === "run openapi:check") {
+      if (process.env.STALE && args === "run build") {
         console.error("native drift failure");
         process.exit(23);
       }
@@ -50,7 +50,7 @@ test("bare source validation installs first, records native output and preserves
       { mode: 0o755 }
     );
     for (const [extra, code, count] of [
-      [{}, 0, 12],
+      [{}, 0, 8],
       [{ STALE: "1" }, 23, 6],
       [{ INSTALL_FAIL: "1" }, 17, 1],
     ]) {

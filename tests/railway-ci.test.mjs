@@ -70,14 +70,7 @@ test("production apply depends on native CI jobs and waits only for external wor
       .map((job) => job.trim())
       .filter(Boolean)
       .sort(),
-    [
-      "check",
-      "build",
-      "indexer-typecheck",
-      "monitor-tests",
-      "security-audit",
-      "railway-plan",
-    ].sort()
+    ["source", "security-audit", "railway-plan"].sort()
   );
   assert.match(apply, /needs.railway-plan.outputs.run-id != ''/);
   assert.match(apply, /group: railway-infrastructure-production/);
@@ -206,6 +199,12 @@ test("CI skips infrastructure apply for direct pushes and unrelated merges", asy
     (await findPlan({ files: ["apps/frontend/src/App.tsx"] })).outputs,
     {}
   );
+  for (const file of [
+    ".railway/README.md",
+    ".railway/nested/notes.md",
+    ".github/actions/bootstrap/README.md",
+  ])
+    assert.deepEqual((await findPlan({ files: [file] })).outputs, {});
   for (const merge_commit_sha of ["another-merge", null]) {
     assert.deepEqual(
       (await findPlan({ prs: [{ merged_at: "2026-11-13", merge_commit_sha }] }))

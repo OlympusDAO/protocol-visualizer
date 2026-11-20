@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
+import { once } from "node:events";
 import { createServer, request as httpRequest } from "node:http";
 import { test } from "node:test";
-import { once } from "node:events";
 import {
   ACTIVE_MANIFEST_KEY,
   SCHEMA_VERSION,

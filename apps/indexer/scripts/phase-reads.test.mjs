@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import { test } from "node:test";
 import {
-  withCanonicalObservation,
   CanonicalObservationChanged,
+  withCanonicalObservation,
 } from "../src/events/canonical-observation.ts";
 import {
-  getControlGetter,
   getCanonicalCodeHash,
+  getControlGetter,
 } from "../src/events/effects.ts";
 import { makeEffectRuntime } from "./fixtures/effect-runtime.mjs";
 

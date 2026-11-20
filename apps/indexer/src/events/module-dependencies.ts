@@ -1,20 +1,20 @@
-import { rethrowTransientRpc } from "./rpc";
 import {
+  type Abi,
+  type Address,
   BaseError,
   ContractFunctionRevertedError,
-  stringToHex,
-  type Address,
-  type Abi,
   type Hex,
+  stringToHex,
 } from "viem";
 import { KernelAbi } from "../../abis/Kernel";
 import type { ControlBlock } from "./control-state";
-import type { EnvioContext, ContractEntity } from "./types";
 import {
   completeRelationshipBlock,
   type RelationshipField,
   type RelationshipState,
 } from "./ownership";
+import { rethrowTransientRpc } from "./rpc";
+import type { ContractEntity, EnvioContext } from "./types";
 
 type Client = {
   getBlock: (input: { blockNumber: bigint }) => Promise<{ hash: Hex | null }>;

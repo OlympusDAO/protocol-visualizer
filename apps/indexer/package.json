@@ -4,13 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node --import ./scripts/register-typescript.mjs --test scripts/*.test.mjs",
     "dev": "envio dev",
     "start": "envio start",
     "codegen": "envio codegen",
     "lint": "biome lint --write . --error-on-warnings",
     "lint:check": "biome lint . --error-on-warnings",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "test": "node --import ./scripts/register-typescript.mjs --test scripts/*.test.mjs"
   },
   "dependencies": {
     "envio": "3.14.1",

@@ -1,10 +1,10 @@
+import externalChains from "../../../../../packages/protocol-config/ccip-external-chains.json";
+import inventory from "../../../../../packages/protocol-config/other-contracts.json";
 import type {
   BridgeConfiguration,
   BridgeRoute,
 } from "../../../../../packages/snapshot-artifacts/src/index";
-import inventory from "../../../../../packages/protocol-config/other-contracts.json";
-import externalChains from "../../../../../packages/protocol-config/ccip-external-chains.json";
-import { SUPPORTED_CHAINS, type ProtocolChain } from "../../lib/constants";
+import { type ProtocolChain, SUPPORTED_CHAINS } from "../../lib/constants";
 import type { ProtocolVisualizerData } from "../../services/contracts";
 
 export type Lane = {

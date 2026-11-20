@@ -1,14 +1,14 @@
-import type {
-  BridgeConfiguration as SnapshotBridgeConfiguration,
-  EventProvenance,
-} from "../../../../packages/snapshot-artifacts/src/index";
-import chains from "../../../../packages/protocol-config/protocol-chains.json";
 import externalChains from "../../../../packages/protocol-config/ccip-external-chains.json";
+import chains from "../../../../packages/protocol-config/protocol-chains.json";
+import type {
+  EventProvenance,
+  BridgeConfiguration as SnapshotBridgeConfiguration,
+} from "../../../../packages/snapshot-artifacts/src/index";
 import { getContractName } from "../ContractNames";
-import { contractId, controlTransitionId } from "./ids";
 import type { ControlBlock } from "./control-state";
-import type { ControlEvent, EnvioContext } from "./types";
+import { contractId, controlTransitionId } from "./ids";
 import type { RelationshipField } from "./ownership";
+import type { ControlEvent, EnvioContext } from "./types";
 
 type BridgeConfiguration = Omit<SnapshotBridgeConfiguration, "chainId">;
 

@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
+import { chainIdOf } from "../src/chains.mjs";
 import {
   abisDir,
   configPath,
@@ -13,7 +14,6 @@ import {
   repoRoot,
   writeRegistry,
 } from "../src/files.mjs";
-import { chainIdOf } from "../src/chains.mjs";
 import { buildRegistry } from "../src/registry.mjs";
 import {
   createEtherscanSource,

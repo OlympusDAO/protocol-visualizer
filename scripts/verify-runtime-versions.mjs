@@ -116,25 +116,9 @@ if (runtimePnpmVersion !== packageManagerVersion) {
   );
 }
 
-for (const workflowPath of WORKFLOW_FILES) {
-  const content = readText(workflowPath);
-  const usesBootstrap = /uses:\s*\.\/\.github\/actions\/bootstrap/.test(
-    content
-  );
-  if (usesBootstrap) continue; // Bootstrap uses the mise pins checked below.
-
-  if (!/node-version-file:\s*\.nvmrc/.test(content)) {
-    fail(
-      `${workflowPath} must use actions/setup-node with node-version-file: .nvmrc.`
-    );
-  }
-
-  if (/\bnode-version\s*:/.test(content)) {
-    fail(
-      `${workflowPath} should not hardcode node-version; use node-version-file: .nvmrc.`
-    );
-  }
-}
+for (const workflowPath of WORKFLOW_FILES)
+  if (!/uses:\s*\.\/\.github\/actions\/bootstrap/.test(readText(workflowPath)))
+    fail(`${workflowPath} must use the locked Mise bootstrap.`);
 
 for (const dockerfilePath of DOCKERFILES) {
   const content = readText(dockerfilePath);
@@ -192,8 +176,16 @@ for (const [tool, expected, args] of [
     fail(`${tool} runtime ${actual} must match ${expected}.`);
 }
 const bootstrap = readText(BOOTSTRAP_ACTION);
-if (!bootstrap.includes("install_args: node pnpm railway trivy jactionlint"))
-  fail("CI bootstrap must install every pinned runtime/validation tool.");
+if (
+  !bootstrap.includes(
+    "install_args: node pnpm railway trivy jactionlint --locked"
+  ) ||
+  !bootstrap.includes('version: "2026.11.9"') ||
+  !bootstrap.includes("cache: true")
+)
+  fail(
+    "CI bootstrap must install all five locked tools with pinned Mise and caching."
+  );
 for (const workflow of [
   ".github/workflows/ci.yml",
   ".github/workflows/railway-config.yml",

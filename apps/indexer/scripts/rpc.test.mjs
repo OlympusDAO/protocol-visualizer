@@ -2,12 +2,11 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import { test } from "node:test";
 import { inspect } from "node:util";
-import { getPublicClient } from "../src/events/rpc.ts";
-import { RpcTransientFailure } from "../src/events/rpc.ts";
-import { readPinnedControlGetter } from "../src/events/control-reads.ts";
 import { readPinnedBridgeConfiguration } from "../src/events/bridge-reads.ts";
-import { readPinnedModuleDependencies } from "../src/events/module-dependencies.ts";
+import { readPinnedControlGetter } from "../src/events/control-reads.ts";
 import { getControlBlock } from "../src/events/effects.ts";
+import { readPinnedModuleDependencies } from "../src/events/module-dependencies.ts";
+import { getPublicClient, RpcTransientFailure } from "../src/events/rpc.ts";
 import { makeEffectRuntime } from "./fixtures/effect-runtime.mjs";
 
 test("RPC clients require a configured endpoint, retry the private proxy, and sanitize exhaustion", async () => {

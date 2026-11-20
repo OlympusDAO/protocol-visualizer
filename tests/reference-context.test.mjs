@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
-import { createServer } from "node:http";
 import { once } from "node:events";
+import { createServer } from "node:http";
+import { test } from "node:test";
 import "../apps/indexer/scripts/register-typescript.mjs";
+
 const {
   getRelationshipGraph,
   getRelationshipPath,

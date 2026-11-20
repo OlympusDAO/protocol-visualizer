@@ -227,8 +227,8 @@ Application code continues to use Railway GitHub autodeploys and watch patterns.
 IaC requests `checkSuites: true` on each GitHub source. Verify the effective
 "Wait for CI" setting on newly created services; production `rpc-cache` needed
 a manual correction during initial creation. CI's apply job uses native `needs`
-dependencies on source check, build, indexer typecheck, monitor tests and reusable
-Security Audit jobs. Failed, cancelled, or skipped prerequisites prevent apply.
+dependencies on the complete five-check source matrix and reusable
+Image security and integration jobs. Failed, cancelled, or skipped prerequisites prevent apply.
 Dependency Audit runs independently; its push run must succeed for the exact merge SHA.
 Its PR run skips forks and retains native dependency-audit comments.
 
@@ -251,14 +251,21 @@ gh api repos/OlympusDAO/protocol-visualizer/commits/<merge-sha>/check-runs --pag
 gh api "repos/OlympusDAO/protocol-visualizer/commits/<merge-sha>/statuses" --paginate --jq '.[] | {context,state}'
 ```
 
-Require successful `pnpm CI`, standalone Dependency Audit and CodeQL runs,
-and no pending or failed external commit checks. For previews and other non-master targets, verify the equivalent
-PR or manually dispatched runs for the target revision instead of master push runs.
+Require all five `CI` source checks and the Image security and integration gate,
+plus no pending or failed external commit checks. For the exact production merge
+SHA, identify the newest `audit.yml` **push** run and managed CodeQL workflow
+`255339919` **dynamic** run; both must be completed with conclusion `success`.
+A successful scheduled/manual run or `workflow_dispatch` is not a substitute.
+For the separately approved PG18 reset/rebuild, automatic `railway-apply` is
+intentionally blocked: do not require that job or whole-workflow success as a
+circular prerequisite. All source/image/external gates and the reviewed manual
+release procedure still apply. Previews use equivalent source checks for their
+target revision; they do not relax these production event requirements.
 Commit statuses are newest first: review the first entry for each lowercase context and require
 `success`, excluding only contexts whose lowercase name starts with
 `protocol-visualizer - ` because those deployments wait for CI.
-If required runs are missing, trigger the matching workflows and wait for success;
-do not treat missing runs as a pass.
+Missing required runs are not a pass; obtain matching event/commit results
+before production release.
 This workflow does **not** auto-apply IaC changes to PR environments on every
 commit. Preview infrastructure changes use the manual procedure below.
 

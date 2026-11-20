@@ -2,8 +2,8 @@ import type { Abi } from "viem";
 import { waitForMetadata } from "../metadata-throttle";
 import {
   type EtherscanApiConfig,
-  type EtherscanResponse,
   EtherscanApiError,
+  type EtherscanResponse,
   type EtherscanSourceCodeResponse,
 } from "./types";
 

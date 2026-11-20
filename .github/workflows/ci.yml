@@ -1,64 +1,41 @@
-name: pnpm CI
+name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened]
   push:
     branches: [master]
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  group: source-ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
 
 jobs:
-  check:
-    name: Code and workflow checks
+  source:
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - name: Bootstrap
-        uses: ./.github/actions/bootstrap
-      - name: Verify runtime version alignment
-        run: pnpm run check:runtime-versions
-      # Codegen uses loopback fixtures; source checks need no Docker or live RPC.
-      - name: Generate offline Envio types
-        run: pnpm run codegen
-      - name: Check formatting, lint and workflows
-        run: pnpm check
-
-  build:
-    name: Workspace builds and ordinary tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - name: Bootstrap
-        uses: ./.github/actions/bootstrap
-      # Codegen uses loopback fixtures; source checks need no Docker or live RPC.
-      - name: Generate offline Envio types
-        run: pnpm run codegen
-      - name: Build shared snapshot artifacts
-        run: pnpm --filter @protocol-visualizer/snapshot-artifacts run build
-      - name: Check OpenAPI schema drift
-        run: pnpm run openapi:check
-      - name: Build workspaces and run ordinary tests
-        run: pnpm run build
-      - name: Generate sample snapshots
-        run: pnpm run snapshots:generate:local
-      - name: Check ABI registry
-        run: pnpm run abis:check
-
-  indexer-typecheck:
-    name: Indexer typecheck
-    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Runtime versions
+            command: pnpm check:runtime-versions
+          - name: Format and lint
+            command: pnpm check
+          - name: Typecheck
+            command: pnpm typecheck
+            codegen: true
+          - name: Build
+            command: pnpm build
+          - name: Tests
+            command: pnpm test
+            codegen: true
+            build: true
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -68,27 +45,13 @@ jobs:
         uses: ./.github/actions/bootstrap
       # Codegen uses loopback fixtures; source checks need no Docker or live RPC.
       - name: Generate offline Envio types
-        run: pnpm run codegen
-      - name: Typecheck indexer
-        run: pnpm --filter indexer run typecheck
-
-  monitor-tests:
-    name: Snapshot monitor tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - name: Bootstrap
-        uses: ./.github/actions/bootstrap
-      # The monitor build compiles tests; its dedicated test command executes them.
-      - name: Build shared snapshot artifacts
-        run: pnpm --filter @protocol-visualizer/snapshot-artifacts run build
-      - name: Compile monitor and test fixtures
-        run: pnpm --filter snapshot-monitor run build
-      - name: Run monitor tests
-        run: pnpm --filter snapshot-monitor run test
+        if: matrix.codegen == true
+        run: pnpm codegen
+      - name: Prepare test artifacts
+        if: matrix.build == true
+        run: pnpm build
+      - name: ${{ matrix.name }}
+        run: ${{ matrix.command }}
 
   # Image checks share this workflow; the standalone dependency audit is checked below.
   security-audit:
@@ -96,6 +59,7 @@ jobs:
     uses: ./.github/workflows/security-scan.yml
 
   railway-plan:
+    timeout-minutes: 15
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     permissions:
@@ -124,8 +88,8 @@ jobs:
             });
             const paths = [".github/workflows/railway-config.yml", ".github/workflows/ci.yml",
               "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "mise.toml", "mise.lock", ".nvmrc", ".node-version"];
-            if (!files.some(({ filename }) => paths.includes(filename) ||
-              filename.startsWith(".railway/") || filename.startsWith(".github/actions/bootstrap/"))) {
+            if (!files.some(({ filename }) => !/\.md$/i.test(filename) && (paths.includes(filename) ||
+              filename.startsWith(".railway/") || filename.startsWith(".github/actions/bootstrap/")))) {
               core.info("The merged PR does not affect Railway configuration; apply is skipped.");
               return;
             }
@@ -137,15 +101,8 @@ jobs:
             core.setOutput("run-id", data.workflow_runs[0].id);
 
   railway-apply:
-    needs:
-      [
-        check,
-        build,
-        indexer-typecheck,
-        monitor-tests,
-        security-audit,
-        railway-plan,
-      ]
+    timeout-minutes: 60
+    needs: [source, security-audit, railway-plan]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.railway-plan.outputs.run-id != ''
     runs-on: ubuntu-latest
     concurrency:
@@ -167,10 +124,10 @@ jobs:
         with:
           persist-credentials: false
           ref: ${{ github.sha }}
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+      - name: Bootstrap runtime
+        uses: ./.github/actions/bootstrap
         with:
-          node-version-file: .nvmrc
+          install-dependencies: "false"
       - name: Wait for external checks
         timeout-minutes: 35
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
@@ -233,10 +190,6 @@ jobs:
               await new Promise(resolve => setTimeout(resolve, 15_000));
             }
             throw new Error("Timed out waiting for external checks; production infrastructure was not applied.");
-      - name: Install Railway CLI
-        uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834 # v5.1.0
-        with:
-          install_args: railway
       - name: Verify cache password before infrastructure apply
         env:
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

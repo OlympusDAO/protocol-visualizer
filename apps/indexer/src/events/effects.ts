@@ -10,9 +10,9 @@ import type { ProcessedContractData } from "../services/contracts/types";
 import type { BridgeReadResult } from "./bridge-config";
 import { readPinnedBridgeConfiguration } from "./bridge-reads";
 import {
+  type CanonicalBlockReader,
   CanonicalObservationChanged,
   withCanonicalObservation,
-  type CanonicalBlockReader,
 } from "./canonical-observation";
 import { emptyCodeHash, getBytecodeHash } from "./code-cache";
 import {

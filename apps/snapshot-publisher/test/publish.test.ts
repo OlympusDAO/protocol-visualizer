@@ -11,16 +11,16 @@ import {
   ACTIVE_MANIFEST_KEY,
   PUBLISHER_LOCK_KEY,
 } from "@protocol-visualizer/snapshot-artifacts";
+import { loadSupportedChains } from "../src/chains.js";
 import {
   PUBLISHER_NOTIFICATION_STATE_KEY,
   runPublisher,
-  sendDiscordMessage,
   type SnapshotS3Client,
+  sendDiscordMessage,
   uploadSnapshotFiles,
 } from "../src/publish.js";
-import type { SnapshotFile } from "../src/types.js";
-import { loadSupportedChains } from "../src/chains.js";
 import { getSampleProtocolData } from "../src/sample-data.js";
+import type { SnapshotFile } from "../src/types.js";
 
 const snapshotFile = (key: string, publishLast = false): SnapshotFile => ({
   publicPath: `/${key}`,

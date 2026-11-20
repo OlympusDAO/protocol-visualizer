@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { join } from "node:path";
 import {
   GetObjectCommand,
   HeadObjectCommand,
@@ -8,13 +8,13 @@ import {
 } from "@aws-sdk/client-s3";
 import {
   ACTIVE_MANIFEST_KEY,
+  type BoundsResponse,
   createOpenApiDocument,
   deploymentArtifactKey,
-  restProtocolPath,
-  sanitizeManifestForPublic,
   isSupportedSchemaVersion,
-  type BoundsResponse,
+  restProtocolPath,
   type SnapshotManifest,
+  sanitizeManifestForPublic,
 } from "@protocol-visualizer/snapshot-artifacts";
 import { type AbiRegistry, defaultAbisPath, loadAbiRegistry } from "./abis.js";
 

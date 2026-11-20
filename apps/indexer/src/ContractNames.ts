@@ -1,5 +1,5 @@
-import { ChainId } from "./constants";
 import otherContracts from "../../../packages/protocol-config/other-contracts.json";
+import { ChainId } from "./constants";
 
 type ContractDetails = {
   name: string;

@@ -6,9 +6,11 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - ".railway/**"
+      - "!.railway/**/*.md"
       - ".github/workflows/railway-config.yml"
       - ".github/workflows/ci.yml"
       - ".github/actions/bootstrap/**"
+      - "!.github/actions/bootstrap/**/*.md"
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
@@ -32,6 +34,7 @@ concurrency:
 
 jobs:
   plan:
+    timeout-minutes: 15
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:

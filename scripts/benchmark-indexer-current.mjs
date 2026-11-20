@@ -1,20 +1,20 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { createRequire } from "node:module";
 import {
+  closeSync,
   mkdirSync,
   openSync,
-  closeSync,
   readFileSync,
   writeFileSync,
 } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import {
-  currentStateProtocol,
   currentStateEntities,
+  currentStateProtocol,
   digest,
   entityDigests,
   resultProblems,

@@ -3,8 +3,8 @@ import { test } from "node:test";
 import { getContractName, getContractType } from "../src/ContractNames.ts";
 import {
   getKernelConstants,
-  getRolesConstants,
   getRolesAdminConstants,
+  getRolesConstants,
 } from "../src/constants.ts";
 
 test("deployment labels are chain-scoped and preserve existing history", () => {

@@ -3,9 +3,9 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
+import { getProcessedContract } from "../src/events/effects.ts";
 import metadata from "../src/generated/contract-metadata.json";
 import { ContractProcessor } from "../src/services/contracts/processor.ts";
-import { getProcessedContract } from "../src/events/effects.ts";
 import { makeEffectRuntime } from "./fixtures/effect-runtime.mjs";
 
 test("transient verified-metadata failures stay out of disk and effect caches", async () => {

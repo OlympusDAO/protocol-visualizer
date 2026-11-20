@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node --test test/*.test.mjs",
     "sync": "node scripts/sync.mjs",
     "check": "node scripts/check.mjs",
     "lint": "biome lint --write . --error-on-warnings",
-    "lint:check": "biome lint . --error-on-warnings"
+    "lint:check": "biome lint . --error-on-warnings",
+    "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
     "viem": "2.57.14"

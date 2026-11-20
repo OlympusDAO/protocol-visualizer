@@ -1,24 +1,24 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import http from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import http from "node:http";
 import {
-  compareCurrentStates,
-  executorSeedBlock,
-  scheduledBlockCount,
-  isEvmRevert,
-} from "../scripts/benchmark-indexer-current.mjs";
-import {
+  auditEnvironment,
   currentStateEntities,
   currentStateProtocol,
   digest,
   entityDigests,
   parseOptions,
-  auditEnvironment,
 } from "../scripts/benchmark-indexer.mjs";
+import {
+  compareCurrentStates,
+  executorSeedBlock,
+  isEvmRevert,
+  scheduledBlockCount,
+} from "../scripts/benchmark-indexer-current.mjs";
 
 test("post-timing audit routes every chain around the closed admission relay", () => {
   const chains = [1, 10, 42161, 8453, 80094, 4663, 11155111, 421614, 84532];

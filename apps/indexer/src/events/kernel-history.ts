@@ -1,12 +1,12 @@
-import metadata from "../generated/contract-metadata.json";
 import {
   getContractName,
+  getContractStartBlock,
   getContractType,
   getContractVersion,
-  getContractStartBlock,
 } from "../ContractNames";
-import { contractId } from "./ids";
+import metadata from "../generated/contract-metadata.json";
 import type { ControlBlock } from "./control-state";
+import { contractId } from "./ids";
 import type { EnvioContext } from "./types";
 
 export function getCoreContracts(chainId: number) {

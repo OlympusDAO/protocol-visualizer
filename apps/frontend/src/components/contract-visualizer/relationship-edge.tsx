@@ -1,8 +1,8 @@
 import {
   BaseEdge,
   type EdgeProps,
-  type XYPosition,
   useReactFlow,
+  type XYPosition,
 } from "reactflow";
 import { getRelationshipCurve } from "./graph";
 

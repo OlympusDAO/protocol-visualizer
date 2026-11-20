@@ -1,4 +1,4 @@
-import { fromHex, type Address } from "viem";
+import { type Address, fromHex } from "viem";
 
 import {
   getContractName,
@@ -6,18 +6,18 @@ import {
   getContractType,
 } from "../ContractNames";
 import type { FunctionDetails } from "../services/contracts/types";
+import {
+  getModuleKeycode,
+  getProcessedContract,
+  getRequestedPolicyPermissions,
+} from "./effects";
+import { getCurrentModuleAddress } from "./modules";
 import type {
   ActionType,
   ContractType,
   EnvioContext,
   PolicyPermission,
 } from "./types";
-import {
-  getProcessedContract,
-  getRequestedPolicyPermissions,
-  getModuleKeycode,
-} from "./effects";
-import { getCurrentModuleAddress } from "./modules";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 

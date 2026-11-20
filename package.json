@@ -5,7 +5,7 @@
   "scripts": {
     "abis:check": "pnpm --filter @protocol-visualizer/contract-abis run check",
     "abis:sync": "pnpm --filter @protocol-visualizer/contract-abis run sync",
-    "build": "turbo run build && pnpm run railway:check && pnpm run test:config",
+    "build": "turbo run build",
     "check:runtime-versions": "node scripts/verify-runtime-versions.mjs",
     "benchmark:indexer": "node -- scripts/benchmark-indexer.mjs",
     "benchmark:indexer:current": "node -- scripts/benchmark-indexer-current.mjs",
@@ -25,8 +25,7 @@
     "indexer:metadata": "node scripts/generate-indexer-contract-metadata.mjs",
     "indexer:metrics": "sh -c 'curl -s \"http://localhost:${ENVIO_INDEXER_PORT:-9898}/metrics\" | rg \"envio_progress_|hyperindex_synced_to_head|envio_effect_\"'",
     "rpc-cache:metrics": "node scripts/railway-ops.mjs metrics",
-    "lint:check": "turbo run lint:check && biome format .",
-    "lint": "turbo run lint && biome format --write . && pnpm run lint:actions",
+    "lint": "turbo run lint && biome check --write . --linter-enabled=false && pnpm run lint:actions",
     "openapi:check": "pnpm --filter snapshot-gateway run openapi:check",
     "snapshots:generate:local": "pnpm --filter snapshot-publisher run build && env SNAPSHOT_OUTPUT_DIR=/tmp/protocol-visualizer-snapshots SNAPSHOT_SOURCE=sample pnpm --filter snapshot-publisher start",
     "stack:config": "node scripts/container.mjs compose config",
@@ -36,9 +35,8 @@
     "stack:publish": "node scripts/container.mjs compose run --rm snapshot-publisher",
     "stack:publish:sample": "node scripts/container.mjs compose run --rm snapshot-publisher-sample",
     "stack:up": "node scripts/container.mjs compose up --build rpc-cache-postgres rpc-cache postgres hasura minio minio-create-bucket indexer snapshot-gateway frontend",
-    "test:config": "pnpm --filter snapshot-publisher... run build && pnpm --filter snapshot-monitor run build && pnpm --filter snapshot-gateway exec tsc && node --test tests/*.test.mjs",
+    "test:config": "node --test tests/*.test.mjs",
     "validate": "./scripts/validate.sh",
-    "format": "biome format --write .",
     "container:build:rpc-cache": "node scripts/container.mjs build -f Dockerfile-rpc-cache -t protocol-visualizer/rpc-cache:local .",
     "test:rpc-cache": "node --test services/rpc-cache/integration.test.mjs",
     "indexer:reset:railway": "node scripts/railway-ops.mjs reset",
@@ -53,7 +51,9 @@
     "container:scan:runtime": "node scripts/scan-runtime-images.mjs",
     "docker:scan:provider": "node scripts/scan-runtime-images.mjs --provider",
     "codegen": "node scripts/codegen-offline.mjs",
-    "check": "pnpm run lint:check && pnpm run lint:actions"
+    "check": "turbo run lint:check && biome check . --linter-enabled=false && pnpm run lint:actions",
+    "typecheck": "turbo run typecheck && pnpm run railway:check",
+    "test": "turbo run test && pnpm run test:config && env SNAPSHOT_OUTPUT_DIR=/tmp/protocol-visualizer-snapshots SNAPSHOT_SOURCE=sample pnpm --filter snapshot-publisher start && pnpm run abis:check"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.3",

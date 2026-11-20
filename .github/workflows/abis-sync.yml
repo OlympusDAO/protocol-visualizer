@@ -112,9 +112,11 @@ jobs:
       # A push with GITHUB_TOKEN does not start `on: pull_request` workflows.
       # GITHUB_TOKEN can start `workflow_dispatch`, and the checks of that run
       # show on the pull request.
-      - name: Start CI on the pull request
+      - name: Start CI and dependency audit on the pull request
         if: contains(fromJSON('["created", "updated"]'), steps.pr.outputs.pull-request-operation)
         env:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ steps.pr.outputs.pull-request-branch }}
-        run: gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
+        run: |
+          gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
+          gh workflow run audit.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"

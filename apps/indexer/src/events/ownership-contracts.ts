@@ -1,13 +1,13 @@
-import metadata from "../generated/contract-metadata.json";
-import { getTaskCallFields } from "./heart-tasks";
 import otherContracts from "../../../../packages/protocol-config/other-contracts.json";
 import { getContractName, getContractStartBlock } from "../ContractNames";
+import metadata from "../generated/contract-metadata.json";
+import type { ProcessedContractData } from "../services/contracts/types";
+import { getTaskCallFields } from "./heart-tasks";
 import {
-  relationshipId,
   type RelationshipField,
   type RelationshipState,
+  relationshipId,
 } from "./ownership";
-import type { ProcessedContractData } from "../services/contracts/types";
 import type { EnvioContext } from "./types";
 
 const poolNames = new Set([

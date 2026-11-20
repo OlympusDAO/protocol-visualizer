@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { Providers } from "./components/providers";
 import App from "./App";
+import { Providers } from "./components/providers";
 import "./index.css";
 
 const rootElement = document.getElementById("root");

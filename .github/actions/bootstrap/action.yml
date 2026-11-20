@@ -1,29 +1,24 @@
 name: Bootstrap CI environment
-description: Standardized repository setup for CI.
+description: Install locked repository tools and dependencies.
 
 inputs:
   install-dependencies:
-    description: Install dependencies (validate performs its own frozen installation).
+    description: Install workspace dependencies.
     required: false
     default: "true"
-  install-foundry:
-    description: Install foundry toolchain if required by the project.
-    required: false
-    default: "false"
 
 runs:
   using: composite
   steps:
-    - name: Install pinned runtime and validation tools
+    - name: Install pinned repository tools
       uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834 # v5.1.0
       with:
-        install_args: node pnpm railway trivy jactionlint
-
-    - name: Install Foundry
-      if: ${{ inputs.install-foundry == 'true' }}
-      uses: foundry-rs/foundry-toolchain@8789b3e21e6c11b2697f5eb56eddae542f746c10 # v1.7.0
+        version: "2026.11.9"
+        install_args: node pnpm railway trivy jactionlint --locked
+        add_shims_to_path: false
+        cache: true
 
     - name: Install dependencies
-      if: ${{ inputs.install-dependencies == 'true' }}
+      if: inputs.install-dependencies == 'true'
       run: pnpm install --frozen-lockfile
       shell: bash

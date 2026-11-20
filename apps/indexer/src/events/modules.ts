@@ -1,12 +1,11 @@
 import type { Address, Hex } from "viem";
-
+import { getModuleForKeycode } from "./effects";
 import { contractId, currentModuleId } from "./ids";
 import type {
   ContractEntity,
   CurrentModuleEntity,
   EnvioContext,
 } from "./types";
-import { getModuleForKeycode } from "./effects";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 

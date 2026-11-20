@@ -1,6 +1,6 @@
-import metadata from "../generated/contract-metadata.json";
 import otherContracts from "../../../../packages/protocol-config/other-contracts.json";
 import { getContractStartBlock } from "../ContractNames";
+import metadata from "../generated/contract-metadata.json";
 import type { EnablerContract } from "./enabler";
 
 const verifiedMetadata = metadata as Record<

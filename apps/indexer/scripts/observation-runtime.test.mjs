@@ -1,10 +1,9 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import http from "node:http";
 import { createRequire } from "node:module";
-import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
 import { test } from "node:test";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { encodeAbiParameters, toFunctionSelector } from "viem";
 
 // Envio intervals start at the chain start block (13_674_068), not zero.

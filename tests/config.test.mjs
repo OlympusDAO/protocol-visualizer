@@ -519,14 +519,11 @@ test("Snapshot monitor runs tests in CI, not during image builds", () => {
 
   assert.equal(monitorPackage.scripts.build, "tsc");
   assert.equal(monitorPackage.scripts.test, "node --test dist/test/*.test.js");
-  assert(workflow.includes("  monitor-tests:"));
-  assert(workflow.includes("run: pnpm --filter snapshot-monitor run build"));
-  assert(workflow.includes("run: pnpm --filter snapshot-monitor run test"));
-  assert(
-    readFileSync("scripts/validate.sh", "utf8").includes(
-      "pnpm --filter snapshot-monitor run test"
-    )
-  );
+  const root = readJson("package.json");
+  assert(root.scripts.test.startsWith("turbo run test &&"));
+  assert(workflow.includes("command: pnpm test"));
+  assert.equal(readJson("turbo.json").tasks.test.cache, false);
+  assert(workflow.includes("if: matrix.build == true"));
   assert(
     !monitorDockerfile.includes(
       "COPY packages/protocol-config/protocol-chains.json ./packages/protocol-config/protocol-chains.json"
@@ -556,4 +553,77 @@ test("Hasura Dockerfile uses targeted package upgrades", () => {
   assert(hasura.includes("--only-upgrade"));
   assert(!hasura.includes("apt-get upgrade"));
   assert(hasura.includes("USER hasura"));
+});
+
+test("source commands separate checks, artifact builds and all ordinary tests", () => {
+  const { scripts } = readJson("package.json");
+  const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
+  assert.equal(scripts.build, "turbo run build");
+  assert.equal(
+    scripts.check,
+    "turbo run lint:check && biome check . --linter-enabled=false && pnpm run lint:actions"
+  );
+  assert.equal(
+    scripts.lint,
+    "turbo run lint && biome check --write . --linter-enabled=false && pnpm run lint:actions"
+  );
+  for (const alias of ["format", "format:check", "lint:fix", "lint:check"])
+    assert.equal(scripts[alias], undefined);
+  const commands = [...workflow.matchAll(/command: (pnpm [^\n]+)/g)].map(
+    (match) => match[1]
+  );
+  assert.deepEqual(commands, [
+    "pnpm check:runtime-versions",
+    "pnpm check",
+    "pnpm typecheck",
+    "pnpm build",
+    "pnpm test",
+  ]);
+  assert(workflow.includes("fail-fast: false"));
+  assert(workflow.includes("if: matrix.codegen == true"));
+  assert(workflow.includes("if: matrix.build == true"));
+  for (const name of [
+    "indexer",
+    "snapshot-gateway",
+    "snapshot-publisher",
+    "snapshot-monitor",
+  ])
+    assert(readJson(`apps/${name}/package.json`).scripts.test);
+  for (const name of ["snapshot-artifacts", "contract-abis"])
+    assert(readJson(`packages/${name}/package.json`).scripts.test);
+  for (const task of ["test:config", "abis:check"])
+    assert(scripts.test.includes(task));
+  assert(
+    scripts.test.includes(
+      "env SNAPSHOT_OUTPUT_DIR=/tmp/protocol-visualizer-snapshots SNAPSHOT_SOURCE=sample pnpm --filter snapshot-publisher start"
+    )
+  );
+  assert(!scripts.test.includes("snapshots:generate:local"));
+  const gateway = readJson("apps/snapshot-gateway/package.json").scripts;
+  assert.equal(
+    gateway.build,
+    "tsc && node dist/scripts/generate-openapi.js --check"
+  );
+  assert.equal(
+    gateway["openapi:generate"],
+    "pnpm --filter @protocol-visualizer/snapshot-artifacts build && tsc && node dist/scripts/generate-openapi.js"
+  );
+  for (const file of [
+    "apps/indexer/package.json",
+    "packages/contract-abis/package.json",
+  ])
+    assert.equal(readJson(file).scripts.build, undefined);
+  for (const name of [
+    "snapshot-gateway",
+    "snapshot-publisher",
+    "snapshot-monitor",
+  ])
+    assert(
+      !readJson(`apps/${name}/package.json`).scripts.build.includes("--test")
+    );
+  assert(
+    !readJson(
+      "packages/snapshot-artifacts/package.json"
+    ).scripts.build.includes("--test")
+  );
 });

@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { readPinnedBridgeConfiguration } from "../src/events/bridge-reads.ts";
 import {
-  handleBridgeConfigurationEvent,
-  completeBridgeConfigurations,
   bridgeAnchorsCanonical,
+  completeBridgeConfigurations,
+  handleBridgeConfigurationEvent,
 } from "../src/events/bridge-config.ts";
+import { readPinnedBridgeConfiguration } from "../src/events/bridge-reads.ts";
 
 const address = `0x${"1".repeat(40)}`,
   router = `0x${"2".repeat(40)}`,

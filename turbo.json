@@ -18,19 +18,19 @@
       "cache": false,
       "persistent": true
     },
-    "indexer#build": {
-      "dependsOn": ["^build"],
-      "outputs": [],
-      "cache": false
-    },
     "frontend#build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
       "cache": false
     },
-    "@protocol-visualizer/contract-abis#build": {
+    "typecheck": {
       "dependsOn": ["^build"],
-      "outputs": []
+      "outputs": [],
+      "cache": false
+    },
+    "test": {
+      "outputs": [],
+      "cache": false
     }
   }
 }

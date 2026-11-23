@@ -1,5 +1,130 @@
-// Trusted post-checkout release steps; selection and external gates stay before checkout.
 module.exports = {
+  async select({ github, context, core }) {
+    const prs = await github.paginate(
+      github.rest.repos.listPullRequestsAssociatedWithCommit,
+      {
+        ...context.repo,
+        commit_sha: context.sha,
+        per_page: 100,
+      }
+    );
+    const pr = prs.find(
+      (pr) =>
+        pr.merged_at &&
+        pr.merge_commit_sha === context.sha &&
+        pr.base.ref === "master" &&
+        pr.base.repo?.full_name === context.payload.repository.full_name
+    );
+    if (!pr) {
+      core.info(
+        "No PR merged into this repository at this commit; infrastructure apply is skipped."
+      );
+      return;
+    }
+    core.setOutput("relevant", "true");
+  },
+  async waitForExternalChecks({ github, context, core }) {
+    const { data: currentRun } = await github.rest.actions.getWorkflowRun({
+      ...context.repo,
+      run_id: context.runId,
+    });
+    if (!currentRun.check_suite_id)
+      throw new Error("Cannot identify the CI workflow's own check suite.");
+    // GitHub-managed CodeQL has no workflow file and uses the dynamic event.
+    const requiredWorkflows = [
+      [255339919, "dynamic"],
+      ["audit.yml", "push"],
+    ];
+    for (let attempt = 0; attempt < 120; attempt++) {
+      let workflowsPassed = true;
+      for (const [workflow, event] of requiredWorkflows) {
+        const { data } = await github.rest.actions.listWorkflowRuns({
+          ...context.repo,
+          workflow_id: workflow,
+          head_sha: process.env.MERGE_COMMIT_SHA,
+          event,
+          per_page: 1,
+        });
+        const run = data.workflow_runs[0];
+        if (run?.status === "completed" && run.conclusion !== "success")
+          throw new Error(`${workflow}: ${run.conclusion}`);
+        workflowsPassed &&=
+          run?.status === "completed" && run.conclusion === "success";
+      }
+      if (workflowsPassed) {
+        const reportedChecks = await github.paginate(
+          github.rest.checks.listForRef,
+          {
+            ...context.repo,
+            ref: process.env.MERGE_COMMIT_SHA,
+            filter: "latest",
+            per_page: 100,
+          }
+        );
+        // This release job cannot finish until the gate returns.
+        const checks = reportedChecks.filter(
+          (check) => check.check_suite?.id !== currentRun.check_suite_id
+        );
+        const failedCheck = checks.find(
+          (check) =>
+            check.status === "completed" &&
+            !["success", "neutral", "skipped"].includes(check.conclusion)
+        );
+        if (failedCheck)
+          throw new Error(`${failedCheck.name}: ${failedCheck.conclusion}`);
+        const reportedStatuses = await github.paginate(
+          github.rest.repos.listCommitStatusesForRef,
+          {
+            ...context.repo,
+            ref: process.env.MERGE_COMMIT_SHA,
+            per_page: 100,
+          }
+        );
+        // Newest first. Railway deploys wait for this workflow, so its statuses cannot gate this apply.
+        const latestStatuses = new Map();
+        for (const status of reportedStatuses) {
+          const name = status.context.toLowerCase();
+          if (
+            !name.startsWith("protocol-visualizer - ") &&
+            !latestStatuses.has(name)
+          )
+            latestStatuses.set(name, status);
+        }
+        const statuses = [...latestStatuses.values()];
+        const failedStatus = statuses.find((status) =>
+          ["failure", "error"].includes(status.state)
+        );
+        if (failedStatus)
+          throw new Error(`${failedStatus.context}: ${failedStatus.state}`);
+        if (
+          checks.length > 0 &&
+          checks.every((check) => check.status === "completed") &&
+          statuses.every((status) => status.state === "success")
+        ) {
+          // Recheck after the wait, before dependency installation or Railway token use.
+          const { data: branch } = await github.rest.repos.getBranch({
+            ...context.repo,
+            branch: "master",
+          });
+          if (branch.commit.sha !== context.sha)
+            throw new Error(
+              "Production branch advanced; refusing an outdated queued release before dependency installation or Railway token use."
+            );
+          core.info(
+            "Native CI jobs and external checks passed; production infrastructure apply may proceed."
+          );
+          return;
+        }
+      }
+      core.info(
+        "Waiting for dependency audit, CodeQL and external commit checks on the merge commit."
+      );
+      await new Promise((resolve) => setTimeout(resolve, 15_000));
+    }
+    throw new Error(
+      "Timed out waiting for external checks; production infrastructure was not applied."
+    );
+  },
   async plan({ core }) {
     if (!process.env.RAILWAY_API_TOKEN)
       throw new Error(

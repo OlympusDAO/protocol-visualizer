@@ -29,7 +29,7 @@ async function runGate(
   const attempts = new Map();
   let statusReads = 0;
   const script = match[1].replace(/^ {12}/gm, "");
-  await vm.runInNewContext(`(async () => {${script}\n})()`, {
+  const sandbox = {
     process: { env: { MERGE_COMMIT_SHA: "merged-release" } },
     context: {
       repo: { owner: "fixture", repo: "fixture" },
@@ -74,11 +74,42 @@ async function runGate(
         },
       },
     },
+  };
+  const release = releaseModule({
+    ...sandbox,
+    require(name) {
+      assert.fail(`Read-only gates must not load ${name}`);
+    },
+  });
+  await vm.runInNewContext(`(async () => {${script}\n})()`, {
+    ...sandbox,
+    require(name) {
+      assert.equal(name, "./scripts/railway-release.cjs");
+      return release;
+    },
   });
   return calls;
 }
 
-test("production release gates trusted planning before checkout and keeps native CI dependencies", async () => {
+test("requiring release gates only declares functions without reading environment or loading providers", () => {
+  const release = releaseModule({
+    process: new Proxy(
+      {},
+      {
+        get() {
+          assert.fail("Module loading must not use process or tokens");
+        },
+      }
+    ),
+    require(name) {
+      assert.fail(`Module loading must not read, spawn or import ${name}`);
+    },
+  });
+  assert.equal(typeof release.select, "function");
+  assert.equal(typeof release.waitForExternalChecks, "function");
+});
+
+test("production release checks out the exact push revision before read-only gates and gates bootstrap and credentials", async () => {
   const apply = workflow.split("\n  railway-apply:")[1];
   assert.match(apply, /^ {6}checks: read$/m);
   assert.match(apply, /^ {6}statuses: read$/m);
@@ -105,9 +136,19 @@ test("production release gates trusted planning before checkout and keeps native
     (workflow.match(/secrets.RAILWAY_DEPLOY_TOKEN/g) ?? []).length,
     3
   );
+  assert.match(apply, /steps:\n {6}- name: Checkout merged configuration\n/);
+  const checkout = apply
+    .split("- name: Checkout merged configuration")[1]
+    .split("\n      - name:")[0];
+  assert(checkout.includes("persist-credentials: false"));
+  assert.match(checkout, /ref: \$\{\{ github\.sha \}\}/);
   assert(
-    apply.indexOf("- name: Wait for external checks") <
-      apply.indexOf("- name: Checkout merged configuration")
+    apply.indexOf("- name: Checkout merged configuration") <
+      apply.indexOf("- name: Select production infrastructure change")
+  );
+  assert(
+    apply.indexOf("- name: Select production infrastructure change") <
+      apply.indexOf("- name: Wait for external checks")
   );
   assert(
     apply.indexOf("- name: Wait for external checks") <
@@ -177,35 +218,48 @@ async function findPlan({ prs } = {}) {
   assert(match, "CI must select trusted merged changes");
   const outputs = {};
   const calls = [];
+  const sandbox = {
+    context: {
+      repo: { owner: "fixture", repo: "fixture" },
+      sha: "merged-release",
+      payload: { repository: { full_name: "fixture/fixture" } },
+    },
+    core: {
+      info() {},
+      setOutput(name, value) {
+        outputs[name] = value;
+      },
+    },
+    github: {
+      async paginate(method, args) {
+        assert.equal(method, "associated");
+        assert.equal(args.commit_sha, "merged-release");
+        return prs ?? [mergedPR];
+      },
+      rest: {
+        repos: { listPullRequestsAssociatedWithCommit: "associated" },
+        actions: {
+          async listWorkflowRuns(args) {
+            calls.push(args);
+            throw new Error("PR plan lookup must not run");
+          },
+        },
+      },
+    },
+  };
+  const release = releaseModule({
+    ...sandbox,
+    require(name) {
+      assert.fail(`Read-only gates must not load ${name}`);
+    },
+  });
   await vm.runInNewContext(
     `(async () => {${match[1].replace(/^ {12}/gm, "")}\n})()`,
     {
-      context: {
-        repo: { owner: "fixture", repo: "fixture" },
-        sha: "merged-release",
-        payload: { repository: { full_name: "fixture/fixture" } },
-      },
-      core: {
-        info() {},
-        setOutput(name, value) {
-          outputs[name] = value;
-        },
-      },
-      github: {
-        async paginate(method, args) {
-          assert.equal(method, "associated");
-          assert.equal(args.commit_sha, "merged-release");
-          return prs ?? [mergedPR];
-        },
-        rest: {
-          repos: { listPullRequestsAssociatedWithCommit: "associated" },
-          actions: {
-            async listWorkflowRuns(args) {
-              calls.push(args);
-              throw new Error("PR plan lookup must not run");
-            },
-          },
-        },
+      ...sandbox,
+      require(name) {
+        assert.equal(name, "./scripts/railway-release.cjs");
+        return release;
       },
     }
   );

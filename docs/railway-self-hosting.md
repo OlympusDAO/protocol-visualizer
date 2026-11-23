@@ -213,14 +213,14 @@ runs repository JavaScript with its token. A preview operation is not a safe
 place to execute untrusted PR code with production credentials.
 
 On a `master` push, after all five source checks and Image security and integration
-succeed, the job selects a reviewed PR merged at that exact SHA into this repository's
+succeed, the job checks out the exact push SHA with persisted credentials disabled, then selects a reviewed PR merged at that SHA into this repository's
 `master`. A reviewed fork PR is trusted after merge too. Direct pushes, unmerged
 PRs skip infrastructure release. Every reviewed merge, including application-only
 and Markdown-only changes, reconciles the current configuration; unchanged
 infrastructure produces a native no-op. The job then:
 
-1. Waits for the newest exact-SHA Dependency Audit **push** run, managed CodeQL **dynamic** run (workflow `255339919`), and reported external checks/statuses. Missing/pending results time out; failed/cancelled/skipped required runs block release. It then rejects an outdated `master` SHA before checkout, dependency installation or Railway token use; the final pre-apply current-master check remains.
-2. Checks out the exact merged SHA and uses the locked shared bootstrap with dependencies for SDK evaluation. A missing deployment token fails before the native plan or any other provider command.
+1. Waits for the newest exact-SHA Dependency Audit **push** run, managed CodeQL **dynamic** run (workflow `255339919`), and reported external checks/statuses. Missing/pending results time out; failed/cancelled/skipped required runs block release. It then rejects an outdated `master` SHA before dependency installation or Railway token use; the final pre-apply current-master check remains.
+2. Uses the locked shared bootstrap with dependencies for SDK evaluation. The earlier checkout only makes the declaration-only release module available to read-only gates; no dependency installation or Railway credential is used by those gates. A missing deployment token fails before the native plan or any other provider command.
 3. Runs native `railway config plan --environment "$RAILWAY_ENVIRONMENT_ID" --out <temporary-plan>` under umask 077, capturing stdout/stderr privately. The plan reads/evaluates/previews; it does not apply infrastructure changes. No PR plan, uploaded/downloaded artifact or cross-run state is used.
 4. After the fresh plan captures its ETag, checks the cache-password prerequisite once, before apply. Validates the plan shape/main database image-transition policy and rejects an outdated queued release if current `master` differs. Native saved-plan apply binds the environment, source tree, revision/ETag and hash; CI does not duplicate those checks in JavaScript.
 5. Applies that fresh local plan with the native CLI and accepts only `applied`/`noop` at the top level and for every change, never exit zero alone. No `--confirm-destructive` is supplied. The existing main PostgreSQL source-image transition gate still requires the separately approved [PG18 reset/reindex release](postgresql18-rebuild.md).

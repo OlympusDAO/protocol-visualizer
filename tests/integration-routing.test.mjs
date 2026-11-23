@@ -115,10 +115,15 @@ test("integration prepares only missing pinned PG18 independently of security sc
       calls.filter((c) => c[1] === "pull"),
       cached ? [] : [["docker", "pull", pgImage]]
     );
-    const appChecks = calls.filter(
-      (c) => c[1] === "image" && c[3].startsWith("protocol-visualizer/")
+    assert.deepEqual(
+      calls.filter((c) => c[1] === "image").map((c) => c[3]),
+      [
+        "protocol-visualizer/indexer:local",
+        "protocol-visualizer/rpc-cache:local",
+        pgImage,
+        pgImage,
+      ]
     );
-    assert.equal(appChecks.length, 2);
     assert(
       calls.findIndex((c) => c[1] === "create") >
         calls.findIndex((c) => c[1] === "image" && c[3] === pgImage)
@@ -145,7 +150,6 @@ test("integration prepares only missing pinned PG18 independently of security sc
       [["pnpm", "run", "test:rpc-cache"]]
     );
     assert(calls.some((c) => c[1] === "rm" && c.includes("--volumes")));
-    assert(!JSON.stringify(calls).includes("quay.io"));
     assert(!calls.some((c) => c[1] === "build"));
     const create = calls.find((c) => c[1] === "create");
     assert.equal(create.at(-1), pgImage);

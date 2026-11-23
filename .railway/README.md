@@ -41,7 +41,7 @@ The prepared main PG18 image transition is blocked from automatic apply. Its
 cache data and production mounts remain unchanged.
 
 See the [automatic CI gates and release recovery](../docs/railway-self-hosting.md#automatic-plan-and-apply)
-for trusted merged-master planning/apply, environment-only deployment credentials,
+for planning/apply on every reviewed merge into `master`, environment-only deployment credentials,
 activation prerequisites and queued-release recovery. PRs have no production token
 or live plan; source policy does not prove live GitHub protections or deployed privacy.
 

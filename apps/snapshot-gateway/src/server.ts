@@ -586,7 +586,10 @@ export function createSnapshotGateway(config: GatewayConfig) {
         catalogue ??= readFile(
           new URL("../../index.html", import.meta.url),
           "utf8"
-        );
+        ).catch((error) => {
+          catalogue = undefined;
+          throw error;
+        });
         const body = await catalogue;
         send(
           response,

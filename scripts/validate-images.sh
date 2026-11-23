@@ -19,5 +19,5 @@ for image in "${images[@]}"; do
 done
 printf '\n[9/10] Scan Dockerfiles\n'
 pnpm run docker:scan:dockerfiles
-printf '\n[10/10] Check owned external images; record provider advisories and local exclusions\n'
+printf '\n[10/10] Check owned external images; provider inventory NOT SCANNED (optional: pnpm docker:scan:provider); local fixtures excluded\n'
 pnpm run docker:scan:runtime

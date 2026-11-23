@@ -1,11 +1,19 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { test } from "node:test";
 
 import { createRailwayContext } from "railway/iac";
 import defineInfrastructure from "../.railway/railway.ts";
+
+const requireFromFrontend = createRequire(
+  new URL("../apps/frontend/package.json", import.meta.url)
+);
+const { parse } = createRequire(
+  requireFromFrontend.resolve("vite/package.json")
+)("yaml");
 
 const railwayServices = defineInfrastructure(
   createRailwayContext({ environment: "production" })
@@ -219,21 +227,23 @@ test("Dependabot treats the snapshot gateway as TypeScript", () => {
 
 test("Dependency audit skips fork PRs and uses the pinned action for same-repository PRs", () => {
   const auditWorkflow = readFileSync(".github/workflows/audit.yml", "utf8");
-  assert(
-    auditWorkflow.includes(
-      "if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository"
-    )
+  const audit = parse(auditWorkflow).jobs.audit;
+  assert.equal(
+    audit.if,
+    "github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository"
   );
-  assert(
-    auditWorkflow.includes(
+  const prAudit = audit.steps.find(
+    (step) =>
+      step.uses ===
       "JamesRobertWiseman/pnpm-audit@ef62519bd4eb8b0b063989599c2ebbf5dd5f5f28"
-    )
   );
-  assert(auditWorkflow.includes("if: github.event_name == 'pull_request'"));
-  assert(auditWorkflow.includes("if: github.event_name != 'pull_request'"));
-  assert(auditWorkflow.includes("run: pnpm audit --audit-level moderate"));
-  assert(auditWorkflow.includes("level: moderate"));
-  assert(auditWorkflow.includes("fails: true"));
+  assert.equal(prAudit.if, "github.event_name == 'pull_request'");
+  assert.equal(prAudit.with.level, "moderate");
+  assert.equal(prAudit.with.fails, true);
+  const nativeAudit = audit.steps.find(
+    (step) => step.run === "pnpm audit --audit-level moderate"
+  );
+  assert.equal(nativeAudit.if, "github.event_name != 'pull_request'");
   assert(!auditWorkflow.includes("workflow_call:"));
   assert(auditWorkflow.includes("pull_request:"));
   const ciWorkflow = readFileSync(".github/workflows/ci.yml", "utf8");
@@ -361,16 +371,45 @@ test("Env samples and docs keep optional variables commented", () => {
 });
 
 test("every local Compose host binding is explicitly loopback-only", () => {
-  const compose = readFileSync("docker-compose.yml", "utf8");
-  const blocks = [...compose.matchAll(/^    ports:\n((?:      - .+\n)+)/gm)];
-  assert(blocks.length > 0);
-  for (const [, ports] of blocks)
-    for (const line of ports.trim().split("\n"))
-      assert.match(
-        line.trim(),
-        /^- "127\.0\.0\.1:\$\{[A-Z_]+:-\d+\}:\d+"$/,
-        line
-      );
+  function assertLoopbackPorts(compose) {
+    let bindings = 0;
+    for (const [name, service] of Object.entries(
+      parse(compose, { merge: true }).services
+    ))
+      for (const port of service.ports ?? []) {
+        bindings += 1;
+        assert(
+          typeof port === "string"
+            ? /^(127\.0\.0\.1|\[::1\]):/.test(port)
+            : ["127.0.0.1", "::1"].includes(port?.host_ip),
+          `${name}: ${JSON.stringify(port)} must bind loopback explicitly`
+        );
+      }
+    assert(bindings > 0);
+  }
+  assertLoopbackPorts(readFileSync("docker-compose.yml", "utf8"));
+  assertLoopbackPorts(`services:
+  local:
+    ports: ["127.0.0.1:8080:80", {target: 80, published: 8081, host_ip: "::1"}]
+`);
+  assert.throws(
+    () =>
+      assertLoopbackPorts(`services:
+  local:
+    ports: ["127.0.0.1:8080:80"]
+  unbound:
+    ports: ["8080:80"]
+`),
+    /unbound:.*must bind loopback explicitly/
+  );
+  assert.throws(
+    () =>
+      assertLoopbackPorts(`services:
+  unbound:
+    ports: [{target: 80, published: 8080}]
+`),
+    /unbound:.*must bind loopback explicitly/
+  );
 });
 
 test("fresh local PG18 volumes use the official image parent mount and versioned names", () => {

@@ -94,16 +94,6 @@ jobs:
               core.info("No PR merged into this repository at this commit; infrastructure apply is skipped.");
               return;
             }
-            const files = await github.paginate(github.rest.pulls.listFiles, {
-              ...context.repo, pull_number: pr.number, per_page: 100,
-            });
-            const paths = [".github/workflows/ci.yml",
-              "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "mise.toml", "mise.lock", ".nvmrc", ".node-version"];
-            if (!files.some(({ filename }) => !/\.md$/i.test(filename) && (paths.includes(filename) ||
-              filename.startsWith(".railway/") || filename.startsWith(".github/actions/bootstrap/")))) {
-              core.info("The merged PR does not affect Railway configuration; apply is skipped.");
-              return;
-            }
             core.setOutput("relevant", "true");
       - name: Wait for external checks
         if: steps.eligibility.outputs.relevant == 'true'

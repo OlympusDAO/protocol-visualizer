@@ -84,6 +84,28 @@ function fixture(t) {
           : 0
       );
     }
+    if (process.env.PV_TEST_CONTEXT_PRECEDENCE) {
+      if (
+        name === "docker" ||
+        (name === "trivy" && process.env.CONTAINER_ENGINE === "docker")
+      ) {
+        const contextEndpoint =
+          process.env.DOCKER_CONTEXT === "fixture-context"
+            ? "unix:///fixture-context-daemon"
+            : "unix:///default-daemon";
+        const endpoint =
+          name === "docker" && process.env.DOCKER_CONTEXT
+            ? contextEndpoint
+            : process.env.DOCKER_HOST || contextEndpoint;
+        if (endpoint !== "unix:///fixture-context-daemon") process.exit(23);
+      } else if (name === "podman" || name === "trivy") {
+        if (
+          process.env.DOCKER_CONTEXT !== "fixture-context" ||
+          process.env.DOCKER_HOST !== "unix:///fixture-other-daemon"
+        )
+          process.exit(24);
+      }
+    }
     if (name === "docker" || name === "podman") {
       if (args[0] === "image") {
         if (process.env.PV_TEST_IMAGE_MISSING) process.exit(17);
@@ -91,12 +113,6 @@ function fixture(t) {
       }
       process.exit(0);
     }
-    if (
-      process.env.PV_TEST_CONTEXT_PRECEDENCE &&
-      process.env.CONTAINER_ENGINE === "docker" &&
-      process.env.DOCKER_HOST
-    )
-      process.exit(23);
     fs.mkdirSync(args[args.indexOf("--cache-dir") + 1], { recursive: true });
     if (
       process.env.PV_TEST_SECRET &&
@@ -168,14 +184,30 @@ test("offline SDK production/preview inventory covers actual refs without Railwa
   assert.deepEqual(new Set(production.map((row) => row.reference)), expected);
   const reference = production.find((row) => row.kind === "provider").reference;
   assert.equal(imageInventory([redis("cache")], "")[0].kind, "owned");
+  const providerRepo = "ghcr.io/railwayapp-templates/postgres-ssl";
+  for (const ref of [
+    reference,
+    `${providerRepo}:18`,
+    `${providerRepo}@sha256:${"ab".repeat(32)}`,
+  ]) {
+    assert.equal(
+      imageInventory([database("db", "postgres", { image: ref })], "")[0].kind,
+      "provider"
+    );
+    assert.equal(
+      imageInventory(
+        [
+          database("db", "postgres", { image: ref }),
+          service("mirror", { source: image(ref) }),
+        ],
+        ""
+      )[0].kind,
+      "owned"
+    );
+  }
   assert.equal(
-    imageInventory(
-      [
-        database("db", "postgres", { image: reference }),
-        service("mirror", { source: image(reference) }),
-      ],
-      ""
-    )[0].kind,
+    imageInventory([database("db", "postgres", { image: providerRepo })], "")[0]
+      .kind,
     "owned"
   );
   assert.throws(

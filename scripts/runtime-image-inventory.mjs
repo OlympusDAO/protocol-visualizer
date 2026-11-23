@@ -53,7 +53,7 @@ export function imageInventory(resources, compose) {
       const provider =
         resource.type === "database" &&
         resource.engine === "postgres" &&
-        /^ghcr\.io\/railwayapp-templates\/postgres-ssl:[\w.-]+(?:@sha256:[a-f0-9]{64})?$/.test(
+        /^ghcr\.io\/railwayapp-templates\/postgres-ssl(?::[\w.-]+(?:@sha256:[a-f0-9]{64})?|@sha256:[a-f0-9]{64})$/.test(
           source.image
         );
       add(

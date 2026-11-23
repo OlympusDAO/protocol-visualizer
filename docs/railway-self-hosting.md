@@ -213,9 +213,11 @@ runs repository JavaScript with its token. A preview operation is not a safe
 place to execute untrusted PR code with production credentials.
 
 On a `master` push, after all five source checks and Image security and integration
-succeed, the job selects a relevant PR merged at that exact SHA into this repository's
+succeed, the job selects a reviewed PR merged at that exact SHA into this repository's
 `master`. A reviewed fork PR is trusted after merge too. Direct pushes, unmerged
-PRs and unrelated/Markdown-only changes skip infrastructure release. The job then:
+PRs skip infrastructure release. Every reviewed merge, including application-only
+and Markdown-only changes, reconciles the current configuration; unchanged
+infrastructure produces a native no-op. The job then:
 
 1. Waits for the newest exact-SHA Dependency Audit **push** run, managed CodeQL **dynamic** run (workflow `255339919`), and reported external checks/statuses. Missing/pending results time out; failed/cancelled/skipped required runs block release. It then rejects an outdated `master` SHA before checkout, dependency installation or Railway token use; the final pre-apply current-master check remains.
 2. Checks out the exact merged SHA and uses the locked shared bootstrap with dependencies for SDK evaluation. A missing deployment token fails before the native plan or any other provider command.
@@ -280,9 +282,8 @@ work; PRs do not run authenticated production planning.
 
 If a queued release is rejected after `master` advances, follow the latest reviewed
 `master` push CI run, or re-run that exact latest push run after its gates pass.
-This reconciles infrastructure only if that merge passes the Railway relevance
-check. An unrelated/app-only/Markdown-only merge that fails that check skips release;
-make a reviewed Railway-relevant follow-up merge for automatic reconciliation.
+Every reviewed merge is eligible for reconciliation, including application-only
+and Markdown-only merges, so the latest run can reconcile a superseded change.
 Re-running an older revision cannot recover the superseded release. Local native
 operations remain separately approved maintenance/recovery only.
 

@@ -170,11 +170,11 @@ const mergedPR = {
   head: { sha: "reviewed-head", repo: { full_name: "fixture/fixture" } },
 };
 
-async function findPlan({ prs, files = [".railway/railway.ts"] } = {}) {
+async function findPlan({ prs } = {}) {
   const match = workflow.match(
     / {6}- name: Select production infrastructure change\n[\s\S]*? {10}script: \|\n([\s\S]*?)(?=^ {6}- name:)/m
   );
-  assert(match, "CI must select relevant trusted merged changes");
+  assert(match, "CI must select trusted merged changes");
   const outputs = {};
   const calls = [];
   await vm.runInNewContext(
@@ -193,16 +193,12 @@ async function findPlan({ prs, files = [".railway/railway.ts"] } = {}) {
       },
       github: {
         async paginate(method, args) {
-          if (method === "associated") {
-            assert.equal(args.commit_sha, "merged-release");
-            return prs ?? [mergedPR];
-          }
-          assert.equal(args.pull_number, 7);
-          return files.map((filename) => ({ filename }));
+          assert.equal(method, "associated");
+          assert.equal(args.commit_sha, "merged-release");
+          return prs ?? [mergedPR];
         },
         rest: {
           repos: { listPullRequestsAssociatedWithCommit: "associated" },
-          pulls: { listFiles: "files" },
           actions: {
             async listWorkflowRuns(args) {
               calls.push(args);
@@ -216,12 +212,28 @@ async function findPlan({ prs, files = [".railway/railway.ts"] } = {}) {
   return { outputs, calls };
 }
 
-test("CI selects relevant merged master changes including reviewed fork PRs without PR plans", async () => {
+test("CI reconciles reviewed master merges including docs-only and fork PRs without PR plans", async () => {
   const { outputs, calls } = await findPlan();
   assert.equal(outputs.relevant, "true");
   assert.deepEqual(calls, []);
-  for (const file of ["mise.toml", "mise.lock", ".github/workflows/ci.yml"])
-    assert.equal((await findPlan({ files: [file] })).outputs.relevant, "true");
+  assert.equal(
+    (
+      await findPlan({
+        prs: [{ ...mergedPR, title: "docs: correct self-hosting guide" }],
+      })
+    ).outputs.relevant,
+    "true"
+  );
+  await runGate(() => [{ status: "completed", conclusion: "success" }]);
+  await assert.rejects(
+    runGate(
+      () => [{ status: "completed", conclusion: "success" }],
+      undefined,
+      [],
+      "newer-release"
+    ),
+    /advanced/
+  );
   assert.equal(
     (
       await findPlan({
@@ -237,18 +249,8 @@ test("CI selects relevant merged master changes including reviewed fork PRs with
   );
 });
 
-test("CI skips infrastructure apply for direct pushes and unrelated merges", async () => {
+test("CI skips infrastructure apply for direct pushes and untrusted merge targets", async () => {
   assert.deepEqual((await findPlan({ prs: [] })).outputs, {});
-  assert.deepEqual(
-    (await findPlan({ files: ["apps/frontend/src/App.tsx"] })).outputs,
-    {}
-  );
-  for (const file of [
-    ".railway/README.md",
-    ".railway/nested/notes.md",
-    ".github/actions/bootstrap/README.md",
-  ])
-    assert.deepEqual((await findPlan({ files: [file] })).outputs, {});
   for (const merge_commit_sha of ["another-merge", null]) {
     assert.deepEqual(
       (await findPlan({ prs: [{ merged_at: "2026-11-13", merge_commit_sha }] }))

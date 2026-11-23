@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
+import { promises as fs } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { createServer, request as httpRequest } from "node:http";
+import { syncBuiltinESMExports } from "node:module";
 import { test } from "node:test";
 import {
   ACTIVE_MANIFEST_KEY,
@@ -316,6 +318,69 @@ for (const method of ["GET", "HEAD"]) {
     }
   });
 }
+
+test("catalogue retries a failed read and shares pending and successful reads", async (t) => {
+  const server = createServer(
+    createSnapshotGateway(createTestConfig(new FakeReader({})))
+  );
+  const listening = once(server, "listening");
+  server.listen(0, "127.0.0.1");
+  await listening;
+  const address = server.address();
+  assert(typeof address === "object" && address !== null);
+  const url = `http://127.0.0.1:${address.port}/`;
+  const body = "<!doctype html><title>Recovered catalogue</title>";
+  let reads = 0;
+  let releaseRead: (() => void) | undefined;
+  const pendingRead = new Promise<string>((resolve) => {
+    releaseRead = () => resolve(body);
+  });
+  const readMock = t.mock.method(fs, "readFile", () => {
+    reads += 1;
+    if (reads === 1)
+      return Promise.reject(
+        Object.assign(new Error("synthetic file limit"), { code: "EMFILE" })
+      );
+    return pendingRead;
+  });
+  syncBuiltinESMExports();
+  try {
+    const failed = await fetch(url);
+    assert.equal(failed.status, 502);
+    await failed.text();
+
+    const getArrived = once(server, "request");
+    const get = fetch(url);
+    await getArrived;
+    const headArrived = once(server, "request");
+    const head = fetch(url, { method: "HEAD" });
+    await headArrived;
+    const pendingReads = reads;
+    releaseRead?.();
+    const [getResponse, headResponse] = await Promise.all([get, head]);
+    assert.equal(getResponse.status, 200);
+    assert.equal(await getResponse.text(), body);
+    assert.equal(headResponse.status, 200);
+    assert.equal(await headResponse.text(), "");
+    assert.equal(
+      pendingReads,
+      2,
+      "concurrent retry requests must share one read"
+    );
+
+    for (const method of ["GET", "HEAD"]) {
+      const cached = await fetch(url, { method });
+      assert.equal(cached.status, 200);
+      assert.equal(await cached.text(), method === "HEAD" ? "" : body);
+    }
+    assert.equal(reads, 2, "successful catalogue reads must remain cached");
+  } finally {
+    releaseRead?.();
+    readMock.mock.restore();
+    syncBuiltinESMExports();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
 
 test("public OpenAPI remains available alongside the static HTML catalogue", async () => {
   for (const method of ["GET", "HEAD"]) {

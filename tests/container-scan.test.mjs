@@ -91,6 +91,12 @@ function fixture(t) {
       }
       process.exit(0);
     }
+    if (
+      process.env.PV_TEST_CONTEXT_PRECEDENCE &&
+      process.env.CONTAINER_ENGINE === "docker" &&
+      process.env.DOCKER_HOST
+    )
+      process.exit(23);
     fs.mkdirSync(args[args.indexOf("--cache-dir") + 1], { recursive: true });
     if (
       process.env.PV_TEST_SECRET &&
@@ -194,6 +200,22 @@ test("Compose image inventory reads equivalent plain and quoted YAML scalars", (
       imageInventory([], compose).map((row) => row.reference),
       [reference]
     );
+  }
+});
+
+test("owned scans use the selected context without changing Podman selection", (t) => {
+  for (const engine of ["docker", "podman"]) {
+    const f = fixture(t);
+    const result = f.run("scripts/scan-container.mjs", ["hasura"], {
+      CONTAINER_ENGINE: engine,
+      DOCKER_CONTEXT: "fixture-context",
+      DOCKER_HOST: "unix:///fixture-other-daemon",
+      PV_TEST_CONTEXT_PRECEDENCE: "1",
+    });
+    assert.equal(result.status, 0, result.stderr);
+    const [inspect, scan] = f.calls();
+    assert.equal(inspect[0], engine);
+    assert.equal(scan[scan.indexOf("--image-src") + 1], engine);
   }
 });
 

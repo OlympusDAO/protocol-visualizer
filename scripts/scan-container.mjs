@@ -12,10 +12,11 @@ if (!ownedImages.includes(service) || args.length !== 1) {
   process.exit(1);
 }
 const image = `protocol-visualizer/${service}:local`;
-function run(command, parameters) {
+function run(command, parameters, env = process.env) {
   const result = spawnSync(command, parameters, {
     cwd: root,
     stdio: "inherit",
+    env,
   });
   if (result.error || result.signal || result.status !== 0) {
     process.exitCode = result.status || 1;
@@ -33,27 +34,33 @@ try {
     "--format",
     "{{.RepoTags}}",
   ]);
-  run("trivy", [
-    "image",
-    "--image-src",
-    engine,
-    "--format",
-    "table",
-    "--cache-dir",
-    path.join(root, "node_modules/.cache/container-scan/trivy"),
-    "--scanners",
-    "vuln,secret",
-    "--image-config-scanners",
-    "secret",
-    "--severity",
-    "MEDIUM,HIGH,CRITICAL",
-    "--ignorefile",
-    path.join(root, ".trivyignore"),
-    "--exit-code",
-    "1",
-    `--ignore-unfixed=${["hasura", "indexer"].includes(service)}`,
-    image,
-  ]);
+  run(
+    "trivy",
+    [
+      "image",
+      "--image-src",
+      engine,
+      "--format",
+      "table",
+      "--cache-dir",
+      path.join(root, "node_modules/.cache/container-scan/trivy"),
+      "--scanners",
+      "vuln,secret",
+      "--image-config-scanners",
+      "secret",
+      "--severity",
+      "MEDIUM,HIGH,CRITICAL",
+      "--ignorefile",
+      path.join(root, ".trivyignore"),
+      "--exit-code",
+      "1",
+      `--ignore-unfixed=${["hasura", "indexer"].includes(service)}`,
+      image,
+    ],
+    engine === "docker" && process.env.DOCKER_CONTEXT
+      ? { ...process.env, DOCKER_HOST: undefined }
+      : process.env
+  );
 } catch (error) {
   console.error(error.message);
   process.exitCode ||= error.status || 1;

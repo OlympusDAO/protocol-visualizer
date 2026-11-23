@@ -301,6 +301,13 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
               message: "fixture-url-secret fixture-query-secret",
               data: { url: "fixture-url-secret", key: "fixture-query-secret" },
             };
+          else if (params[0]?.data === "0xeee1")
+            error = { code: -32602, message: " \tInTeRnAl ErRoR\n" };
+          else if (params[0]?.data === "0xeee2")
+            error = {
+              code: -32602,
+              message: "Internal error fixture-url-secret fixture-query-secret",
+            };
           else if (data === "0x0000") result = "0x";
           else if (data === "0x0001") result = zeroWord;
           else if (data === "0xbbbb") result = null;
@@ -596,12 +603,21 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
       if (toBlock) filter.toBlock = toBlock;
       await bypassPair(1, "eth_getLogs", [filter]);
     }
-    await bypassPair(
-      1,
-      "eth_call",
-      [{ ...call[0], data: "0xeeee" }, "0x100"],
-      true
-    );
+    for (const [data, expected] of [
+      ["0xeeee", "RPC request failed"],
+      ["0xeee1", "Internal error"],
+      ["0xeee2", "RPC request failed"],
+    ]) {
+      const params = [{ ...call[0], data }, "0x100"];
+      for (let i = 0; i < 2; i++) {
+        const before = count(1, "eth_call", params);
+        const error = await rpc(1, "eth_call", params);
+        assert(count(1, "eth_call", params) > before);
+        assert.equal(error.body.error?.message, expected);
+        if (data !== "0xeeee") assert.equal(error.body.error?.code, -32602);
+        assert.notEqual(error.cached, "HIT");
+      }
+    }
     await bypassPair(
       1,
       "eth_call",

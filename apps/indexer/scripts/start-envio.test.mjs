@@ -1,8 +1,17 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const validEnv = {
   DATABASE_URL:
@@ -165,4 +174,81 @@ test("resolves the Envio entrypoint independently of the SSH working directory",
   } finally {
     process.chdir(previous);
   }
+});
+
+test("storage preflight captures launch dotenv before native CLI changes project directory", (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "pv-storage-env-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const launch = join(directory, "launch");
+  const project = join(directory, "project");
+  mkdirSync(launch);
+  mkdirSync(project);
+  writeFileSync(join(launch, ".env"), "ENVIO_PG_SCHEMA=launch_schema\n");
+  writeFileSync(join(project, ".env"), "ENVIO_PG_SCHEMA=project_schema\n");
+  writeFileSync(join(project, "schema.graphql"), "type Transfer { id: ID! }\n");
+  writeFileSync(join(project, "handler.js"), "export {};\n");
+  writeFileSync(
+    join(project, "config.yaml"),
+    `name: storage-env-fixture
+contracts:
+  - name: Example
+    handler: ./handler.js
+    events:
+      - event: Transfer(address indexed from, address indexed to, uint256 value)
+chains:
+  - id: 1
+    start_block: 0
+    contracts:
+      - name: Example
+        address: "0x0000000000000000000000000000000000000001"
+`
+  );
+  const envioRoot = dirname(
+    createRequire(import.meta.url).resolve("envio/package.json")
+  );
+  const nativeUrl = (name) =>
+    pathToFileURL(join(envioRoot, "src", `${name}.res.mjs`)).href;
+  const trace = join(directory, "storage.json");
+  // Run the real adapter/CLI/config/Env; replace only the database boundary.
+  const storage = `import { writeFileSync } from "node:fs";
+import { Db } from ${JSON.stringify(nativeUrl("Env"))};
+export const makeClient = () => undefined;
+export const makeStorageFromEnv = () => ({
+  isInitialized: async () => false,
+  close: async () => writeFileSync(${JSON.stringify(trace)}, JSON.stringify({ schema: Db.publicSchema, closed: true }))
+});`;
+  const preload = `import { registerHooks } from "node:module";
+registerHooks({ load(url, context, nextLoad) {
+  return url === ${JSON.stringify(nativeUrl("PgStorage"))}
+    ? { format: "module", shortCircuit: true, source: ${JSON.stringify(storage)} }
+    : nextLoad(url, context);
+}});`;
+  const result = spawnSync(
+    process.execPath,
+    [
+      "--import",
+      `data:text/javascript,${encodeURIComponent(preload)}`,
+      fileURLToPath(new URL("./check-envio-storage.mjs", import.meta.url)),
+      "start",
+      "--directory",
+      project,
+    ],
+    {
+      cwd: launch,
+      env: {
+        PATH: process.env.PATH,
+        NODE_ENV: "development",
+        LOG_STRATEGY: "ecs-console",
+        LOG_LEVEL: "silent",
+        ENVIO_API_TOKEN: "fixture-only",
+      },
+      encoding: "utf8",
+      timeout: 10_000,
+    }
+  );
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(readFileSync(trace, "utf8")), {
+    schema: "launch_schema",
+    closed: true,
+  });
 });

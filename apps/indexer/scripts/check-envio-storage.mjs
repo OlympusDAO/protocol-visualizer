@@ -17,6 +17,8 @@ try {
   );
   if (version !== "3.14.1")
     throw new Error("Review the storage check before upgrading Envio");
+  // Match Bin/Main: capture launch dotenv before CLI changes project context.
+  await native("Env");
   const Core = await native("Core");
   const result = await Core.runCli(process.argv.slice(2));
   if (result !== null) {

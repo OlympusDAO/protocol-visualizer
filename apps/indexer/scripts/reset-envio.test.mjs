@@ -45,6 +45,7 @@ for (const {
   startCode,
   shutdownSignal,
   migrationSignal,
+  resetTimeout = false,
   stashCode = 0,
   restoreCode = 0,
 } of [
@@ -61,8 +62,9 @@ for (const {
   { checkCode: 0, migrationCode: 0, migrationSignal: "SIGINT" },
   { checkCode: 0, migrationCode: 0, stashCode: 1 },
   { checkCode: 0, migrationCode: 0, restoreCode: 1 },
+  { checkCode: 0, migrationCode: 0, resetTimeout: true },
 ]) {
-  test(`explicit reset lifecycle (storage ${checkCode}, migration ${migrationSignal ?? migrationCode}, start ${startCode ?? 0}, shutdown ${shutdownSignal ?? "none"}, cache stash ${stashCode}, cache restore ${restoreCode})`, {
+  test(`explicit reset lifecycle (storage ${checkCode}, migration ${migrationSignal ?? migrationCode}, start ${startCode ?? 0}, shutdown ${shutdownSignal ?? "none"}, cache stash ${stashCode}, cache restore ${restoreCode}${resetTimeout ? ", stop timeout true" : ""})`, {
     timeout: 20_000,
   }, async () => {
     const root = realpathSync(
@@ -121,8 +123,24 @@ for (const {
     };
     for (const id of [1, 10, 42161, 8453, 80094, 4663, 11155111, 421614, 84532])
       env[`ENVIO_RPC_URL_${id}`] = "http://fixture.invalid";
+    const args = [join(scripts, "start-envio.mjs")];
+    if (resetTimeout) {
+      // Keep the ingestion group alive and advance only its stop deadline.
+      const preload = `const kill = process.kill.bind(process), now = Date.now;
+let clockReads;
+process.kill = (pid, signal) => {
+  if (pid < 0 && signal === "SIGTERM") { clockReads = 0; return true; }
+  if (pid < 0 && signal === 0 && clockReads !== undefined) return true;
+  return kill(pid, signal);
+};
+Date.now = () => now() + (clockReads !== undefined && clockReads++ > 0 ? 30001 : 0);`;
+      args.unshift(
+        "--import",
+        `data:text/javascript,${encodeURIComponent(preload)}`
+      );
+    }
     const wrapper = command(
-      spawn(process.execPath, [join(scripts, "start-envio.mjs")], {
+      spawn(process.execPath, args, {
         cwd: "/",
         env,
         stdio: ["ignore", "pipe", "pipe"],
@@ -184,6 +202,21 @@ for (const {
           shell: false,
         })
       );
+      if (resetTimeout) {
+        const reset = await resetting.done;
+        assert.equal(reset.code, 1, reset.output);
+        assert.match(
+          reset.output,
+          /Ingestion did not stop within 30 seconds; migration was not started/
+        );
+        assert(!existsSync(migrated) && !existsSync(effectCache));
+        assert(existsSync(running) && existsSync(workerRunning));
+        assert.equal(
+          (await fetch(`http://127.0.0.1:${port}/ready`)).status,
+          503
+        );
+        return;
+      }
       if (stashCode) {
         const reset = await resetting.done;
         assert.equal(reset.code, 1, reset.output);

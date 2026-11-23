@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import http from "node:http";
 import { dirname, resolve } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { startResetServer } from "./reset-envio.mjs";
 
@@ -132,9 +133,6 @@ const getBooleanEnv = (key, defaultValue) => {
 
   throw new Error(`${key} must be true, false, 1, or 0; received ${value}`);
 };
-
-const sleep = (durationMs) =>
-  new Promise((resolveSleep) => setTimeout(resolveSleep, durationMs));
 
 const isBlank = (value) => value === undefined || value.trim() === "";
 
@@ -500,21 +498,29 @@ export const formatEnvioSpawnError = (error) => {
   return `Failed to start Envio: ${error.message}`;
 };
 
-export async function stopEnvioGroup(child, signal, timeoutMs = 30_000) {
-  if (!child?.pid) return;
+async function signalGroupAndWait(pid, signal, timeoutMs) {
   try {
-    process.kill(-child.pid, signal);
+    process.kill(-pid, signal);
     const deadline = Date.now() + timeoutMs;
     while (true) {
-      process.kill(-child.pid, 0);
-      if (Date.now() >= deadline) {
-        process.kill(-child.pid, "SIGKILL");
-        return;
-      }
+      process.kill(-pid, 0);
+      if (Date.now() >= deadline) return false;
       await sleep(100);
     }
   } catch (error) {
     if (error.code !== "ESRCH") throw error;
+    return true;
+  }
+}
+
+export async function stopEnvioGroup(child, signal, timeoutMs = 30_000) {
+  if (!child?.pid) return;
+  if (!(await signalGroupAndWait(child.pid, signal, timeoutMs))) {
+    try {
+      process.kill(-child.pid, "SIGKILL");
+    } catch (error) {
+      if (error.code !== "ESRCH") throw error;
+    }
   }
 }
 
@@ -602,26 +608,10 @@ export const run = async () => {
         };
         maintenanceMode = true;
         log("Stopping Envio ingestion...\n");
-        if (child)
-          try {
-            process.kill(-child.pid, "SIGTERM");
-          } catch (error) {
-            if (error.code !== "ESRCH") throw error;
-          }
-        const deadline = Date.now() + 30_000;
-        while (child) {
-          try {
-            process.kill(-child.pid, 0);
-          } catch (error) {
-            if (error.code === "ESRCH") break;
-            throw error;
-          }
-          if (Date.now() >= deadline)
-            throw new Error(
-              "Ingestion did not stop within 30 seconds; migration was not started"
-            );
-          await sleep(100);
-        }
+        if (child && !(await signalGroupAndWait(child.pid, "SIGTERM", 30_000)))
+          throw new Error(
+            "Ingestion did not stop within 30 seconds; migration was not started"
+          );
         if (shuttingDown) return 1;
         child = undefined;
         const runLogged = async (args) => {

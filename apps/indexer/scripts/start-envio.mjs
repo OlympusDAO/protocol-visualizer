@@ -640,17 +640,6 @@ export const run = async () => {
           if (spawnError) throw spawnError;
           return code ?? 1;
         };
-        const effectCache = (operation) =>
-          runLogged([resolve(scriptDir, "effect-cache-stash.mjs"), operation]);
-        // The migration drops Envio's schema, cached contract reads included.
-        log("Ingestion stopped. Moving the effect cache aside...\n");
-        if ((await effectCache("stash")) !== 0) {
-          log(
-            "Could not move the effect cache aside. Migration was not started and ingestion remains stopped. Inspect the error before retrying.\n"
-          );
-          return 1;
-        }
-        if (shuttingDown) return 1;
         log("Running Envio local db-migrate setup...\n");
         const code = await runLogged([
           envioCommand.args[0],
@@ -660,13 +649,6 @@ export const run = async () => {
         ]);
         if (shuttingDown) return code || 1;
         if (code === 0) {
-          // A missing cache costs refetched reads, not correctness: restart
-          // ingestion either way. Unrestored tables stay stashed for the next reset.
-          if ((await effectCache("restore")) !== 0)
-            log(
-              "Could not restore the effect cache; Envio will refetch contract reads. The tables remain in envio_effect_cache_stash.\n"
-            );
-          if (shuttingDown) return code || 1;
           startChild(
             envioCommand.args.filter(
               (arg) => arg !== "-r" && arg !== "--restart"

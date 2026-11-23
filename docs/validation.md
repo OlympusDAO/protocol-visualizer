@@ -1,6 +1,6 @@
 # Validation
 
-Use the repository pins in `mise.toml`/`mise.lock`: Node 24.22.3, pnpm 11.28.13, native Railway CLI 5.75.0, Trivy 0.76.2, jactionlint 2.4.0 and Zizmor 1.32.0. Install with `mise install node pnpm railway trivy jactionlint zizmor --locked`. CI pins Mise 2026.11.9 and caches these six tools through the same locked bootstrap. The Railway SDK is separately pinned at 3.16.0. TypeScript 7.0.2 compiles the workspace; `@typescript/typescript6` 6.0.2 remains necessary for contract-metadata AST APIs. Envio 3.14.1 and its native storage adapters remain unchanged.
+Use the repository pins in `mise.toml`/`mise.lock`: Node 24.22.3, pnpm 11.28.13, native Railway CLI 5.75.0, Trivy 0.76.2, jactionlint 2.4.0 and Zizmor 1.32.0. Install with `mise install node pnpm railway trivy jactionlint zizmor --locked`. CI pins Mise 2026.11.9 and caches these six tools through the same locked bootstrap. The Railway SDK is separately pinned at 3.16.0. TypeScript 7.0.2 compiles the workspace; `@typescript/typescript6` 6.0.2 remains necessary for contract-metadata AST APIs. Envio is pinned to 3.18.1; the fail-closed preflight uses its native read-only storage and compatibility APIs.
 
 <!-- biome-ignore format: keep table cells unpadded -->
 | Command | Coverage |
@@ -15,7 +15,9 @@ GitHub `CI` exposes five independent matrix checks: Runtime versions, Format and
 
 Workflow lint runs native jactionlint correctness/offline checks with explicit excessive-permissions and untrusted-checkout errors, then Zizmor offline strict collection of workflows/actions at auditor persona, medium severity and low confidence. Online audits are not run. Biome rejects focused tests only on test paths; root tests and the RPC integration test receive a native focused-test/self-comparison lint pass alongside workspace lint. Intentional optional PostgreSQL skips remain unchanged; noSkippedTests is not enabled globally.
 
-The source PostgreSQL cases are deliberately deferred to integration: native state/rollback and effect-cache preservation across the real Envio schema migration. Codegen uses loopback interpolation fixtures, not live RPCs. Missing prerequisites fail; `RPC_CACHE_TEST_SKIP_RESET=1` is rejected. An independently requested integration run may follow a failed security gate, but the fail-fast aggregate does not do this automatically.
+The source PostgreSQL cases are deliberately deferred to integration: native state/rollback across process restarts. Codegen uses loopback interpolation fixtures, not live RPCs. Missing prerequisites fail; `RPC_CACHE_TEST_SKIP_RESET=1` is rejected. An independently requested integration run may follow a failed security gate, but the fail-fast aggregate does not do this automatically.
+
+The native read-only startup preflight loads stored addresses and effect-cache counts within the existing 30-second deadline. Before a live Envio upgrade, measure warm-restart timing against a representative populated database snapshot; small fixtures do not prove that production-sized state fits this deadline.
 
 ## Image policy
 

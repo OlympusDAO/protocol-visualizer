@@ -90,7 +90,7 @@ logic before starting ingestion. Empty or compatible storage starts normally.
 A confirmed incompatibility keeps the reset control available and pauses
 ingestion. `/healthz` returns 200 while `/ready` and `/metrics` return 503.
 Database access errors and ordinary runtime failures still exit unsuccessfully.
-The adapter uses internal Envio 3.14.1 exports and requires review before an upgrade.
+The adapter uses internal Envio 3.18.1 exports and requires review before an upgrade.
 
 ## Reset the Railway indexer from your local machine
 
@@ -138,30 +138,23 @@ The startup wrapper stops the entire Envio process group and waits for it to exi
 If shutdown exceeds 30 seconds, the wrapper refuses to start the migration.
 
 The migration drops Envio's schema, including its effect cache (cached contract
-reads). Envio's own cache dump needs `psql`, which the image does not have, so the
-wrapper first moves the cache tables into the `envio_effect_cache_stash` schema
-(`scripts/effect-cache-stash.mjs`). If that fails, the migration does not start
-and ingestion remains stopped.
+reads). The wrapper does not stash or restore those tables. A deliberate reset
+starts with a cold effect cache and refetches contract reads. The separate eRPC
+cache database is retained.
 The wrapper then runs the deployed Envio command, with its configuration and variables:
 
 ```text
 /nodejs/bin/node /app/apps/indexer/node_modules/envio/bin.mjs local db-migrate setup
 ```
 
-After a successful migration, the wrapper moves the cache tables back and starts
-Envio again inside the same container. Envio resumes with the cached reads, so the
-rebuild refetches only reads that are not cached. If the restore fails, Envio
-still starts and refetches those reads; the tables stay in the stash schema and
-the next reset restores them. A cached result is reused under the same rules as
-a normal resume. Cached entries have no handler-version stamp. Envio rejects
-outputs that fail the current schema and fetches them again, but it cannot detect
-a same-shaped change in meaning. Preserve entries only when effect inputs and
-meaning remain compatible; version the effect name when its behavior or output
-meaning changes. A full entity reindex can reuse compatible cached reads. The
-stash adapter is pinned to Envio 3.14.1; an Envio upgrade requires a separate native
-format and adapter review. Restoring to a fresh database cluster also requires a
-separately reviewed export/restore procedure. No Railway service restart,
-deployment, or start-command change is needed for the existing same-version reset.
+After a successful migration, the wrapper starts Envio again inside the same
+container. No Railway service restart, deployment, or start-command change is
+needed for this explicit reset. Normal compatible restarts retain the native
+effect cache: cached entries have no handler-version stamp. Envio rejects
+outputs that fail the current schema, but cannot detect a same-shaped change in
+meaning. Version the effect name when its input or output meaning changes. An
+Envio upgrade or restoration to a fresh cluster requires separate compatibility
+and recovery review; ordinary startup never resets storage automatically.
 The command prints a completion message and exits with the migration status.
 A successful launch does not mean that indexing has caught up.
 
@@ -254,10 +247,6 @@ also resets and starts ingestion, but it must remain an operator-only action.
 
 Local process fixtures check complete ingestion shutdown before migration,
 restart after success, maintenance after failure, and concurrent reset rejection.
-They also check that the effect cache is stashed after shutdown and restored only
-after a successful migration, before Envio restarts. A disposable PostgreSQL test
-runs the real Envio migration between stash and restore and checks the cache
-through Envio's resume path, including a stash left by an interrupted reset.
 They also cover incompatible startup without automatic reset, explicit reset
 with no ingestion child, and ordinary storage/runtime failures exiting unsuccessfully.
 The Railway command test uses a fake CLI to check explicit environment selection.

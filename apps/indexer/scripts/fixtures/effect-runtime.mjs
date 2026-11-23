@@ -4,8 +4,8 @@ import { pathToFileURL } from "node:url";
 
 const require = createRequire(import.meta.url);
 const envio = pathToFileURL(require.resolve("envio"));
-const [UserContext, LoadManager, EffectState] = await Promise.all(
-  ["UserContext", "LoadManager", "EffectState"].map(
+const [UserContext, LoadManager, EffectState, RunScope] = await Promise.all(
+  ["UserContext", "LoadManager", "EffectState", "RunScope"].map(
     (name) => import(new URL(`./src/${name}.res.mjs`, envio))
   )
 );
@@ -25,37 +25,40 @@ export async function makeEffectRuntime({
     defaultCrossChain: true,
     checkpointSequence: "SharedAcrossChains",
     ecosystem: {},
+    userEntitiesByName: {},
   };
   const state = {
     config,
     effectState: EffectState.make(),
     committedFrontier: { 1: 0n },
     storageLoadStats: {},
-  };
-  const persistence = {
-    storageStatus: {
-      TAG: "Ready",
-      _0: { cache: new Proxy({}, { has: () => true }) },
-    },
+    storedEffectCaches: new Proxy({}, { has: () => true }),
     storage: {
       name: "fixture",
       loadOrThrow: (filter, table) => readRows(table.tableName, filter.id._in),
     },
   };
   const loadManager = LoadManager.make();
+  const context = UserContext.makeHandlerContext({
+    config,
+    loadManager,
+    indexerState: state,
+  });
   return {
     state,
     rows,
     effect(effect, input, chainId = 1) {
-      return UserContext.initEffect({
-        config,
-        persistence,
-        loadManager,
-        indexerState: state,
-        checkpointId: 1n,
-        isPreload: true,
-        item: { kind: 0, chainId },
-      })(effect, input);
+      return RunScope.enter(
+        {
+          TAG: "Handler",
+          _0: {
+            checkpointId: 1n,
+            isPreload: true,
+            item: { kind: 0, chainId },
+          },
+        },
+        () => context.effect(effect, input)
+      );
     },
     async flush() {
       for (const table of Object.values(state.effectState.tables)) {

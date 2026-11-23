@@ -41,20 +41,24 @@ async function runStage(stage) {
     process.env[`ENVIO_RPC_URL_${id}`] = "http://127.0.0.1:1";
   const [
     Config,
-    PgStorage,
+    Storage,
+    Logger,
     Persistence,
     IndexerState,
     UserContext,
+    RunScope,
     LoadManager,
     Rollback,
     Writing,
   ] = await Promise.all(
     [
       "Config",
-      "PgStorage",
+      "Storage",
+      "Logger",
       "Persistence",
       "IndexerState",
       "UserContext",
+      "RunScope",
       "LoadManager",
       "Rollback",
       "Writing",
@@ -69,22 +73,15 @@ async function runStage(stage) {
     "../src/events/ownership.ts"
   );
   const publicConfig = Config.getPublicConfigJson();
-  const chain = Object.values(publicConfig.evm.chains).find(
-    (row) => row.id === 1
-  );
-  publicConfig.evm.chains = {
-    fixture: {
-      ...chain,
-      startBlock: 1,
-      endBlock: 100,
-      maxReorgDepth: 100,
-      contracts: [],
-    },
+  const chain = publicConfig.evm.chains.find((row) => row.id === 1);
+  const fixture = {
+    ...chain,
+    startBlock: 1,
+    endBlock: 100,
+    maxReorgDepth: 100,
+    contracts: {},
   };
-  publicConfig.evm.chains.second = {
-    ...publicConfig.evm.chains.fixture,
-    id: 10,
-  };
+  publicConfig.evm.chains = [fixture, { ...fixture, id: 10 }];
   publicConfig.evm.contracts = {};
   publicConfig.entities = publicConfig.entities.filter((entity) =>
     [
@@ -102,26 +99,51 @@ async function runStage(stage) {
   );
   // Synthetic checkpoints retain history; no source fetcher or fork detector runs.
   config.shouldSaveFullHistory = true;
-  const persistence = PgStorage.makePersistenceFromConfig(config, undefined);
+  const logger = Logger.makeInMemory();
+  const storage = Storage.makeStorageFromEnv(
+    config,
+    logger,
+    undefined,
+    false,
+    1
+  );
   let state;
   try {
-    await Persistence.initForRun(persistence, config, false, false);
-    const initial = Persistence.getInitializedState(persistence);
+    const initial = await Persistence.initForRun(
+      storage,
+      logger,
+      config,
+      false,
+      false
+    );
     state = IndexerState.makeFromDbState(
       config,
-      persistence,
+      logger,
+      storage,
       initial,
       {
         10: {
           onEventRegistrations: [],
           onBlockRegistrations: [
-            { index: 0, name: "fixture", interval: 1, handler: async () => {} },
+            {
+              index: 0,
+              name: "fixture",
+              chainId: 10,
+              interval: 1,
+              handler: async () => {},
+            },
           ],
         },
         1: {
           onEventRegistrations: [],
           onBlockRegistrations: [
-            { index: 0, name: "fixture", interval: 1, handler: async () => {} },
+            {
+              index: 0,
+              name: "fixture",
+              chainId: 1,
+              interval: 1,
+              handler: async () => {},
+            },
           ],
         },
       },
@@ -134,30 +156,46 @@ async function runStage(stage) {
       (error) => {
         throw error;
       },
-      () => {}
+      () => {},
+      undefined
     );
-    const context = (checkpointId, chainId = 1) =>
-      UserContext.getHandlerContext({
-        config,
-        persistence,
-        indexerState: state,
-        loadManager: LoadManager.make(),
-        checkpointId: BigInt(checkpointId),
-        isPreload: false,
-        isResolved: false,
-        item: { kind: 0, chainId },
-        chains: { 1: { id: 1 }, 10: { id: 10 } },
-      });
+    const context = UserContext.makeHandlerContext({
+      config,
+      indexerState: state,
+      loadManager: LoadManager.make(),
+      chains: { 1: { id: 1 }, 10: { id: 10 } },
+    });
+    const withContext = (checkpointId, chainId, action) =>
+      RunScope.enter(
+        {
+          TAG: "Handler",
+          _0: {
+            checkpointId: BigInt(checkpointId),
+            isPreload: false,
+            isResolved: false,
+            ecosystem: config.ecosystem,
+            chainLogger: logger,
+            item: {
+              kind: 1,
+              blockNumber: Number(checkpointId),
+              onBlockRegistration: { name: "fixture", chainId },
+            },
+          },
+        },
+        () => action(context)
+      );
     const batch = (checkpointId, height, chainId = 1) => ({
       totalBatchSize: 0,
       items: [],
       progressedChainsById: {
         [chainId]: {
-          fetchState: { chainId },
+          chainId,
+          batchSize: 0,
           progressBlockNumber: height,
           sourceBlockNumber: 20,
           totalEventsProcessed: Math.floor(height / 10),
           progressBlockTime: undefined,
+          isProgressAtHeadWhenBatchCreated: false,
         },
       },
       history: { [chainId]: true },
@@ -244,12 +282,13 @@ async function runStage(stage) {
           [1, 10],
           [2, 20],
         ]) {
-          const ctx = context(checkpoint, chainId);
-          await seedQueries(ctx, chainId, height);
-          ctx.ChainObservation.set({
-            id: "same-observation",
-            indexedThrough: block(height),
-            verificationVersion: 1,
+          await withContext(checkpoint, chainId, async (ctx) => {
+            await seedQueries(ctx, chainId, height);
+            ctx.ChainObservation.set({
+              id: "same-observation",
+              indexedThrough: block(height),
+              verificationVersion: 1,
+            });
           });
           IndexerState.queueProcessedBatch(
             state,
@@ -259,62 +298,77 @@ async function runStage(stage) {
         }
     } else {
       assert.equal(initial.cleanRun, false);
-      const ctx = context(4),
-        second = context(4, 10);
       for (const chainId of [1, 10]) {
-        const scoped = context(4, chainId);
-        const keycode = chainId === 1 ? "MINTR" : "TRSRY";
-        assert.deepEqual(
-          (await getModuleDependencyFields(scoped, chainId)).map(
-            (field) => field.getter
-          ),
-          [`moduleDependents:${keycode}`]
-        );
-        const reads = [];
-        await completeModuleDependencies(
-          scoped,
-          chainId,
-          block(21),
-          [],
-          async (keycode) => {
-            reads.push(keycode);
-            return { status: "unavailable", reason: "fixture" };
-          },
-          async () => undefined
-        );
-        assert.deepEqual(reads, [keycode]);
-        const fields = await getObservedPoolFields(scoped, chainId, [
-          {
-            address,
-            getter: "getPool:fixture",
-            kind: "registered-pool",
-            startBlock: 1,
-          },
-        ]);
-        assert.deepEqual(
-          [
-            ...new Set(
-              fields
-                .filter((field) => field.kind === "pool-owner")
-                .map((field) => field.address)
+        await withContext(4, chainId, async (scoped) => {
+          const keycode = chainId === 1 ? "MINTR" : "TRSRY";
+          assert.deepEqual(
+            (await getModuleDependencyFields(scoped, chainId)).map(
+              (field) => field.getter
             ),
-          ],
-          [pool(chainId)]
-        );
-        await assert.rejects(
-          () => getModuleDependencyFields(scoped, chainId === 1 ? 10 : 1),
-          /chain scope/
-        );
+            [`moduleDependents:${keycode}`]
+          );
+          const reads = [];
+          await completeModuleDependencies(
+            scoped,
+            chainId,
+            block(21),
+            [],
+            async (keycode) => {
+              reads.push(keycode);
+              return { status: "unavailable", reason: "fixture" };
+            },
+            async () => undefined
+          );
+          assert.deepEqual(reads, [keycode]);
+          const fields = await getObservedPoolFields(scoped, chainId, [
+            {
+              address,
+              getter: "getPool:fixture",
+              kind: "registered-pool",
+              startBlock: 1,
+            },
+          ]);
+          assert.deepEqual(
+            [
+              ...new Set(
+                fields
+                  .filter((field) => field.kind === "pool-owner")
+                  .map((field) => field.address)
+              ),
+            ],
+            [pool(chainId)]
+          );
+          await assert.rejects(
+            () => getModuleDependencyFields(scoped, chainId === 1 ? 10 : 1),
+            /chain scope/
+          );
+        });
       }
 
-      assert.equal((await ctx.Contract.get("same-module")).chainId, undefined);
-      assert.equal((await second.Contract.get("same-module")).name, "TRSRY");
       assert.equal(
-        (await ctx.Contract.getWhere({ name: { _eq: "TRSRY" } })).length,
+        (await withContext(4, 1, (ctx) => ctx.Contract.get("same-module")))
+          .chainId,
+        undefined
+      );
+      assert.equal(
+        (await withContext(4, 10, (ctx) => ctx.Contract.get("same-module")))
+          .name,
+        "TRSRY"
+      );
+      assert.equal(
+        (
+          await withContext(4, 1, (ctx) =>
+            ctx.Contract.getWhere({ name: { _eq: "TRSRY" } })
+          )
+        ).length,
         0
       );
       assert.equal(
-        (await second.Contract.getWhere({ name: { _eq: "TRSRY" } })).length,
+        (
+          await withContext(4, 10, (ctx) =>
+            ctx.Contract.getWhere({ name: { _eq: "TRSRY" } })
+          )
+        ).length,
         1
       );
       if (stage === "rollback") {
@@ -323,14 +377,18 @@ async function runStage(stage) {
           20
         );
         assert.equal(
-          (await ctx.ChainObservation.get("same-observation")).indexedThrough
-            .number,
+          (
+            await withContext(4, 1, (ctx) =>
+              ctx.ChainObservation.get("same-observation")
+            )
+          ).indexedThrough.number,
           "20"
         );
         await Rollback.executeRollback(
           state,
           1,
           10,
+          () => {},
           () => {},
           () => {}
         );
@@ -340,20 +398,34 @@ async function runStage(stage) {
         assert.equal(state.rollback, undefined);
       }
       assert.deepEqual(
-        (await ctx.ChainObservation.get("same-observation")).indexedThrough,
+        (
+          await withContext(4, 1, (ctx) =>
+            ctx.ChainObservation.get("same-observation")
+          )
+        ).indexedThrough,
         block(10)
       );
       assert.deepEqual(
-        (await second.ChainObservation.get("same-observation")).indexedThrough,
+        (
+          await withContext(4, 10, (ctx) =>
+            ctx.ChainObservation.get("same-observation")
+          )
+        ).indexedThrough,
         block(20)
       );
       const pendingId = (chainId) =>
         relationshipId(chainId, address, "newGovernor");
-      const firstPending = await ctx.ContractRelationship.get(pendingId(1));
+      const firstPending = await withContext(4, 1, (ctx) =>
+        ctx.ContractRelationship.get(pendingId(1))
+      );
       assert.equal(firstPending.status, "pending");
       assert.equal(firstPending.value, pool(101));
       assert.equal(
-        (await second.ContractRelationship.get(pendingId(10))).status,
+        (
+          await withContext(4, 10, (ctx) =>
+            ctx.ContractRelationship.get(pendingId(10))
+          )
+        ).status,
         "unset"
       );
       if (stage === "check") {
@@ -370,7 +442,7 @@ async function runStage(stage) {
     }
   } finally {
     if (state) IndexerState.stop(state);
-    await persistence.storage.close();
+    await storage.close();
   }
 }
 const stage = process.argv.find((argument) => argument.startsWith("--stage="));
@@ -387,9 +459,7 @@ if (stage) {
       "PV_CACHE_POSTGRES_URL is required when PV_REQUIRE_POSTGRES=1"
     );
     const url = localDatabaseUrl();
-    const Postgres = require(
-      require.resolve("postgres", { paths: [require.resolve("envio")] })
-    );
+    const Postgres = require("postgres");
     const admin = Postgres(url.toString(), { max: 1, connect_timeout: 5 });
     const database = `pv_cache_rollback_${randomUUID().replaceAll("-", "")}`;
     try {

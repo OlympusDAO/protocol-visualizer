@@ -46,8 +46,6 @@ for (const {
   shutdownSignal,
   migrationSignal,
   resetTimeout = false,
-  stashCode = 0,
-  restoreCode = 0,
 } of [
   { checkCode: 0, migrationCode: 0 },
   { checkCode: 0, migrationCode: 17 },
@@ -60,11 +58,9 @@ for (const {
   { checkCode: 78, migrationCode: 0, shutdownSignal: "SIGTERM" },
   { checkCode: 0, migrationCode: 0, migrationSignal: "SIGTERM" },
   { checkCode: 0, migrationCode: 0, migrationSignal: "SIGINT" },
-  { checkCode: 0, migrationCode: 0, stashCode: 1 },
-  { checkCode: 0, migrationCode: 0, restoreCode: 1 },
   { checkCode: 0, migrationCode: 0, resetTimeout: true },
 ]) {
-  test(`explicit reset lifecycle (storage ${checkCode}, migration ${migrationSignal ?? migrationCode}, start ${startCode ?? 0}, shutdown ${shutdownSignal ?? "none"}, cache stash ${stashCode}, cache restore ${restoreCode}${resetTimeout ? ", stop timeout true" : ""})`, {
+  test(`explicit reset lifecycle (storage ${checkCode}, migration ${migrationSignal ?? migrationCode}, start ${startCode ?? 0}, shutdown ${shutdownSignal ?? "none"}${resetTimeout ? ", stop timeout true" : ""})`, {
     timeout: 20_000,
   }, async () => {
     const root = realpathSync(
@@ -77,7 +73,6 @@ for (const {
     const migrated = join(root, "migrated");
     const migrationRunning = join(root, "migration-running");
     const migrationStopped = join(root, "migration-stopped");
-    const effectCache = join(root, "effect-cache");
     const migrationBlocked = join(root, "migration-blocked");
     const socketPath = join(
       "/tmp",
@@ -95,10 +90,6 @@ for (const {
     copyFileSync(
       new URL("fixtures/reset-envio.mjs", import.meta.url),
       join(app, "node_modules/envio/bin.mjs")
-    );
-    copyFileSync(
-      new URL("fixtures/effect-cache-stash.mjs", import.meta.url),
-      join(scripts, "effect-cache-stash.mjs")
     );
     const hasura = http.createServer((_req, res) => res.end("{}"));
     await new Promise((accept) => hasura.listen(0, "127.0.0.1", accept));
@@ -118,8 +109,6 @@ for (const {
       RESET_FIXTURE_ROOT: root,
       RESET_FIXTURE_MIGRATION_CODE: String(migrationCode),
       RESET_FIXTURE_START_CODE: String(startCode ?? 0),
-      RESET_FIXTURE_STASH_CODE: String(stashCode),
-      RESET_FIXTURE_RESTORE_CODE: String(restoreCode),
     };
     for (const id of [1, 10, 42161, 8453, 80094, 4663, 11155111, 421614, 84532])
       env[`ENVIO_RPC_URL_${id}`] = "http://fixture.invalid";
@@ -209,22 +198,8 @@ Date.now = () => now() + (clockReads !== undefined && clockReads++ > 0 ? 30001 :
           reset.output,
           /Ingestion did not stop within 30 seconds; migration was not started/
         );
-        assert(!existsSync(migrated) && !existsSync(effectCache));
+        assert(!existsSync(migrated));
         assert(existsSync(running) && existsSync(workerRunning));
-        assert.equal(
-          (await fetch(`http://127.0.0.1:${port}/ready`)).status,
-          503
-        );
-        return;
-      }
-      if (stashCode) {
-        const reset = await resetting.done;
-        assert.equal(reset.code, 1, reset.output);
-        assert.match(reset.output, /Could not move the effect cache aside/);
-        assert.equal(readFileSync(effectCache, "utf8"), "stash\n");
-        assert(!existsSync(migrated), "a failed stash must not reset storage");
-        assert(!existsSync(running) && !existsSync(workerRunning));
-        assert.equal(wrapper.child.exitCode, null, wrapper.output());
         assert.equal(
           (await fetch(`http://127.0.0.1:${port}/ready`)).status,
           503
@@ -249,7 +224,6 @@ Date.now = () => now() + (clockReads !== undefined && clockReads++ > 0 ? 30001 :
           "wrapper must wait for migration shutdown"
         );
         assert.equal(readFileSync(migrationStopped, "utf8"), migrationSignal);
-        assert.equal(readFileSync(effectCache, "utf8"), "stash\n");
         assert(!existsSync(running) && !existsSync(workerRunning));
         assert(!existsSync(socketPath), "wrapper must close its reset socket");
         const reset = await resetting.done;
@@ -277,13 +251,6 @@ Date.now = () => now() + (clockReads !== undefined && clockReads++ > 0 ? 30001 :
       const reset = await resetting.done;
       assert.equal(reset.code, migrationCode, reset.output);
       assert.equal(readFileSync(migrated, "utf8"), "local db-migrate setup\n");
-      assert.equal(
-        readFileSync(effectCache, "utf8"),
-        migrationCode === 0 ? "stash\nrestore\n" : "stash\n",
-        "the effect cache is restored only after a successful migration"
-      );
-      if (restoreCode)
-        assert.match(reset.output, /Could not restore the effect cache/);
       if (migrationCode === 0) {
         await until(() => existsSync(running) && existsSync(workerRunning));
         assert.notEqual(readFileSync(running, "utf8"), oldPid);

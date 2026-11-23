@@ -61,7 +61,7 @@ if (command === "docker") {
 `,
       { mode: 0o755 }
     );
-  for (const file of ["state-postgres.test.mjs", "effect-cache-stash.test.mjs"])
+  for (const file of ["state-postgres.test.mjs"])
     writeFileSync(
       path.join(directory, "apps/indexer/scripts", file),
       `import fs from "node:fs";
@@ -133,7 +133,7 @@ test("integration prepares only missing pinned PG18 independently of security sc
         .filter((c) => c[0] === "mock-sql")
         .map((c) => c[1])
         .sort(),
-      ["effect-cache-stash.test.mjs", "state-postgres.test.mjs"]
+      ["state-postgres.test.mjs"]
     );
     for (const call of calls.filter((c) => c[0] === "mock-sql"))
       assert.deepEqual(

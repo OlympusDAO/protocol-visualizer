@@ -13,11 +13,12 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "envio": "3.14.1",
+    "envio": "3.18.1",
     "viem": "2.57.14"
   },
   "devDependencies": {
     "@types/node": "24.19.2",
+    "postgres": "3.4.8",
     "typescript": "7.0.2"
   },
   "engines": {

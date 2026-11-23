@@ -5,6 +5,7 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { createRequire } from "node:module";
@@ -29,6 +30,35 @@ const validEnv = {
   ENVIO_RPC_URL_11155111: "https://example.com/11155111",
   ETHERSCAN_API_KEY: "etherscan-api-key",
 };
+
+test("native handler typechecking uses the installed TypeScript CLI and rejects handler errors", async (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "pv-handler-typecheck-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const require = createRequire(import.meta.url);
+  mkdirSync(join(directory, "node_modules"));
+  symlinkSync(
+    dirname(require.resolve("typescript/package.json")),
+    join(directory, "node_modules/typescript")
+  );
+  writeFileSync(join(directory, "package.json"), '{"type":"module"}');
+  writeFileSync(
+    join(directory, "tsconfig.json"),
+    '{"compilerOptions":{"strict":true,"types":[]},"include":["handler.ts"]}'
+  );
+  const handler = join(directory, "handler.ts");
+  const { check } = await import(
+    new URL(
+      "./src/HandlerTypeCheck.res.mjs",
+      pathToFileURL(require.resolve("envio"))
+    )
+  );
+  writeFileSync(handler, "export const answer: number = 42;");
+  assert.equal(await check(directory, [handler]), "Passed");
+  writeFileSync(handler, 'export const answer: number = "wrong";');
+  const rejected = await check(directory, [handler]);
+  assert.equal(rejected.TAG, "TypeErrors");
+  assert.match(rejected._0, /TS2322/);
+});
 
 async function loadModule() {
   Object.assign(process.env, validEnv);
@@ -176,7 +206,7 @@ test("resolves the Envio entrypoint independently of the SSH working directory",
   }
 });
 
-test("storage preflight captures launch dotenv before native CLI changes project directory", (t) => {
+test("native storage preflight preserves launch dotenv and checks compatibility without mutations", (t) => {
   const directory = mkdtempSync(join(tmpdir(), "pv-storage-env-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const launch = join(directory, "launch");
@@ -212,43 +242,87 @@ chains:
   // Run the real adapter/CLI/config/Env; replace only the database boundary.
   const storage = `import { writeFileSync } from "node:fs";
 import { Db } from ${JSON.stringify(nativeUrl("Env"))};
-export const makeClient = () => undefined;
-export const makeStorageFromEnv = () => ({
-  isInitialized: async () => false,
-  close: async () => writeFileSync(${JSON.stringify(trace)}, JSON.stringify({ schema: Db.publicSchema, closed: true }))
-});`;
+import * as ChainMap from ${JSON.stringify(nativeUrl("ChainMap"))};
+import * as ChainState from ${JSON.stringify(nativeUrl("ChainState"))};
+import * as AddressRows from ${JSON.stringify(nativeUrl("AddressRows"))};
+export const makeStorageFromEnv = (config, logger, schema, hasura, max) => {
+  if (schema !== undefined || hasura !== false || max !== 1) throw new Error("unsafe storage options");
+  const calls = [], scenario = process.env.STORAGE_CASE;
+  const chains = ChainMap.values(config.chainMap);
+  const unexpected = () => { throw new Error("mutating storage method called"); };
+  return {
+    holding: async () => { calls.push("holding"); return ["Nothing", "Stranded", "Diverged", "Outdated", "Invalid"].includes(scenario) ? scenario : "Initialized"; },
+    readStoredConfig: async () => {
+      calls.push("readStoredConfig");
+      if (scenario === "error") throw new Error("fixture-private-credential");
+      return { envioInfo: scenario === "incompatible" ? undefined : config.envioInfo, chains, contractMapping: config.contractMapping };
+    },
+    resumeInitialState: async () => {
+      calls.push("resumeInitialState");
+      return { chains: chains.map(chain => ({ id: chain.id, addressRows: scenario === "addresses" ? AddressRows.emptySeedRows() : AddressRows.seedRowsOf(ChainState.configStorageRows(chain, config.ecosystem.name, config.contractMapping)) })) };
+    },
+    takeOver: unexpected, initialize: unexpected, reset: unexpected, addChain: unexpected,
+    close: async () => {
+      writeFileSync(${JSON.stringify(trace)}, JSON.stringify({ schema: Db.publicSchema, closed: true, calls }));
+      if (scenario === "close") throw new Error("fixture-private-credential");
+    },
+  };
+};`;
   const preload = `import { registerHooks } from "node:module";
 registerHooks({ load(url, context, nextLoad) {
-  return url === ${JSON.stringify(nativeUrl("PgStorage"))}
+  return url === ${JSON.stringify(nativeUrl("Storage"))}
     ? { format: "module", shortCircuit: true, source: ${JSON.stringify(storage)} }
     : nextLoad(url, context);
 }});`;
-  const result = spawnSync(
-    process.execPath,
-    [
-      "--import",
-      `data:text/javascript,${encodeURIComponent(preload)}`,
-      fileURLToPath(new URL("./check-envio-storage.mjs", import.meta.url)),
-      "start",
-      "--directory",
-      project,
-    ],
-    {
-      cwd: launch,
-      env: {
-        PATH: process.env.PATH,
-        NODE_ENV: "development",
-        LOG_STRATEGY: "ecs-console",
-        LOG_LEVEL: "silent",
-        ENVIO_API_TOKEN: "fixture-only",
+  for (const [scenario, status, calls] of [
+    ["Nothing", 0, ["holding"]],
+    ...["Stranded", "Diverged", "Outdated"].map((state) => [
+      state,
+      78,
+      ["holding"],
+    ]),
+    ["compatible", 0, ["holding", "readStoredConfig", "resumeInitialState"]],
+    ["incompatible", 78, ["holding", "readStoredConfig"]],
+    ["addresses", 78, ["holding", "readStoredConfig", "resumeInitialState"]],
+    ["error", 1, ["holding", "readStoredConfig"]],
+    ["close", 1, ["holding", "readStoredConfig", "resumeInitialState"]],
+    ["Invalid", 1, ["holding"]],
+  ]) {
+    const result = spawnSync(
+      process.execPath,
+      [
+        "--import",
+        `data:text/javascript,${encodeURIComponent(preload)}`,
+        fileURLToPath(new URL("./check-envio-storage.mjs", import.meta.url)),
+        "start",
+        "--directory",
+        project,
+      ],
+      {
+        cwd: launch,
+        env: {
+          PATH: process.env.PATH,
+          NODE_ENV: "development",
+          LOG_LEVEL: "silent",
+          ENVIO_API_TOKEN: "fixture-only",
+          STORAGE_CASE: scenario,
+        },
+        encoding: "utf8",
+        timeout: 10_000,
+      }
+    );
+    assert.equal(result.status, status, `${scenario}: ${result.stderr}`);
+    assert(
+      !`${result.stdout}${result.stderr}`.includes("fixture-private-credential")
+    );
+    assert.deepEqual(
+      JSON.parse(readFileSync(trace, "utf8")),
+      {
+        schema: "launch_schema",
+        closed: true,
+        calls,
       },
-      encoding: "utf8",
-      timeout: 10_000,
-    }
-  );
-  assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(JSON.parse(readFileSync(trace, "utf8")), {
-    schema: "launch_schema",
-    closed: true,
-  });
+      scenario
+    );
+  }
 });

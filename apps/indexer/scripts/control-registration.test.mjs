@@ -22,16 +22,17 @@ if (mode) {
     import(
       new URL(`./src/${name}.res.mjs`, pathToFileURL(require.resolve("envio")))
     );
-  const [Config, ChainMap, Handlers] = await Promise.all([
+  const [Config, ChainMap, Handlers, Logger] = await Promise.all([
     native("Config"),
     native("ChainMap"),
     native("HandlerRegister"),
+    native("Logger"),
   ]);
   const config = Config.load(),
     chain = ChainMap.get(config.chainMap, 80094);
   if (mode !== "unbounded")
     chain.endBlock = mode === "boundary-end" ? 1023691 : 1530001;
-  Handlers.startRegistration(config);
+  Handlers.startRegistration(config, Logger.makeInMemory());
   await import("../src/EventHandlers.ts");
   const registrations =
     Handlers.finishRegistration(config)[80094].onBlockRegistrations;

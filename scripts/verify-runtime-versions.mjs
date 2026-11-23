@@ -212,7 +212,7 @@ for (const manifest of declarations)
   for (const section of ["dependencies", "devDependencies"])
     for (const [name, version] of Object.entries(manifest[section] ?? {})) {
       const expected = {
-        envio: "3.14.1",
+        envio: "3.18.1",
         viem: "2.57.14",
         "@aws-sdk/client-s3": "3.1152.0",
         "@biomejs/biome": "2.6.3",

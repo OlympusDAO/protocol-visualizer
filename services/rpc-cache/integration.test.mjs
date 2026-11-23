@@ -1106,7 +1106,9 @@ export default config;
       };
       await checkStorage(0); // Empty storage: normal initialization remains allowed.
       await reset();
-      sql("GRANT SELECT ON ALL TABLES IN SCHEMA public TO reset_reader");
+      sql(
+        "GRANT USAGE ON SCHEMA public TO reset_reader; GRANT SELECT ON ALL TABLES IN SCHEMA public TO reset_reader"
+      );
       await checkStorage(0); // Compatible metadata, using a SELECT-only role.
       await checkStorage(1, "fixture-private-password");
       sql(
@@ -1191,7 +1193,9 @@ export default config;
         "Actual ingestion image returns 404 for docs/openapi/llms while health/readiness remain available."
       );
       docker("stop", waitingIndexer);
-      sql("GRANT SELECT ON ALL TABLES IN SCHEMA public TO reset_reader");
+      sql(
+        "GRANT USAGE ON SCHEMA public TO reset_reader; GRANT SELECT ON ALL TABLES IN SCHEMA public TO reset_reader"
+      );
       await checkStorage(0);
       console.log(
         "Actual indexer image waited on incompatible schema without writes, accepted its operator reset and launched normal ingestion without another deployment."

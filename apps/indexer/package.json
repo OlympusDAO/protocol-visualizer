@@ -1,16 +1,16 @@
 {
   "name": "indexer",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "envio dev",
-    "start": "envio start",
     "codegen": "envio codegen",
+    "dev": "envio dev",
     "lint": "biome lint --write . --error-on-warnings",
     "lint:check": "biome lint . --error-on-warnings",
-    "typecheck": "tsc",
-    "test": "node --import ./scripts/register-typescript.mjs --test scripts/*.test.mjs"
+    "start": "envio start",
+    "test": "node --import ./scripts/register-typescript.mjs --test scripts/*.test.mjs",
+    "typecheck": "tsc"
   },
   "dependencies": {
     "envio": "3.14.1",

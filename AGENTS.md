@@ -12,9 +12,6 @@ Scripts save command/log/exit/timing/revision receipts under ignored `.validatio
 
 Ask before rewriting, collapsing, discarding or publishing history, including rebase, reset, push and PR actions. Before creating/describing commits or pushing, run the privacy-gate skill and stop on findings. Never bypass hooks. Before PR operations use github-account; before pushing/updating PRs also use coderabbit-local-review. Publication and live infrastructure apply require explicit approval.
 
-## Crit reviews
-
-For explicit Crit requests use crit-review for diff-mode, Tailscale and standing authorization preferences.
 
 ## Indexer Benchmark
 
@@ -33,3 +30,11 @@ After removing historical sweeps/archive entities, use `pnpm benchmark:indexer:c
 - Do not add new CVEs/packages to `.trivyignore` when a practical remediation exists (package update, base image update, or config change).
 - If no practical remediation exists, ask for explicit user approval before adding to `.trivyignore`.
 - Every `.trivyignore` entry must document the affected package and installed version.
+
+## Maintenance conventions
+
+- Configure Dependabot daily with `open-pull-requests-limit: 0`: security updates only, no routine version-update PRs.
+- Schedule weekly image security scans for Monday at 00:00 UTC.
+- Write documentation as the current repository contract; avoid temporary phrases such as “this branch”.
+- Keep Markdown table cells unpadded to avoid alignment-only churn.
+- Use the existing Biome package.json sorting action for manifest keys.

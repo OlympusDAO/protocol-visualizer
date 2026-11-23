@@ -140,43 +140,50 @@ if (stage) {
     );
     const admin = Postgres(url.toString(), { max: 1, connect_timeout: 5 });
     const database = `pv_effect_stash_${randomUUID().replaceAll("-", "")}`;
+    let created = false;
     try {
       await admin.unsafe(`CREATE DATABASE "${database}"`);
-    } finally {
-      await admin.end();
-    }
-    url.pathname = `/${database}`;
-    const env = databaseEnv(url);
-    const node = (args) => {
-      const child = spawnSync(process.execPath, args, {
-        cwd: indexerDir,
-        env,
-        encoding: "utf8",
-        timeout: 60_000,
-      });
-      assert.equal(child.status, 0, `${args.join(" ")}: ${child.stderr}`);
-      return child.stdout;
-    };
-    const envioBin = join(
-      dirname(require.resolve("envio/package.json")),
-      "bin.mjs"
-    );
-    const migrate = () => node([envioBin, "local", "db-migrate", "setup"]);
-    const stageRun = (name) =>
-      node([fileURLToPath(import.meta.url), `--stage=${name}`]);
-    const stashScript = fileURLToPath(
-      new URL("./effect-cache-stash.mjs", import.meta.url)
-    );
+      created = true;
+      url.pathname = `/${database}`;
+      const env = databaseEnv(url);
+      const node = (args) => {
+        const child = spawnSync(process.execPath, args, {
+          cwd: indexerDir,
+          env,
+          encoding: "utf8",
+          timeout: 60_000,
+        });
+        assert.equal(child.status, 0, `${args.join(" ")}: ${child.stderr}`);
+        return child.stdout;
+      };
+      const envioBin = join(
+        dirname(require.resolve("envio/package.json")),
+        "bin.mjs"
+      );
+      const migrate = () => node([envioBin, "local", "db-migrate", "setup"]);
+      const stageRun = (name) =>
+        node([fileURLToPath(import.meta.url), `--stage=${name}`]);
+      const stashScript = fileURLToPath(
+        new URL("./effect-cache-stash.mjs", import.meta.url)
+      );
 
-    // The same sequence as the reset control socket.
-    migrate();
-    stageRun("seed");
-    assert.match(node([stashScript, "stash"]), /Moved 3 effect cache tables/);
-    migrate();
-    assert.match(
-      node([stashScript, "restore"]),
-      /Restored 3 effect cache tables/
-    );
-    stageRun("check");
+      // The same sequence as the reset control socket.
+      migrate();
+      stageRun("seed");
+      assert.match(node([stashScript, "stash"]), /Moved 3 effect cache tables/);
+      migrate();
+      assert.match(
+        node([stashScript, "restore"]),
+        /Restored 3 effect cache tables/
+      );
+      stageRun("check");
+    } finally {
+      try {
+        if (created)
+          await admin.unsafe(`DROP DATABASE "${database}" WITH (FORCE)`);
+      } finally {
+        await admin.end();
+      }
+    }
   });
 }

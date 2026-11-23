@@ -242,7 +242,7 @@ test("production release uses trusted merged code and no PR Railway workflow or 
   );
   assert.match(
     release,
-    /environment:\n      name: production\n      deployment: false/
+    /environment:\n {6}name: production\n {6}deployment: false/
   );
   assert(release.includes("ref: ${{ github.sha }}"));
   assert(!ci.includes("secrets.RAILWAY_TOKEN"));
@@ -251,7 +251,7 @@ test("production release uses trusted merged code and no PR Railway workflow or 
   assert(!ci.includes("plan.sourceTree !=="));
   assert(
     ci.includes(
-      '"config", "apply", "--environment", process.env.RAILWAY_ENVIRONMENT_ID, "--plan"'
+      'await require("./scripts/railway-release.cjs").apply({ core });'
     )
   );
   assert.equal(
@@ -264,7 +264,8 @@ test("production release uses trusted merged code and no PR Railway workflow or 
   const plan = release.indexOf("- name: Plan production changes");
   const apply = release.indexOf("- name: Apply reviewed production plan");
   assert(plan >= 0 && plan < cache && cache < apply);
-  assert(release.indexOf('test -n "$RAILWAY_API_TOKEN"') < cache);
+  const token = release.indexOf('test -n "$RAILWAY_API_TOKEN"');
+  assert(token >= 0 && token < cache);
   assert(release.includes("cancel-in-progress: false"));
   assert(release.includes("queue: max"));
   for (const [, action] of ci.matchAll(/^ *uses: (\S+)/gm))
@@ -437,7 +438,19 @@ test("database planning preserves larger volumes and rejects incomplete lookups"
         /Verify private HTTP domains/
       );
     }
-    fixture(response([]));
+    for (const value of [null, []]) {
+      const malformed = response([]);
+      malformed.data.environment.config.services = value;
+      fixture(malformed);
+      assert.throws(() => existingResources(ctx), /safe existing Railway/);
+    }
+    const activeWithoutConfig = response(["indexer"]);
+    delete activeWithoutConfig.data.environment.config.services;
+    fixture(activeWithoutConfig);
+    assert.throws(() => existingResources(ctx), /safe existing Railway/);
+    const empty = response([]);
+    delete empty.data.environment.config.services;
+    fixture(empty);
     const fresh = await defineInfrastructure(ctx);
     for (const db of fresh.resources
       .flat(Infinity)

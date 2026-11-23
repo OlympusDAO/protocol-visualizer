@@ -1,16 +1,16 @@
 {
   "name": "snapshot-publisher",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "files": [
     "dist/src"
   ],
   "scripts": {
-    "start": "node dist/src/publish.js",
     "build": "tsc",
     "lint": "biome lint --write . --error-on-warnings",
     "lint:check": "biome lint . --error-on-warnings",
+    "start": "node dist/src/publish.js",
     "test": "node --test dist/test/*.test.js",
     "typecheck": "tsc --noEmit"
   },

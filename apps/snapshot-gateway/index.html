@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Protocol Snapshot API</title>
+    <style>
+      body { max-width: 52rem; margin: 3rem auto; padding: 0 1.5rem; font: 1rem/1.6 system-ui, sans-serif; color: #222; background: #fafafa; }
+      h1, h2 { line-height: 1.2; }
+      li { margin: .75rem 0; }
+      code { font-size: .9em; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Protocol Snapshot API</h1>
+      <p>Read published Olympus protocol snapshots and contract ABIs. Data routes serve the active accepted snapshot, which can lag the live chain.</p>
+      <h2>Explore the API</h2>
+      <ul>
+        <li><a href="/v1/openapi.json">OpenAPI specification</a> — request paths and response schemas.</li>
+        <li><a href="/v1/chains">Published chains</a> — available chain IDs and snapshot paths.</li>
+        <li><a href="/v1/chains/1/protocol">Ethereum protocol snapshot</a> — example of <code>/v1/chains/{chainId}/protocol</code>.</li>
+        <li><a href="/v1/manifest">Active manifest</a> — public snapshot metadata.</li>
+        <li><a href="/v1/bounds">Indexing bounds</a> — snapshot generation time and indexing progress.</li>
+        <li><a href="/v1/abis">Contract ABI registry</a> — ABI lookup by chain, address or label.</li>
+      </ul>
+      <p>Routes accept GET and HEAD without request bodies or query parameters. OPTIONS provides CORS metadata.</p>
+      <h2>Service status</h2>
+      <ul>
+        <li><a href="/healthz">Liveness</a> — the gateway process is running.</li>
+        <li><a href="/ready">Readiness</a> — required snapshot artifacts and the ABI registry are available.</li>
+      </ul>
+    </main>
+  </body>
+</html>

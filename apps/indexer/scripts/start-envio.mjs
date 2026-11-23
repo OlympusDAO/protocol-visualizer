@@ -501,7 +501,7 @@ export const formatEnvioSpawnError = (error) => {
 };
 
 export async function stopEnvioGroup(child, signal, timeoutMs = 30_000) {
-  if (!child) return;
+  if (!child?.pid) return;
   try {
     process.kill(-child.pid, signal);
     const deadline = Date.now() + timeoutMs;
@@ -547,6 +547,8 @@ export const run = async () => {
   }
 
   let child;
+  let resetStep;
+  let resetServer;
   let shuttingDown = false;
   const startChild = (args = envioCommand.args) => {
     const started = spawn(envioCommand.command, args, {
@@ -578,15 +580,22 @@ export const run = async () => {
         if (shuttingDown) return;
         shuttingDown = true;
         try {
+          if (resetStep) {
+            const { step, closed } = resetStep;
+            await stopEnvioGroup(step, signal);
+            await closed;
+          }
           await stopEnvioGroup(child, signal);
         } catch (error) {
           console.error(error.message);
         }
+        resetServer?.close();
         wrapperServer?.close();
         process.exit(signal === "SIGINT" ? 130 : 143);
       });
     try {
-      await startResetServer(async (sendLog) => {
+      resetServer = await startResetServer(async (sendLog) => {
+        if (shuttingDown) return 1;
         const log = (message) => {
           process.stdout.write(message);
           sendLog(message);
@@ -613,24 +622,34 @@ export const run = async () => {
             );
           await sleep(100);
         }
-        const runLogged = (args) =>
-          new Promise((accept, reject) => {
-            const step = spawn(process.execPath, args, {
-              env: process.env,
-              cwd: indexerDir,
-              stdio: ["ignore", "pipe", "pipe"],
-            });
-            step.stdout.on("data", (chunk) => {
-              process.stdout.write(chunk);
-              sendLog(chunk.toString());
-            });
-            step.stderr.on("data", (chunk) => {
-              process.stderr.write(chunk);
-              sendLog(chunk.toString());
-            });
-            step.once("error", reject);
-            step.once("exit", (code) => accept(code ?? 1));
+        if (shuttingDown) return 1;
+        child = undefined;
+        const runLogged = async (args) => {
+          const step = spawn(process.execPath, args, {
+            env: process.env,
+            cwd: indexerDir,
+            detached: true,
+            stdio: ["ignore", "pipe", "pipe"],
           });
+          for (const [source, target] of [
+            [step.stdout, process.stdout],
+            [step.stderr, process.stderr],
+          ])
+            source.on("data", (chunk) => {
+              target.write(chunk);
+              sendLog(chunk.toString());
+            });
+          let spawnError;
+          step.once("error", (error) => {
+            spawnError = error;
+          });
+          const closed = new Promise((accept) => step.once("close", accept));
+          resetStep = { step, closed };
+          const code = await closed;
+          resetStep = undefined;
+          if (spawnError) throw spawnError;
+          return code ?? 1;
+        };
         const effectCache = (operation) =>
           runLogged([resolve(scriptDir, "effect-cache-stash.mjs"), operation]);
         // The migration drops Envio's schema, cached contract reads included.
@@ -641,6 +660,7 @@ export const run = async () => {
           );
           return 1;
         }
+        if (shuttingDown) return 1;
         log("Running Envio local db-migrate setup...\n");
         const code = await runLogged([
           envioCommand.args[0],
@@ -648,6 +668,7 @@ export const run = async () => {
           "db-migrate",
           "setup",
         ]);
+        if (shuttingDown) return code || 1;
         if (code === 0) {
           // A missing cache costs refetched reads, not correctness: restart
           // ingestion either way. Unrestored tables stay stashed for the next reset.
@@ -655,6 +676,7 @@ export const run = async () => {
             log(
               "Could not restore the effect cache; Envio will refetch contract reads. The tables remain in envio_effect_cache_stash.\n"
             );
+          if (shuttingDown) return code || 1;
           startChild(
             envioCommand.args.filter(
               (arg) => arg !== "-r" && arg !== "--restart"

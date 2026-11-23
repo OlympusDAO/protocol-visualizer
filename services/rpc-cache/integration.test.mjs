@@ -13,6 +13,7 @@ import { test } from "node:test";
 import { inspect, promisify } from "node:util";
 
 const runFile = promisify(execFile);
+const zeroWord = `0x${"00".repeat(32)}`;
 const requireIndexer = createRequire(
   new URL("../../apps/indexer/package.json", import.meta.url)
 );
@@ -300,7 +301,11 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
               message: "fixture-url-secret fixture-query-secret",
               data: { url: "fixture-url-secret", key: "fixture-query-secret" },
             };
-          else result = params[0]?.data === "0x0000" ? "0x" : "0x1234";
+          else if (data === "0x0000") result = "0x";
+          else if (data === "0x0001") result = zeroWord;
+          else if (data === "0xbbbb") result = null;
+          else if (data === "0xabcd") result = "0xabcd";
+          else result = "0x1234";
           break;
         }
         case "eth_estimateGas":
@@ -440,15 +445,11 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
     };
     const count = (id, method, params) =>
       counts.get(keyFor([id, method, params])) || 0;
+    const cacheQuery = (sql) =>
+      docker("exec", pg, "psql", "-U", "postgres", "-Atc", sql);
     const cacheRows = (id, method) =>
       Number(
-        docker(
-          "exec",
-          pg,
-          "psql",
-          "-U",
-          "postgres",
-          "-Atc",
+        cacheQuery(
           `SELECT count(*) FROM rpc_cache WHERE partition_key LIKE 'evm:${id}:%' AND range_key LIKE '${method}:%'`
         )
       );
@@ -505,7 +506,20 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
       await cachedPair(id, "eth_call", call);
     await cachedPair(1, "eth_call", [call[0], "0x101"]);
     await cachedPair(1, "eth_call", [{ ...call[0], data: "0x1235" }, "0x100"]);
-    await cachedPair(1, "eth_call", [{ ...call[0], data: "0x0000" }, "0x100"]);
+    assert.equal(
+      await cachedPair(1, "eth_call", [
+        { ...call[0], data: "0x0000" },
+        "0x100",
+      ]),
+      "0x"
+    );
+    assert.equal(
+      await cachedPair(1, "eth_call", [
+        { ...call[0], data: "0x0001" },
+        "0x100",
+      ]),
+      zeroWord
+    );
     await cachedPair(1, "eth_getCode", [call[0].to, "0x100"]);
     await cachedPair(1, "eth_getBalance", [call[0].to, "0x100"]);
     const logs = [
@@ -513,6 +527,45 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
     ];
     assert.deepEqual(await cachedPair(1, "eth_getLogs", logs), []);
     await cachedPair(1, "eth_getLogs", [{ ...logs[0], toBlock: "0x103" }]);
+
+    const nullCall = [{ ...call[0], data: "0xbbbb" }, "0x100"];
+    for (let i = 0; i < 2; i++) {
+      const result = await rpc(1, "eth_call", nullCall);
+      assert.equal(result.cached, "MISS");
+      assert.equal(result.body.result, null);
+    }
+    assert.equal(count(1, "eth_call", nullCall), 2);
+    const nullRows = () =>
+      cacheQuery(
+        "SELECT count(*) FROM rpc_cache WHERE value = convert_to('null', 'UTF8')"
+      );
+
+    const legacyCall = [{ ...call[0], data: "0xabcd" }, "0x100"];
+    assert.equal(await cachedPair(1, "eth_call", legacyCall), "0xabcd");
+    const legacyValue = `value = convert_to('"0xabcd"', 'UTF8')`;
+    const legacyRows = () =>
+      cacheQuery(`SELECT count(*) FROM rpc_cache WHERE ${legacyValue}`);
+    assert.equal(legacyRows(), "1");
+    assert.equal(nullRows(), "0");
+    assert.equal(
+      cacheQuery(`WITH seeded AS (
+        UPDATE rpc_cache SET value = convert_to('null', 'UTF8') WHERE ${legacyValue} RETURNING 1
+      ) SELECT count(*) FROM seeded`),
+      "1"
+    );
+    const refetched = await rpc(1, "eth_call", legacyCall);
+    assert.equal(refetched.cached, "MISS");
+    assert.equal(refetched.body.result, "0xabcd");
+    assert.equal(count(1, "eth_call", legacyCall), 2);
+    await eventually(
+      () => legacyRows() === "1",
+      "Refetched result was not cached"
+    );
+    const repaired = await rpc(1, "eth_call", legacyCall);
+    assert.equal(repaired.cached, "HIT");
+    assert.equal(repaired.body.result, "0xabcd");
+    assert.equal(nullRows(), "0");
+
     const bypassPair = async (id, method, params, expectError = false) => {
       const before = count(id, method, params);
       for (let i = 0; i < 2; i++) {

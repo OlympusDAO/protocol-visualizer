@@ -6,6 +6,15 @@ import vm from "node:vm";
 const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
 const required = [255339919, "audit.yml"];
 
+function releaseModule(sandbox) {
+  const module = { exports: {} };
+  vm.runInNewContext(readFileSync("scripts/railway-release.cjs", "utf8"), {
+    ...sandbox,
+    module,
+  });
+  return module.exports;
+}
+
 async function runGate(
   response,
   checks = [{ status: "completed", conclusion: "success" }],
@@ -85,7 +94,7 @@ test("production release gates trusted planning before checkout and keeps native
   );
   assert.match(
     apply,
-    /environment:\n      name: production\n      deployment: false/
+    /environment:\n {6}name: production\n {6}deployment: false/
   );
   assert(!workflow.includes("  railway-plan:"));
   assert(!workflow.includes("run-id:"));
@@ -395,49 +404,43 @@ async function verifyPlan({
   version = 1,
   changeSet = { version: 1, changes: [] },
 } = {}) {
-  const match = workflow.match(
-    / {6}- name: Verify production plan target\n[\s\S]*? {10}script: \|\n([\s\S]*?)(?=^ {6}- name:)/m
-  );
-  assert(match);
-  await vm.runInNewContext(
-    `(async () => {${match[1].replace(/^ {12}/gm, "")}\n})()`,
-    {
-      process: {
-        env: {
-          PLAN_PATH: "reviewed-plan",
-          RAILWAY_ENVIRONMENT_ID: "production",
-        },
+  const sandbox = {
+    process: {
+      env: {
+        PLAN_PATH: "reviewed-plan",
+        RAILWAY_ENVIRONMENT_ID: "production",
       },
-      context: {
-        repo: { owner: "fixture", repo: "fixture" },
-        sha: "merged-release",
-      },
-      require(name) {
-        if (name === "fs")
-          return {
-            readFileSync(path) {
-              assert.equal(path, "reviewed-plan");
-              return JSON.stringify({
-                kind,
-                version,
-                changeSet,
-              });
-            },
-          };
-        assert.fail(`Unexpected custom saved-plan verification: ${name}`);
-      },
-      github: {
-        rest: {
-          repos: {
-            async getBranch(args) {
-              assert.equal(args.branch, "master");
-              return { data: { commit: { sha: branchHead } } };
-            },
+    },
+    context: {
+      repo: { owner: "fixture", repo: "fixture" },
+      sha: "merged-release",
+    },
+    require(name) {
+      if (name === "node:fs")
+        return {
+          readFileSync(path) {
+            assert.equal(path, "reviewed-plan");
+            return JSON.stringify({
+              kind,
+              version,
+              changeSet,
+            });
+          },
+        };
+      assert.fail(`Unexpected custom saved-plan verification: ${name}`);
+    },
+    github: {
+      rest: {
+        repos: {
+          async getBranch(args) {
+            assert.equal(args.branch, "master");
+            return { data: { commit: { sha: branchHead } } };
           },
         },
       },
-    }
-  );
+    },
+  };
+  await releaseModule(sandbox).verify(sandbox);
 }
 
 test("automatic apply blocks existing main DB image transitions but permits normal unrelated changes", async () => {
@@ -508,88 +511,83 @@ async function checkNativeApplyResult(
   result,
   { exitCode = 0, raw, error, operation = "apply", token = "fixture-only" } = {}
 ) {
-  const script =
-    operation === "apply"
-      ? workflow.match(
-          / {6}- name: Apply reviewed production plan\n[\s\S]*? {10}script: \|\n([\s\S]*)$/m
-        )?.[1]
-      : workflow.match(
-          / {6}- name: Plan production changes\n[\s\S]*? {10}script: \|\n([\s\S]*?)(?=^ {6}- name:)/m
-        )?.[1];
-  assert(script, "CI must invoke the native command with private output");
+  assert(
+    workflow.includes(
+      `await require("./scripts/railway-release.cjs").${operation}({ core });`
+    ),
+    "CI must invoke the extracted native command with private output"
+  );
   let privateUmask = false;
   const privateMarker = "fixture-private-output-do-not-log";
   const logs = [];
   try {
-    await vm.runInNewContext(
-      `(async () => {${script.replace(/^ {12}/gm, "")}\n})()`,
-      {
-        process: {
-          env: {
-            RAILWAY_API_TOKEN: token,
-            RUNNER_TEMP: "/fixture-private",
-            RAILWAY_ENVIRONMENT_ID: "fixture-production-id",
-          },
-          umask(mode) {
-            assert.equal(mode, 0o077);
-            privateUmask = true;
-          },
+    const sandbox = {
+      process: {
+        env: {
+          RAILWAY_API_TOKEN: token,
+          RUNNER_TEMP: "/fixture-private",
+          RAILWAY_ENVIRONMENT_ID: "fixture-production-id",
         },
-        core: {
-          info(message) {
-            logs.push(message);
-          },
+        umask(mode) {
+          assert.equal(mode, 0o077);
+          privateUmask = true;
         },
-        require(name) {
-          assert.equal(name, "child_process");
-          return {
-            spawnSync(command, args, options) {
-              assert.equal(command, "railway");
-              if (operation === "plan")
-                assert(
-                  privateUmask,
-                  "plan files must be private before native write"
-                );
-              assert.equal(
-                JSON.stringify(args),
-                JSON.stringify(
-                  operation === "apply"
-                    ? [
-                        "config",
-                        "apply",
-                        "--environment",
-                        "fixture-production-id",
-                        "--plan",
-                        "/fixture-private/railway-plan.json",
-                        "--yes",
-                        "--json",
-                      ]
-                    : [
-                        "config",
-                        "plan",
-                        "--environment",
-                        "fixture-production-id",
-                        "--out",
-                        "/fixture-private/railway-plan.json",
-                      ]
-                )
+      },
+      core: {
+        info(message) {
+          logs.push(message);
+        },
+      },
+      require(name) {
+        assert.equal(name, "node:child_process");
+        return {
+          spawnSync(command, args, options) {
+            assert.equal(command, "railway");
+            if (operation === "plan")
+              assert(
+                privateUmask,
+                "plan files must be private before native write"
               );
-              assert.equal(
-                JSON.stringify(options.stdio),
-                '["ignore","pipe","pipe"]'
-              );
-              return {
-                status: exitCode,
-                error,
-                stdout:
-                  raw ?? JSON.stringify({ ...result, outputs: privateMarker }),
-                stderr: privateMarker,
-              };
-            },
-          };
-        },
-      }
-    );
+            assert.equal(
+              JSON.stringify(args),
+              JSON.stringify(
+                operation === "apply"
+                  ? [
+                      "config",
+                      "apply",
+                      "--environment",
+                      "fixture-production-id",
+                      "--plan",
+                      "/fixture-private/railway-plan.json",
+                      "--yes",
+                      "--json",
+                    ]
+                  : [
+                      "config",
+                      "plan",
+                      "--environment",
+                      "fixture-production-id",
+                      "--out",
+                      "/fixture-private/railway-plan.json",
+                    ]
+              )
+            );
+            assert.equal(
+              JSON.stringify(options.stdio),
+              '["ignore","pipe","pipe"]'
+            );
+            return {
+              status: exitCode,
+              error,
+              stdout:
+                raw ?? JSON.stringify({ ...result, outputs: privateMarker }),
+              stderr: privateMarker,
+            };
+          },
+        };
+      },
+    };
+    await releaseModule(sandbox)[operation](sandbox);
     assert.equal(logs.length, 1);
   } catch (failure) {
     assert(!failure.message.includes(privateMarker));

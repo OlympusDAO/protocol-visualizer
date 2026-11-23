@@ -154,7 +154,7 @@ test("CI exposes complete image coverage using existing build, scan and integrat
     "snapshot-monitor",
     "rpc-cache",
   ]) {
-    assert(scripts["container:build"].includes(`container:build:${name}`));
+    assert(scripts["docker:build"].includes(`docker:build:${name}`));
     assert(validator.includes(name));
     assert(workflow.includes(`- image: ${name}\n`));
   }
@@ -170,15 +170,11 @@ test("CI exposes complete image coverage using existing build, scan and integrat
     assert(existsSync(dockerfile));
   }
   assert(workflow.includes("fail-fast: false"));
-  assert(
-    workflow.includes("run: pnpm run container:build:${{ matrix.image }}")
-  );
-  assert(
-    workflow.includes("run: pnpm run container:scan -- ${{ matrix.image }}")
-  );
+  assert(workflow.includes("run: pnpm run docker:build:${{ matrix.image }}"));
+  assert(workflow.includes("run: pnpm run docker:scan -- ${{ matrix.image }}"));
   assert(workflow.includes("Dockerfile-${{ matrix.image }}"));
   assert(workflow.includes("name: Cache + integration"));
-  assert(workflow.includes("run: pnpm run container:build:indexer"));
+  assert(workflow.includes("run: pnpm run docker:build:indexer"));
   assert(
     workflow.includes(
       "name: Scan application image\n        if: ${{ !cancelled() && steps.build.outcome == 'success' }}"
@@ -199,18 +195,18 @@ test("CI exposes complete image coverage using existing build, scan and integrat
       "!cancelled() && matrix.image == 'rpc-cache' && steps.build.outcome == 'success' && steps.companion.outcome == 'success'"
     )
   );
-  assert.match(workflow, /run: pnpm run container:scan:runtime/);
+  assert.match(workflow, /run: pnpm run docker:scan:runtime/);
   assert.match(workflow, /run: pnpm test:integration/);
-  assert.match(validator, /pnpm run "container:build:\$image"/);
-  assert.match(validator, /pnpm run container:scan -- "\$image"/);
-  assert.match(validator, /pnpm run container:scan:dockerfiles/);
-  assert.match(validator, /pnpm run container:scan:runtime/);
+  assert.match(validator, /pnpm run "docker:build:\$image"/);
+  assert.match(validator, /pnpm run docker:scan -- "\$image"/);
+  assert.match(validator, /pnpm run docker:scan:dockerfiles/);
+  assert.match(validator, /pnpm run docker:scan:runtime/);
   assert(dockerfiles.includes("dockerfile:Dockerfile-*"));
   assert(dockerfiles.includes('"node_modules"'));
   assert.match(workflow, /workflow_dispatch:/);
   assert(!workflow.includes("pnpm audit"));
   const ci = readFileSync(".github/workflows/ci.yml", "utf8");
-  assert(!ci.includes("container:build:"));
+  assert(!ci.includes("docker:build:"));
 });
 
 test("Dependabot treats the snapshot gateway as TypeScript", () => {
@@ -445,6 +441,7 @@ test("Snapshot packages publish only runtime files", () => {
   assert.deepEqual(readJson("apps/snapshot-gateway/package.json").files, [
     "dist/src",
     "openapi.json",
+    "index.html",
   ]);
   for (const packagePath of [
     "apps/snapshot-publisher/package.json",
@@ -561,11 +558,11 @@ test("source commands separate checks, artifact builds and all ordinary tests", 
   assert.equal(scripts.build, "turbo run build");
   assert.equal(
     scripts.check,
-    "turbo run lint:check && biome check . --linter-enabled=false && pnpm run lint:actions"
+    "turbo run lint:check && biome check . --linter-enabled=false && biome lint tests services/rpc-cache/integration.test.mjs --only=suspicious/noFocusedTests --only=suspicious/noSelfCompare && biome lint scripts/railway-release.cjs --error-on-warnings && pnpm run lint:actions"
   );
   assert.equal(
     scripts.lint,
-    "turbo run lint && biome check --write . --linter-enabled=false && pnpm run lint:actions"
+    "turbo run lint && biome check --write . --linter-enabled=false && biome lint tests services/rpc-cache/integration.test.mjs --only=suspicious/noFocusedTests --only=suspicious/noSelfCompare && biome lint scripts/railway-release.cjs --error-on-warnings && pnpm run lint:actions"
   );
   for (const alias of ["format", "format:check", "lint:fix", "lint:check"])
     assert.equal(scripts[alias], undefined);

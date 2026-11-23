@@ -164,6 +164,7 @@ for (const [tool, expected, args] of [
   ["railway", "5.75.0", ["--version"]],
   ["trivy", "0.76.2", ["--version"]],
   ["jactionlint", "2.4.0", ["--version"]],
+  ["zizmor", "1.32.0", ["--version"]],
 ]) {
   if (!mise.includes(`${tool} = "${expected}"`))
     fail(`mise.toml must pin ${tool} ${expected}.`);
@@ -177,13 +178,13 @@ for (const [tool, expected, args] of [
 const bootstrap = readText(BOOTSTRAP_ACTION);
 if (
   !bootstrap.includes(
-    "install_args: node pnpm railway trivy jactionlint --locked"
+    "install_args: node pnpm railway trivy jactionlint zizmor --locked"
   ) ||
   !bootstrap.includes('version: "2026.11.9"') ||
   !bootstrap.includes("cache: true")
 )
   fail(
-    "CI bootstrap must install all five locked tools with pinned Mise and caching."
+    "CI bootstrap must install all six locked tools with pinned Mise and caching."
   );
 for (const workflow of [".github/workflows/ci.yml"])
   if (

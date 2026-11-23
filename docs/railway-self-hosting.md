@@ -111,6 +111,19 @@ on `rpc-cache`. Configure its Dockerfile as `Dockerfile-rpc-cache`, its healthch
 as `/healthcheck`, and its database references as shown in [rpc-cache.md](rpc-cache.md).
 Verify the proxy before the whole-project apply routes consumers through it.
 
+The scheduled/manual ABI sync runs only on `master` and declares the existing
+GitHub `production` environment with `deployment: false`. Read-only verification
+found no protection rules or deployment branch policy on that environment;
+environment-secret migration remains **unperformed**. In addition to the Railway
+setup above, an authorized administrator must securely provision `ETHERSCAN_API_KEY`
+and all nine `ENVIO_RPC_URL_<id>` secrets used by `abis-sync.yml` in `production`.
+Verify all ten names in that environment's secret list and a sync on `master`,
+then remove their repository-scoped copies and verify another sync. A successful
+sync before removal alone can use repository-secret fallbacks. Existing secret
+values cannot be retrieved from GitHub; use the authorized credential source.
+The source job condition does not prove environment-secret storage or live
+restrictions.
+
 ## Automatic variables and manual secrets
 
 | Destination          | Supplied by IaC                                                                                        | Manual values retained in Railway                                 |
@@ -509,7 +522,7 @@ GET /v1/chains
 GET /v1/chains/{chainId}/protocol
 ```
 
-GET/HEAD `/` return 404. There is no separate `/docs` route; `/v1/openapi.json` remains the JSON API specification. See the [PG18.6 reset/reindex preparation](postgresql18-rebuild.md) before changing the main database major version.
+GET/HEAD `/` serve a static API catalogue without JavaScript or external assets; HEAD has no body. There is no separate `/docs` route; `/v1/openapi.json` remains the JSON API specification. See the [PG18.6 reset/reindex preparation](postgresql18-rebuild.md) before changing the main database major version.
 
 `/v1/bounds` includes `indexingProgress.chains[*] = { chainId, date,
 timestamp, block }`. Static JSON paths such as `/v1/manifest.json` and

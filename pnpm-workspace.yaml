@@ -46,7 +46,10 @@ overrides:
   "minimatch@>=9.0.0 <9.0.7": "9.0.7"
   "picomatch@<4.0.7": "4.0.7"
   "rollup@<4.59.0": "4.59.0"
-  "vite@>=8.0.0 <8.0.16": "^8.0.16"
+  # Vite dev-server path traversal (GHSA-p4f5-76q4-ffq7), patched on each minor.
+  "vite@>=8.0.0 <8.1.7": "8.1.7"
+  "vite@>=8.2.0 <8.2.5": "8.2.5"
+  "vite@>=8.3.0 <8.3.7": "8.3.7"
   "vitest@<4.1.11": "4.1.11"
 allowBuilds:
   "esbuild@0.28.2": true

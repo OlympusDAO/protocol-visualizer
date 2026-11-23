@@ -1,6 +1,16 @@
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
+export const ownedImages = [
+  "rpc-cache",
+  "indexer",
+  "frontend",
+  "hasura",
+  "snapshot-gateway",
+  "snapshot-publisher",
+  "snapshot-monitor",
+];
+
 export function runContainer(args) {
   const requested = process.env.CONTAINER_ENGINE;
   if (requested && !["docker", "podman"].includes(requested))

@@ -504,6 +504,7 @@ function handleAbiRequest(
 
 export function createSnapshotGateway(config: GatewayConfig) {
   const logger = config.logger ?? defaultLogger;
+  let catalogue: Promise<string> | undefined;
   const readinessReporter = createReadinessReporter(logger);
   const readinessOperationTimeoutMs =
     config.readinessOperationTimeoutMs ?? defaultReadinessOperationTimeoutMs;
@@ -582,7 +583,18 @@ export function createSnapshotGateway(config: GatewayConfig) {
     const startedAt = performance.now();
     try {
       if (url.pathname === "/") {
-        sendJson(request, response, 404, { error: "not found" });
+        catalogue ??= readFile(
+          new URL("../../index.html", import.meta.url),
+          "utf8"
+        );
+        const body = await catalogue;
+        send(
+          response,
+          200,
+          request.method === "HEAD" ? "" : body,
+          "text/html; charset=utf-8",
+          "public, max-age=300"
+        );
         return;
       }
 

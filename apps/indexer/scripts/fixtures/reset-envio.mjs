@@ -48,10 +48,23 @@ if (process.argv[2] === "worker") {
     !existsSync(running) && !existsSync(workerRunning),
     "Migration started before ingestion stopped"
   );
+  const migrationRunning = join(root, "migration-running");
+  writeFileSync(migrationRunning, String(process.pid));
+  let stopping = false;
+  for (const signal of ["SIGTERM", "SIGINT"])
+    process.on(signal, async () => {
+      if (stopping) return;
+      stopping = true;
+      await pause(200);
+      unlinkSync(migrationRunning);
+      writeFileSync(join(root, "migration-stopped"), signal);
+      process.exit(0);
+    });
   appendFileSync(
     join(root, "migrated"),
     `${process.argv.slice(2).join(" ")}\n`
   );
   while (existsSync(join(root, "migration-blocked"))) await pause(25);
+  unlinkSync(migrationRunning);
   process.exit(Number(process.env.RESET_FIXTURE_MIGRATION_CODE));
 }

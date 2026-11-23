@@ -87,7 +87,15 @@ export function existingResources(ctx: RailwayContext):
     if (volumeSizes.size !== volumes.edges.length)
       throw new Error("Ambiguous volume lookup");
     // Config is captured in memory only; never print or persist its variables.
-    const configured = result.data?.environment?.config?.services;
+    const config = result.data?.environment?.config;
+    const configured =
+      config &&
+      typeof config === "object" &&
+      !Array.isArray(config) &&
+      config.services === undefined &&
+      services.edges.length === 0
+        ? {}
+        : config?.services;
     if (
       !configured ||
       typeof configured !== "object" ||

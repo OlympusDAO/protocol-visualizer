@@ -67,17 +67,18 @@ that fallback from authorizing storage. This is a release-specific workaround,
 covered by an actual-image test with a high head and an unsupported finalized
 tag. Keep that regression test when upgrading eRPC.
 
-| Chain            | ID       | Required finality signal and verification boundary                                                 |
-| ---------------- | -------- | -------------------------------------------------------------------------------------------------- |
-| Ethereum         | 1        | Execution RPC `finalized`, from Ethereum consensus                                                 |
-| Optimism         | 10       | OP Stack finalized L2 head derived from finalized L1 data                                          |
-| Arbitrum         | 42161    | Nitro finalized batch inherited from Ethereum finality                                             |
-| Base             | 8453     | OP Stack finalized L2 head derived from finalized L1 data                                          |
-| Berachain        | 80094    | Provider's finalized execution head backed by BeaconKit consensus                                  |
-| Robinhood        | 4663     | Verify the deployed chain/provider's Nitro parent-finality configuration before relying on its tag |
-| Sepolia          | 11155111 | Execution RPC `finalized`, from Sepolia consensus                                                  |
-| Arbitrum Sepolia | 421614   | Nitro finalized batch inherited from Sepolia finality                                              |
-| Base Sepolia     | 84532    | OP Stack finalized L2 head derived from finalized Sepolia data                                     |
+<!-- biome-ignore format: keep table cells unpadded -->
+| Chain | ID | Required finality signal and verification boundary |
+| --- | --- | --- |
+| Ethereum | 1 | Execution RPC `finalized`, from Ethereum consensus |
+| Optimism | 10 | OP Stack finalized L2 head derived from finalized L1 data |
+| Arbitrum | 42161 | Nitro finalized batch inherited from Ethereum finality |
+| Base | 8453 | OP Stack finalized L2 head derived from finalized L1 data |
+| Berachain | 80094 | Provider's finalized execution head backed by BeaconKit consensus |
+| Robinhood | 4663 | Verify the deployed chain/provider's Nitro parent-finality configuration before relying on its tag |
+| Sepolia | 11155111 | Execution RPC `finalized`, from Sepolia consensus |
+| Arbitrum Sepolia | 421614 | Nitro finalized batch inherited from Sepolia finality |
+| Base Sepolia | 84532 | OP Stack finalized L2 head derived from finalized Sepolia data |
 
 See [Arbitrum's finality guidance](https://developer.arbitrum.io/how-arbitrum-works/reference/finality-and-reorgs),
 [OP Stack finality](https://specs.optimism.io/protocol/derivation.html),
@@ -300,13 +301,14 @@ configuration, not the production selection policy. Native Envio memory-store
 tests separately check that exhausted HTTP 429 leaves staged entity state
 uncommitted and the same block can resume after recovery.
 
-| Controlled case                                         |       Observed provider calls |
-| ------------------------------------------------------- | ----------------------------: |
-| Two HTTP or JSON-RPC 429 failures, then recovery        |                             3 |
-| One persistently throttled provider                     |              6; reader throws |
-| Primary throttled, secondary healthy; one proxy request |                1 per provider |
-| Both providers persistently throttled                   | 6 per provider; reader throws |
-| EVM revert with two providers available                 |       1; no retry or failover |
+<!-- biome-ignore format: keep table cells unpadded -->
+| Controlled case | Observed provider calls |
+| --- | ---: |
+| Two HTTP or JSON-RPC 429 failures, then recovery | 3 |
+| One persistently throttled provider | 6; reader throws |
+| Primary throttled, secondary healthy; one proxy request | 1 per provider |
+| Both providers persistently throttled | 6 per provider; reader throws |
+| EVM revert with two providers available | 1; no retry or failover |
 
 Separate bounded probes of Alchemy's documented public low-throughput test app
 on November 3, 2026 used eight concurrent requests and no user credentials:
@@ -339,8 +341,8 @@ requiring per-consumer URL edits. Ephemeral local PG18.6 uses fresh versioned
 keeps all volumes; do not use `down --volumes` for this stack.
 
 ```bash
-pnpm run container:build:rpc-cache
-pnpm run container:build:indexer
+pnpm run docker:build:rpc-cache
+pnpm run docker:build:indexer
 pnpm test:integration
 ```
 

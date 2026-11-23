@@ -1,19 +1,19 @@
 // Evaluate the existing SDK definition offline; never supply an environmentId.
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRailwayContext } from "railway/iac";
 import defineInfrastructure from "../.railway/railway.ts";
+import { ownedImages } from "./container.mjs";
 
-export const ownedImages = [
-  "rpc-cache",
-  "indexer",
-  "frontend",
-  "hasura",
-  "snapshot-gateway",
-  "snapshot-publisher",
-  "snapshot-monitor",
-];
+const requireFromFrontend = createRequire(
+  new URL("../apps/frontend/package.json", import.meta.url)
+);
+const { parse } = createRequire(
+  requireFromFrontend.resolve("vite/package.json")
+)("yaml");
+
 export const localImageSkipReason =
   "Local development/test fixture, not deployed by Railway IaC, excluded by explicit user policy.";
 export const providerImageReason =
@@ -29,13 +29,11 @@ export function imageInventory(resources, compose) {
       reference,
       origins: [],
       resources: [],
-      owned: false,
-      provider: false,
+      kind,
     };
     if (!row.origins.includes(origin)) row.origins.push(origin);
     if (resource) row.resources.push(resource);
-    row.owned ||= kind === "owned";
-    row.provider ||= kind === "provider";
+    if (kind === "owned" || row.kind === "local") row.kind = kind;
     images.set(reference, row);
   }
   for (const resource of resources) {
@@ -66,13 +64,19 @@ export function imageInventory(resources, compose) {
       );
     } else throw new Error("Unsupported runtime image source");
   }
-  for (const [, reference] of compose.matchAll(/^\s+image:\s*([^\s]+)\s*$/gm))
-    add(reference, "docker-compose.yml", "local");
-  return [...images.values()].map(({ owned, provider, ...row }) => ({
+  const services = parse(compose, { merge: true })?.services ?? {};
+  for (const service of Object.values(services))
+    if (service?.image !== undefined)
+      add(service.image, "docker-compose.yml", "local");
+  return [...images.values()].map((row) => ({
     ...row,
-    kind: owned ? "owned" : provider ? "provider" : "local",
-    ...(!owned
-      ? { reason: provider ? providerImageReason : localImageSkipReason }
+    ...(row.kind !== "owned"
+      ? {
+          reason:
+            row.kind === "provider"
+              ? providerImageReason
+              : localImageSkipReason,
+        }
       : {}),
   }));
 }

@@ -1,13 +1,13 @@
 {
   "name": "@protocol-visualizer/contract-abis",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "sync": "node scripts/sync.mjs",
     "check": "node scripts/check.mjs",
     "lint": "biome lint --write . --error-on-warnings",
     "lint:check": "biome lint . --error-on-warnings",
+    "sync": "node scripts/sync.mjs",
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {

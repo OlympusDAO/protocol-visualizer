@@ -1,12 +1,8 @@
 {
   "name": "@protocol-visualizer/snapshot-artifacts",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
-  "files": [
-    "dist/src"
-  ],
-  "types": "./dist/src/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/src/index.d.ts",
@@ -19,6 +15,10 @@
       "default": "./dist/src/indexer-progress.js"
     }
   },
+  "types": "./dist/src/index.d.ts",
+  "files": [
+    "dist/src"
+  ],
   "scripts": {
     "build": "tsc",
     "lint": "biome lint --write . --error-on-warnings",

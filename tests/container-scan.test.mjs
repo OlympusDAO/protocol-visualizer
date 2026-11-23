@@ -11,15 +11,22 @@ import {
   symlinkSync,
   writeFileSync,
 } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { database, image, redis, service } from "railway/iac";
 import {
   imageInventory,
-  ownedImages,
   runtimeImageInventory,
 } from "../scripts/runtime-image-inventory.mjs";
+
+const requireFromFrontend = createRequire(
+  new URL("../apps/frontend/package.json", import.meta.url)
+);
+const { parse } = createRequire(
+  requireFromFrontend.resolve("vite/package.json")
+)("yaml");
 
 function fixture(t) {
   const directory = realpathSync(mkdtempSync(path.join(tmpdir(), "pv-scan-")));
@@ -28,6 +35,16 @@ function fixture(t) {
   symlinkSync(
     realpathSync(new URL("../node_modules/railway", import.meta.url)),
     path.join(directory, "node_modules/railway"),
+    "dir"
+  );
+  mkdirSync(path.join(directory, "apps/frontend/node_modules"), {
+    recursive: true,
+  });
+  symlinkSync(
+    realpathSync(
+      new URL("../apps/frontend/node_modules/vite", import.meta.url)
+    ),
+    path.join(directory, "apps/frontend/node_modules/vite"),
     "dir"
   );
   for (const file of [
@@ -62,7 +79,7 @@ function fixture(t) {
     }
     if (name === "pnpm") {
       process.exit(
-        args[1] === "container:scan"
+        args[1] === "docker:scan"
           ? Number(process.env.PV_TEST_SCAN_EXIT || 0)
           : 0
       );
@@ -133,9 +150,13 @@ test("offline SDK production/preview inventory covers actual refs without Railwa
     production.find((row) => row.kind === "provider").resources.sort(),
     ["Postgres", "rpc-cache-postgres"]
   );
-  const compose = readFileSync("docker-compose.yml", "utf8");
+  const { services } = parse(readFileSync("docker-compose.yml", "utf8"), {
+    merge: true,
+  });
   const expected = new Set(
-    [...compose.matchAll(/^\s+image:\s*([^\s]+)\s*$/gm)].map((m) => m[1])
+    Object.values(services)
+      .map((service) => service.image)
+      .filter(Boolean)
   );
   expected.add(production.find((row) => row.kind === "provider").reference);
   assert.deepEqual(new Set(production.map((row) => row.reference)), expected);
@@ -165,6 +186,17 @@ test("offline SDK production/preview inventory covers actual refs without Railwa
   );
 });
 
+test("Compose image inventory reads equivalent plain and quoted YAML scalars", () => {
+  const reference = "postgres:18.6-alpine3.24";
+  for (const quote of ["", "'", '"']) {
+    const compose = `services:\n  postgres:\n    image: ${quote}${reference}${quote}\n`;
+    assert.deepEqual(
+      imageInventory([], compose).map((row) => row.reference),
+      [reference]
+    );
+  }
+});
+
 test("owned scans use local tags and preserve unfixed/secret policy without exports", (t) => {
   const f = fixture(t);
   const result = f.run("scripts/scan-container.mjs", ["hasura"], {
@@ -184,6 +216,7 @@ test("owned scans use local tags and preserve unfixed/secret policy without expo
   assert(!f.calls().some((call) => call[0] === "docker"));
   assert(scan.includes("--ignore-unfixed=true"));
   assert.equal(scan[scan.indexOf("--scanners") + 1], "vuln,secret");
+  assert.equal(scan[scan.indexOf("--image-config-scanners") + 1], "secret");
   assert.equal(scan[scan.indexOf("--format") + 1], "table");
   assert(!f.calls().some((c) => c.includes("save") || c.includes("--input")));
   const negative = fixture(t);
@@ -194,7 +227,9 @@ test("owned scans use local tags and preserve unfixed/secret policy without expo
     }).status,
     1
   );
-  assert(negative.calls().at(-1).includes("--ignore-unfixed=false"));
+  const negativeScan = negative.calls().at(-1);
+  assert(negativeScan.includes("--ignore-unfixed=false"));
+  assert.equal(negativeScan[negativeScan.indexOf("--exit-code") + 1], "1");
   const missing = fixture(t);
   assert.equal(
     missing.run("scripts/scan-container.mjs", ["indexer"], {
@@ -219,6 +254,11 @@ test("owned scans use local tags and preserve unfixed/secret policy without expo
     externalScan[externalScan.indexOf("--scanners") + 1],
     "vuln,secret"
   );
+  assert.equal(externalScan[externalScan.indexOf("--exit-code") + 1], "1");
+  assert.equal(
+    externalScan[externalScan.indexOf("--image-config-scanners") + 1],
+    "secret"
+  );
 });
 
 test("provider native reporting is remote/advisory, but execution errors fail", (t) => {
@@ -239,6 +279,7 @@ test("provider native reporting is remote/advisory, but execution errors fail", 
   ])
     assert.equal(scan[scan.indexOf(flag) + 1], value);
   assert(scan.includes("--ignore-unfixed=false"));
+  assert(!scan.includes("--image-config-scanners"));
   assert(
     scan
       .at(-1)
@@ -258,25 +299,30 @@ test("image validation builds and scans all local tags and preserves fail-fast p
   const f = fixture(t);
   const result = f.pipeline();
   assert.equal(result.status, 0, result.stderr);
-  const calls = f.calls();
-  assert.deepEqual(
-    calls
-      .filter((c) => c[2]?.startsWith("container:build:"))
-      .map((c) => c[2].slice("container:build:".length)),
-    ownedImages
-  );
-  assert.deepEqual(
-    calls.filter((c) => c[2] === "container:scan").map((c) => c.at(-1)),
-    ownedImages
-  );
-  assert(calls.some((c) => c[2] === "container:scan:dockerfiles"));
-  assert(calls.some((c) => c[2] === "container:scan:runtime"));
-  assert(
-    !calls.some(
-      (c) => c.includes("--provider") || c.includes("test:integration")
-    )
-  );
+  const images = [
+    "rpc-cache",
+    "indexer",
+    "frontend",
+    "hasura",
+    "snapshot-gateway",
+    "snapshot-publisher",
+    "snapshot-monitor",
+  ];
+  const builds = images.map((image) => [
+    "pnpm",
+    "run",
+    `docker:build:${image}`,
+  ]);
+  assert.deepEqual(f.calls(), [
+    ...builds,
+    ...images.map((image) => ["pnpm", "run", "docker:scan", "--", image]),
+    ["pnpm", "run", "docker:scan:dockerfiles"],
+    ["pnpm", "run", "docker:scan:runtime"],
+  ]);
   const failure = fixture(t);
   assert.equal(failure.pipeline({ PV_TEST_SCAN_EXIT: "43" }).status, 43);
-  assert(!failure.calls().some((c) => c[2] === "container:scan:dockerfiles"));
+  assert.deepEqual(failure.calls(), [
+    ...builds,
+    ["pnpm", "run", "docker:scan", "--", "rpc-cache"],
+  ]);
 });

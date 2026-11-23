@@ -1,8 +1,8 @@
 [
-  { "name": "Solana", "selector": "124615329519749607", "family": "svm" },
+  { "family": "svm", "name": "Solana", "selector": "124615329519749607" },
   {
+    "family": "svm",
     "name": "Solana Devnet",
-    "selector": "16423721717087811551",
-    "family": "svm"
+    "selector": "16423721717087811551"
   }
 ]

@@ -34,7 +34,7 @@ function command(child) {
   });
   const done = new Promise((accept, reject) => {
     child.once("error", reject);
-    child.once("exit", (code) => accept({ code, output }));
+    child.once("close", (code) => accept({ code, output }));
   });
   return { child, done, output: () => output };
 }
@@ -44,6 +44,7 @@ for (const {
   migrationCode,
   startCode,
   shutdownSignal,
+  migrationSignal,
   stashCode = 0,
   restoreCode = 0,
 } of [
@@ -56,10 +57,12 @@ for (const {
   { checkCode: 0, migrationCode: 0, shutdownSignal: "SIGTERM" },
   { checkCode: 0, migrationCode: 0, shutdownSignal: "SIGINT" },
   { checkCode: 78, migrationCode: 0, shutdownSignal: "SIGTERM" },
+  { checkCode: 0, migrationCode: 0, migrationSignal: "SIGTERM" },
+  { checkCode: 0, migrationCode: 0, migrationSignal: "SIGINT" },
   { checkCode: 0, migrationCode: 0, stashCode: 1 },
   { checkCode: 0, migrationCode: 0, restoreCode: 1 },
 ]) {
-  test(`explicit reset lifecycle (storage ${checkCode}, migration ${migrationCode}, start ${startCode ?? 0}, shutdown ${shutdownSignal ?? "none"}, cache stash ${stashCode}, cache restore ${restoreCode})`, {
+  test(`explicit reset lifecycle (storage ${checkCode}, migration ${migrationSignal ?? migrationCode}, start ${startCode ?? 0}, shutdown ${shutdownSignal ?? "none"}, cache stash ${stashCode}, cache restore ${restoreCode})`, {
     timeout: 20_000,
   }, async () => {
     const root = realpathSync(
@@ -70,8 +73,14 @@ for (const {
     const running = join(root, "running");
     const workerRunning = join(root, "worker-running");
     const migrated = join(root, "migrated");
+    const migrationRunning = join(root, "migration-running");
+    const migrationStopped = join(root, "migration-stopped");
     const effectCache = join(root, "effect-cache");
     const migrationBlocked = join(root, "migration-blocked");
+    const socketPath = join(
+      "/tmp",
+      `pv-envio-${createHash("sha256").update(app).digest("hex").slice(0, 12)}.sock`
+    );
     mkdirSync(scripts, { recursive: true });
     mkdirSync(join(app, "node_modules/envio"), { recursive: true });
     writeFileSync(migrationBlocked, "");
@@ -135,17 +144,7 @@ for (const {
         return;
       }
       // The control socket appears only after compatibility checking completes.
-      await until(() =>
-        existsSync(
-          join(
-            "/tmp",
-            `pv-envio-${createHash("sha256")
-              .update(app)
-              .digest("hex")
-              .slice(0, 12)}.sock`
-          )
-        )
-      );
+      await until(() => existsSync(socketPath));
       if (checkCode === 78) {
         assert.equal(
           (await fetch(`http://127.0.0.1:${port}/ready`)).status,
@@ -204,6 +203,26 @@ for (const {
         assert.equal(resetting.child.exitCode, null, resetting.output());
         return existsSync(migrated);
       });
+      if (migrationSignal) {
+        wrapper.child.kill(migrationSignal);
+        const result = await wrapper.done;
+        assert.equal(
+          result.code,
+          migrationSignal === "SIGINT" ? 130 : 143,
+          result.output
+        );
+        assert(
+          !existsSync(migrationRunning),
+          "wrapper must wait for migration shutdown"
+        );
+        assert.equal(readFileSync(migrationStopped, "utf8"), migrationSignal);
+        assert.equal(readFileSync(effectCache, "utf8"), "stash\n");
+        assert(!existsSync(running) && !existsSync(workerRunning));
+        assert(!existsSync(socketPath), "wrapper must close its reset socket");
+        const reset = await resetting.done;
+        assert.equal(reset.code, 1, reset.output);
+        return;
+      }
       for (const route of ["ready", "metrics"]) {
         assert.equal(wrapper.child.exitCode, null, wrapper.output());
         assert.equal(
@@ -260,6 +279,14 @@ for (const {
             503
           );
     } finally {
+      if (existsSync(migrationRunning)) {
+        try {
+          process.kill(
+            Number(readFileSync(migrationRunning, "utf8")),
+            "SIGKILL"
+          );
+        } catch {}
+      }
       rmSync(migrationBlocked, { force: true });
       if (existsSync(running)) {
         try {
@@ -269,6 +296,7 @@ for (const {
       wrapper.child.kill("SIGKILL");
       await wrapper.done;
       await new Promise((accept) => hasura.close(accept));
+      rmSync(socketPath, { force: true });
       rmSync(root, { recursive: true, force: true });
     }
   });

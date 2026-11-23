@@ -28,7 +28,7 @@ HEAD /v1/chains/{chainId}/protocol
 methods, unknown paths, unsupported query parameters, and unsupported chain ids
 are rejected.
 
-GET/HEAD `/` return 404; the optional HTML catalogue formerly served there was removed. No standalone `/docs` route is implemented. The JSON specification remains at `/v1/openapi.json`, and the frontend and actual data/ABI endpoints remain available.
+GET/HEAD `/` serve the static [API catalogue](index.html), with no JavaScript or external assets. HEAD returns the same content type without a body. No standalone `/docs` route is implemented. The JSON specification remains at `/v1/openapi.json`, and the frontend and data/ABI endpoints remain available.
 
 ## Health and readiness
 

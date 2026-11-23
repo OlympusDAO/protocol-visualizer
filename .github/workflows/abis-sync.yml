@@ -20,11 +20,19 @@ jobs:
   # read-only token. The pull-request job below has the write token and does
   # not install dependencies.
   sync:
+    if: github.ref == 'refs/heads/master'
+    environment:
+      name: production
+      deployment: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
       changed: ${{ steps.patch.outputs.changed }}
     steps:
+      # GitHub expression equality ignores case; this check does not.
+      - name: Require exact master ref
+        run: test "$GITHUB_REF" = refs/heads/master
+
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:

@@ -1,23 +1,14 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { runContainer } from "./container.mjs";
+import { ownedImages, runContainer } from "./container.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const services = [
-  "frontend",
-  "hasura",
-  "indexer",
-  "rpc-cache",
-  "snapshot-gateway",
-  "snapshot-publisher",
-  "snapshot-monitor",
-];
 const args = process.argv.slice(2);
 if (args[0] === "--") args.shift();
 const [service] = args;
-if (!services.includes(service) || args.length !== 1) {
-  console.error("Usage: pnpm run container:scan -- <service>");
+if (!ownedImages.includes(service) || args.length !== 1) {
+  console.error("Usage: pnpm run docker:scan -- <service>");
   process.exit(1);
 }
 const image = `protocol-visualizer/${service}:local`;
@@ -52,6 +43,8 @@ try {
     path.join(root, "node_modules/.cache/container-scan/trivy"),
     "--scanners",
     "vuln,secret",
+    "--image-config-scanners",
+    "secret",
     "--severity",
     "MEDIUM,HIGH,CRITICAL",
     "--ignorefile",

@@ -153,7 +153,15 @@ Envio again inside the same container. Envio resumes with the cached reads, so t
 rebuild refetches only reads that are not cached. If the restore fails, Envio
 still starts and refetches those reads; the tables stay in the stash schema and
 the next reset restores them. A cached result is reused under the same rules as
-a normal resume: when an effect's output changes, give the effect a new name. No Railway service restart, deployment, or start-command change is needed.
+a normal resume. Cached entries have no handler-version stamp. Envio rejects
+outputs that fail the current schema and fetches them again, but it cannot detect
+a same-shaped change in meaning. Preserve entries only when effect inputs and
+meaning remain compatible; version the effect name when its behavior or output
+meaning changes. A full entity reindex can reuse compatible cached reads. The
+stash adapter is pinned to Envio 3.14.1; an Envio upgrade requires a separate native
+format and adapter review. Restoring to a fresh database cluster also requires a
+separately reviewed export/restore procedure. No Railway service restart,
+deployment, or start-command change is needed for the existing same-version reset.
 The command prints a completion message and exits with the migration status.
 A successful launch does not mean that indexing has caught up.
 

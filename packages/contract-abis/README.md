@@ -4,11 +4,12 @@ This package has the ABI of each live Olympus contract. Consumers such as the
 Olympus MCP server use it to decode calls, events and reverts of the deployed
 addresses. The snapshot gateway serves it:
 
-| Route                               | Response                                        |
-| ----------------------------------- | ----------------------------------------------- |
-| `/v1/abis`                          | The contracts of each chain: label and address. |
-| `/v1/abis/{chainId}/{address}`      | The ABI and the metadata of one contract.       |
-| `/v1/abis/{chainId}/labels/{label}` | The same, found by label.                       |
+<!-- biome-ignore format: keep table cells unpadded -->
+| Route | Response |
+| --- | --- |
+| `/v1/abis` | The contracts of each chain: label and address. |
+| `/v1/abis/{chainId}/{address}` | The ABI and the metadata of one contract. |
+| `/v1/abis/{chainId}/labels/{label}` | The same, found by label. |
 
 The gateway does not serve the exclusions or the env.json ref. They are only in
 `abis/manifest.json`.
@@ -122,11 +123,12 @@ same `abiHash` have the same interface.
 
 ## Commands
 
-| Command                   | Purpose                                                                                   | Network                         |
-| ------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------- |
-| `pnpm abis:sync`          | Update the registry. Gets ABIs only for new addresses and changed proxies.                | GitHub, gateway, Etherscan, RPC |
-| `pnpm abis:sync --latest` | Move `env.ref` to the last olympus-v3 `master` commit that changed env.json, then update. | Same                            |
-| `pnpm abis:check`         | Check that the manifest and the ABI files agree. Writes nothing.                          | None                            |
+<!-- biome-ignore format: keep table cells unpadded -->
+| Command | Purpose | Network |
+| --- | --- | --- |
+| `pnpm abis:sync` | Update the registry. Gets ABIs only for new addresses and changed proxies. | GitHub, gateway, Etherscan, RPC |
+| `pnpm abis:sync --latest` | Move `env.ref` to the last olympus-v3 `master` commit that changed env.json, then update. | Same |
+| `pnpm abis:check` | Check that the manifest and the ABI files agree. Writes nothing. | None |
 
 `pnpm abis:sync` needs `ETHERSCAN_API_KEY`. It reads a `.env` file in this
 package or in the repository root. It also needs `ENVIO_RPC_URL_<chainId>` for

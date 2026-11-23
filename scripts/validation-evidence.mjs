@@ -43,14 +43,28 @@ export async function runRecorded(group, command, args) {
   save();
   console.log(`Validation evidence: ${receipt}`);
   let exitCode = 1;
+  let child;
+  let receivedSignal;
+  const forwardSignal = (signal) => {
+    receivedSignal ||= signal;
+    if (!child?.pid) return;
+    try {
+      process.kill(-child.pid, signal);
+    } catch (error) {
+      if (error.code !== "ESRCH") throw error;
+    }
+  };
+  process.on("SIGINT", forwardSignal);
+  process.on("SIGTERM", forwardSignal);
   try {
     exitCode = await new Promise((resolve) => {
-      const child = spawn(command, args, {
+      child = spawn(command, args, {
         cwd: root,
         env: {
           ...process.env,
           PV_VALIDATION_CHILD: group,
         },
+        detached: true,
         stdio: ["inherit", "pipe", "pipe"],
       });
       for (const [source, target] of [
@@ -65,11 +79,18 @@ export async function runRecorded(group, command, args) {
         result.error = error.code;
         appendFileSync(log, `Cannot start command: ${error.code}\n`);
       });
-      child.on("close", (code, signal) =>
-        resolve(code ?? (signal ? 128 + (constants.signals[signal] ?? 0) : 1))
-      );
+      child.once("close", (code, signal) => {
+        const status = receivedSignal ? null : code;
+        const termination = receivedSignal ?? signal;
+        resolve(
+          status ??
+            (termination ? 128 + (constants.signals[termination] ?? 0) : 1)
+        );
+      });
     });
   } finally {
+    process.off("SIGINT", forwardSignal);
+    process.off("SIGTERM", forwardSignal);
     result.exitCode = exitCode;
     result.finishedAt = new Date().toISOString();
     result.finalRevision = revision();

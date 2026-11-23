@@ -1,27 +1,27 @@
 {
   "compilerOptions": {
-    // Type checking
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-
-    // Interop constraints
-    "verbatimModuleSyntax": false,
+    "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "isolatedModules": true,
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true,
+    "lib": ["ES2022"],
+    "module": "ESNext",
 
     // Language and environment
     "moduleResolution": "bundler",
-    "module": "ESNext",
     "noEmit": true,
-    "lib": ["ES2022"],
+    "noUncheckedIndexedAccess": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    // Type checking
+    "strict": true,
     "target": "ES2022",
 
     // Skip type checking for node modules
     "types": ["node"],
-    "skipLibCheck": true
+
+    // Interop constraints
+    "verbatimModuleSyntax": false
   },
-  "include": ["./**/*.ts", "./**/*.d.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
+  "include": ["./**/*.ts", "./**/*.d.ts"]
 }

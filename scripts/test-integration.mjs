@@ -1,5 +1,5 @@
 // Required integration: fixtures own their containers and never touch project volumes.
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { setTimeout } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
@@ -19,7 +19,17 @@ async function main() {
   const pgImage =
     "postgres:18.6-alpine3.24@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b";
   const name = `pv-state-test-${randomUUID()}`;
-  let created = false;
+  let createAttempted = false;
+  const shutdown = new AbortController();
+  const interrupt = (signal) =>
+    shutdown.abort(
+      Object.assign(
+        new Error(`Required integration interrupted by ${signal}`),
+        {
+          status: signal === "SIGINT" ? 130 : 143,
+        }
+      )
+    );
   function run(command, args, options = {}) {
     const result = spawnSync(command, args, {
       cwd: root,
@@ -36,6 +46,8 @@ async function main() {
     }
     return result.stdout?.trim();
   }
+  process.on("SIGINT", interrupt);
+  process.on("SIGTERM", interrupt);
   try {
     // biome-ignore lint/suspicious/noUndeclaredEnvVars: required integration runs outside Turbo.
     if (process.env.RPC_CACHE_TEST_SKIP_RESET === "1")
@@ -67,6 +79,8 @@ async function main() {
     console.log(
       "[2/3] Native PostgreSQL persistence and rollback across restarts"
     );
+    // The daemon can create the fixture before the CLI reports an interruption.
+    createAttempted = true;
     run("docker", [
       "create",
       "--name",
@@ -79,25 +93,26 @@ async function main() {
       "PGDATA=/var/lib/postgresql/18/docker",
       pgImage,
     ]);
-    created = true;
     run("docker", ["start", name]);
     console.log(
       `PostgreSQL fixture image: ${run("docker", ["inspect", name, "--format", "{{.Image}}"], { stdio: ["ignore", "pipe", "inherit"] })}`
     );
     let ready = false;
     for (let attempt = 0; attempt < 100; attempt++) {
-      const probe = spawnSync(
-        "docker",
+      ready = await new Promise((resolve) => {
         // The entrypoint's temporary initialization server accepts Unix sockets
         // before the final TCP listener starts. Wait for the listener tests use.
-        ["exec", name, "pg_isready", "-h", "127.0.0.1", "-U", "postgres"],
-        { stdio: "ignore" }
-      );
-      if (probe.status === 0) {
-        ready = true;
-        break;
-      }
-      await setTimeout(200);
+        const probe = spawn(
+          "docker",
+          ["exec", name, "pg_isready", "-h", "127.0.0.1", "-U", "postgres"],
+          { stdio: "ignore", signal: shutdown.signal }
+        );
+        probe.once("error", () => {});
+        probe.once("close", (code) => resolve(code === 0));
+      });
+      shutdown.signal.throwIfAborted();
+      if (ready) break;
+      await setTimeout(200, undefined, { signal: shutdown.signal });
     }
     if (!ready) throw new Error("Disposable PostgreSQL did not become ready.");
     const port = run("docker", ["port", name, "5432/tcp"], {
@@ -128,10 +143,14 @@ async function main() {
     );
     run("pnpm", ["run", "test:rpc-cache"]);
   } catch (error) {
-    console.error(error.message);
-    process.exitCode = error.status || 1;
+    const failure =
+      error.name === "AbortError" && shutdown.signal.aborted
+        ? shutdown.signal.reason
+        : error;
+    console.error(failure.message);
+    process.exitCode = failure.status || 1;
   } finally {
-    if (created) {
+    if (createAttempted) {
       const cleanup = spawnSync(
         "docker",
         ["rm", "--force", "--volumes", name],
@@ -141,5 +160,7 @@ async function main() {
       );
       if (cleanup.status !== 0) process.exitCode ||= 1;
     }
+    process.off("SIGINT", interrupt);
+    process.off("SIGTERM", interrupt);
   }
 }

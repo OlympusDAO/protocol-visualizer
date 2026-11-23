@@ -1,100 +1,100 @@
 [
   {
-    "key": "Mainnet",
+    "availability": "indexed",
+    "ccipSelector": "5009297550715157269",
     "chainId": 1,
-    "name": "Ethereum Mainnet",
+    "environment": "production",
     "explorerBaseUrl": "https://etherscan.io",
-    "environment": "production",
-    "availability": "indexed",
-    "ccipSelector": "5009297550715157269"
+    "key": "Mainnet",
+    "name": "Ethereum Mainnet"
   },
   {
-    "key": "Optimism",
+    "availability": "indexed",
+    "ccipSelector": "3734403246176062136",
     "chainId": 10,
-    "name": "Optimism",
+    "environment": "production",
     "explorerBaseUrl": "https://optimistic.etherscan.io",
-    "environment": "production",
-    "availability": "indexed",
-    "ccipSelector": "3734403246176062136"
+    "key": "Optimism",
+    "name": "Optimism"
   },
   {
-    "key": "Arbitrum",
+    "availability": "indexed",
+    "ccipSelector": "4949039107694359620",
     "chainId": 42161,
-    "name": "Arbitrum",
+    "environment": "production",
     "explorerBaseUrl": "https://arbiscan.io",
-    "environment": "production",
-    "availability": "indexed",
-    "ccipSelector": "4949039107694359620"
+    "key": "Arbitrum",
+    "name": "Arbitrum"
   },
   {
-    "key": "Base",
+    "availability": "indexed",
+    "ccipSelector": "15971525489660198786",
     "chainId": 8453,
-    "name": "Base",
+    "environment": "production",
     "explorerBaseUrl": "https://basescan.org",
-    "environment": "production",
-    "availability": "indexed",
-    "ccipSelector": "15971525489660198786"
+    "key": "Base",
+    "name": "Base"
   },
   {
-    "key": "Berachain",
+    "availability": "indexed",
+    "ccipSelector": "1294465214383781161",
     "chainId": 80094,
-    "name": "Berachain",
+    "environment": "production",
     "explorerBaseUrl": "https://berascan.com",
-    "environment": "production",
-    "availability": "indexed",
-    "ccipSelector": "1294465214383781161"
+    "key": "Berachain",
+    "name": "Berachain"
   },
   {
-    "key": "Robinhood",
+    "availability": "indexed",
+    "ccipSelector": "6180753054346818345",
     "chainId": 4663,
-    "name": "Robinhood Chain",
-    "explorerBaseUrl": "https://robinhoodchain.blockscout.com",
     "environment": "production",
-    "availability": "indexed",
-    "ccipSelector": "6180753054346818345"
+    "explorerBaseUrl": "https://robinhoodchain.blockscout.com",
+    "key": "Robinhood",
+    "name": "Robinhood Chain"
   },
   {
-    "key": "Sepolia",
+    "availability": "indexed",
+    "ccipSelector": "16015286601757825753",
     "chainId": 11155111,
-    "name": "Sepolia",
+    "environment": "testnet",
     "explorerBaseUrl": "https://sepolia.etherscan.io",
-    "environment": "testnet",
-    "availability": "indexed",
-    "ccipSelector": "16015286601757825753"
+    "key": "Sepolia",
+    "name": "Sepolia"
   },
   {
-    "key": "ArbitrumSepolia",
+    "availability": "indexed",
+    "ccipSelector": "3478487238524512106",
     "chainId": 421614,
-    "name": "Arbitrum Sepolia",
+    "environment": "testnet",
     "explorerBaseUrl": "https://sepolia.arbiscan.io",
-    "environment": "testnet",
-    "availability": "indexed",
-    "ccipSelector": "3478487238524512106"
+    "key": "ArbitrumSepolia",
+    "name": "Arbitrum Sepolia"
   },
   {
-    "key": "BaseSepolia",
+    "availability": "indexed",
+    "ccipSelector": "10344971235874465080",
     "chainId": 84532,
-    "name": "Base Sepolia",
+    "environment": "testnet",
     "explorerBaseUrl": "https://sepolia.basescan.org",
-    "environment": "testnet",
-    "availability": "indexed",
-    "ccipSelector": "10344971235874465080"
+    "key": "BaseSepolia",
+    "name": "Base Sepolia"
   },
   {
-    "key": "Goerli",
-    "chainId": 5,
-    "name": "Goerli",
-    "explorerBaseUrl": "https://goerli.etherscan.io",
-    "environment": "testnet",
-    "availability": "historical"
-  },
-  {
-    "key": "BerachainBartio",
-    "chainId": 80084,
-    "name": "Berachain Bartio",
-    "explorerBaseUrl": "https://bartio.beratrail.io",
-    "environment": "testnet",
     "availability": "historical",
-    "ccipSelector": "8999465244383784164"
+    "chainId": 5,
+    "environment": "testnet",
+    "explorerBaseUrl": "https://goerli.etherscan.io",
+    "key": "Goerli",
+    "name": "Goerli"
+  },
+  {
+    "availability": "historical",
+    "ccipSelector": "8999465244383784164",
+    "chainId": 80084,
+    "environment": "testnet",
+    "explorerBaseUrl": "https://bartio.beratrail.io",
+    "key": "BerachainBartio",
+    "name": "Berachain Bartio"
   }
 ]

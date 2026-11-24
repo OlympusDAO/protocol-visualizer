@@ -3,7 +3,6 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { runRecorded } from "./validation-evidence.mjs";
 
-// The outer invocation owns logs/receipt; its child owns disposable fixtures.
 if (process.env.PV_VALIDATION_CHILD !== "integration") {
   process.exitCode = await runRecorded("integration", process.execPath, [
     fileURLToPath(import.meta.url),

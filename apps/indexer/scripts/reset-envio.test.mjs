@@ -24,6 +24,36 @@ async function until(check) {
   }
   throw new Error("Fixture did not become ready");
 }
+async function untilGone(pid) {
+  await until(() => {
+    try {
+      process.kill(pid, 0);
+      return false;
+    } catch (error) {
+      if (error.code !== "ESRCH") throw error;
+      return true;
+    }
+  });
+}
+async function stopWorker(marker) {
+  let pid;
+  try {
+    pid = Number(readFileSync(marker, "utf8"));
+  } catch (error) {
+    if (error.code === "ENOENT") return;
+    throw error;
+  }
+  assert(
+    Number.isInteger(pid) && pid > 0,
+    "owned worker PID must be a positive integer"
+  );
+  try {
+    process.kill(pid, "SIGKILL");
+  } catch (error) {
+    if (error.code !== "ESRCH") throw error;
+  }
+  await untilGone(pid);
+}
 function command(child) {
   let output = "";
   child.stdout?.on("data", (chunk) => {
@@ -243,15 +273,7 @@ Date.now = () => now() + (clockReads !== undefined && clockReads++ > 0 ? 30001 :
             "EPERM with a live worker must fail"
           );
           assert(Number.isInteger(orphanPid) && orphanPid > 0);
-          await until(() => {
-            try {
-              process.kill(orphanPid, 0);
-              return false;
-            } catch (error) {
-              if (error.code !== "ESRCH") throw error;
-              return true;
-            }
-          });
+          await untilGone(orphanPid);
           resetting = requestReset();
         }
       }
@@ -344,9 +366,13 @@ Date.now = () => now() + (clockReads !== undefined && clockReads++ > 0 ? 30001 :
       }
       wrapper.child.kill("SIGKILL");
       await wrapper.done;
-      await new Promise((accept) => hasura.close(accept));
-      rmSync(socketPath, { force: true });
-      rmSync(root, { recursive: true, force: true });
+      try {
+        await stopWorker(workerRunning);
+      } finally {
+        await new Promise((accept) => hasura.close(accept));
+        rmSync(socketPath, { force: true });
+        rmSync(root, { recursive: true, force: true });
+      }
     }
   });
 }

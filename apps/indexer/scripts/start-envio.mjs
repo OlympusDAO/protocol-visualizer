@@ -599,13 +599,17 @@ export const run = async () => {
           );
         if (shuttingDown) return 1;
         child = undefined;
-        const runLogged = async (args) => {
-          const step = spawn(process.execPath, args, {
-            env: process.env,
-            cwd: indexerDir,
-            detached: true,
-            stdio: ["ignore", "pipe", "pipe"],
-          });
+        const runMigration = async () => {
+          const step = spawn(
+            process.execPath,
+            [envioCommand.args[0], "local", "db-migrate", "setup"],
+            {
+              env: process.env,
+              cwd: indexerDir,
+              detached: true,
+              stdio: ["ignore", "pipe", "pipe"],
+            }
+          );
           for (const [source, target] of [
             [step.stdout, process.stdout],
             [step.stderr, process.stderr],
@@ -626,12 +630,7 @@ export const run = async () => {
           return code ?? 1;
         };
         log("Running Envio local db-migrate setup...\n");
-        const code = await runLogged([
-          envioCommand.args[0],
-          "local",
-          "db-migrate",
-          "setup",
-        ]);
+        const code = await runMigration();
         if (shuttingDown) return code || 1;
         if (code === 0) {
           startChild(

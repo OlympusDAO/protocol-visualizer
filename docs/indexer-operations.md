@@ -182,27 +182,102 @@ namespace. Leave the RPC cache service, database, and volume intact.
 
 ## Plan a production rebuild
 
-For the prepared main PG16→PG18.6 reset/full reindex, use the dedicated [PostgreSQL 18.6 runbook](postgresql18-rebuild.md). It traces derived versus non-rebuildable data, preserves the separate cache and production native mount, and requires separately reviewed live destruction. The existing schema reset command does not migrate PostgreSQL cluster formats.
-
 Production resets require explicit approval for the selected database and release.
-This procedure is preparation, not authorization to reset production.
+This runbook does not authorize a reset, volume deletion or credential change.
 The native per-chain schema requires a full rebuild of an existing shared schema.
 An ordinary restart does not make those schemas compatible.
 
-Before the release:
+### Inventory and recovery
 
-1. Record the target project, production environment, Envio database and image commit.
-2. Record the previous image, service configuration and Hasura metadata for recovery.
-3. Choose recovery through a compatible database backup or another full rebuild.
-4. Record the active snapshot manifest and retain all artifacts that it references.
-5. Pause indexer autodeploys, publisher jobs and monitor jobs.
-6. Verify that no publisher job remains active before the database operation.
-7. Verify that only one indexer deployment remains active, including old deployments during a rolling release.
+Record the exact project/environment, main `Postgres` service and attached
+`destruction-volume` identity, image/revision, configuration, effective mount and
+`PGDATA`. Mark `rpc-cache-postgres` and its volume explicitly outside the reset
+target. Secure a consistent main database backup/snapshot and verify recovery
+through its compatible image/configuration or another full rebuild. Image
+rollback alone cannot restore deleted data or open another major's cluster files.
+
+Inventory the live data before approving destruction; repository source is not
+proof that every row is disposable:
+
+- Declared entities, observations, progress, checkpoints and dynamic registrations
+  derive from configured chain history and pinned reads. Full replay requires all
+  configured chains/start blocks, historical provider availability and the exact
+  source/config/ABI inputs. Never copy arbitrary cursors into a fresh schema.
+- Effect tables and `.envio/cache` include external ABI/source metadata that can
+  change or disappear, not only reproducible chain reads. Preserve needed exports
+  and runtime-only `data/contract-cache.json`, `data/abis` and `data/source-code`
+  alongside committed metadata. An explicit reset starts with a cold effect cache;
+  it does not transfer these cached outputs.
+- Export Hasura metadata and preserve custom permissions, manual SQL/tables,
+  roles/grants and extensions. Generated tracking can be recreated; chain replay
+  cannot reconstruct unrecorded customizations.
+- Retain the snapshot bucket's active manifest and referenced artifacts, publisher
+  notification state/locks, monitor state and separate eRPC storage. Preserve
+  private configuration/credentials through approved secure backup methods and
+  record deployment IDs and volume mappings without logging secret values.
+
+Pause indexer autodeploys, publisher and monitor jobs before a rebuild. Verify
+that every ingestion writer has stopped, including old rolling deployments, and
+that no publisher job remains active. Keep Hasura and the databases running for
+an ordinary schema reset; the major-version procedure below has a separate stop
+sequence. The reset socket stops only its own process group.
 
 The gateway and frontend can serve the last valid snapshot during the rebuild.
 Its block dates remain old, and freshness checks can report stale data.
 Direct Hasura consumers lose indexed data until the rebuild completes.
 Retain the snapshot bucket, manifest, Hasura service and separate eRPC storage.
+
+### Database major-version rebuild
+
+Image pins and volume declarations belong to [Railway IaC](../.railway/railway.ts)
+and [local Compose](../docker-compose.yml). Production uses the Railway SSL
+template, not the official local Alpine image. Preserve native database resource
+and volume identities, passwords, capacity and mount `/var/lib/postgresql/data`.
+The pinned [native CLI compiler](https://github.com/railwayapp/cli/blob/v5.75.0/src/iac/compiler.rs#L523-L566)
+emits explicit `PGDATA=/var/lib/postgresql/data/pgdata`; raw image ENV alone does
+not prove the live binding. Verify deployed mounts and effective data directory.
+Local disposable volumes instead use parent `/var/lib/postgresql` and
+`PGDATA=/var/lib/postgresql/18/docker`; see [local storage](local-stack.md#ports).
+
+CI blocks source-image changes on the existing main `database.Postgres`, even
+when a native plan labels them safe. A pin update does not migrate cluster files;
+there is no automatic reset or CI bypass. For a separately approved rebuild:
+
+1. Complete the inventory/backup above and review the exact old/new image and
+   selected main volume. Stop all ingestion writers and pause/stop Hasura writers.
+   Stop main `Postgres` before the volume operation; prevent its old deployment
+   from restarting against reset data. Keep frontend, gateway, bucket and eRPC intact.
+2. Obtain separate data-loss approval for that exact target and action: reset the
+   selected main volume or replace it only with a reviewed binding. Retain resource
+   identity and record any old/new volume mapping. Never target the cache, bucket,
+   unrelated volumes or shared Docker state. No automatic volume wipe is supplied.
+3. After the volume operation, generate and review a fresh native plan because
+   the environment ETag has changed. Require that it cannot create, update, deploy
+   or restart indexer/publisher/monitor writers; paused autodeploy alone does not
+   prevent apply-triggered deployments. If the plan cannot isolate the database
+   operation from writer deployments, stop. Obtain renewed approval for that exact
+   plan and use the existing [native JSON-result procedure](railway-self-hosting.md#5-apply-the-reviewed-plan).
+4. Keep writers paused until native result checks, a fresh read-only plan, complete
+   HTTP/TCP inventory and database verification pass. Verify server version, image,
+   fresh/reset data location inside the volume, effective `PGDATA`, TLS, roles and
+   extensions before starting ingestion. Never start a new major against old-major
+   files. Restore Hasura metadata/configuration deliberately after database readiness.
+   Defer the native procedure's indexer route/health/progress checks until ingestion
+   starts; it must not resume writers early.
+5. Start the reviewed Envio image normally. If native compatibility refusal needs
+   an approved schema reset, use the SSH command below only after database readiness
+   and confirmation that every other writer is stopped. It is not a PostgreSQL
+   major-version converter. Never add reset flags to ordinary startup or predeploy.
+   Verify private docs routes and health, then advancing canonical observations,
+   all configured chains and eventual readiness. Readiness may be 503 during reindex.
+6. Follow [Publish after recovery](#publish-after-recovery) only after catch-up.
+   Fresh schema creation recreates its indexes; any separate REINDEX,
+   extension/constraint or backup-chain maintenance needs its own review. Retain
+   recovery backups and old snapshot artifacts until acceptance.
+
+If completion is uncertain, keep writers/publication paused and inspect sanitized
+evidence. Do not blindly repeat destructive operations, weaken native guards or
+clear eRPC storage to repair the main database.
 
 ### Handle an incompatible deployment
 

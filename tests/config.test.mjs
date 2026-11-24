@@ -424,15 +424,6 @@ test("fresh local PG18 volumes use the official image parent mount and versioned
     2
   );
   assert(!compose.includes("postgres:17"));
-  const runbook = readFileSync("docs/postgresql18-rebuild.md", "utf8");
-  assert(
-    runbook.includes(
-      "After the approved volume operation, generate and review a fresh native plan"
-    )
-  );
-  assert(runbook.includes("Obtain renewed approval for that exact plan"));
-  assert(runbook.includes("railway-self-hosting.md#5-apply-the-reviewed-plan"));
-  assert(runbook.includes("Keep all writers paused until verification passes"));
 });
 
 test("Compose third-party images are pinned by digest", () => {

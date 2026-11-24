@@ -337,7 +337,7 @@ cache service and its database intact during an indexer rebuild.
 Copy `.env.compose.sample` to `.env` and supply the nine `UPSTREAM_RPC_URL_*`
 values, Envio token, and Etherscan key. Compose routes consumers to eRPC without
 requiring per-consumer URL edits. Ephemeral local PG18.6 uses fresh versioned
-`rpc-cache-postgres18-data` and `postgres18-data` parent-mounted volumes; old PG17 data is not reused. `minio-data` is unchanged. See the [PG18.6 runbook](postgresql18-rebuild.md). `docker compose down`
+`rpc-cache-postgres18-data` and `postgres18-data` parent-mounted volumes; use fresh volumes for major-version changes. Preserve `minio-data`; see [local storage boundaries](local-stack.md#ports). `docker compose down`
 keeps all volumes; do not use `down --volumes` for this stack.
 
 ```bash

@@ -36,8 +36,8 @@ larger capacities are retained: the requested capacity is the greater of
 requesting a shrink or data migration. The cache volume is
 `rpc-cache-postgres-volume`; the detached legacy `postgres-volume` is not declared.
 
-The prepared main PG18 image transition is blocked from automatic apply. Its
-[reset/reindex release](../docs/postgresql18-rebuild.md) requires separate approval;
+Main database source-image changes are blocked from automatic apply. The
+[production rebuild procedure](../docs/indexer-operations.md#database-major-version-rebuild) requires separate approval;
 cache data and production mounts remain unchanged.
 
 See the [automatic CI gates and release recovery](../docs/railway-self-hosting.md#automatic-plan-and-apply)

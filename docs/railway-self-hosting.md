@@ -15,24 +15,25 @@ consumers through the proxy.
 
 [`.railway/railway.ts`](../.railway/railway.ts) defines the whole project:
 all seven application services, both databases, both volumes, the storage bucket,
-production domains, and canvas groups. Both database image pins now target PG18.6;
-the main database transition requires the separately approved [reset/reindex release](postgresql18-rebuild.md).
+production domains, and canvas groups. Database image pins live in that definition;
+main database image changes require the separately approved [production rebuild procedure](indexer-operations.md#database-major-version-rebuild).
 Volume names and production mount paths remain unchanged. IaC supplies service connections through Railway references.
 Provider URLs and operator secrets use `preserve()`; their values stay in Railway.
 Optional operator settings listed in `variables.ignore` remain outside IaC ownership.
 
-| Resource                                           | Role                                                  |
-| -------------------------------------------------- | ----------------------------------------------------- |
-| `Postgres` / `destruction-volume`                  | Envio data and Hasura metadata; prepared PG18.6 reset |
-| `rpc-cache-postgres` / `rpc-cache-postgres-volume` | Independent RPC cache; PG18.6, preserved data         |
-| `hasura`                                           | Private GraphQL for publisher and monitor             |
-| `indexer`                                          | Private Envio indexer                                 |
-| `rpc-cache`                                        | Private JSON-RPC cache                                |
-| `snapshot-publisher`                               | Hourly bucket publisher                               |
-| `snapshot-monitor`                                 | Daily indexing monitor                                |
-| `snapshot-gateway`                                 | Public REST API                                       |
-| `frontend`                                         | Public UI                                             |
-| `storage`                                          | Private snapshot bucket in `sjc`                      |
+<!-- biome-ignore format: keep table cells unpadded -->
+| Resource | Role |
+| --- | --- |
+| `Postgres` / `destruction-volume` | Envio data and Hasura metadata |
+| `rpc-cache-postgres` / `rpc-cache-postgres-volume` | Independent RPC cache; PG18.6, preserved data |
+| `hasura` | Private GraphQL for publisher and monitor |
+| `indexer` | Private Envio indexer |
+| `rpc-cache` | Private JSON-RPC cache |
+| `snapshot-publisher` | Hourly bucket publisher |
+| `snapshot-monitor` | Daily indexing monitor |
+| `snapshot-gateway` | Public REST API |
+| `frontend` | Public UI |
+| `storage` | Private snapshot bucket in `sjc` |
 
 Both database volumes target 20,000 MB in production and previews. IaC reads
 their live capacities and retains any existing capacity above this target.
@@ -223,7 +224,7 @@ infrastructure produces a native no-op. The job then:
 2. Uses the locked shared bootstrap with dependencies for SDK evaluation. The earlier checkout only makes the declaration-only release module available to read-only gates; no dependency installation or Railway credential is used by those gates. A missing deployment token fails before the native plan or any other provider command.
 3. Runs native `railway config plan --environment "$RAILWAY_ENVIRONMENT_ID" --out <temporary-plan>` under umask 077, capturing stdout/stderr privately. The plan reads/evaluates/previews; it does not apply infrastructure changes. No PR plan, uploaded/downloaded artifact or cross-run state is used.
 4. After the fresh plan captures its ETag, checks the cache-password prerequisite once, before apply. Validates the plan shape/main database image-transition policy and rejects an outdated queued release if current `master` differs. Native saved-plan apply binds the environment, source tree, revision/ETag and hash; CI does not duplicate those checks in JavaScript.
-5. Applies that fresh local plan with the native CLI and accepts only `applied`/`noop` at the top level and for every change, never exit zero alone. No `--confirm-destructive` is supplied. The existing main PostgreSQL source-image transition gate still requires the separately approved [PG18 reset/reindex release](postgresql18-rebuild.md).
+5. Applies that fresh local plan with the native CLI and accepts only `applied`/`noop` at the top level and for every change, never exit zero alone. No `--confirm-destructive` is supplied. Main PostgreSQL source-image changes require the separately approved [production rebuild procedure](indexer-operations.md#database-major-version-rebuild).
 
 Plan and apply remain inside the CI dependency graph, serialized together with
 `railway-infrastructure-production`, without cancelling an active release. Both
@@ -267,7 +268,7 @@ plus no pending or failed external commit checks. For the exact production merge
 SHA, identify the newest `audit.yml` **push** run and managed CodeQL workflow
 `255339919` **dynamic** run; both must be completed with conclusion `success`.
 A successful scheduled/manual run or `workflow_dispatch` is not a substitute.
-For the separately approved PG18 reset/rebuild, automatic `railway-apply` is
+For a separately approved main database source-image transition, automatic `railway-apply` is
 intentionally blocked: do not require that job or whole-workflow success as a
 circular prerequisite. All source/image/external gates and the reviewed manual
 release procedure still apply. Previews use equivalent source checks for their
@@ -323,7 +324,7 @@ protocol requests can then reach frontend Nginx and return HTML instead of JSON.
 ## Manual IaC plan and deployment
 
 Routine production releases use CI above. Use this procedure only for separately
-approved maintenance/recovery, including the deliberate PG18 rebuild.
+approved maintenance/recovery, including main database rebuilds.
 
 Run these commands from the repository root on your local machine.
 Use the repository-pinned native Railway CLI 5.75.0 and the repository-pinned Node and pnpm versions.
@@ -446,7 +447,7 @@ railway config apply --environment <target-environment> --plan railway-plan.json
 
 For an explicit production plan, use `--environment production` with the same private output capture.
 
-The equivalent package command is `pnpm railway:apply production --json`, with the same private output capture; a target value is mandatory. Pass `--json` explicitly: it bypasses native confirmation, so review the plan first. The alias itself does not enable JSON. Automatic merge apply blocks an existing main database source-image transition even when the native plan labels it safe. Use the separately approved [PG18 reset/reindex procedure](postgresql18-rebuild.md) and direct native apply for that release.
+The equivalent package command is `pnpm railway:apply production --json`, with the same private output capture; a target value is mandatory. Pass `--json` explicitly: it bypasses native confirmation, so review the plan first. The alias itself does not enable JSON. Automatic merge apply blocks an existing main database source-image transition even when the native plan labels it safe. Use the separately approved [database rebuild procedure](indexer-operations.md#database-major-version-rebuild) and direct native apply for that release.
 Keep the target environment unchanged between plan and apply.
 Before calling native apply, use `railway status` to verify the linked project and selected environment. Match that environment ID against the saved artifact's `environmentId`; CLI 5.75 saved plans have no `projectId`. Keep the reviewed artifact unchanged. CI retains the main database transition/current-master guards; native saved-plan validation enforces environment/source-tree/revision binding.
 The command applies the saved changes without re-evaluating the authoring file.
@@ -462,7 +463,7 @@ Raw results, outputs, diagnostics and stderr can contain sensitive values. Do no
 
 After an accepted result, generate a fresh **read-only plan** for the same project, environment and reviewed revision. Keep its artifact/output private too, for example with native `railway config plan --environment <target-environment> --out "$railway_apply_directory/verification-plan.json"` and private stdout/stderr capture. Review all remaining drift; do not infer convergence from the apply result alone.
 
-Then complete the provider **HTTP/TCP** inventory for every service/database in that exact environment, including unknown/unexpected resources: generated HTTP domains, custom HTTP domains and TCP proxies/ports. Match frontend/gateway against the public allowlist and verify no private service has public domains/proxies. Verify actual public/private reachability and database mounts, effective PGDATA, TLS and persistence. After services are running, verify indexer `/docs`, `/openapi.json`, `/llms.txt` and `/llms-full.txt` return 404, `/healthz` returns 200 and readiness/indexing progress are appropriate for the deployment. Readiness may return 503 during normal reindexing; the [PG18 rebuild sequence](postgresql18-rebuild.md) controls when writers resume. See [security posture](security-posture.md) for trust boundaries. Source empty maps, a clean plan, process exit zero and success text cannot replace this verification. No native plan/apply/provider action is performed by this documentation change.
+Then complete the provider **HTTP/TCP** inventory for every service/database in that exact environment, including unknown/unexpected resources: generated HTTP domains, custom HTTP domains and TCP proxies/ports. Match frontend/gateway against the public allowlist and verify no private service has public domains/proxies. Verify actual public/private reachability and database mounts, effective PGDATA, TLS and persistence. After services are running, verify indexer `/docs`, `/openapi.json`, `/llms.txt` and `/llms-full.txt` return 404, `/healthz` returns 200 and readiness/indexing progress are appropriate for the deployment. Readiness may return 503 during normal reindexing; the [database rebuild sequence](indexer-operations.md#database-major-version-rebuild) controls when writers resume. See [security posture](security-posture.md) for trust boundaries. Source empty maps, a clean plan, process exit zero and success text cannot replace this verification. No native plan/apply/provider action is performed by this documentation change.
 
 ### 6. Verify the application deployments
 
@@ -523,7 +524,7 @@ GET /v1/chains
 GET /v1/chains/{chainId}/protocol
 ```
 
-GET/HEAD `/` serve a static API catalogue without JavaScript or external assets; HEAD has no body. There is no separate `/docs` route; `/v1/openapi.json` remains the JSON API specification. See the [PG18.6 reset/reindex preparation](postgresql18-rebuild.md) before changing the main database major version.
+GET/HEAD `/` serve a static API catalogue without JavaScript or external assets; HEAD has no body. There is no separate `/docs` route; `/v1/openapi.json` remains the JSON API specification. See the [production rebuild procedure](indexer-operations.md#database-major-version-rebuild) before changing the main database major version.
 
 `/v1/bounds` includes `indexingProgress.chains[*] = { chainId, date,
 timestamp, block }`. Static JSON paths such as `/v1/manifest.json` and

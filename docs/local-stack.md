@@ -17,7 +17,7 @@ Use Docker Compose to run the Railway-like topology locally:
 
 ## Ports
 
-Both PostgreSQL services use the shared pinned official `postgres:18.6-alpine3.24` image with fresh `postgres18-data` / `rpc-cache-postgres18-data` volumes at `/var/lib/postgresql` and `PGDATA=/var/lib/postgresql/18/docker`. Local PG data is disposable; old PG17 volumes are not reused or migrated. This is distinct from the Railway SSL image and production native mount contract. No volumes are deleted by the source update. See [PG18.6 reset/reindex boundaries](postgresql18-rebuild.md).
+Both PostgreSQL services use the [Compose-pinned](../docker-compose.yml) official Alpine image with `postgres18-data` / `rpc-cache-postgres18-data` volumes at `/var/lib/postgresql` and `PGDATA=/var/lib/postgresql/18/docker`. Local PG data is disposable; use fresh volumes for a major-version change instead of reusing old cluster files. This differs from the [production Railway storage contract](indexer-operations.md#database-major-version-rebuild). Stop this stack's containers before reviewing obsolete PostgreSQL volumes for named cleanup; never remove `minio-data` as a side effect or use a shared/global prune.
 
 All published ports bind `127.0.0.1`; none defaults to a LAN-facing host binding.
 See [security posture](security-posture.md) for local credentials and production boundaries.

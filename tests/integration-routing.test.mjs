@@ -1,7 +1,6 @@
 // Routing tests only: every container/package command is a disposable fake.
 import assert from "node:assert/strict";
-import { spawn, spawnSync } from "node:child_process";
-import { once } from "node:events";
+import { spawnSync } from "node:child_process";
 import {
   copyFileSync,
   existsSync,
@@ -14,7 +13,6 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { setTimeout } from "node:timers/promises";
 
 const pgImage =
   "postgres:18.6-alpine3.24@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b";
@@ -26,7 +24,6 @@ function fixture(t, { cached = false, ...env } = {}) {
   const present = path.join(directory, "pg-present");
   if (cached) writeFileSync(present, "cached");
   mkdirSync(path.join(directory, "scripts"));
-  mkdirSync(path.join(directory, "apps/indexer/scripts"), { recursive: true });
   for (const file of ["test-integration.mjs", "validation-evidence.mjs"])
     copyFileSync(
       new URL(`../scripts/${file}`, import.meta.url),
@@ -41,11 +38,8 @@ const fs = require("node:fs");
 const command = ${JSON.stringify(command)}, args = process.argv.slice(2);
 ${record}
 if (command === "git" && args[0] === "rev-parse") console.log("fixture-head");
+if (command === "pnpm" && process.env.FIXTURE_RPC_FAILURE) process.exit(26);
 if (command === "docker") {
-  if (args[0] === "exec" && process.env.FIXTURE_BLOCK_READINESS) setInterval(() => {}, 1000);
-  if (args[0] === "create" && process.env.FIXTURE_CREATE_INTERRUPTED) process.kill(process.pid, "SIGTERM");
-  if (args[0] === "start" && process.env.FIXTURE_START_FAILURE) process.exit(24);
-  if (args[0] === "rm" && process.env.FIXTURE_CLEANUP_FAILURE) process.exit(25);
   if (args[0] === "info" && process.env.FIXTURE_DOCKER_FAILURE) process.exit(17);
   if (args[0] === "image" && args[1] === "inspect") {
     if (args[2].startsWith("protocol-visualizer/") && process.env.FIXTURE_APP_MISSING) process.exit(18);
@@ -55,26 +49,11 @@ if (command === "docker") {
     if (args[1] !== ${JSON.stringify(pgImage)}) process.exit(42);
     if (process.env.FIXTURE_PULL_FAILURE) process.exit(23);
     fs.writeFileSync(${JSON.stringify(present)}, "pulled exact fixture");
-  } else if (args[0] === "port") console.log("127.0.0.1:54999");
-  else if (args[0] === "inspect") console.log("fixture image");
+  }
 }
 `,
       { mode: 0o755 }
     );
-  for (const file of ["state-postgres.test.mjs"])
-    writeFileSync(
-      path.join(directory, "apps/indexer/scripts", file),
-      `import fs from "node:fs";
-const command="mock-sql", args=[${JSON.stringify(file)}, {
-  PV_REQUIRE_POSTGRES: process.env.PV_REQUIRE_POSTGRES,
-  PV_CACHE_POSTGRES_URL: process.env.PV_CACHE_POSTGRES_URL,
-}];
-${record}`
-    );
-  writeFileSync(
-    path.join(directory, "apps/indexer/scripts/register-typescript.mjs"),
-    ""
-  );
   const environment = {
     ...process.env,
     PATH: directory,
@@ -91,11 +70,6 @@ ${record}`
     });
   return {
     run,
-    start: () =>
-      spawn(process.execPath, ["scripts/test-integration.mjs"], {
-        ...options,
-        stdio: ["ignore", "pipe", "pipe"],
-      }),
     calls: () =>
       existsSync(log)
         ? readFileSync(log, "utf8").split("\n").filter(Boolean).map(JSON.parse)
@@ -124,36 +98,11 @@ test("integration prepares only missing pinned PG18 independently of security sc
         pgImage,
       ]
     );
-    assert(
-      calls.findIndex((c) => c[1] === "create") >
-        calls.findIndex((c) => c[1] === "image" && c[3] === pgImage)
-    );
-    assert.deepEqual(
-      calls
-        .filter((c) => c[0] === "mock-sql")
-        .map((c) => c[1])
-        .sort(),
-      ["state-postgres.test.mjs"]
-    );
-    for (const call of calls.filter((c) => c[0] === "mock-sql"))
-      assert.deepEqual(
-        call[2],
-        {
-          PV_REQUIRE_POSTGRES: "1",
-          PV_CACHE_POSTGRES_URL:
-            "postgres://postgres:fixture@127.0.0.1:54999/postgres",
-        },
-        `${call[1]} must require the disposable PostgreSQL fixture`
-      );
     assert.deepEqual(
       calls.filter((c) => c[0] === "pnpm"),
       [["pnpm", "run", "test:rpc-cache"]]
     );
-    assert(calls.some((c) => c[1] === "rm" && c.includes("--volumes")));
-    assert(!calls.some((c) => c[1] === "build"));
-    const create = calls.find((c) => c[1] === "create");
-    assert.equal(create.at(-1), pgImage);
-    assert(create.includes("PGDATA=/var/lib/postgresql/18/docker"));
+    assert(!calls.some((c) => ["create", "build", "rm"].includes(c[1])));
   }
 });
 
@@ -168,7 +117,7 @@ test("every database used by required integration shares the independently prepa
   }
 });
 
-test("integration prerequisite failures remain failures before container creation", (t) => {
+test("integration prerequisite failures stop before the actual image fixtures", (t) => {
   for (const [env, status] of [
     [{ FIXTURE_DOCKER_FAILURE: "1" }, 17],
     [{ FIXTURE_APP_MISSING: "1" }, 18],
@@ -178,82 +127,23 @@ test("integration prerequisite failures remain failures before container creatio
     const f = fixture(t, { ...env, PV_VALIDATION_CHILD: "" });
     const result = f.run();
     assert.equal(result.status, status, result.stderr);
-    assert(
-      !f
-        .calls()
-        .some(
-          (c) => c[1] === "create" || c[0] === "mock-sql" || c[0] === "pnpm"
-        )
-    );
+    assert(!f.calls().some((c) => c[1] === "create" || c[0] === "pnpm"));
     if (env.FIXTURE_APP_MISSING)
       assert(!f.calls().some((c) => c[1] === "pull"));
   }
 });
 
-test("interrupted PostgreSQL creation or failed startup removes the owned fixture and anonymous volume", (t) => {
-  for (const [failure, status, started] of [
-    ["FIXTURE_CREATE_INTERRUPTED", 1, false],
-    ["FIXTURE_START_FAILURE", 24, true],
-  ]) {
-    const f = fixture(t, {
-      cached: true,
-      [failure]: "1",
-      FIXTURE_CLEANUP_FAILURE: "1",
-    });
-    const result = f.run();
-    assert.equal(result.status, status, result.stderr);
-    if (!started) assert.match(result.stderr, /docker \(SIGTERM\)/);
-    const calls = f.calls();
-    const create = calls.find((c) => c[1] === "create");
-    const name = create[create.indexOf("--name") + 1];
-    assert.deepEqual(calls.slice(calls.indexOf(create) + 1), [
-      ...(started ? [["docker", "start", name]] : []),
-      ["docker", "rm", "--force", "--volumes", name],
-    ]);
-  }
-});
-
-for (const [signal, status] of [
-  ["SIGINT", 130],
-  ["SIGTERM", 143],
-]) {
-  test(`${signal} during database readiness removes only the owned fixture and volume`, {
-    timeout: 5_000,
-  }, async (t) => {
-    const f = fixture(t, {
-      cached: true,
-      FIXTURE_BLOCK_READINESS: "1",
-      FIXTURE_CLEANUP_FAILURE: "1",
-      PV_VALIDATION_CHILD: "",
-    });
-    const child = f.start();
-    t.after(() => child.kill("SIGTERM"));
-    let output = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk) => {
-      output += chunk;
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk;
-    });
-    const done = once(child, "close");
-    while (!f.calls().some((call) => call[1] === "exec")) {
-      assert.equal(child.exitCode, null, stderr);
-      await setTimeout(20, undefined, { signal: t.signal });
-    }
-    child.kill(signal);
-    assert.deepEqual(await done, [status, null], stderr);
-    const calls = f.calls();
-    const create = calls.find((call) => call[1] === "create");
-    const name = create[create.indexOf("--name") + 1];
-    assert.deepEqual(
-      calls.filter((call) => call[1] === "rm"),
-      [["docker", "rm", "--force", "--volumes", name]]
-    );
-    assert(!calls.some((call) => call[0] === "mock-sql" || call[0] === "pnpm"));
-    assert.match(
-      output,
-      new RegExp(`Validation finished \\(exit ${status}\\)`)
-    );
+test("actual image fixture failures retain their nonzero status", (t) => {
+  const f = fixture(t, {
+    cached: true,
+    FIXTURE_RPC_FAILURE: "1",
+    PV_VALIDATION_CHILD: "",
   });
-}
+  const result = f.run();
+  assert.equal(result.status, 26, result.stderr);
+  assert.deepEqual(
+    f.calls().filter((call) => call[0] === "pnpm"),
+    [["pnpm", "run", "test:rpc-cache"]]
+  );
+  assert.match(result.stdout, /Validation finished \(exit 26\)/);
+});

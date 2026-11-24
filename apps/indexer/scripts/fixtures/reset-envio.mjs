@@ -23,7 +23,11 @@ if (process.argv[2] === "worker") {
     });
   setInterval(() => {}, 1000);
 } else if (process.argv[2] === "start") {
-  if (Number(process.env.RESET_FIXTURE_START_CODE))
+  if (process.env.RESET_FIXTURE_START_COMPLETE === "1") process.exit(0);
+  if (
+    Number(process.env.RESET_FIXTURE_START_CODE) &&
+    !existsSync(join(root, "migrated"))
+  )
     process.exit(Number(process.env.RESET_FIXTURE_START_CODE));
   writeFileSync(running, String(process.pid));
   const worker = spawn(
@@ -31,6 +35,14 @@ if (process.argv[2] === "worker") {
     [fileURLToPath(import.meta.url), "worker"],
     { stdio: "ignore", shell: false }
   );
+  if (
+    process.env.RESET_FIXTURE_START_SIGNAL &&
+    !existsSync(join(root, "migrated"))
+  ) {
+    while (!existsSync(workerRunning)) await pause(25);
+    unlinkSync(running);
+    process.kill(process.pid, process.env.RESET_FIXTURE_START_SIGNAL);
+  }
   let stopping = false;
   worker.once("exit", () => {
     if (stopping) process.exit(0);

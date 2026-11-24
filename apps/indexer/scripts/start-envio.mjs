@@ -457,7 +457,7 @@ const startHealthcheckWrapper = () => {
       response.end(
         JSON.stringify({
           ready: false,
-          reason: "Ingestion paused for an explicit reset",
+          reason: "Ingestion is stopped",
         })
       );
       return;
@@ -548,6 +548,13 @@ export const run = async () => {
     });
     started.on("exit", (code, signal) => {
       if (shuttingDown || maintenanceMode || child !== started) return;
+      if (isStartCommand() && (code !== 0 || signal)) {
+        maintenanceMode = true;
+        console.error(
+          `Envio stopped (${signal ?? code ?? "unknown status"}). Reset control remains available. Inspect the failure before restarting, redeploying, or approving a reset.`
+        );
+        return;
+      }
       wrapperServer?.close();
       if (signal) {
         process.kill(process.pid, signal);

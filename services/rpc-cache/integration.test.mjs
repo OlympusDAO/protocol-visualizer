@@ -1071,34 +1071,29 @@ export default config;
         indexerImage
       );
       created.push(waitingIndexer);
-      const refused = await runFile("docker", ["wait", waitingIndexer], {
-        encoding: "utf8",
-        timeout: 45_000,
-      });
-      assert.match(
-        refused.stdout.trim(),
-        /^[1-9][0-9]*$/,
-        "Native incompatible startup must exit nonzero"
+      const waitingPort = docker("port", waitingIndexer, "9898/tcp")
+        .split(":")
+        .at(-1);
+      const indexerBase = `http://127.0.0.1:${waitingPort}`;
+      await eventually(
+        () => docker("logs", waitingIndexer).includes("Envio stopped ("),
+        "Native incompatible startup did not leave reset control available"
       );
       assert.equal(
         docker("inspect", waitingIndexer, "--format", "{{.State.Running}}"),
-        "false"
+        "true"
       );
+      assert.equal((await fetch(`${indexerBase}/healthz`)).status, 200);
+      for (const route of ["/ready", "/metrics"])
+        assert.equal((await fetch(`${indexerBase}${route}`)).status, 503);
       assert.equal(
         databaseHash(),
         beforeStartup,
         "Native incompatible startup changed stored data or reset automatically"
       );
-      // Recover only through explicitly requested native setup with the app stopped.
-      await reset();
-      docker("start", waitingIndexer);
-      const waitingPort = docker("port", waitingIndexer, "9898/tcp")
-        .split(":")
-        .at(-1);
-      await eventually(
-        async () =>
-          (await fetch(`http://127.0.0.1:${waitingPort}/docs`)).status === 404,
-        "Normal indexer HTTP server did not start after explicit maintenance"
+      assert.equal(
+        sql("SELECT config::jsonb->>'chainIdMode' FROM public.envio_info"),
+        "fixture-incompatible"
       );
       const operatorReset = await runFile(
         "docker",
@@ -1115,7 +1110,6 @@ export default config;
         /Envio migration completed. Envio restarted inside the existing container/
       );
       // Exercise the real wrapper/proxied Envio HTTP server in the built image.
-      const indexerBase = `http://127.0.0.1:${waitingPort}`;
       await eventually(
         async () => (await fetch(`${indexerBase}/docs`)).status === 404,
         "Normal indexer HTTP server did not become available after reset"
@@ -1135,7 +1129,7 @@ export default config;
       );
       docker("stop", waitingIndexer);
       console.log(
-        "Actual indexer image refused incompatible storage without writes or automatic reset, recovered after explicit stopped-app setup, and accepted a running-wrapper reset."
+        "Actual indexer image refused incompatible storage without writes or automatic reset, retained reset control, and recovered after an explicit socket reset."
       );
       await reset();
       docker(

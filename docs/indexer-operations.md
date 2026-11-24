@@ -80,16 +80,22 @@ further explorer calls for that batch while Sourcify preparation continues.
 
 ## Normal startup
 
-The indexer runs `envio start` without a reset flag. Deployments and crash
+The indexer runs `envio start` without a reset flag. Deployments and explicit
 restarts resume compatible state. Envio retains its configuration and schema
 compatibility checks. If startup reports incompatibility, inspect the error.
 No startup error automatically resets the database.
 
 Envio 3.18.1 checks configuration and configured addresses before taking over
-existing storage. A native refusal or runtime failure exits unsuccessfully;
-the wrapper forwards that status instead of keeping an incompatible startup
-alive. The reset socket requires a running wrapper. Use separately approved
-stopped-app maintenance for an incompatible deployment, as described below.
+existing storage. If the native `start` child exits nonzero or by signal, the
+parent keeps health and the reset socket available so Railway SSH can recover
+the deployment without changing its production start command. `/healthz` 200
+means control-process liveness; `/ready` and `/metrics` return 503 while paused.
+This also parks ordinary terminal child failures: Railway will not automatically
+restart a container whose parent remains healthy. Inspect the failure, then
+explicitly restart/redeploy or obtain approval for a destructive reset; an
+ordinary crash does not mean a reset is needed. A clean child exit, one-off
+command completion, parent shutdown, or spawn/control-setup failure still exits
+the wrapper.
 
 ## Reset the Railway indexer from your local machine
 
@@ -104,7 +110,8 @@ its pinned distroless Node runtime and non-root user, with one BusyBox executabl
 copied from a digest-pinned official distroless image to provide `/bin/sh`.
 This adds shell access and BusyBox's compiled applets, not a package manager.
 The deployed image must include the reset control script and updated startup wrapper.
-This socket command is for a running indexer; it cannot reach an exited deployment.
+This socket command requires the running parent, including when its Envio child
+has failed. It cannot reach an exited deployment.
 
 ### Prepare
 
@@ -200,17 +207,15 @@ Retain the snapshot bucket, manifest, Hasura service and separate eRPC storage.
 ### Handle an incompatible deployment
 
 Deploy the approved image with the normal start command. If native startup
-refuses the schema, keep the app stopped and inspect the error. After separate
-reset approval and confirmation that every ingestion writer has stopped, run
-the approved image's official `local db-migrate setup` command as a one-off
-maintenance operation with the target environment's configuration and variables.
-Review the provider execution method and target before running it; this
-repository supplies no additional maintenance controller.
+refuses the schema, ingestion stays stopped while the parent retains reset
+control. Inspect the error. After separate reset approval and confirmation that
+every other ingestion writer has stopped, use the existing
+`indexer:reset:railway` command above. It drains any remaining child processes,
+runs native setup, and restarts ingestion only after setup succeeds. It stops
+only its own process group, so the single-writer check still applies.
 
-Start ingestion normally only after setup succeeds. The socket reset command
-cannot run inside an exited container. For an already running indexer, use the
-existing explicit reset control above; it stops only its own process group,
-so the single-writer check still applies. Never retain `start -r` as the
+If the parent itself has exited, the socket is unavailable; inspect and recover
+that deployment before attempting the SSH reset. Never retain `start -r` as the
 production start command.
 
 ### Publish after recovery
@@ -247,16 +252,16 @@ also resets and starts ingestion, but it must remain an operator-only action.
 
 Local process fixtures check complete ingestion shutdown before migration,
 restart after success, maintenance after failure, and concurrent reset rejection.
-They also cover native child failures exiting unsuccessfully without automatic
-reset, including propagation of nonzero statuses.
+They also cover retained control after failed native starts without automatic
+reset, clean completion, and propagation of one-off command statuses.
 The Railway command test uses a fake CLI to check explicit environment selection.
 The actual distroless image runs the official reset command against disposable
 Postgres and fixture Hasura responses. A separate image check executes Node through
 `/bin/sh` in a running container and verifies the pinned Node version and non-root
 UID. These local checks do not validate live Railway SSH transport.
-The image fixture checks that native incompatible startup exits nonzero without
-changing the database dump hash, then uses explicit stopped-app setup before
-normal startup. It exercises the running wrapper's reset control separately.
+The image fixture checks that native incompatible startup leaves control alive
+without changing the database dump hash or incompatibility sentinel, then uses
+the existing explicit socket reset before normal ingestion resumes.
 No arbitrary cursor SQL or partial historical replay is part of this procedure.
 
 ## Current-state schema change

@@ -1,6 +1,6 @@
 # Validation
 
-Use the repository pins in `mise.toml`/`mise.lock`: Node 24.22.3, pnpm 11.28.13, native Railway CLI 5.75.0, Trivy 0.76.2, jactionlint 2.4.0 and Zizmor 1.32.0. Install with `mise install node pnpm railway trivy jactionlint zizmor --locked`. CI pins Mise 2026.11.9 and caches these six tools through the same locked bootstrap. The Railway SDK is separately pinned at 3.16.0. TypeScript 7.0.2 compiles the workspace; `@typescript/typescript6` 6.0.2 remains necessary for contract-metadata AST APIs. Envio is pinned to 3.18.1; native startup owns compatibility checks and exits nonzero on refusal without automatically resetting storage.
+Use the repository pins in `mise.toml`/`mise.lock`: Node 24.22.3, pnpm 11.28.13, native Railway CLI 5.75.0, Trivy 0.76.2, jactionlint 2.4.0 and Zizmor 1.32.0. Install with `mise install node pnpm railway trivy jactionlint zizmor --locked`. CI pins Mise 2026.11.9 and caches these six tools through the same locked bootstrap. The Railway SDK is separately pinned at 3.16.0. TypeScript 7.0.2 compiles the workspace; `@typescript/typescript6` 6.0.2 remains necessary for contract-metadata AST APIs. Envio is pinned to 3.18.1; native startup owns compatibility checks and never resets storage automatically. A failed native `start` leaves the parent available for Railway SSH reset: health remains 200 while readiness and metrics return 503. Ordinary terminal child failures also require an explicit restart/redeploy or a separately approved reset.
 
 <!-- biome-ignore format: keep table cells unpadded -->
 | Command | Coverage |

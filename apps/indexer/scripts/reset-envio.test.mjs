@@ -42,6 +42,9 @@ function command(child) {
 for (const {
   migrationCode,
   startCode,
+  startSignal,
+  cleanStart = false,
+  commandArgs = [],
   shutdownSignal,
   migrationSignal,
   resetTimeout = false,
@@ -51,13 +54,17 @@ for (const {
   { migrationCode: 0, startCode: 1 },
   { migrationCode: 0, startCode: 78 },
   { migrationCode: 0, startCode: 23 },
+  { migrationCode: 0, startSignal: "SIGTERM" },
+  { migrationCode: 0, cleanStart: true },
+  { migrationCode: 0, commandArgs: ["local", "db-migrate", "setup"] },
+  { migrationCode: 17, commandArgs: ["local", "db-migrate", "setup"] },
   { migrationCode: 0, shutdownSignal: "SIGTERM" },
   { migrationCode: 0, shutdownSignal: "SIGINT" },
   { migrationCode: 0, migrationSignal: "SIGTERM" },
   { migrationCode: 0, migrationSignal: "SIGINT" },
   { migrationCode: 0, resetTimeout: true },
 ]) {
-  test(`explicit reset lifecycle (migration ${migrationSignal ?? migrationCode}, start ${startCode ?? 0}, shutdown ${shutdownSignal ?? "none"}${resetTimeout ? ", stop timeout true" : ""})`, {
+  test(`explicit reset lifecycle (migration ${migrationSignal ?? migrationCode}, start ${startSignal ?? startCode ?? 0}, shutdown ${shutdownSignal ?? "none"}${resetTimeout ? ", stop timeout true" : ""}${cleanStart ? ", clean completion" : ""}${commandArgs.length ? ", one-off" : ""})`, {
     timeout: 20_000,
   }, async () => {
     const root = realpathSync(
@@ -102,10 +109,13 @@ for (const {
       RESET_FIXTURE_ROOT: root,
       RESET_FIXTURE_MIGRATION_CODE: String(migrationCode),
       RESET_FIXTURE_START_CODE: String(startCode ?? 0),
+      RESET_FIXTURE_START_SIGNAL: startSignal ?? "",
+      RESET_FIXTURE_START_COMPLETE: cleanStart ? "1" : "0",
     };
     for (const id of [1, 10, 42161, 8453, 80094, 4663, 11155111, 421614, 84532])
       env[`ENVIO_RPC_URL_${id}`] = "http://fixture.invalid";
-    const args = [join(scripts, "start-envio.mjs")];
+    const args = [join(scripts, "start-envio.mjs"), ...commandArgs];
+    if (commandArgs.length) rmSync(migrationBlocked);
     if (resetTimeout) {
       // Keep the ingestion group alive and advance only its stop deadline.
       const preload = `const kill = process.kill.bind(process), now = Date.now;
@@ -130,21 +140,46 @@ Date.now = () => now() + (clockReads !== undefined && clockReads++ > 0 ? 30001 :
       })
     );
     try {
-      if (startCode) {
+      if (cleanStart || commandArgs.length) {
         const result = await wrapper.done;
-        assert.equal(result.code, startCode, result.output);
-        assert(!existsSync(running) && !existsSync(workerRunning));
-        assert(
-          !existsSync(migrated),
-          "ordinary failures must never reset storage"
+        assert.equal(
+          result.code,
+          commandArgs.length ? migrationCode : 0,
+          result.output
         );
+        assert(!existsSync(running) && !existsSync(workerRunning));
+        if (cleanStart) assert(!existsSync(migrated));
         return;
       }
       await until(() => existsSync(socketPath));
-      await until(() => {
+      if (startCode || startSignal) {
+        await until(() => /Envio stopped/.test(wrapper.output()));
         assert.equal(wrapper.child.exitCode, null, wrapper.output());
-        return existsSync(running) && existsSync(workerRunning);
-      });
+        assert(!existsSync(running));
+        assert(
+          !existsSync(migrated),
+          "failed startup must never reset storage"
+        );
+        assert.equal(
+          (await fetch(`http://127.0.0.1:${port}/healthz`)).status,
+          200
+        );
+        for (const route of ["ready", "metrics"])
+          assert.equal(
+            (await fetch(`http://127.0.0.1:${port}/${route}`)).status,
+            503
+          );
+        if (startSignal)
+          assert(
+            existsSync(workerRunning),
+            "native exit left a descendant for reset to drain"
+          );
+      } else {
+        await until(() => {
+          assert.equal(wrapper.child.exitCode, null, wrapper.output());
+          return existsSync(running) && existsSync(workerRunning);
+        });
+      }
       if (shutdownSignal) {
         wrapper.child.kill(shutdownSignal);
         assert.equal(

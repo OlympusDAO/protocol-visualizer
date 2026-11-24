@@ -11,7 +11,6 @@ const running = join(root, "running");
 const workerRunning = join(root, "worker-running");
 
 if (process.argv[2] === "worker") {
-  writeFileSync(workerRunning, String(process.pid));
   let stopping = false;
   for (const signal of ["SIGTERM", "SIGINT"])
     process.on(signal, async () => {
@@ -21,6 +20,7 @@ if (process.argv[2] === "worker") {
       unlinkSync(workerRunning);
       process.exit(0);
     });
+  writeFileSync(workerRunning, String(process.pid));
   setInterval(() => {}, 1000);
 } else if (process.argv[2] === "start") {
   if (process.env.RESET_FIXTURE_START_COMPLETE === "1") process.exit(0);

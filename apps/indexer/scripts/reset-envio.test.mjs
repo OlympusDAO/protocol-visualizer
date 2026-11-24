@@ -196,13 +196,18 @@ Date.now = () => now() + (clockReads !== undefined && clockReads++ > 0 ? 30001 :
       const oldPid = existsSync(running)
         ? readFileSync(running, "utf8")
         : undefined;
-      const resetting = command(
-        spawn(process.execPath, [join(scripts, "reset-envio.mjs")], {
-          cwd: "/",
-          stdio: ["ignore", "pipe", "pipe"],
-          shell: false,
-        })
-      );
+      const orphanPid = startSignal
+        ? Number(readFileSync(workerRunning, "utf8"))
+        : undefined;
+      const requestReset = () =>
+        command(
+          spawn(process.execPath, [join(scripts, "reset-envio.mjs")], {
+            cwd: "/",
+            stdio: ["ignore", "pipe", "pipe"],
+            shell: false,
+          })
+        );
+      let resetting = requestReset();
       if (resetTimeout) {
         const reset = await resetting.done;
         assert.equal(reset.code, 1, reset.output);
@@ -217,6 +222,38 @@ Date.now = () => now() + (clockReads !== undefined && clockReads++ > 0 ? 30001 :
           503
         );
         return;
+      }
+      if (startSignal) {
+        await until(
+          () => resetting.child.exitCode !== null || existsSync(migrated)
+        );
+        if (resetting.child.exitCode !== null) {
+          const refused = await resetting.done;
+          assert.equal(refused.code, 1, refused.output);
+          assert.match(refused.output, /Reset failed: kill EPERM\./);
+          assert(!existsSync(migrated), "refused reset must not migrate");
+          assert.equal(wrapper.child.exitCode, null, wrapper.output());
+          for (const route of ["ready", "metrics"])
+            assert.equal(
+              (await fetch(`http://127.0.0.1:${port}/${route}`)).status,
+              503
+            );
+          assert(
+            !existsSync(workerRunning),
+            "EPERM with a live worker must fail"
+          );
+          assert(Number.isInteger(orphanPid) && orphanPid > 0);
+          await until(() => {
+            try {
+              process.kill(orphanPid, 0);
+              return false;
+            } catch (error) {
+              if (error.code !== "ESRCH") throw error;
+              return true;
+            }
+          });
+          resetting = requestReset();
+        }
       }
       await until(() => {
         assert.equal(wrapper.child.exitCode, null, wrapper.output());

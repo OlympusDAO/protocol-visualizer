@@ -15,10 +15,6 @@ GitHub `CI` exposes five independent matrix checks: Runtime versions, Format and
 
 Workflow lint runs native jactionlint correctness/offline checks with explicit excessive-permissions and untrusted-checkout errors, then Zizmor offline strict collection of workflows/actions at auditor persona, medium severity and low confidence. Online audits are not run. Biome rejects focused tests only on test paths; root tests and the RPC integration test receive a native focused-test/self-comparison lint pass alongside workspace lint. Intentional optional PostgreSQL skips remain unchanged; noSkippedTests is not enabled globally.
 
-Optional static test-diff trial: install `github:orieg/discipline@0.32.0` with `mise install github:orieg/discipline@0.32.0 --locked`, then run `mise run --skip-tools check:discipline`. This compares tracked working-tree changes with HEAD using only `assertion-reduction` and `vacuous-tests`, both warnings; all other gates are disabled. Warnings return 0; tool/configuration failures remain visible with exit 2. For a one-off blocking diagnostic, use `discipline check --base HEAD --suite agent-guard --config discipline.toml --fail-on-warnings`. The default check, lint, validation and CI gates remain unchanged.
-
-These checks inspect syntax, not runtime behavior or coverage. Legitimate assertion consolidation can warn. Whole-test deletions are not reported by these two gates, so duplicate-test removal stays nonblocking without proving that coverage was retained. Untracked test files are not examined. Existing Biome, workflow/security checks and the privacy gate remain authoritative; the trial installs no hooks or MCP integration and executes no configured runtime commands.
-
 The source PostgreSQL cases are deliberately deferred to integration: native state/rollback across process restarts. Codegen uses loopback interpolation fixtures, not live RPCs. Missing prerequisites fail; `RPC_CACHE_TEST_SKIP_RESET=1` is rejected. An independently requested integration run may follow a failed security gate, but the fail-fast aggregate does not do this automatically.
 
 ## Image policy

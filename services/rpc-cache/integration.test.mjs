@@ -1076,7 +1076,7 @@ export default config;
         .at(-1);
       const indexerBase = `http://127.0.0.1:${waitingPort}`;
       await eventually(
-        () => docker("logs", waitingIndexer).includes("Envio stopped ("),
+        () => dockerLogs(waitingIndexer).includes("Envio stopped ("),
         "Native incompatible startup did not leave reset control available"
       );
       assert.equal(

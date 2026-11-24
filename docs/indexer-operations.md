@@ -101,9 +101,10 @@ the wrapper.
 
 The private Railway `indexer-monitor` service runs in a dedicated, pinned
 Node Alpine image that copies only the monitor script. It checks the indexer's
-native `/metrics` endpoint. An HTTP 2xx means the metrics endpoint is reachable,
-even while Envio is backfilling. Check `/ready` and committed block progress
-separately to verify catch-up and indexing activity.
+native `/metrics` and `/healthz` endpoints on the same origin. Both must return
+HTTP 2xx. It ignores `/ready`, which can return 503 during healthy backfill.
+These liveness probes do not detect stalled ingestion while HTTP still responds.
+Check committed block progress separately to verify indexing activity.
 
 In each Railway environment, set the shared `DISCORD_WEBHOOK_URL` variable.
 IaC supplies the private `INDEXER_METRICS_URL` and the `MONITOR_NAME` environment
@@ -113,8 +114,11 @@ invalid values cause exit status `1` without logging their values. The optional
 `MONITOR_NAME` defaults to `Indexer`. The optional `MONITOR_INTERVAL_SECONDS`
 defaults to 60 and accepts whole numbers from `1` to `2147483`.
 
+The monitor logs startup, shutdown and successful outage/recovery notifications.
+Logs omit URLs and webhook values.
+
 After two consecutive failed probes, the monitor sends one outage message. It
-sends one recovery message when metrics return HTTP 2xx. Incident state lives
+sends one recovery message when both endpoints return HTTP 2xx. Incident state lives
 in memory, so a new process can report the same continuing outage. The monitor
 never resets the indexer. If the monitor is down or Discord delivery fails,
 the alert may be missed. Invalid configuration exits with status `1`. Failed

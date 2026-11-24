@@ -75,12 +75,19 @@ async function until(condition, description, timeout = 3_000) {
 async function endpoints(
   t,
   metrics,
-  deliver = (_request, response) => response.writeHead(204).end()
+  deliver = (_request, response) => response.writeHead(204).end(),
+  healthcheck = (response) => response.writeHead(200).end()
 ) {
+  const requests = [];
   const probes = [];
   const messages = [];
   const metricsHost = await listen(t, (request, response) => {
-    if (request.url === "/ready") {
+    requests.push([request.url, request.method]);
+    if (request.url === "/healthz") {
+      healthcheck(response);
+      return;
+    }
+    if (request.url !== "/metrics") {
       response.writeHead(503).end("catching up");
       return;
     }
@@ -106,7 +113,7 @@ async function endpoints(
     });
   });
   return {
-    metricsHost,
+    requests,
     probes,
     messages,
     env: {
@@ -138,7 +145,7 @@ test("invalid or missing configuration exits before any HTTP requests", async (t
       stderr: "Invalid indexer monitor configuration.\n",
     });
   }
-  assert.deepEqual(fixture.probes, []);
+  assert.deepEqual(fixture.requests, []);
   assert.deepEqual(fixture.messages, []);
 });
 
@@ -152,10 +159,6 @@ test("CLI alerts on the second consecutive failure and recovers once during back
     }
     response.writeHead(next).end("hyperindex_synced_to_head 0\n");
   });
-  const ready = await fetch(`${fixture.metricsHost}/ready`);
-  assert.equal(ready.status, 503);
-  await ready.body.cancel();
-
   const { child, result } = start(t, {
     ...fixture.env,
     MONITOR_NAME: "Visualizer preview",
@@ -169,10 +172,18 @@ test("CLI alerts on the second consecutive failure and recovers once during back
   assert.deepEqual(await result(), {
     code: 0,
     signal: null,
-    stdout: "",
+    stdout:
+      "Indexer monitor started.\nIndexer monitor reported indexer unavailable.\nIndexer monitor reported indexer available again.\nIndexer monitor stopped.\n",
     stderr: "",
   });
 
+  assert(fixture.requests.length > fixture.probes.length);
+  assert(
+    fixture.requests.every(
+      ([path, method]) =>
+        ["/metrics", "/healthz"].includes(path) && method === "GET"
+    )
+  );
   assert.deepEqual(
     fixture.probes.map(({ path, method }) => [path, method]),
     status.map(() => ["/metrics", "GET"])
@@ -193,13 +204,13 @@ test("CLI alerts on the second consecutive failure and recovers once during back
         "POST",
         "application/json",
         "/webhook?secret=fixture",
-        { content: "Visualizer preview: metrics are unreachable." },
+        { content: "Visualizer preview: indexer is unavailable." },
       ],
       [
         "POST",
         "application/json",
         "/webhook?secret=fixture",
-        { content: "Visualizer preview: metrics are reachable again." },
+        { content: "Visualizer preview: indexer is available again." },
       ],
     ]
   );
@@ -235,19 +246,24 @@ test("a hung webhook delivery times out and retries without stopping the monitor
     "monitor did not retry webhook delivery"
   );
   assert(performance.now() - deliveryStarted >= 5_500);
+  await until(
+    () => fixture.probes.length >= 4,
+    "monitor did not acknowledge webhook delivery"
+  );
   child.kill("SIGTERM");
   assert.deepEqual(await result(), {
     code: 0,
     signal: null,
-    stdout: "",
+    stdout:
+      "Indexer monitor started.\nIndexer monitor reported indexer unavailable.\nIndexer monitor stopped.\n",
     stderr: "Indexer monitor webhook delivery failed.\n",
   });
-  assert.equal(fixture.probes.length, 3);
+  assert.equal(fixture.probes.length, 4);
   assert.deepEqual(
     fixture.messages.map(({ body }) => JSON.parse(body)),
     [
-      { content: "Indexer: metrics are unreachable." },
-      { content: "Indexer: metrics are unreachable." },
+      { content: "Indexer: indexer is unavailable." },
+      { content: "Indexer: indexer is unavailable." },
     ]
   );
 });
@@ -271,7 +287,8 @@ test("failed webhook deliveries retry without stopping probes or duplicating del
   assert.deepEqual(await result(), {
     code: 0,
     signal: null,
-    stdout: "",
+    stdout:
+      "Indexer monitor started.\nIndexer monitor reported indexer unavailable.\nIndexer monitor reported indexer available again.\nIndexer monitor stopped.\n",
     stderr: "Indexer monitor webhook delivery failed.\n".repeat(2),
   });
   assert.deepEqual(
@@ -280,41 +297,86 @@ test("failed webhook deliveries retry without stopping probes or duplicating del
   );
   assert.deepEqual(
     fixture.messages.map(({ body }) => JSON.parse(body)),
-    ["unreachable", "unreachable", "reachable again", "reachable again"].map(
+    ["unavailable", "unavailable", "available again", "available again"].map(
       (status) => ({
-        content: `Indexer: metrics are ${status}.`,
+        content: `Indexer: indexer is ${status}.`,
       })
     )
   );
 });
 
-test("a hung probe times out and SIGINT aborts the next probe cleanly", async (t) => {
-  let disconnected = 0;
-  const fixture = await endpoints(t, (response) => {
-    response.on("close", () => {
-      disconnected++;
-    });
-  });
+test("healthcheck rejection alerts even while metrics stay available", async (t) => {
+  const statuses = [200, 401, 503, 503, 200, 200];
+  let healthchecks = 0;
+  const fixture = await endpoints(
+    t,
+    (response) => response.writeHead(200).end(),
+    undefined,
+    (response) =>
+      response
+        .writeHead(statuses[healthchecks++] ?? 200)
+        .end("fixture-secret body")
+  );
   const { child, result } = start(t, fixture.env);
   await until(
-    () => fixture.probes.length === 2,
-    "monitor did not retry the hung probe",
+    () =>
+      healthchecks >= statuses.length &&
+      fixture.probes.length >= statuses.length,
+    "monitor did not finish the healthcheck sequence",
     9_000
   );
-  const elapsed = fixture.probes[1].time - fixture.probes[0].time;
-  assert(elapsed >= 5_500 && elapsed < 8_000, `retry took ${elapsed} ms`);
-  assert.equal(disconnected, 1);
-
-  child.kill("SIGINT");
+  child.kill("SIGTERM");
   assert.deepEqual(await result(), {
     code: 0,
     signal: null,
-    stdout: "",
+    stdout:
+      "Indexer monitor started.\nIndexer monitor reported indexer unavailable.\nIndexer monitor reported indexer available again.\nIndexer monitor stopped.\n",
     stderr: "",
   });
-  await until(
-    () => disconnected === 2,
-    "shutdown did not close the probe connection"
+  assert.deepEqual(
+    fixture.messages.map(({ body }) => JSON.parse(body)),
+    [
+      { content: "Indexer: indexer is unavailable." },
+      { content: "Indexer: indexer is available again." },
+    ]
   );
-  assert.deepEqual(fixture.messages, []);
 });
+
+for (const target of ["metrics", "healthz"]) {
+  test(`a hung ${target} probe times out and SIGINT aborts the next probe cleanly`, async (t) => {
+    let disconnected = 0;
+    const hang = (response) =>
+      response.on("close", () => {
+        disconnected++;
+      });
+    const fixture = await endpoints(
+      t,
+      target === "metrics" ? hang : (response) => response.writeHead(200).end(),
+      undefined,
+      target === "healthz" ? hang : undefined
+    );
+    const { child, result } = start(t, fixture.env);
+    await until(
+      () =>
+        fixture.probes.length === 2 &&
+        fixture.requests.filter(([path]) => path === `/${target}`).length === 2,
+      "monitor did not retry the hung probe",
+      9_000
+    );
+    const elapsed = fixture.probes[1].time - fixture.probes[0].time;
+    assert(elapsed >= 5_500 && elapsed < 8_000, `retry took ${elapsed} ms`);
+    assert.equal(disconnected, 1);
+    child.kill("SIGINT");
+    assert.deepEqual(await result(), {
+      code: 0,
+      signal: null,
+      stdout: "Indexer monitor started.\nIndexer monitor stopped.\n",
+      stderr: "",
+    });
+    await until(
+      () => disconnected === 2,
+      "shutdown did not close the probe connection"
+    );
+    assert.deepEqual(fixture.messages, []);
+  });
+}

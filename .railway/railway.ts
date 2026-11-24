@@ -125,7 +125,6 @@ export default defineRailway((ctx) => {
   });
 
   const snapshotGateway = service("snapshot-gateway", {
-    tcp: [],
     source,
     env: { ...bucketVariables, PORT: "8080" },
     build: {
@@ -238,7 +237,6 @@ export default defineRailway((ctx) => {
   });
 
   const frontend = service("frontend", {
-    tcp: [],
     source,
     env: {
       VITE_PROTOCOL_SNAPSHOT_BASE_URL:

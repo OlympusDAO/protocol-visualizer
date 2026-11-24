@@ -149,11 +149,17 @@ test("snapshot jobs log missing webhooks and exit unsuccessfully on startup", ()
 });
 
 test("CI exposes complete image coverage using existing build, scan and integration commands", () => {
-  const workflow = readFileSync(".github/workflows/security-scan.yml", "utf8");
+  const workflowText = readFileSync(
+    ".github/workflows/security-scan.yml",
+    "utf8"
+  );
+  const workflow = parse(workflowText);
+  const imageJob = workflow.jobs.images;
+  const steps = imageJob.steps;
   const { scripts } = readJson("package.json");
   const validator = readFileSync("scripts/validate-images.sh", "utf8");
   const dockerfiles = readFileSync("scripts/scan-dockerfiles.mjs", "utf8");
-  for (const name of [
+  const imageNames = [
     "indexer",
     "indexer-monitor",
     "frontend",
@@ -162,67 +168,79 @@ test("CI exposes complete image coverage using existing build, scan and integrat
     "snapshot-publisher",
     "snapshot-monitor",
     "rpc-cache",
-  ]) {
+  ];
+  for (const name of imageNames) {
     assert(
       scripts["docker:build"]
         .split(" && ")
         .includes(`pnpm run docker:build:${name}`)
     );
     assert(validator.includes(name));
-    assert(workflow.includes(`- image: ${name}\n`));
+    assert(imageJob.strategy.matrix.include.some((row) => row.image === name));
   }
-  for (const dockerfile of [
-    "Dockerfile-indexer",
-    "Dockerfile-indexer-monitor",
-    "Dockerfile-frontend",
-    "Dockerfile-hasura",
-    "Dockerfile-snapshot-gateway",
-    "Dockerfile-snapshot-publisher",
-    "Dockerfile-snapshot-monitor",
-    "Dockerfile-rpc-cache",
-  ]) {
-    assert(existsSync(dockerfile));
+  for (const name of imageNames) {
+    assert(existsSync(`Dockerfile-${name}`));
   }
   assert.equal(
     scripts["docker:build:indexer-monitor"],
     "node scripts/container.mjs build -f Dockerfile-indexer-monitor -t protocol-visualizer/indexer-monitor:local ."
   );
-  assert(workflow.includes("fail-fast: false"));
-  assert(workflow.includes("run: pnpm run docker:build:${{ matrix.image }}"));
-  assert(workflow.includes("run: pnpm run docker:scan -- ${{ matrix.image }}"));
-  assert(workflow.includes("Dockerfile-${{ matrix.image }}"));
-  assert(workflow.includes("name: Cache + integration"));
-  assert(workflow.includes("run: pnpm run docker:build:indexer"));
-  assert(
-    workflow.includes(
-      "name: Scan application image\n        if: ${{ !cancelled() && steps.build.outcome == 'success' }}"
-    )
+  assert.equal(imageJob.strategy["fail-fast"], false);
+  assert.equal(
+    steps.find((step) => step.id === "build").run.trim(),
+    "pnpm run docker:build:${{ matrix.image }}"
+  );
+  const scan = steps.find((step) => step.name === "Scan application image");
+  assert.equal(scan.run.trim(), "pnpm run docker:scan -- ${{ matrix.image }}");
+  assert.equal(
+    scan.if,
+    "${{ !cancelled() && steps.build.outcome == 'success' }}"
+  );
+  const dockerfileScan = steps.find((step) => step.name === "Check Dockerfile");
+  assert.equal(
+    dockerfileScan.run.trim(),
+    "trivy config --severity MEDIUM,HIGH,CRITICAL --exit-code 1 --file-patterns 'dockerfile:Dockerfile-*' Dockerfile-${{ matrix.image }}"
+  );
+  assert.equal(
+    dockerfileScan.if,
+    "${{ !cancelled() && steps.bootstrap.outcome == 'success' }}"
+  );
+  assert.equal(
+    imageJob.strategy.matrix.include.find((row) => row.image === "rpc-cache")
+      .name,
+    "Cache + integration"
   );
   assert(
-    workflow.includes(
-      "name: Check Dockerfile\n        if: ${{ !cancelled() && steps.bootstrap.outcome == 'success' }}"
-    )
+    steps
+      .find((step) => step.id === "companion")
+      .run.split(/\r?\n/)
+      .some((line) => line.trim() === "pnpm run docker:build:indexer")
   );
-  assert(
-    workflow.includes(
-      "name: Check runtime image policy\n        if: ${{ !cancelled() && matrix.image == 'rpc-cache' && steps.bootstrap.outcome == 'success' }}"
-    )
+  const runtimeScan = steps.find(
+    (step) => step.name === "Check runtime image policy"
   );
-  assert(
-    workflow.includes(
-      "!cancelled() && matrix.image == 'rpc-cache' && steps.build.outcome == 'success' && steps.companion.outcome == 'success'"
-    )
+  assert.equal(runtimeScan.run.trim(), "pnpm run docker:scan:runtime");
+  assert.equal(
+    runtimeScan.if,
+    "${{ !cancelled() && matrix.image == 'rpc-cache' && steps.bootstrap.outcome == 'success' }}"
   );
-  assert.match(workflow, /run: pnpm run docker:scan:runtime/);
-  assert.match(workflow, /run: pnpm test:integration/);
+  const integration = steps.find(
+    (step) =>
+      step.name === "Required PostgreSQL, cache, reset and docs integration"
+  );
+  assert.equal(integration.run.trim(), "pnpm test:integration");
+  assert.equal(
+    integration.if,
+    "${{ !cancelled() && matrix.image == 'rpc-cache' && steps.build.outcome == 'success' && steps.companion.outcome == 'success' }}"
+  );
   assert.match(validator, /pnpm run "docker:build:\$image"/);
   assert.match(validator, /pnpm run docker:scan -- "\$image"/);
   assert.match(validator, /pnpm run docker:scan:dockerfiles/);
   assert.match(validator, /pnpm run docker:scan:runtime/);
   assert(dockerfiles.includes("dockerfile:Dockerfile-*"));
   assert(dockerfiles.includes('"node_modules"'));
-  assert.match(workflow, /workflow_dispatch:/);
-  assert(!workflow.includes("pnpm audit"));
+  assert(Object.hasOwn(workflow.on, "workflow_dispatch"));
+  assert(!workflowText.includes("pnpm audit"));
   const ci = readFileSync(".github/workflows/ci.yml", "utf8");
   assert(!ci.includes("docker:build:"));
 });

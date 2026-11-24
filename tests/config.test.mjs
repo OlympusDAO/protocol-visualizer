@@ -546,24 +546,44 @@ test("Dockerfiles remove package managers from runtime images", () => {
   );
 });
 
-test("Indexer monitor image runs only the monitor on the pinned non-root Node base", () => {
+test("Indexer monitor image deploys only its production app on the pinned non-root Node base", () => {
   const content = dockerfileContent("Dockerfile-indexer-monitor");
-  assert.equal(content.match(/^FROM\b/gm)?.length, 1);
-  assert.match(
-    content,
-    /^FROM node:\d+\.\d+\.\d+-alpine@sha256:[0-9a-f]{64}$/m
-  );
-  assert.match(content, /^WORKDIR \/app$/m);
-  assert.deepEqual(content.match(/^COPY\s+.+$/gm), [
-    "COPY --chown=node:node apps/indexer/src/monitor-indexer.mjs ./monitor-indexer.mjs",
+  assert.equal(content.match(/^FROM\b/gm)?.length, 2);
+  const [deps, runtime] = content.split(/(?=^FROM\b)/m);
+  const [, base, dependencyStage] =
+    deps.match(/^FROM (node:[^ ]+) AS ([\w-]+)$/m) ?? [];
+  assert.match(base, /^node:\d+\.\d+\.\d+-alpine@sha256:[0-9a-f]{64}$/);
+  assert.equal(runtime.match(/^FROM (\S+)/m)?.[1], base);
+  assert.deepEqual(deps.match(/^COPY\s+.+$/gm), [
+    "COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./",
+    "COPY apps/indexer-monitor/package.json ./apps/indexer-monitor/",
+    "COPY apps/indexer-monitor/src/ ./apps/indexer-monitor/src/",
   ]);
-  assert.match(content, /^USER node$/m);
-  assert.match(content, /^CMD \["node", "monitor-indexer\.mjs"\]$/m);
-  assert.doesNotMatch(content, /^(?:ADD|ENTRYPOINT|EXPOSE)\b/m);
+  assert.match(
+    deps,
+    /^RUN pnpm --filter indexer-monitor deploy --prod \/deploy\/indexer-monitor\b/m
+  );
+  assert.match(runtime, /^WORKDIR \/app$/m);
+  assert.deepEqual(runtime.match(/^COPY\s+.+$/gm), [
+    `COPY --from=${dependencyStage} --chown=node:node /deploy/indexer-monitor/ ./`,
+  ]);
+  assert.match(runtime, /^USER node$/m);
+  assert.match(runtime, /^CMD \["node", "src\/monitor-indexer\.mjs"\]$/m);
+  assert.match(runtime, /\brm -rf \/usr\/local\/lib\/node_modules\b/);
+  assert.doesNotMatch(runtime, /^(?:ADD|ENTRYPOINT|EXPOSE)\b/m);
   assert.doesNotMatch(
-    content,
+    runtime,
     /\b(?:apk\s+add|corepack\s+(?:enable|prepare)|(?:npm|pnpm|yarn)\s+(?:ci|install|add))\b/
   );
+
+  const app = readJson("apps/indexer-monitor/package.json");
+  assert.deepEqual(Object.keys(app.dependencies), ["@aws-sdk/client-s3"]);
+  assert.deepEqual(app.files, ["src"]);
+  assert.equal(app.scripts.start, "node src/monitor-indexer.mjs");
+  assert.equal(app.scripts["lint:check"], "biome lint . --error-on-warnings");
+  assert.equal(app.scripts.build, undefined);
+  assert.equal(app.scripts.typecheck, undefined);
+  assert.equal(app.scripts.test, undefined);
 });
 
 test("Snapshot service Dockerfiles prune source and test artifacts", () => {

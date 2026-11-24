@@ -216,6 +216,7 @@ export default defineRailway((ctx) => {
   const indexerMonitor = service("indexer-monitor", {
     source,
     env: {
+      ...bucketVariables,
       INDEXER_METRICS_URL: indexerMetricsUrl,
       DISCORD_WEBHOOK_URL: ctx.shared.DISCORD_WEBHOOK_URL,
       MONITOR_NAME: `Visualizer ${production ? "production" : (ctx.environmentName ?? "default")}`,
@@ -225,12 +226,17 @@ export default defineRailway((ctx) => {
       dockerfilePath: "Dockerfile-indexer-monitor",
       watchPatterns: [
         "/Dockerfile-indexer-monitor",
-        "/apps/indexer/src/monitor-indexer.mjs",
+        "/apps/indexer-monitor/package.json",
+        "/apps/indexer-monitor/src/**",
+        "/package.json",
+        "/pnpm-lock.yaml",
+        "/pnpm-workspace.yaml",
       ],
       buildEnvironment: "V3",
     },
     deploy: {
-      restartPolicyMaxRetries: 1,
+      cronSchedule: "*/15 * * * *",
+      restartPolicyType: "NEVER",
       limitOverride: { containers: { cpu: 0.5, memoryBytes: 1000000000 } },
     },
     replicas: { "us-west2": 1 },
@@ -335,7 +341,6 @@ export default defineRailway((ctx) => {
         "INDEXER_DEPLOYMENT_ID",
         "snapshot-monitor/MONITOR_*",
         "snapshot-publisher/MONITOR_*",
-        "indexer-monitor/MONITOR_INTERVAL_SECONDS",
         "SNAPSHOT_*",
         "PUBLISHER_*",
         "PROTOCOL_CHAINS_CONFIG_PATH",

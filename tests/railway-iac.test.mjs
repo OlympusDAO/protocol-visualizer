@@ -134,12 +134,15 @@ test("whole-project IaC retains storage and wires services without embedding sec
         !node.build.watchPatterns.some((path) => path.startsWith("/.railway/"))
       );
       assert(node.build.watchPatterns.includes(`/Dockerfile-${node.name}`));
-      if (!["hasura", "indexer-monitor", "rpc-cache"].includes(node.name))
+      if (!["hasura", "rpc-cache"].includes(node.name))
         assert(node.build.watchPatterns.includes("/package.json"));
       assert(node.variables);
       assert.equal(node.configFile, undefined);
-      const job =
-        node.name === "snapshot-publisher" || node.name === "snapshot-monitor";
+      const job = [
+        "indexer-monitor",
+        "snapshot-publisher",
+        "snapshot-monitor",
+      ].includes(node.name);
       assert.equal(node.deploy.restartPolicyType, job ? "NEVER" : undefined);
       if (!job) assert.equal(node.deploy.restartPolicyMaxRetries, 1);
     }
@@ -231,7 +234,7 @@ test("whole-project IaC retains storage and wires services without embedding sec
   }
 });
 
-test("indexer monitor uses the private native metrics route and its own image", async () => {
+test("indexer monitor schedules one private metrics job with the existing bucket", async () => {
   for (const environment of ["production", "protocol-visualizer-pr-82"]) {
     const { definition, resources } = await infrastructure(environment);
     const monitor = resources.find((node) => node.name === "indexer-monitor");
@@ -243,11 +246,27 @@ test("indexer monitor uses the private native metrics route and its own image", 
       dockerfilePath: "Dockerfile-indexer-monitor",
       watchPatterns: [
         "/Dockerfile-indexer-monitor",
-        "/apps/indexer/src/monitor-indexer.mjs",
+        "/apps/indexer-monitor/package.json",
+        "/apps/indexer-monitor/src/**",
+        "/package.json",
+        "/pnpm-lock.yaml",
+        "/pnpm-workspace.yaml",
       ],
       buildEnvironment: "V3",
     });
     assert.deepEqual(monitor.variables, {
+      ...Object.fromEntries(
+        [
+          "BUCKET",
+          "ENDPOINT",
+          "REGION",
+          "ACCESS_KEY_ID",
+          "SECRET_ACCESS_KEY",
+        ].map((key) => [
+          key,
+          { type: "reference", resource: "bucket.storage", output: key },
+        ])
+      ),
       INDEXER_METRICS_URL: {
         type: "literal",
         value:
@@ -272,12 +291,13 @@ test("indexer monitor uses the private native metrics route and its own image", 
         false,
         `${key} is IaC managed`
       );
-    assert.equal(isIgnored(monitor.name, "MONITOR_INTERVAL_SECONDS"), true);
+    assert.equal(isIgnored(monitor.name, "MONITOR_INTERVAL_SECONDS"), false);
     for (const name of ["snapshot-monitor", "snapshot-publisher"])
       for (const key of ["MONITOR_STATE_KEY", "MONITOR_STALE_CHAIN_HOURS"])
         assert.equal(isIgnored(name, key), true);
     assert.deepEqual(monitor.deploy, {
-      restartPolicyMaxRetries: 1,
+      cronSchedule: "*/15 * * * *",
+      restartPolicyType: "NEVER",
       limitOverride: { containers: { cpu: 0.5, memoryBytes: 1000000000 } },
       multiRegionConfig: { "us-west2": { numReplicas: 1 } },
     });

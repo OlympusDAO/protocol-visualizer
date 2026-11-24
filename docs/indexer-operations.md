@@ -99,33 +99,29 @@ the wrapper.
 
 ## Indexer availability alerts
 
-The private Railway `indexer-monitor` service runs in a dedicated, pinned
-Node Alpine image that copies only the monitor script. It checks the indexer's
-native `/metrics` and `/healthz` endpoints on the same origin. Both must return
-HTTP 2xx. It ignores `/ready`, which can return 503 during healthy backfill.
-These liveness probes do not detect stalled ingestion while HTTP still responds.
-Check committed block progress separately to verify indexing activity.
+Railway runs the private `indexer-monitor` job every 15 minutes. One invocation
+uses the dedicated Node Alpine image, checks the indexer's native `/metrics`
+once with a five-second timeout, then exits. An HTTP 2xx response confirms
+metrics reachability, including during backfill. Check committed block progress
+separately to detect stalled ingestion. The job never resets the indexer.
 
-In each Railway environment, set the shared `DISCORD_WEBHOOK_URL` variable.
-IaC supplies the private `INDEXER_METRICS_URL` and the `MONITOR_NAME` environment
-label. Both URLs are required and must use HTTP or HTTPS without embedded
-usernames or passwords. Startup validates them before any requests. Missing or
-invalid values cause exit status `1` without logging their values. The optional
-`MONITOR_NAME` defaults to `Indexer`. The optional `MONITOR_INTERVAL_SECONDS`
-defaults to 60 and accepts whole numbers from `1` to `2147483`.
+Set the shared `DISCORD_WEBHOOK_URL` for each Railway environment. IaC supplies
+`INDEXER_METRICS_URL`, the `MONITOR_NAME` environment label, and the existing
+bucket's `BUCKET`, `ENDPOINT`, `REGION`, `ACCESS_KEY_ID` and `SECRET_ACCESS_KEY`
+references. Both service URLs and all bucket settings are required. URLs must
+use HTTP or HTTPS without embedded credentials. The optional `MONITOR_NAME`
+defaults to `Indexer`. Startup validates configuration before any network
+requests. Invalid values cause exit status `1` with a fixed diagnostic.
 
-The monitor logs startup, shutdown and successful outage/recovery notifications.
-Logs omit URLs and webhook values.
-
-After two consecutive failed probes, the monitor sends one outage message. It
-sends one recovery message when both endpoints return HTTP 2xx. Incident state lives
-in memory, so a new process can report the same continuing outage. The monitor
-never resets the indexer. If the monitor is down or Discord delivery fails,
-the alert may be missed. Invalid configuration exits with status `1`. Failed
-delivery logs a fixed message and retries on the next polling interval while
-the alert remains relevant. Successful deliveries are not repeated. A lost
-webhook response can cause a duplicate message on retry. The
-scheduled `snapshot-monitor` continues its daily snapshot and indexing checks.
+The job stores alert state in `indexer-monitor/state.json`, separate from
+snapshot state. A successful Discord outage delivery starts a 60-minute
+cooldown that survives restarts and recovery. A continuing outage can send
+another alert on a scheduled run after the cooldown expires. The first healthy
+run after a reported outage sends one recovery. If a delivery or state operation
+fails, the job exits with status `1` and the next run can retry if the alert is
+still relevant. A successful delivery followed by a failed state write can
+produce a duplicate. The scheduled `snapshot-monitor` continues its daily
+snapshot and indexing checks.
 
 ## Reset the Railway indexer from your local machine
 

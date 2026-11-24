@@ -131,6 +131,12 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
+  apps/indexer-monitor:
+    dependencies:
+      "@aws-sdk/client-s3":
+        specifier: 3.1152.0
+        version: 3.1152.0
+
   apps/snapshot-gateway:
     dependencies:
       "@aws-sdk/client-s3":

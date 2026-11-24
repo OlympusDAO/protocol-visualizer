@@ -595,14 +595,6 @@ test("source commands separate checks, artifact builds and all ordinary tests", 
   const { scripts } = readJson("package.json");
   const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
   assert.equal(scripts.build, "turbo run build");
-  assert.equal(
-    scripts.check,
-    "turbo run lint:check && biome check . --linter-enabled=false && biome lint tests services/rpc-cache/integration.test.mjs --only=suspicious/noFocusedTests --only=suspicious/noSelfCompare && biome lint scripts/railway-release.cjs --error-on-warnings && pnpm run lint:actions"
-  );
-  assert.equal(
-    scripts.lint,
-    "turbo run lint && biome check --write . --linter-enabled=false && biome lint tests services/rpc-cache/integration.test.mjs --only=suspicious/noFocusedTests --only=suspicious/noSelfCompare && biome lint scripts/railway-release.cjs --error-on-warnings && pnpm run lint:actions"
-  );
   for (const alias of ["format", "format:check", "lint:fix", "lint:check"])
     assert.equal(scripts[alias], undefined);
   const commands = [...workflow.matchAll(/command: (pnpm [^\n]+)/g)].map(

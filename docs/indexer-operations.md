@@ -85,12 +85,11 @@ restarts resume compatible state. Envio retains its configuration and schema
 compatibility checks. If startup reports incompatibility, inspect the error.
 No startup error automatically resets the database.
 
-The wrapper checks stored configuration through Envio's pinned compatibility
-logic before starting ingestion. Empty or compatible storage starts normally.
-A confirmed incompatibility keeps the reset control available and pauses
-ingestion. `/healthz` returns 200 while `/ready` and `/metrics` return 503.
-Database access errors and ordinary runtime failures still exit unsuccessfully.
-The adapter uses internal Envio 3.18.1 exports and requires review before an upgrade.
+Envio 3.18.1 checks configuration and configured addresses before taking over
+existing storage. A native refusal or runtime failure exits unsuccessfully;
+the wrapper forwards that status instead of keeping an incompatible startup
+alive. The reset socket requires a running wrapper. Use separately approved
+stopped-app maintenance for an incompatible deployment, as described below.
 
 ## Reset the Railway indexer from your local machine
 
@@ -105,6 +104,7 @@ its pinned distroless Node runtime and non-root user, with one BusyBox executabl
 copied from a digest-pinned official distroless image to provide `/bin/sh`.
 This adds shell access and BusyBox's compiled applets, not a package manager.
 The deployed image must include the reset control script and updated startup wrapper.
+This socket command is for a running indexer; it cannot reach an exited deployment.
 
 ### Prepare
 
@@ -197,21 +197,21 @@ Its block dates remain old, and freshness checks can report stale data.
 Direct Hasura consumers lose indexed data until the rebuild completes.
 Retain the snapshot bucket, manifest, Hasura service and separate eRPC storage.
 
-### Deploy normally, then reset once
+### Handle an incompatible deployment
 
-Deploy the approved image with the normal start command. If its schema is
-incompatible, the wrapper pauses ingestion and waits for an explicit reset.
-After all previous ingestion deployments stop, run:
+Deploy the approved image with the normal start command. If native startup
+refuses the schema, keep the app stopped and inspect the error. After separate
+reset approval and confirmation that every ingestion writer has stopped, run
+the approved image's official `local db-migrate setup` command as a one-off
+maintenance operation with the target environment's configuration and variables.
+Review the provider execution method and target before running it; this
+repository supplies no additional maintenance controller.
 
-```bash
-RAILWAY_ENVIRONMENT=production pnpm run indexer:reset:railway
-```
-
-The same command handles both running and schema-incompatible indexers. It runs
-the deployed image's official setup command and starts ingestion after success.
-It needs no maintenance flag, custom HTTP command or second deployment.
-The control stops only its own process group, so the single-writer check still
-applies. Never retain `start -r` as the production start command.
+Start ingestion normally only after setup succeeds. The socket reset command
+cannot run inside an exited container. For an already running indexer, use the
+existing explicit reset control above; it stops only its own process group,
+so the single-writer check still applies. Never retain `start -r` as the
+production start command.
 
 ### Publish after recovery
 
@@ -247,16 +247,16 @@ also resets and starts ingestion, but it must remain an operator-only action.
 
 Local process fixtures check complete ingestion shutdown before migration,
 restart after success, maintenance after failure, and concurrent reset rejection.
-They also cover incompatible startup without automatic reset, explicit reset
-with no ingestion child, and ordinary storage/runtime failures exiting unsuccessfully.
+They also cover native child failures exiting unsuccessfully without automatic
+reset, including propagation of nonzero statuses.
 The Railway command test uses a fake CLI to check explicit environment selection.
 The actual distroless image runs the official reset command against disposable
 Postgres and fixture Hasura responses. A separate image check executes Node through
 `/bin/sh` in a running container and verifies the pinned Node version and non-root
 UID. These local checks do not validate live Railway SSH transport.
-The native storage check runs against disposable PostgreSQL with a SELECT-only
-role. Empty, compatible, incompatible, legacy and authentication-error cases
-preserve the database dump hash. It never calls a migration as a preflight.
+The image fixture checks that native incompatible startup exits nonzero without
+changing the database dump hash, then uses explicit stopped-app setup before
+normal startup. It exercises the running wrapper's reset control separately.
 No arbitrary cursor SQL or partial historical replay is part of this procedure.
 
 ## Current-state schema change

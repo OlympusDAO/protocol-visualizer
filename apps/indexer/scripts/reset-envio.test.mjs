@@ -40,27 +40,24 @@ function command(child) {
 }
 
 for (const {
-  checkCode,
   migrationCode,
   startCode,
   shutdownSignal,
   migrationSignal,
   resetTimeout = false,
 } of [
-  { checkCode: 0, migrationCode: 0 },
-  { checkCode: 0, migrationCode: 17 },
-  { checkCode: 78, migrationCode: 0 },
-  { checkCode: 78, migrationCode: 17 },
-  { checkCode: 1, migrationCode: 0 },
-  { checkCode: 0, migrationCode: 0, startCode: 23 },
-  { checkCode: 0, migrationCode: 0, shutdownSignal: "SIGTERM" },
-  { checkCode: 0, migrationCode: 0, shutdownSignal: "SIGINT" },
-  { checkCode: 78, migrationCode: 0, shutdownSignal: "SIGTERM" },
-  { checkCode: 0, migrationCode: 0, migrationSignal: "SIGTERM" },
-  { checkCode: 0, migrationCode: 0, migrationSignal: "SIGINT" },
-  { checkCode: 0, migrationCode: 0, resetTimeout: true },
+  { migrationCode: 0 },
+  { migrationCode: 17 },
+  { migrationCode: 0, startCode: 1 },
+  { migrationCode: 0, startCode: 78 },
+  { migrationCode: 0, startCode: 23 },
+  { migrationCode: 0, shutdownSignal: "SIGTERM" },
+  { migrationCode: 0, shutdownSignal: "SIGINT" },
+  { migrationCode: 0, migrationSignal: "SIGTERM" },
+  { migrationCode: 0, migrationSignal: "SIGINT" },
+  { migrationCode: 0, resetTimeout: true },
 ]) {
-  test(`explicit reset lifecycle (storage ${checkCode}, migration ${migrationSignal ?? migrationCode}, start ${startCode ?? 0}, shutdown ${shutdownSignal ?? "none"}${resetTimeout ? ", stop timeout true" : ""})`, {
+  test(`explicit reset lifecycle (migration ${migrationSignal ?? migrationCode}, start ${startCode ?? 0}, shutdown ${shutdownSignal ?? "none"}${resetTimeout ? ", stop timeout true" : ""})`, {
     timeout: 20_000,
   }, async () => {
     const root = realpathSync(
@@ -83,10 +80,6 @@ for (const {
     writeFileSync(migrationBlocked, "");
     for (const file of ["start-envio.mjs", "reset-envio.mjs"])
       copyFileSync(new URL(file, import.meta.url), join(scripts, file));
-    writeFileSync(
-      join(scripts, "check-envio-storage.mjs"),
-      `process.exit(${checkCode});`
-    );
     copyFileSync(
       new URL("fixtures/reset-envio.mjs", import.meta.url),
       join(app, "node_modules/envio/bin.mjs")
@@ -137,37 +130,21 @@ Date.now = () => now() + (clockReads !== undefined && clockReads++ > 0 ? 30001 :
       })
     );
     try {
-      if (checkCode === 1 || startCode) {
+      if (startCode) {
         const result = await wrapper.done;
-        assert.equal(
-          result.code,
-          checkCode === 1 ? 1 : startCode,
-          result.output
-        );
+        assert.equal(result.code, startCode, result.output);
+        assert(!existsSync(running) && !existsSync(workerRunning));
         assert(
           !existsSync(migrated),
           "ordinary failures must never reset storage"
         );
         return;
       }
-      // The control socket appears only after compatibility checking completes.
       await until(() => existsSync(socketPath));
-      if (checkCode === 78) {
-        assert.equal(
-          (await fetch(`http://127.0.0.1:${port}/ready`)).status,
-          503
-        );
-        assert(!existsSync(running) && !existsSync(workerRunning));
-        assert(
-          !existsSync(migrated),
-          "incompatibility must not automatically reset"
-        );
-      } else {
-        await until(() => {
-          assert.equal(wrapper.child.exitCode, null, wrapper.output());
-          return existsSync(running) && existsSync(workerRunning);
-        });
-      }
+      await until(() => {
+        assert.equal(wrapper.child.exitCode, null, wrapper.output());
+        return existsSync(running) && existsSync(workerRunning);
+      });
       if (shutdownSignal) {
         wrapper.child.kill(shutdownSignal);
         assert.equal(

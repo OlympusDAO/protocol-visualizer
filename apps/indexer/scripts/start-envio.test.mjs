@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
-  readFileSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -203,126 +202,5 @@ test("resolves the Envio entrypoint independently of the SSH working directory",
     );
   } finally {
     process.chdir(previous);
-  }
-});
-
-test("native storage preflight preserves launch dotenv and checks compatibility without mutations", (t) => {
-  const directory = mkdtempSync(join(tmpdir(), "pv-storage-env-"));
-  t.after(() => rmSync(directory, { recursive: true, force: true }));
-  const launch = join(directory, "launch");
-  const project = join(directory, "project");
-  mkdirSync(launch);
-  mkdirSync(project);
-  writeFileSync(join(launch, ".env"), "ENVIO_PG_SCHEMA=launch_schema\n");
-  writeFileSync(join(project, ".env"), "ENVIO_PG_SCHEMA=project_schema\n");
-  writeFileSync(join(project, "schema.graphql"), "type Transfer { id: ID! }\n");
-  writeFileSync(join(project, "handler.js"), "export {};\n");
-  writeFileSync(
-    join(project, "config.yaml"),
-    `name: storage-env-fixture
-contracts:
-  - name: Example
-    handler: ./handler.js
-    events:
-      - event: Transfer(address indexed from, address indexed to, uint256 value)
-chains:
-  - id: 1
-    start_block: 0
-    contracts:
-      - name: Example
-        address: "0x0000000000000000000000000000000000000001"
-`
-  );
-  const envioRoot = dirname(
-    createRequire(import.meta.url).resolve("envio/package.json")
-  );
-  const nativeUrl = (name) =>
-    pathToFileURL(join(envioRoot, "src", `${name}.res.mjs`)).href;
-  const trace = join(directory, "storage.json");
-  // Run the real adapter/CLI/config/Env; replace only the database boundary.
-  const storage = `import { writeFileSync } from "node:fs";
-import { Db } from ${JSON.stringify(nativeUrl("Env"))};
-import * as ChainMap from ${JSON.stringify(nativeUrl("ChainMap"))};
-import * as ChainState from ${JSON.stringify(nativeUrl("ChainState"))};
-import * as AddressRows from ${JSON.stringify(nativeUrl("AddressRows"))};
-export const makeStorageFromEnv = (config, logger, schema, hasura, max) => {
-  if (schema !== undefined || hasura !== false || max !== 1) throw new Error("unsafe storage options");
-  const calls = [], scenario = process.env.STORAGE_CASE;
-  const chains = ChainMap.values(config.chainMap);
-  const unexpected = () => { throw new Error("mutating storage method called"); };
-  return {
-    holding: async () => { calls.push("holding"); return ["Nothing", "Stranded", "Diverged", "Outdated", "Invalid"].includes(scenario) ? scenario : "Initialized"; },
-    readStoredConfig: async () => {
-      calls.push("readStoredConfig");
-      if (scenario === "error") throw new Error("fixture-private-credential");
-      return { envioInfo: scenario === "incompatible" ? undefined : config.envioInfo, chains, contractMapping: config.contractMapping };
-    },
-    resumeInitialState: async () => {
-      calls.push("resumeInitialState");
-      return { chains: chains.map(chain => ({ id: chain.id, addressRows: scenario === "addresses" ? AddressRows.emptySeedRows() : AddressRows.seedRowsOf(ChainState.configStorageRows(chain, config.ecosystem.name, config.contractMapping)) })) };
-    },
-    takeOver: unexpected, initialize: unexpected, reset: unexpected, addChain: unexpected,
-    close: async () => {
-      writeFileSync(${JSON.stringify(trace)}, JSON.stringify({ schema: Db.publicSchema, closed: true, calls }));
-      if (scenario === "close") throw new Error("fixture-private-credential");
-    },
-  };
-};`;
-  const preload = `import { registerHooks } from "node:module";
-registerHooks({ load(url, context, nextLoad) {
-  return url === ${JSON.stringify(nativeUrl("Storage"))}
-    ? { format: "module", shortCircuit: true, source: ${JSON.stringify(storage)} }
-    : nextLoad(url, context);
-}});`;
-  for (const [scenario, status, calls] of [
-    ["Nothing", 0, ["holding"]],
-    ...["Stranded", "Diverged", "Outdated"].map((state) => [
-      state,
-      78,
-      ["holding"],
-    ]),
-    ["compatible", 0, ["holding", "readStoredConfig", "resumeInitialState"]],
-    ["incompatible", 78, ["holding", "readStoredConfig"]],
-    ["addresses", 78, ["holding", "readStoredConfig", "resumeInitialState"]],
-    ["error", 1, ["holding", "readStoredConfig"]],
-    ["close", 1, ["holding", "readStoredConfig", "resumeInitialState"]],
-    ["Invalid", 1, ["holding"]],
-  ]) {
-    const result = spawnSync(
-      process.execPath,
-      [
-        "--import",
-        `data:text/javascript,${encodeURIComponent(preload)}`,
-        fileURLToPath(new URL("./check-envio-storage.mjs", import.meta.url)),
-        "start",
-        "--directory",
-        project,
-      ],
-      {
-        cwd: launch,
-        env: {
-          PATH: process.env.PATH,
-          NODE_ENV: "development",
-          LOG_LEVEL: "silent",
-          ENVIO_API_TOKEN: "fixture-only",
-          STORAGE_CASE: scenario,
-        },
-        encoding: "utf8",
-        timeout: 10_000,
-      }
-    );
-    assert.equal(result.status, status, `${scenario}: ${result.stderr}`);
-    assert(
-      !`${result.stdout}${result.stderr}`.includes("fixture-private-credential")
-    );
-    assert.deepEqual(
-      JSON.parse(readFileSync(trace, "utf8")),
-      {
-        schema: "launch_schema",
-        closed: true,
-        calls,
-      },
-      scenario
-    );
   }
 });

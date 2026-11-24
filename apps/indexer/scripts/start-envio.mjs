@@ -530,28 +530,6 @@ export const run = async () => {
   const wrapperServer = startHealthcheckWrapper();
   const envioCommand = resolveEnvioCommand();
 
-  if (isStartCommand()) {
-    maintenanceMode = true;
-    const status = await new Promise((accept, reject) => {
-      const check = spawn(
-        process.execPath,
-        [resolve(scriptDir, "check-envio-storage.mjs"), ...envioArgs],
-        { cwd: indexerDir, env: process.env, stdio: "inherit", timeout: 30_000 }
-      );
-      check.once("error", reject);
-      check.once("exit", (code) => accept(code));
-    });
-    if (status !== 0 && status !== 78) {
-      wrapperServer?.close();
-      process.exit(1);
-    }
-    maintenanceMode = status === 78;
-    if (maintenanceMode)
-      console.log(
-        "Envio storage is incompatible. Ingestion is paused until an operator runs indexer:reset:railway for this environment. No reset was performed."
-      );
-  }
-
   let child;
   let resetStep;
   let resetServer;
@@ -578,7 +556,7 @@ export const run = async () => {
       process.exit(code ?? 1);
     });
   };
-  if (!maintenanceMode) startChild();
+  startChild();
 
   if (isStartCommand()) {
     for (const signal of ["SIGINT", "SIGTERM"])

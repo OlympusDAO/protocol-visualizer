@@ -50,7 +50,7 @@ The [PG18 reset/reindex runbook](postgresql18-rebuild.md) owns production image/
 contracts, derived versus non-rebuildable data, backup and separate data-loss
 approval. An Envio reset must preserve external metadata/effect caches and Hasura
 customizations as required by that inventory; the separate eRPC cache and bucket
-are not reset targets. Envio is pinned to 3.18.1 with a fail-closed native compatibility preflight.
+are not reset targets. Envio is pinned to 3.18.1; native startup refuses incompatible storage with a nonzero exit and never resets it automatically.
 
 Every published Compose port binds `127.0.0.1`; containers still communicate on
 the Compose network. Loopback does not authenticate local processes. Development

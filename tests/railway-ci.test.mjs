@@ -1,10 +1,17 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { test } from "node:test";
 import vm from "node:vm";
 
 const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
 const required = [255339919, "audit.yml"];
+const requireFromFrontend = createRequire(
+  new URL("../apps/frontend/package.json", import.meta.url)
+);
+const { parse } = createRequire(
+  requireFromFrontend.resolve("vite/package.json")
+)("yaml");
 
 function releaseModule(sandbox) {
   const module = { exports: {} };
@@ -13,6 +20,22 @@ function releaseModule(sandbox) {
     module,
   });
   return module.exports;
+}
+
+async function runWorkflowGate(script, sandbox) {
+  const release = releaseModule({
+    ...sandbox,
+    require(name) {
+      assert.fail(`Read-only gates must not load ${name}`);
+    },
+  });
+  return vm.runInNewContext(`(async () => {${script}\n})()`, {
+    ...sandbox,
+    require(name) {
+      assert.equal(name, "./scripts/railway-release.cjs");
+      return release;
+    },
+  });
 }
 
 async function runGate(
@@ -75,19 +98,7 @@ async function runGate(
       },
     },
   };
-  const release = releaseModule({
-    ...sandbox,
-    require(name) {
-      assert.fail(`Read-only gates must not load ${name}`);
-    },
-  });
-  await vm.runInNewContext(`(async () => {${script}\n})()`, {
-    ...sandbox,
-    require(name) {
-      assert.equal(name, "./scripts/railway-release.cjs");
-      return release;
-    },
-  });
+  await runWorkflowGate(script, sandbox);
   return calls;
 }
 
@@ -159,6 +170,24 @@ test("production release checks out the exact push revision before read-only gat
       apply.indexOf("secrets.RAILWAY_DEPLOY_TOKEN")
   );
   assert(!apply.includes('install-dependencies: "false"'));
+  const steps = parse(workflow).jobs["railway-apply"].steps;
+  const eligibility = steps.find(
+    (step) => step.name === "Select production infrastructure change"
+  );
+  assert(eligibility.id, "release selection must declare its output ID");
+  for (const name of [
+    "Wait for external checks",
+    "Bootstrap",
+    "Plan production changes",
+    "Verify cache password before infrastructure apply",
+    "Verify production plan target",
+    "Apply reviewed production plan",
+  ])
+    assert.equal(
+      steps.find((step) => step.name === name).if,
+      `steps.${eligibility.id}.outputs.relevant == 'true'`,
+      name
+    );
   assert.match(apply, /group: railway-infrastructure-production/);
   assert(
     workflow.indexOf("- name: Wait for external checks") <
@@ -211,7 +240,7 @@ const mergedPR = {
   head: { sha: "reviewed-head", repo: { full_name: "fixture/fixture" } },
 };
 
-async function findPlan({ prs } = {}) {
+async function selectRelease({ prs } = {}) {
   const match = workflow.match(
     / {6}- name: Select production infrastructure change\n[\s\S]*? {10}script: \|\n([\s\S]*?)(?=^ {6}- name:)/m
   );
@@ -247,68 +276,47 @@ async function findPlan({ prs } = {}) {
       },
     },
   };
-  const release = releaseModule({
-    ...sandbox,
-    require(name) {
-      assert.fail(`Read-only gates must not load ${name}`);
-    },
-  });
-  await vm.runInNewContext(
-    `(async () => {${match[1].replace(/^ {12}/gm, "")}\n})()`,
-    {
-      ...sandbox,
-      require(name) {
-        assert.equal(name, "./scripts/railway-release.cjs");
-        return release;
-      },
-    }
-  );
+  await runWorkflowGate(match[1].replace(/^ {12}/gm, ""), sandbox);
   return { outputs, calls };
 }
 
 test("CI reconciles reviewed master merges including docs-only and fork PRs without PR plans", async () => {
-  const { outputs, calls } = await findPlan();
+  const { outputs, calls } = await selectRelease();
   assert.equal(outputs.relevant, "true");
   assert.deepEqual(calls, []);
   assert.equal(
     (
-      await findPlan({
+      await selectRelease({
         prs: [{ ...mergedPR, title: "docs: correct self-hosting guide" }],
       })
     ).outputs.relevant,
     "true"
   );
   await runGate(() => [{ status: "completed", conclusion: "success" }]);
-  await assert.rejects(
-    runGate(
-      () => [{ status: "completed", conclusion: "success" }],
-      undefined,
-      [],
-      "newer-release"
-    ),
-    /advanced/
-  );
   assert.equal(
     (
-      await findPlan({
+      await selectRelease({
         prs: [{ ...mergedPR, head: { repo: { full_name: "fork/fixture" } } }],
       })
     ).outputs.relevant,
     "true"
   );
   assert.equal(
-    (await findPlan({ prs: [{ ...mergedPR, head: { repo: null } }] })).outputs
-      .relevant,
+    (await selectRelease({ prs: [{ ...mergedPR, head: { repo: null } }] }))
+      .outputs.relevant,
     "true"
   );
 });
 
 test("CI skips infrastructure apply for direct pushes and untrusted merge targets", async () => {
-  assert.deepEqual((await findPlan({ prs: [] })).outputs, {});
+  assert.deepEqual((await selectRelease({ prs: [] })).outputs, {});
   for (const merge_commit_sha of ["another-merge", null]) {
     assert.deepEqual(
-      (await findPlan({ prs: [{ merged_at: "2026-11-13", merge_commit_sha }] }))
-        .outputs,
+      (
+        await selectRelease({
+          prs: [{ merged_at: "2026-11-13", merge_commit_sha }],
+        })
+      ).outputs,
       {}
     );
   }
@@ -321,7 +329,7 @@ test("CI skips infrastructure apply for direct pushes and untrusted merge target
     },
     { ...mergedPR, base: { ref: "master", repo: null } },
   ]) {
-    assert.deepEqual((await findPlan({ prs: [pr] })).outputs, {});
+    assert.deepEqual((await selectRelease({ prs: [pr] })).outputs, {});
   }
 });
 

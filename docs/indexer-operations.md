@@ -209,8 +209,14 @@ Retain the snapshot bucket, manifest, Hasura service and separate eRPC storage.
 Deploy the approved image with the normal start command. If native startup
 refuses the schema, ingestion stays stopped while the parent retains reset
 control. Inspect the error. After separate reset approval and confirmation that
-every other ingestion writer has stopped, use the existing
-`indexer:reset:railway` command above. It drains any remaining child processes,
+every other ingestion writer has stopped, run from the repository root:
+
+```bash
+pnpm indexer:reset:railway --environment production
+```
+
+Replace `production` with the selected environment name or ID.
+It drains any remaining child processes,
 runs native setup, and restarts ingestion only after setup succeeds. It stops
 only its own process group, so the single-writer check still applies.
 

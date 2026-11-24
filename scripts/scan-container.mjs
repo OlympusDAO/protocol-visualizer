@@ -54,7 +54,6 @@ try {
       path.join(root, ".trivyignore"),
       "--exit-code",
       "1",
-      `--ignore-unfixed=${["hasura", "indexer"].includes(service)}`,
       image,
     ],
     engine === "docker" && process.env.DOCKER_CONTEXT

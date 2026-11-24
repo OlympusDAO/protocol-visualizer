@@ -86,6 +86,8 @@ export default defineRailway((ctx) => {
       (key) => [key, ref(storage, key)]
     )
   );
+  const indexerMetricsUrl =
+    "http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:${{indexer.PORT}}/metrics";
 
   const snapshotPublisher = service("snapshot-publisher", {
     source,
@@ -95,8 +97,7 @@ export default defineRailway((ctx) => {
       HASURA_GRAPHQL_ADMIN_SECRET: ctx.shared.HASURA_GRAPHQL_ADMIN_SECRET,
       HASURA_GRAPHQL_URL:
         "http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql",
-      INDEXER_METRICS_URL:
-        "http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:${{indexer.PORT}}/metrics",
+      INDEXER_METRICS_URL: indexerMetricsUrl,
       DISCORD_WEBHOOK_URL: ctx.shared.DISCORD_WEBHOOK_URL,
     },
     build: {
@@ -213,6 +214,29 @@ export default defineRailway((ctx) => {
     replicas: { "us-west2": 1 },
   });
 
+  const indexerMonitor = service("indexer-monitor", {
+    source,
+    env: {
+      INDEXER_METRICS_URL: indexerMetricsUrl,
+      DISCORD_WEBHOOK_URL: ctx.shared.DISCORD_WEBHOOK_URL,
+      MONITOR_NAME: `Visualizer ${production ? "production" : (ctx.environmentName ?? "default")}`,
+    },
+    build: {
+      builder: "DOCKERFILE",
+      dockerfilePath: "Dockerfile-indexer-monitor",
+      watchPatterns: [
+        "/Dockerfile-indexer-monitor",
+        "/apps/indexer/src/monitor-indexer.mjs",
+      ],
+      buildEnvironment: "V3",
+    },
+    deploy: {
+      restartPolicyMaxRetries: 1,
+      limitOverride: { containers: { cpu: 0.5, memoryBytes: 1000000000 } },
+    },
+    replicas: { "us-west2": 1 },
+  });
+
   const frontend = service("frontend", {
     tcp: [],
     source,
@@ -251,8 +275,7 @@ export default defineRailway((ctx) => {
     env: {
       ...bucketVariables,
       ...rpcUrls("RPC_URL_"),
-      INDEXER_METRICS_URL:
-        "http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:${{indexer.PORT}}/metrics",
+      INDEXER_METRICS_URL: indexerMetricsUrl,
       DISCORD_WEBHOOK_URL: ctx.shared.DISCORD_WEBHOOK_URL,
     },
     build: {
@@ -298,7 +321,11 @@ export default defineRailway((ctx) => {
     deploy: { restartPolicyMaxRetries: 1 },
   });
 
-  const privateIndexing = group("Private Indexing", [hasura, indexer]);
+  const privateIndexing = group("Private Indexing", [
+    hasura,
+    indexer,
+    indexerMonitor,
+  ]);
   const data = group("Data", [envioDatabase]);
   const publicGroup = group("Public", [snapshotGateway, frontend]);
   const definition = {
@@ -308,7 +335,9 @@ export default defineRailway((ctx) => {
       ignore: [
         "ENVIO_RPC_MODE",
         "INDEXER_DEPLOYMENT_ID",
-        "MONITOR_*",
+        "snapshot-monitor/MONITOR_*",
+        "snapshot-publisher/MONITOR_*",
+        "indexer-monitor/MONITOR_INTERVAL_SECONDS",
         "SNAPSHOT_*",
         "PUBLISHER_*",
         "PROTOCOL_CHAINS_CONFIG_PATH",

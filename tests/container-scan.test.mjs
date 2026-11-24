@@ -15,7 +15,15 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { database, image, redis, service } from "railway/iac";
+import {
+  createRailwayContext,
+  database,
+  image,
+  redis,
+  service,
+} from "railway/iac";
+import defineInfrastructure from "../.railway/railway.ts";
+import { ownedImages } from "../scripts/container.mjs";
 import {
   imageInventory,
   runtimeImageInventory,
@@ -168,6 +176,25 @@ test("offline SDK production/preview inventory covers actual refs without Railwa
   const preview = await runtimeImageInventory("preview");
   assert.deepEqual(preview, production);
   assert.equal(production.length, 4);
+  const { resources } = await defineInfrastructure(
+    createRailwayContext({ environment: "production" })
+  );
+  const monitor = resources.find(
+    (resource) => resource.name === "indexer-monitor"
+  );
+  assert.equal(monitor.build.dockerfilePath, "Dockerfile-indexer-monitor");
+  assert.deepEqual(imageInventory([monitor], ""), []);
+  for (const [name, dockerfilePath] of [
+    ["indexer-monitor", "Dockerfile-indexer"],
+    ["unknown-service", "Dockerfile-unknown-service"],
+  ]) {
+    const invalid = {
+      ...monitor,
+      name,
+      build: { ...monitor.build, dockerfilePath },
+    };
+    assert.throws(() => imageInventory([invalid], ""), /owned image build/);
+  }
   assert.deepEqual(
     production.find((row) => row.kind === "provider").resources.sort(),
     ["Postgres", "rpc-cache-postgres"]
@@ -251,10 +278,9 @@ test("owned scans use the selected context without changing Podman selection", (
   }
 });
 
-test("owned scans use local tags and preserve unfixed/secret policy without exports", (t) => {
+test("owned scans use local tags and leave unfixed filtering to Trivy config", (t) => {
   const f = fixture(t);
   const result = f.run("scripts/scan-container.mjs", ["hasura"], {
-    TRIVY_IGNORE_UNFIXED: "false",
     TRIVY_FORMAT: "json",
   });
   assert.equal(result.status, 0, result.stderr);
@@ -268,22 +294,24 @@ test("owned scans use local tags and preserve unfixed/secret policy without expo
   assert.equal(scan.at(-1), "protocol-visualizer/hasura:local");
   assert.equal(scan[scan.indexOf("--image-src") + 1], "podman");
   assert(!f.calls().some((call) => call[0] === "docker"));
-  assert(scan.includes("--ignore-unfixed=true"));
+  assert(!scan.some((arg) => arg.startsWith("--ignore-unfixed")));
   assert.equal(scan[scan.indexOf("--scanners") + 1], "vuln,secret");
   assert.equal(scan[scan.indexOf("--image-config-scanners") + 1], "secret");
   assert.equal(scan[scan.indexOf("--format") + 1], "table");
   assert(!f.calls().some((c) => c.includes("save") || c.includes("--input")));
-  const negative = fixture(t);
-  assert.equal(
-    negative.run("scripts/scan-container.mjs", ["frontend"], {
-      PV_TEST_SECRET: "1",
-      TRIVY_IGNORE_UNFIXED: "true",
-    }).status,
-    1
-  );
-  const negativeScan = negative.calls().at(-1);
-  assert(negativeScan.includes("--ignore-unfixed=false"));
-  assert.equal(negativeScan[negativeScan.indexOf("--exit-code") + 1], "1");
+  for (const name of ["frontend", "indexer", "indexer-monitor"]) {
+    const negative = fixture(t);
+    assert.equal(
+      negative.run("scripts/scan-container.mjs", [name], {
+        PV_TEST_SECRET: "1",
+      }).status,
+      1
+    );
+    const negativeScan = negative.calls().at(-1);
+    assert.equal(negativeScan.at(-1), `protocol-visualizer/${name}:local`);
+    assert(!negativeScan.some((arg) => arg.startsWith("--ignore-unfixed")));
+    assert.equal(negativeScan[negativeScan.indexOf("--exit-code") + 1], "1");
+  }
   const missing = fixture(t);
   assert.equal(
     missing.run("scripts/scan-container.mjs", ["indexer"], {
@@ -304,6 +332,7 @@ test("owned scans use local tags and preserve unfixed/secret policy without expo
     1
   );
   const externalScan = external.calls().find((c) => c[0] === "trivy");
+  assert(!externalScan.some((arg) => arg.startsWith("--ignore-unfixed")));
   assert.equal(
     externalScan[externalScan.indexOf("--scanners") + 1],
     "vuln,secret"
@@ -356,12 +385,14 @@ test("image validation builds and scans all local tags and preserves fail-fast p
   const images = [
     "rpc-cache",
     "indexer",
+    "indexer-monitor",
     "frontend",
     "hasura",
     "snapshot-gateway",
     "snapshot-publisher",
     "snapshot-monitor",
   ];
+  assert.deepEqual(ownedImages, images);
   const builds = images.map((image) => [
     "pnpm",
     "run",

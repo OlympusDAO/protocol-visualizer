@@ -144,9 +144,11 @@ for (const dockerfilePath of DOCKERFILES) {
     /corepack\s+prepare\s+pnpm@([^\s]+)\s+--activate/i
   );
   if (!pnpmMatch) {
-    fail(
-      `${dockerfilePath} must install pnpm using corepack prepare pnpm@<version> --activate.`
-    );
+    if (dockerfilePath !== "Dockerfile-indexer-monitor")
+      fail(
+        `${dockerfilePath} must install pnpm using corepack prepare pnpm@<version> --activate.`
+      );
+    continue;
   }
 
   const dockerPnpmVersion = pnpmMatch[1].trim();

@@ -48,8 +48,9 @@ async function scanImages() {
         path.join(root, "node_modules/.cache/container-scan/trivy"),
         "--scanners",
         provider ? "vuln" : "vuln,secret",
-        ...(!provider ? ["--image-config-scanners", "secret"] : []),
-        "--ignore-unfixed=false",
+        ...(provider
+          ? ["--ignore-unfixed=false"]
+          : ["--image-config-scanners", "secret"]),
         "--severity",
         "MEDIUM,HIGH,CRITICAL",
         "--ignorefile",

@@ -97,6 +97,32 @@ ordinary crash does not mean a reset is needed. A clean child exit, one-off
 command completion, parent shutdown, or spawn/control-setup failure still exits
 the wrapper.
 
+## Indexer availability alerts
+
+The private Railway `indexer-monitor` service runs in a dedicated, pinned
+Node Alpine image that copies only the monitor script. It checks the indexer's
+native `/metrics` endpoint. An HTTP 2xx means the metrics endpoint is reachable,
+even while Envio is backfilling. Check `/ready` and committed block progress
+separately to verify catch-up and indexing activity.
+
+In each Railway environment, set the shared `DISCORD_WEBHOOK_URL` variable.
+IaC supplies the private `INDEXER_METRICS_URL` and the `MONITOR_NAME` environment
+label. Both URLs are required and must use HTTP or HTTPS without embedded
+usernames or passwords. Startup validates them before any requests. Missing or
+invalid values cause exit status `1` without logging their values. The optional
+`MONITOR_NAME` defaults to `Indexer`. The optional `MONITOR_INTERVAL_SECONDS`
+defaults to 60 and accepts whole numbers from `1` to `2147483`.
+
+After two consecutive failed probes, the monitor sends one outage message. It
+sends one recovery message when metrics return HTTP 2xx. Incident state lives
+in memory, so a new process can report the same continuing outage. The monitor
+never resets the indexer. If the monitor is down or Discord delivery fails,
+the alert may be missed. Invalid configuration exits with status `1`. Failed
+delivery logs a fixed message and retries on the next polling interval while
+the alert remains relevant. Successful deliveries are not repeated. A lost
+webhook response can cause a duplicate message on retry. The
+scheduled `snapshot-monitor` continues its daily snapshot and indexing checks.
+
 ## Reset the Railway indexer from your local machine
 
 **This operation drops and recreates the Envio schema.** Record the recovery

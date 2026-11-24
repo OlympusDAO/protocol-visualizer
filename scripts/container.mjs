@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 export const ownedImages = [
   "rpc-cache",
   "indexer",
+  "indexer-monitor",
   "frontend",
   "hasura",
   "snapshot-gateway",

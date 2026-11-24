@@ -155,6 +155,7 @@ test("CI exposes complete image coverage using existing build, scan and integrat
   const dockerfiles = readFileSync("scripts/scan-dockerfiles.mjs", "utf8");
   for (const name of [
     "indexer",
+    "indexer-monitor",
     "frontend",
     "hasura",
     "snapshot-gateway",
@@ -162,12 +163,17 @@ test("CI exposes complete image coverage using existing build, scan and integrat
     "snapshot-monitor",
     "rpc-cache",
   ]) {
-    assert(scripts["docker:build"].includes(`docker:build:${name}`));
+    assert(
+      scripts["docker:build"]
+        .split(" && ")
+        .includes(`pnpm run docker:build:${name}`)
+    );
     assert(validator.includes(name));
     assert(workflow.includes(`- image: ${name}\n`));
   }
   for (const dockerfile of [
     "Dockerfile-indexer",
+    "Dockerfile-indexer-monitor",
     "Dockerfile-frontend",
     "Dockerfile-hasura",
     "Dockerfile-snapshot-gateway",
@@ -177,6 +183,10 @@ test("CI exposes complete image coverage using existing build, scan and integrat
   ]) {
     assert(existsSync(dockerfile));
   }
+  assert.equal(
+    scripts["docker:build:indexer-monitor"],
+    "node scripts/container.mjs build -f Dockerfile-indexer-monitor -t protocol-visualizer/indexer-monitor:local ."
+  );
   assert(workflow.includes("fail-fast: false"));
   assert(workflow.includes("run: pnpm run docker:build:${{ matrix.image }}"));
   assert(workflow.includes("run: pnpm run docker:scan -- ${{ matrix.image }}"));
@@ -515,6 +525,26 @@ test("Dockerfiles remove package managers from runtime images", () => {
   assert(
     !indexer.includes('CMD ["pnpm"'),
     "Dockerfile-indexer should not use pnpm as runtime command"
+  );
+});
+
+test("Indexer monitor image runs only the monitor on the pinned non-root Node base", () => {
+  const content = dockerfileContent("Dockerfile-indexer-monitor");
+  assert.equal(content.match(/^FROM\b/gm)?.length, 1);
+  assert.match(
+    content,
+    /^FROM node:\d+\.\d+\.\d+-alpine@sha256:[0-9a-f]{64}$/m
+  );
+  assert.match(content, /^WORKDIR \/app$/m);
+  assert.deepEqual(content.match(/^COPY\s+.+$/gm), [
+    "COPY --chown=node:node apps/indexer/src/monitor-indexer.mjs ./monitor-indexer.mjs",
+  ]);
+  assert.match(content, /^USER node$/m);
+  assert.match(content, /^CMD \["node", "monitor-indexer\.mjs"\]$/m);
+  assert.doesNotMatch(content, /^(?:ADD|ENTRYPOINT|EXPOSE)\b/m);
+  assert.doesNotMatch(
+    content,
+    /\b(?:apk\s+add|corepack\s+(?:enable|prepare)|(?:npm|pnpm|yarn)\s+(?:ci|install|add))\b/
   );
 });
 

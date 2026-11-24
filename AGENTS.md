@@ -25,11 +25,19 @@ After removing historical sweeps/archive entities, use `pnpm benchmark:indexer:c
 - pnpm version must align across `package.json` (`packageManager` and `engines.pnpm`) and Dockerfiles.
 - `@types/node` should stay consistent across root and workspace packages that declare it.
 
-## Trivy Ignore Policy
+## Service environment variables
 
-- Do not add new CVEs/packages to `.trivyignore` when a practical remediation exists (package update, base image update, or config change).
-- If no practical remediation exists, ask for explicit user approval before adding to `.trivyignore`.
-- Every `.trivyignore` entry must document the affected package and installed version.
+Treat service environment variables as required unless the runbook explicitly
+marks them optional and states their default or behavior when absent.
+Validate required values at service startup before network or database requests.
+Exit nonzero on missing or invalid configuration. Log the variable name or a
+fixed diagnostic, never its value. Validate optional values when supplied.
+
+## Image security policy
+
+- Gate every owned image with native Trivy. The root `trivy.yaml` excludes unfixed vulnerabilities by default. Keep owned scan commands free of CLI overrides for this setting. Fixable vulnerabilities and secret findings at MEDIUM, HIGH and CRITICAL fail the gate, as do scan execution errors.
+- Fix vulnerable packages, base images or configuration where practical. Any CVE exception requires explicit user approval and a comment documenting the affected package, installed version and rationale. Use a native `.trivyignore` entry in the form `ID exp:YYYY-MM-DD`. Remove the entry when fixed. Trivy enforces the expiration.
+- Keep provider advisories separate. Include unfixed vulnerabilities in vulnerability-only reports, return zero for findings and fail on scan execution errors. Report local fixture exclusions, unrun scans and historical results distinctly from current passes.
 
 ## Maintenance conventions
 

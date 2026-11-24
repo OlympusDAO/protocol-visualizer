@@ -7,6 +7,7 @@ const managedServices = new Set([
   "Postgres",
   "rpc-cache-postgres",
   "indexer",
+  "indexer-monitor",
   "hasura",
   "rpc-cache",
   "snapshot-publisher",

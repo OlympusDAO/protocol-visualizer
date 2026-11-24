@@ -28,6 +28,8 @@ jobs:
             name: Cache + integration
           - image: indexer
             name: Indexer
+          - image: indexer-monitor
+            name: Indexer monitor
           - image: frontend
             name: Frontend
           - image: hasura

@@ -8,7 +8,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, matchesGlob } from "node:path";
 import { test } from "node:test";
 import { createRailwayContext } from "railway/iac";
 import { existingResources, tcpRemovals } from "../.railway/postgres-policy.ts";
@@ -42,6 +42,7 @@ test("whole-project IaC retains storage and wires services without embedding sec
       "service.frontend",
       "service.hasura",
       "service.indexer",
+      "service.indexer-monitor",
       "service.rpc-cache",
       "service.snapshot-gateway",
       "service.snapshot-monitor",
@@ -133,7 +134,7 @@ test("whole-project IaC retains storage and wires services without embedding sec
         !node.build.watchPatterns.some((path) => path.startsWith("/.railway/"))
       );
       assert(node.build.watchPatterns.includes(`/Dockerfile-${node.name}`));
-      if (!["hasura", "rpc-cache"].includes(node.name))
+      if (!["hasura", "indexer-monitor", "rpc-cache"].includes(node.name))
         assert(node.build.watchPatterns.includes("/package.json"));
       assert(node.variables);
       assert.equal(node.configFile, undefined);
@@ -227,6 +228,65 @@ test("whole-project IaC retains storage and wires services without embedding sec
           0
         );
     }
+  }
+});
+
+test("indexer monitor uses the private native metrics route and its own image", async () => {
+  for (const environment of ["production", "protocol-visualizer-pr-82"]) {
+    const { definition, resources } = await infrastructure(environment);
+    const monitor = resources.find((node) => node.name === "indexer-monitor");
+    const indexer = resources.find((node) => node.name === "indexer");
+    assert.equal(monitor.groupId, "Private Indexing");
+    assert.deepEqual(monitor.source, indexer.source);
+    assert.deepEqual(monitor.build, {
+      builder: "DOCKERFILE",
+      dockerfilePath: "Dockerfile-indexer-monitor",
+      watchPatterns: [
+        "/Dockerfile-indexer-monitor",
+        "/apps/indexer/src/monitor-indexer.mjs",
+      ],
+      buildEnvironment: "V3",
+    });
+    assert.deepEqual(monitor.variables, {
+      INDEXER_METRICS_URL: {
+        type: "literal",
+        value:
+          "http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:${{indexer.PORT}}/metrics",
+      },
+      DISCORD_WEBHOOK_URL: {
+        type: "sharedReference",
+        name: "DISCORD_WEBHOOK_URL",
+      },
+      MONITOR_NAME: { type: "literal", value: `Visualizer ${environment}` },
+    });
+    const isIgnored = (service, key) =>
+      definition.variables.ignore.some((pattern) => {
+        const [nameOrGlob, glob] = pattern.split("/");
+        return glob === undefined
+          ? matchesGlob(key, nameOrGlob)
+          : nameOrGlob === service && matchesGlob(key, glob);
+      });
+    for (const key of Object.keys(monitor.variables))
+      assert.equal(
+        isIgnored(monitor.name, key),
+        false,
+        `${key} is IaC managed`
+      );
+    assert.equal(isIgnored(monitor.name, "MONITOR_INTERVAL_SECONDS"), true);
+    for (const name of ["snapshot-monitor", "snapshot-publisher"])
+      for (const key of ["MONITOR_STATE_KEY", "MONITOR_STALE_CHAIN_HOURS"])
+        assert.equal(isIgnored(name, key), true);
+    assert.deepEqual(monitor.deploy, {
+      restartPolicyMaxRetries: 1,
+      limitOverride: { containers: { cpu: 0.5, memoryBytes: 1000000000 } },
+      multiRegionConfig: { "us-west2": { numReplicas: 1 } },
+    });
+    assert.deepEqual(monitor.networking, {
+      tcpProxies: {},
+      serviceDomains: {},
+      customDomains: {},
+    });
+    assert.equal(monitor.volumeAttachments, undefined);
   }
 });
 
@@ -365,12 +425,14 @@ test("database planning preserves larger volumes and rejects incomplete lookups"
       "Postgres",
       "hasura",
       "indexer",
+      "indexer-monitor",
       "snapshot-publisher",
       "snapshot-monitor",
     ]);
     for (const name of [
       "hasura",
       "indexer",
+      "indexer-monitor",
       "snapshot-publisher",
       "snapshot-monitor",
     ])
@@ -390,6 +452,7 @@ test("database planning preserves larger volumes and rejects incomplete lookups"
     for (const name of [
       "hasura",
       "indexer",
+      "indexer-monitor",
       "snapshot-publisher",
       "snapshot-monitor",
     ]) {
@@ -404,15 +467,17 @@ test("database planning preserves larger volumes and rejects incomplete lookups"
       { 5432: null }
     );
     for (const kind of ["serviceDomains", "customDomains"]) {
-      const exposed = response(["hasura"]);
-      exposed.data.environment.serviceInstances.edges[0].node.domains[
-        kind
-      ].push({ domain: "fixture.example" });
-      fixture(exposed);
-      assert.throws(
-        () => existingResources(ctx),
-        /Verify private HTTP domains/
-      );
+      for (const name of ["hasura", "indexer-monitor"]) {
+        const exposed = response([name]);
+        exposed.data.environment.serviceInstances.edges[0].node.domains[
+          kind
+        ].push({ domain: "fixture.example" });
+        fixture(exposed);
+        assert.throws(
+          () => existingResources(ctx),
+          /Verify private HTTP domains/
+        );
+      }
     }
     const incompleteDomain = response(["indexer"]);
     delete incompleteDomain.data.environment.serviceInstances.edges[0].node

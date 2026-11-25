@@ -90,7 +90,7 @@ test("shortens deployment ids for Discord output", () => {
 });
 
 test("sends one daily indexing summary", () => {
-  const result = evaluateMonitor({
+  const input: Parameters<typeof evaluateMonitor>[0] = {
     chains: [mainnet],
     environmentName: "protocol-visualizer-pr-49",
     deploymentId: "deployment-a",
@@ -100,7 +100,8 @@ test("sends one daily indexing summary", () => {
     state: {},
     now: new Date("2026-06-05T01:00:00.000Z"),
     staleThresholdMs: Number.MAX_SAFE_INTEGER,
-  });
+  };
+  const result = evaluateMonitor(input);
   assert.equal(result.messages.length, 1);
   assert.match(
     result.messages[0] ?? "",
@@ -133,6 +134,14 @@ test("sends one daily indexing summary", () => {
     },
   ]);
   assert.equal(result.state.lastDailySummaryAt, "2026-06-05");
+  const production = evaluateMonitor({
+    ...input,
+    environmentName: "production",
+  });
+  assert.equal(
+    production.discordMessages[0]?.embeds?.[0]?.description,
+    undefined
+  );
 });
 
 test("groups all nine indexed chains by catalog environment with full-width status rows", () => {
@@ -419,7 +428,10 @@ test("monitor displays unavailable timestamps without epoch dates or Discord epo
 });
 
 test("monitor attempts both groups and saves summary state only after complete delivery", async (t) => {
-  const bodies: Array<{ content: string }> = [];
+  const bodies: Array<{
+    content: string;
+    embeds: Array<{ description?: string }>;
+  }> = [];
   const savedStates: unknown[] = [];
   let failedIndex = -1;
   t.mock.method(console, "log", () => {});
@@ -450,7 +462,8 @@ test("monitor attempts both groups and saves summary state only after complete d
         },
         webhookUrl: "http://discord.local/private-webhook-token",
         stateKey: "monitor-state",
-        environmentName: "protocol-visualizer-pr-49",
+        environmentName: "renamed-production",
+        production: true,
         deploymentId: "deployment-a",
         now: new Date("2026-06-05T01:00:00.000Z"),
         staleThresholdMs: Number.MAX_SAFE_INTEGER,
@@ -465,6 +478,8 @@ test("monitor attempts both groups and saves summary state only after complete d
       assert.equal(savedStates.length, 0);
     }
     assert.equal(bodies.length, 2);
+    for (const body of bodies)
+      assert.equal(body.embeds[0]?.description, undefined);
     assert.match(bodies[0]?.content ?? "", /Production chains$/);
     assert.match(bodies[1]?.content ?? "", /Testnets$/);
   }
@@ -581,6 +596,7 @@ test("logs a sanitized stage when indexer metrics cannot be fetched", async () =
     ACCESS_KEY_ID: "test-access-key",
     SECRET_ACCESS_KEY: "test-secret-key",
     DISCORD_WEBHOOK_URL: "http://discord.local/webhook",
+    DISCORD_WEBHOOK_URL_PREVIEW: "http://discord.local/webhook",
   });
 
   try {
@@ -630,6 +646,7 @@ test("logs missing storage configuration during configuration loading", async ()
     ACCESS_KEY_ID: "test-access-key",
     SECRET_ACCESS_KEY: "test-secret-key",
     DISCORD_WEBHOOK_URL: "http://discord.local/webhook",
+    DISCORD_WEBHOOK_URL_PREVIEW: "http://discord.local/webhook",
   });
   delete process.env.BUCKET;
 
@@ -655,7 +672,9 @@ test("logs a missing webhook before creating storage or fetching metrics", async
   const originalEnv = { ...process.env };
   const errors: Array<{ message: string; details: Record<string, unknown> }> =
     [];
-  delete process.env.DISCORD_WEBHOOK_URL;
+  process.env.RAILWAY_ENVIRONMENT_NAME = "protocol-visualizer-pr-42";
+  process.env.DISCORD_WEBHOOK_URL = "https://discord.example/production";
+  delete process.env.DISCORD_WEBHOOK_URL_PREVIEW;
   delete process.env.BUCKET;
   const fetchMock = t.mock.method(globalThis, "fetch", async () => {
     throw new Error("unexpected network request");
@@ -667,7 +686,7 @@ test("logs a missing webhook before creating storage or fetching metrics", async
           error: (message, details) => errors.push({ message, details }),
           info: () => undefined,
         }),
-      /DISCORD_WEBHOOK_URL is required/
+      /DISCORD_WEBHOOK_URL_PREVIEW is required/
     );
   } finally {
     process.env = originalEnv;
@@ -675,7 +694,10 @@ test("logs a missing webhook before creating storage or fetching metrics", async
   assert.equal(fetchMock.mock.calls.length, 0);
   assert.equal(errors.length, 1);
   assert.equal(errors[0]?.details.stage, "load_configuration");
-  assert.equal(errors[0]?.details.message, "DISCORD_WEBHOOK_URL is required");
+  assert.equal(
+    errors[0]?.details.message,
+    "DISCORD_WEBHOOK_URL_PREVIEW is required"
+  );
 });
 
 test("rejects over 25 fields per embed before sending, allowing 25 in each embed", async (t) => {

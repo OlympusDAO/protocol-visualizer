@@ -88,8 +88,8 @@ For new contracts and getter links, use the
 Quick local indexer commands:
 
 ```bash
-pnpm run indexer:dev
-pnpm run indexer:dev:reset
+pnpm run dev:indexer
+pnpm run dev:indexer:reset
 pnpm run indexer:metrics
 ```
 

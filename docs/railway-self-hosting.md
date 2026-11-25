@@ -131,8 +131,8 @@ restrictions.
 | -------------------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
 | `rpc-cache`          | `PORT=4000`; `RPC_CACHE_DATABASE_URL` references `rpc-cache-postgres.DATABASE_URL`                     | Nine `UPSTREAM_RPC_URL_<id>` values; optional `RPC_CACHE_MAX_RPS` |
 | `indexer`            | Nine `ENVIO_RPC_URL_<id>` paths through `rpc-cache`; Envio database and Hasura references; `PORT=9898` | `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY`; optional `ENVIO_RPC_MODE` |
-| `snapshot-publisher` | Nine `RPC_URL_<id>` paths; bucket, Hasura, indexer metrics, and shared webhook references              | Shared `DISCORD_WEBHOOK_URL` value; optional operator overrides   |
-| `snapshot-monitor`   | Nine `RPC_URL_<id>` paths; bucket, indexer metrics, and shared webhook references                      | Shared `DISCORD_WEBHOOK_URL` value; optional operator overrides   |
+| `snapshot-publisher` | Nine `RPC_URL_<id>` paths; bucket, Hasura, indexer metrics, and shared preview webhook reference       | Production webhook; shared preview webhook; optional overrides    |
+| `snapshot-monitor`   | Nine `RPC_URL_<id>` paths; bucket, indexer metrics, and shared preview webhook reference               | Production webhook; shared preview webhook; optional overrides    |
 | `snapshot-gateway`   | Five bucket references; `PORT=8080`                                                                    | Optional operator overrides                                       |
 | `hasura`             | Envio database reference; shared admin-secret reference; `PORT=8080`                                   | The shared `HASURA_GRAPHQL_ADMIN_SECRET` value                    |
 | `frontend`           | HTTPS URL from `snapshot-gateway.RAILWAY_PUBLIC_DOMAIN`                                                | None for these connections                                        |
@@ -147,12 +147,17 @@ API token, or webhook. Supply required secrets in Railway before deploying the s
 The RPC cache fails clearly at runtime when a required upstream value is absent.
 Builds and IaC evaluation do not need provider credentials.
 
-Add `DISCORD_WEBHOOK_URL` once per environment in Project Settings → Shared Variables.
-IaC sets both snapshot jobs to `${{shared.DISCORD_WEBHOOK_URL}}`; it does not create or overwrite the shared value.
-Use a separate webhook for preview environments. Keep the URL out of source and frontend variables.
-Add the shared value before generating the plan, then review and apply that plan to deploy the references.
+Configure each job's production service value `DISCORD_WEBHOOK_URL` and the
+copyable shared `DISCORD_WEBHOOK_URL_PREVIEW` once in the base environment.
+IaC preserves the production value and declares the preview reference; it does
+not create or seal either secret. The jobs choose at
+startup using Railway's actual environment name, so automatic PR deployments
+need no per-PR plan or apply. See [webhook isolation](discord-notifications.md).
+Keep both URLs out of source and frontend variables. Initial IaC reference changes
+still use the reviewed native plan/apply procedure; setting existing variables
+in Railway's dashboard does not require a plan command.
 Variable changes require a deployment to reach the jobs. Apply the staged changes to deploy the affected services together.
-Both jobs require the webhook. Missing or blank values are logged as errors and
+Both jobs require the selected webhook. Missing or blank values are logged as errors and
 fail pre-deploy checks and job startup before network or storage access.
 See [Discord notification examples](discord-notifications.md) for summaries, warnings, and deployment lifecycle messages.
 
@@ -422,8 +427,8 @@ Here, `preserve()` represents the hidden current value. The update replaces it w
 `«hidden»` means that the CLI redacts the desired value. It does not mean that the variable stays unchanged.
 An explicit `preserve()` in the service's `env` definition retains its existing value.
 Provider URLs and API tokens use that explicit form.
-The snapshot jobs use a shared reference for `DISCORD_WEBHOOK_URL`.
-Set the shared value in the target environment before deployment.
+The snapshot jobs preserve production service values and reference a shared preview webhook.
+Configure their values using [the webhook setup](discord-notifications.md) before deployment.
 Shared references, connection references, and consumer RPC URLs do not use `preserve()`.
 
 Warnings such as `variables.ignore pattern "RPC_CACHE_MAX_RPS" matches no variable` describe absent optional operator variables.
@@ -605,7 +610,9 @@ SECRET_ACCESS_KEY=${{storage.SECRET_ACCESS_KEY}}
 REGION=${{storage.REGION}}
 ENDPOINT=${{storage.ENDPOINT}}
 # INDEXER_DEPLOYMENT_ID=${{shared.INDEXER_DEPLOYMENT_ID}}
-DISCORD_WEBHOOK_URL=${{shared.DISCORD_WEBHOOK_URL}}
+# Production only: set and seal this service variable in Railway.
+DISCORD_WEBHOOK_URL=<production webhook URL>
+DISCORD_WEBHOOK_URL_PREVIEW=${{shared.DISCORD_WEBHOOK_URL_PREVIEW}}
 # MONITOR_STALE_CHAIN_HOURS=24
 ```
 
@@ -626,7 +633,9 @@ handover to a fresh bucket prefix.
 Set on `snapshot-monitor`:
 
 ```bash
-DISCORD_WEBHOOK_URL=${{shared.DISCORD_WEBHOOK_URL}}
+# Production only: set and seal this service variable in Railway.
+DISCORD_WEBHOOK_URL=<production webhook URL>
+DISCORD_WEBHOOK_URL_PREVIEW=${{shared.DISCORD_WEBHOOK_URL_PREVIEW}}
 RAILWAY_ENVIRONMENT_NAME=<provided by Railway>
 INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
 BUCKET=${{storage.BUCKET}}
@@ -639,9 +648,10 @@ ENDPOINT=${{storage.ENDPOINT}}
 # MONITOR_STALE_CHAIN_HOURS=24
 ```
 
-`snapshot-publisher` and `snapshot-monitor` require `DISCORD_WEBHOOK_URL` for their notifications.
-Set the shared webhook value in Railway before deployment. IaC supplies the reference to both snapshot jobs.
-Use a separate Discord webhook for PR environments to keep test alerts out of production channels.
+`snapshot-publisher` and `snapshot-monitor` use `DISCORD_WEBHOOK_URL` in production
+and require `DISCORD_WEBHOOK_URL_PREVIEW` elsewhere. IaC preserves production
+service values and supplies the shared preview reference. Runtime selection also applies to Railway's automatic PR deployments;
+it does not depend on evaluating IaC for each PR and never falls back to production.
 Both pre-deploy checks and job startup log and reject a missing or blank webhook
 without sending a notification. Local publisher file exports do not send notifications.
 The monitor also fails fast if `RAILWAY_ENVIRONMENT_NAME` is missing.

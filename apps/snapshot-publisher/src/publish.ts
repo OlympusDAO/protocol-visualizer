@@ -126,6 +126,49 @@ const getRequiredEnv = (key: string): string => {
   return value;
 };
 
+const isProductionEnvironment = () => {
+  const name =
+    process.env.RAILWAY_ENVIRONMENT_NAME === undefined
+      ? undefined
+      : getRequiredEnv("RAILWAY_ENVIRONMENT_NAME");
+  const id =
+    process.env.RAILWAY_ENVIRONMENT_ID === undefined
+      ? undefined
+      : getRequiredEnv("RAILWAY_ENVIRONMENT_ID");
+  const productionId =
+    process.env.DISCORD_PRODUCTION_ENVIRONMENT_ID === undefined
+      ? undefined
+      : getRequiredEnv("DISCORD_PRODUCTION_ENVIRONMENT_ID");
+  if (id !== undefined && name === undefined)
+    throw new Error("RAILWAY_ENVIRONMENT_NAME is required");
+  return (
+    name === undefined ||
+    name === "production" ||
+    (productionId !== undefined && id === productionId)
+  );
+};
+
+const discordWebhookUrl = () => {
+  const key = isProductionEnvironment()
+    ? "DISCORD_WEBHOOK_URL"
+    : "DISCORD_WEBHOOK_URL_PREVIEW";
+  const value = getRequiredEnv(key);
+  try {
+    const url = new URL(value);
+    if (
+      !["http:", "https:"].includes(url.protocol) ||
+      url.username ||
+      url.password
+    )
+      throw new Error();
+    return url.href;
+  } catch {
+    throw new Error(
+      `${key} must be an HTTP or HTTPS URL without embedded credentials`
+    );
+  }
+};
+
 const createS3Client = () =>
   new S3Client({
     region: getRequiredEnv("REGION"),
@@ -594,7 +637,7 @@ const sendChainNotifications = async (input: {
   progress?: IndexingProgress;
   readiness?: EnvioMetricsReadiness;
 }): Promise<DiscordNotificationResult> => {
-  const webhookUrl = getRequiredEnv("DISCORD_WEBHOOK_URL");
+  const webhookUrl = discordWebhookUrl();
   if (
     input.chains.some(
       (chain) => !["production", "testnet"].includes(chain.environment ?? "")
@@ -710,7 +753,9 @@ const notifyHandover = async (
     content: "Protocol visualizer snapshot handover completed",
     embed: {
       title: "Protocol Visualizer Snapshot Handover",
-      description: `Environment ${environmentName}`,
+      description: isProductionEnvironment()
+        ? undefined
+        : `Environment ${environmentName}`,
       fields: [
         {
           name: "Deployment ID",
@@ -767,7 +812,9 @@ const notifyIndexingProgress = async (input: {
         input.decision === "handover_in_progress"
           ? "Protocol Visualizer New Deployment Indexing"
           : "Protocol Visualizer Indexing Continues",
-      description: `Environment ${input.environmentName}`,
+      description: isProductionEnvironment()
+        ? undefined
+        : `Environment ${input.environmentName}`,
       fields: [
         {
           name: "Indexing deployment",
@@ -858,7 +905,7 @@ const loadPublisherChains = async () => {
 
 export async function runPublisher(deps: PublisherDependencies = {}) {
   const outputDir = process.env.SNAPSHOT_OUTPUT_DIR;
-  if (!outputDir) getRequiredEnv("DISCORD_WEBHOOK_URL");
+  if (!outputDir) discordWebhookUrl();
   const publicBasePath =
     process.env.SNAPSHOT_PUBLIC_BASE_PATH || DEFAULT_PUBLIC_BASE_PATH;
   const publicOrigin = process.env.SNAPSHOT_PUBLIC_ORIGIN;
@@ -1125,7 +1172,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const run = process.argv.includes("--check-config")
     ? loadPublisherChains().then((chains) => {
         assertRpcConfiguration(chains);
-        getRequiredEnv("DISCORD_WEBHOOK_URL");
+        discordWebhookUrl();
       })
     : runPublisher();
   run.catch((error) => {

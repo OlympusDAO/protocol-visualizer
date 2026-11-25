@@ -69,7 +69,13 @@ test("snapshot pre-deploy commands fail on missing RPC settings and validate wit
   ).filter((chain) => chain.availability !== "historical");
   const environment = Object.fromEntries(
     Object.entries(process.env).filter(
-      ([name]) => !name.startsWith("RPC_URL_") && name !== "DISCORD_WEBHOOK_URL"
+      ([name]) =>
+        !name.startsWith("RPC_URL_") &&
+        ![
+          "DISCORD_WEBHOOK_URL",
+          "DISCORD_WEBHOOK_URL_PREVIEW",
+          "RAILWAY_ENVIRONMENT_NAME",
+        ].includes(name)
     )
   );
   environment.PROTOCOL_CHAINS_CONFIG_PATH = resolve(
@@ -82,9 +88,49 @@ test("snapshot pre-deploy commands fail on missing RPC settings and validate wit
       "https://rpc.example/configured",
     ])
   );
-  for (const [service, entry] of [
-    ["snapshot-publisher", "publish.js"],
-    ["snapshot-monitor", "index.js"],
+  for (const [service, entry, environmentName, webhookName, runtimeId] of [
+    [
+      "snapshot-publisher",
+      "publish.js",
+      "production",
+      "DISCORD_WEBHOOK_URL",
+      "1b61e496-b565-42b4-9e5d-8096e28e13cd",
+    ],
+    [
+      "snapshot-monitor",
+      "index.js",
+      "production",
+      "DISCORD_WEBHOOK_URL",
+      "1b61e496-b565-42b4-9e5d-8096e28e13cd",
+    ],
+    [
+      "snapshot-publisher",
+      "publish.js",
+      "renamed-production",
+      "DISCORD_WEBHOOK_URL",
+      "1b61e496-b565-42b4-9e5d-8096e28e13cd",
+    ],
+    [
+      "snapshot-monitor",
+      "index.js",
+      "renamed-production",
+      "DISCORD_WEBHOOK_URL",
+      "1b61e496-b565-42b4-9e5d-8096e28e13cd",
+    ],
+    [
+      "snapshot-publisher",
+      "publish.js",
+      "protocol-visualizer-pr-42",
+      "DISCORD_WEBHOOK_URL_PREVIEW",
+      "fixture-preview",
+    ],
+    [
+      "snapshot-monitor",
+      "index.js",
+      "protocol-visualizer-pr-42",
+      "DISCORD_WEBHOOK_URL_PREVIEW",
+      "fixture-preview",
+    ],
   ]) {
     const command = railwayServices.find((node) => node.name === service).deploy
       .preDeployCommand;
@@ -92,7 +138,16 @@ test("snapshot pre-deploy commands fail on missing RPC settings and validate wit
     const run = (variables) =>
       spawnSync(process.execPath, [`dist/src/${entry}`, "--check-config"], {
         cwd: resolve(`apps/${service}`),
-        env: { ...environment, ...variables },
+        env: {
+          ...environment,
+          RAILWAY_ENVIRONMENT_NAME: environmentName,
+          RAILWAY_ENVIRONMENT_ID: runtimeId,
+          DISCORD_PRODUCTION_ENVIRONMENT_ID:
+            "1b61e496-b565-42b4-9e5d-8096e28e13cd",
+          DISCORD_WEBHOOK_URL: "https://discord.example/production",
+          DISCORD_WEBHOOK_URL_PREVIEW: "https://discord.example/preview",
+          ...variables,
+        },
         encoding: "utf8",
         timeout: 5000,
       });
@@ -101,13 +156,34 @@ test("snapshot pre-deploy commands fail on missing RPC settings and validate wit
     });
     assert.equal(missing.status, 1);
     assert.match(missing.stderr, /Missing required RPC variables: RPC_URL_1/);
+    const missingName = run({
+      ...configured,
+      RAILWAY_ENVIRONMENT_NAME: undefined,
+    });
+    assert.equal(missingName.status, 1);
+    assert.match(missingName.stderr, /RAILWAY_ENVIRONMENT_NAME is required/);
     for (const webhook of [undefined, "", "  "]) {
       const missingWebhook = run({
         ...configured,
-        DISCORD_WEBHOOK_URL: webhook,
+        [webhookName]: webhook,
       });
       assert.equal(missingWebhook.status, 1);
-      assert.match(missingWebhook.stderr, /DISCORD_WEBHOOK_URL is required/);
+      assert.match(
+        missingWebhook.stderr,
+        new RegExp(`${webhookName} is required`)
+      );
+    }
+    for (const value of [
+      "file:///fixture-secret",
+      "http://user:fixture-secret@127.0.0.1/",
+    ]) {
+      const invalidWebhook = run({ ...configured, [webhookName]: value });
+      assert.equal(invalidWebhook.status, 1);
+      assert.match(
+        invalidWebhook.stderr,
+        new RegExp(`${webhookName} must be an HTTP or HTTPS URL`)
+      );
+      assert.doesNotMatch(invalidWebhook.stderr, /fixture-secret/);
     }
     const valid = run({
       ...configured,
@@ -133,7 +209,11 @@ test("snapshot jobs log missing webhooks and exit unsuccessfully on startup", ()
     ["snapshot-monitor", "index.js"],
   ]) {
     for (const webhook of [undefined, "", "  "]) {
-      const env = { ...process.env, DISCORD_WEBHOOK_URL: webhook };
+      const env = {
+        ...process.env,
+        RAILWAY_ENVIRONMENT_NAME: "production",
+        DISCORD_WEBHOOK_URL: webhook,
+      };
       delete env.SNAPSHOT_OUTPUT_DIR;
       const result = spawnSync(process.execPath, [`dist/src/${entry}`], {
         cwd: resolve(`apps/${service}`),
@@ -391,11 +471,6 @@ test("Env samples and docs keep optional variables commented", () => {
   assert(monitorDocs.includes("indexer.PORT=9898"));
   assert(monitorDocs.includes("# MONITOR_STALE_CHAIN_HOURS=24"));
   assert(railwayDocs.includes("# ENVIO_RPC_MODE="));
-  assert(
-    railwayDocs.includes(
-      "\nDISCORD_WEBHOOK_URL=${{shared.DISCORD_WEBHOOK_URL}}"
-    )
-  );
 });
 
 test("every local Compose host binding is explicitly loopback-only", () => {

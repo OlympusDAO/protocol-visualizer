@@ -273,11 +273,19 @@ test("indexer monitor schedules one private metrics job with the existing bucket
         value:
           "http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:${{indexer.PORT}}/metrics",
       },
-      DISCORD_WEBHOOK_URL: {
+      DISCORD_WEBHOOK_URL: { type: "preserve" },
+      DISCORD_WEBHOOK_URL_PREVIEW: {
         type: "sharedReference",
-        name: "DISCORD_WEBHOOK_URL",
+        name: "DISCORD_WEBHOOK_URL_PREVIEW",
       },
-      MONITOR_NAME: { type: "literal", value: `Visualizer ${environment}` },
+      DISCORD_PRODUCTION_ENVIRONMENT_ID: {
+        type: "literal",
+        value: "1b61e496-b565-42b4-9e5d-8096e28e13cd",
+      },
+      MONITOR_NAME: {
+        type: "literal",
+        value: "Visualizer",
+      },
       MONITOR_COOLDOWN_MINUTES: { type: "preserve" },
     });
     const isIgnored = (service, key) =>
@@ -287,6 +295,24 @@ test("indexer monitor schedules one private metrics job with the existing bucket
           ? matchesGlob(key, nameOrGlob)
           : nameOrGlob === service && matchesGlob(key, glob);
       });
+    for (const name of [
+      "indexer-monitor",
+      "snapshot-monitor",
+      "snapshot-publisher",
+    ]) {
+      const service = resources.find((node) => node.name === name);
+      assert.deepEqual(service.variables.DISCORD_WEBHOOK_URL, {
+        type: "preserve",
+      });
+      assert.deepEqual(service.variables.DISCORD_WEBHOOK_URL_PREVIEW, {
+        type: "sharedReference",
+        name: "DISCORD_WEBHOOK_URL_PREVIEW",
+      });
+      assert.deepEqual(service.variables.DISCORD_PRODUCTION_ENVIRONMENT_ID, {
+        type: "literal",
+        value: "1b61e496-b565-42b4-9e5d-8096e28e13cd",
+      });
+    }
     for (const key of Object.keys(monitor.variables))
       assert.equal(
         isIgnored(monitor.name, key),

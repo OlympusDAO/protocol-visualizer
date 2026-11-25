@@ -327,7 +327,7 @@ For the quickest local loop, run Envio's built-in local stack and a host
 indexer process from the repository root:
 
 ```bash
-pnpm run indexer:dev
+pnpm run dev:indexer
 ```
 
 This loads `apps/indexer/.env`, derives `ENVIO_RPC_MODE=fallback` when
@@ -341,7 +341,7 @@ for host indexer runs.
 For a cold local run that resets Envio's local database state:
 
 ```bash
-pnpm run indexer:dev:reset
+pnpm run dev:indexer:reset
 ```
 
 This starts `envio dev -r`, which clears the local Envio database and reindexes

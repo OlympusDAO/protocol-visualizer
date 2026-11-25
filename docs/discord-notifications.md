@@ -2,9 +2,36 @@
 
 The publisher sends deployment progress and snapshot handover notifications.
 The monitor sends daily summaries and warnings about indexing or snapshot state.
-Both services use the environment's shared `DISCORD_WEBHOOK_URL` in Railway.
-Both jobs require the webhook. Missing or blank values log an error and fail
+The jobs select their webhook at startup using Railway's actual environment
+name or its configured production ID: production uses `DISCORD_WEBHOOK_URL`; other environments require
+`DISCORD_WEBHOOK_URL_PREVIEW`. There is no fallback to the production webhook.
+Missing or blank selected values log an error and fail
 pre-deploy validation and startup before network requests or storage access.
+
+Set each job's production service value and shared preview reference once in the
+base environment, including for the indexer monitor. Automatic PR deployments copy the preview
+reference; runtime selection does not require a plan or apply for each PR.
+IaC preserves `DISCORD_WEBHOOK_URL` and declares the shared preview reference.
+Seal the production service value so it is not copied:
+see [Railway's sealed-variable rules](https://docs.railway.com/variables#sealed-variables).
+Keep the preview value copyable. If a production value is currently a shared
+reference, an operator must replace it with a service-level secret before
+sealing and review the old shared secret separately. `preserve()` retains an
+existing alias until that migration; it neither converts nor seals it. This
+setup avoids creating a production shared alias that a PR clone must resolve.
+
+Production notifications omit the Railway environment label. Other environments
+retain their name. This applies to indexer alerts, snapshot summaries, indexing
+progress, and handover notifications. Chain groups such as `Production chains`
+describe the chain catalog and remain independent of the Railway environment.
+Outside Railway, an omitted environment name keeps the explicit
+`DISCORD_WEBHOOK_URL` for local validation; live snapshot jobs still require
+`RAILWAY_ENVIRONMENT_NAME` to run. A supplied environment name must not be blank.
+The optional `DISCORD_PRODUCTION_ENVIRONMENT_ID` recognizes production when it
+matches Railway's runtime `RAILWAY_ENVIRONMENT_ID`; otherwise the name is used.
+IaC supplies Visualizer's existing production ID to all three alert jobs, so a
+production rename retains its channel and label while a PR clone has a different
+runtime ID. Supplied IDs must not be blank; an ID without a name fails before I/O.
 
 These examples use fictional values and show all nine currently indexed chains.
 Both services group configured chains into production chains and testnets.

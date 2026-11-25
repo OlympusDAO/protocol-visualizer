@@ -69,7 +69,9 @@ HASURA_GRAPHQL_URL=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql
 HASURA_GRAPHQL_ADMIN_SECRET=${{hasura.HASURA_GRAPHQL_ADMIN_SECRET}}
 RAILWAY_ENVIRONMENT_NAME=<provided by Railway>
 INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
-DISCORD_WEBHOOK_URL=${{shared.DISCORD_WEBHOOK_URL}}
+# Production only: set and seal this service variable in Railway.
+DISCORD_WEBHOOK_URL=<production webhook URL>
+DISCORD_WEBHOOK_URL_PREVIEW=${{shared.DISCORD_WEBHOOK_URL_PREVIEW}}
 BUCKET=${{<bucket-service>.BUCKET}}
 ACCESS_KEY_ID=${{<bucket-service>.ACCESS_KEY_ID}}
 SECRET_ACCESS_KEY=${{<bucket-service>.SECRET_ACCESS_KEY}}
@@ -103,7 +105,7 @@ RPC configuration stays in the server-only timestamp resolver; it is not part
 of the public chain catalog or the frontend bundle. Keep API keys in server
 environment variables.
 Railway runs `node dist/src/publish.js --check-config` before deployment.
-Missing or blank required RPC variables or `DISCORD_WEBHOOK_URL` fail that check,
+Missing or blank required RPC variables or the selected webhook fail that check,
 log the missing setting, and stop deployment.
 Live publisher runs also check before metrics reads or storage access.
 Sample snapshot generation does not require RPC variables. Docker image builds do not require or embed RPC credentials.
@@ -130,12 +132,15 @@ Optional variables:
 
 `SNAPSHOT_PUBLIC_BASE_PATH` defaults to `/v1`. `SNAPSHOT_PUBLIC_ORIGIN` is used
 for generated REST paths. `PROTOCOL_CHAINS_CONFIG_PATH` is set by the Docker
-image and usually does not need to be configured manually. `DISCORD_WEBHOOK_URL`
-is required for bucket publishing and its indexing progress and handover notifications.
+image and usually does not need to be configured manually. Bucket publishing
+uses `DISCORD_WEBHOOK_URL` when Railway's environment name is `production`, and
+requires `DISCORD_WEBHOOK_URL_PREVIEW` otherwise, with no fallback.
 Startup logs an error and exits unsuccessfully if it is missing or blank, before
 network requests or storage access. Local file exports with `SNAPSHOT_OUTPUT_DIR`
-do not send notifications and do not require the webhook. IaC supplies the shared
-reference. Add its value once per environment in Railway Project Settings → Shared Variables.
+do not send notifications and do not require the webhook. IaC supplies the
+preview reference and preserves the production service value. Configure both once in the base environment; automatic PR
+deployments select the copied preview reference at runtime without a plan command.
+See [production secret isolation](../../docs/discord-notifications.md).
 
 Deployment progress and handover notifications are split into production chains
 and testnets. Each configured chain has one full-width row with a status indicator,

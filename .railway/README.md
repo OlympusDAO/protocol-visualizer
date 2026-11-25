@@ -7,9 +7,11 @@ operator secrets stay in Railway through `preserve()`; optional overrides remain
 outside IaC ownership. Configure and verify the cache before routing consumers.
 IaC sets `rpc-cache.RPC_CACHE_DATABASE_URL` to a reference to
 `rpc-cache-postgres.DATABASE_URL`, matching the indexer's database linkage.
-Publisher and monitor reference the environment's shared `DISCORD_WEBHOOK_URL`.
-Add its value manually in Project Settings → Shared Variables before applying the plan.
-Use a separate webhook for preview alerts. Do not commit the webhook URL.
+Set and seal `DISCORD_WEBHOOK_URL` on each production Discord service. Add the
+separate `DISCORD_WEBHOOK_URL_PREVIEW` value in Project Settings → Shared Variables.
+IaC preserves the production service value and declares the preview reference;
+each job selects its webhook at runtime. See
+[setup and PR isolation](../docs/discord-notifications.md). Do not commit webhook URLs.
 
 Both `Postgres` and `rpc-cache-postgres` use the create-only password policy in
 [`railway.ts`](railway.ts):

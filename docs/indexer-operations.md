@@ -105,12 +105,20 @@ once with a five-second timeout, then exits. An HTTP 2xx response confirms
 metrics reachability, including during backfill. Check committed block progress
 separately to detect stalled ingestion. The job never resets the indexer.
 
-Set the shared `DISCORD_WEBHOOK_URL` for each Railway environment. IaC supplies
+Set the production and preview webhook values using the
+[Discord setup instructions](discord-notifications.md). IaC supplies
 `INDEXER_METRICS_URL`, the `MONITOR_NAME` environment label, and the existing
 bucket's `BUCKET`, `ENDPOINT`, `REGION`, `ACCESS_KEY_ID` and `SECRET_ACCESS_KEY`
 references. Both service URLs and all bucket settings are required. URLs must
 use HTTP or HTTPS without embedded credentials. The optional `MONITOR_NAME`
-defaults to `Indexer`. Set the optional `MONITOR_COOLDOWN_MINUTES` on the
+defaults to `Indexer`. IaC supplies `Visualizer`; runtime Railway metadata adds
+the environment label outside production and selects the preview webhook.
+Outside Railway, the environment name is optional; when absent, the explicit
+`DISCORD_WEBHOOK_URL` and base label are used. A supplied name must not be blank.
+Use `pnpm build:indexer-monitor`,
+`pnpm test:indexer-monitor`, and `pnpm typecheck:indexer-monitor` for this app;
+the root Turbo commands already cover every workspace with that role.
+Set the optional `MONITOR_COOLDOWN_MINUTES` on the
 monitor service to change its 60-minute default. Use a positive whole number
 of minutes that converts safely to milliseconds. Startup validates configuration
 before any network requests. Invalid values cause exit status `1` with a fixed

@@ -19,10 +19,12 @@ import {
 // Secret values remain in Railway; IaC owns connections, not provider credentials.
 // Long-running services inherit Railway's ON_FAILURE default. CLI 5.71 treats
 // explicitly declaring that omitted platform default as perpetual deploy drift.
+const productionEnvironmentId = "1b61e496-b565-42b4-9e5d-8096e28e13cd";
+
 export default defineRailway((ctx) => {
   const production =
     ctx.isEnvironment("production") ||
-    ctx.environmentId === "1b61e496-b565-42b4-9e5d-8096e28e13cd";
+    ctx.environmentId === productionEnvironmentId;
   const source = github("OlympusDAO/protocol-visualizer", {
     // Explicit undefined overrides the SDK's "main" default for PR environments.
     branch: production ? "master" : undefined,
@@ -98,7 +100,9 @@ export default defineRailway((ctx) => {
       HASURA_GRAPHQL_URL:
         "http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql",
       INDEXER_METRICS_URL: indexerMetricsUrl,
-      DISCORD_WEBHOOK_URL: ctx.shared.DISCORD_WEBHOOK_URL,
+      DISCORD_WEBHOOK_URL: preserve(),
+      DISCORD_WEBHOOK_URL_PREVIEW: ctx.shared.DISCORD_WEBHOOK_URL_PREVIEW,
+      DISCORD_PRODUCTION_ENVIRONMENT_ID: productionEnvironmentId,
     },
     build: {
       builder: "DOCKERFILE",
@@ -218,8 +222,10 @@ export default defineRailway((ctx) => {
     env: {
       ...bucketVariables,
       INDEXER_METRICS_URL: indexerMetricsUrl,
-      DISCORD_WEBHOOK_URL: ctx.shared.DISCORD_WEBHOOK_URL,
-      MONITOR_NAME: `Visualizer ${production ? "production" : (ctx.environmentName ?? "default")}`,
+      DISCORD_WEBHOOK_URL: preserve(),
+      DISCORD_WEBHOOK_URL_PREVIEW: ctx.shared.DISCORD_WEBHOOK_URL_PREVIEW,
+      DISCORD_PRODUCTION_ENVIRONMENT_ID: productionEnvironmentId,
+      MONITOR_NAME: "Visualizer",
       MONITOR_COOLDOWN_MINUTES: preserve(),
     },
     build: {
@@ -282,7 +288,9 @@ export default defineRailway((ctx) => {
       ...bucketVariables,
       ...rpcUrls("RPC_URL_"),
       INDEXER_METRICS_URL: indexerMetricsUrl,
-      DISCORD_WEBHOOK_URL: ctx.shared.DISCORD_WEBHOOK_URL,
+      DISCORD_WEBHOOK_URL: preserve(),
+      DISCORD_WEBHOOK_URL_PREVIEW: ctx.shared.DISCORD_WEBHOOK_URL_PREVIEW,
+      DISCORD_PRODUCTION_ENVIRONMENT_ID: productionEnvironmentId,
     },
     build: {
       builder: "DOCKERFILE",

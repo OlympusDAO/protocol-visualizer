@@ -102,7 +102,6 @@ export default defineRailway((ctx) => {
       INDEXER_METRICS_URL: indexerMetricsUrl,
       DISCORD_WEBHOOK_URL: preserve(),
       DISCORD_WEBHOOK_URL_PREVIEW: ctx.shared.DISCORD_WEBHOOK_URL_PREVIEW,
-      DISCORD_PRODUCTION_ENVIRONMENT_ID: productionEnvironmentId,
     },
     build: {
       builder: "DOCKERFILE",
@@ -217,14 +216,18 @@ export default defineRailway((ctx) => {
     replicas: { "us-west2": 1 },
   });
 
+  const monitorState = bucket("monitor-state", { region: "sjc" });
   const indexerMonitor = service("indexer-monitor", {
     source,
     env: {
-      ...bucketVariables,
+      BUCKET: ref(monitorState, "BUCKET"),
+      ENDPOINT: ref(monitorState, "ENDPOINT"),
+      REGION: ref(monitorState, "REGION"),
+      ACCESS_KEY_ID: ref(monitorState, "ACCESS_KEY_ID"),
+      SECRET_ACCESS_KEY: ref(monitorState, "SECRET_ACCESS_KEY"),
       INDEXER_METRICS_URL: indexerMetricsUrl,
       DISCORD_WEBHOOK_URL: preserve(),
       DISCORD_WEBHOOK_URL_PREVIEW: ctx.shared.DISCORD_WEBHOOK_URL_PREVIEW,
-      DISCORD_PRODUCTION_ENVIRONMENT_ID: productionEnvironmentId,
       MONITOR_NAME: "Visualizer",
       MONITOR_COOLDOWN_MINUTES: preserve(),
     },
@@ -290,7 +293,6 @@ export default defineRailway((ctx) => {
       INDEXER_METRICS_URL: indexerMetricsUrl,
       DISCORD_WEBHOOK_URL: preserve(),
       DISCORD_WEBHOOK_URL_PREVIEW: ctx.shared.DISCORD_WEBHOOK_URL_PREVIEW,
-      DISCORD_PRODUCTION_ENVIRONMENT_ID: productionEnvironmentId,
     },
     build: {
       builder: "DOCKERFILE",
@@ -366,6 +368,7 @@ export default defineRailway((ctx) => {
       envioData,
       cacheData,
       storage,
+      monitorState,
       privateIndexing,
       data,
       publicGroup,

@@ -14,7 +14,7 @@ consumers through the proxy.
 ## Infrastructure as Code
 
 [`.railway/railway.ts`](../.railway/railway.ts) defines the whole project:
-all seven application services, both databases, both volumes, the storage bucket,
+all eight application services, both databases, both volumes, the snapshot and monitor-state buckets,
 production domains, and canvas groups. Database image pins live in that definition;
 main database image changes require the separately approved [production rebuild procedure](indexer-operations.md#database-major-version-rebuild).
 Volume names and production mount paths remain unchanged. IaC supplies service connections through Railway references.
@@ -31,9 +31,11 @@ Optional operator settings listed in `variables.ignore` remain outside IaC owner
 | `rpc-cache` | Private JSON-RPC cache |
 | `snapshot-publisher` | Hourly bucket publisher |
 | `snapshot-monitor` | Daily indexing monitor |
+| `indexer-monitor` | Private 15-minute metrics reachability job |
 | `snapshot-gateway` | Public REST API |
 | `frontend` | Public UI |
 | `storage` | Private snapshot bucket in `sjc` |
+| `monitor-state` | Private indexer alert cooldown state in `sjc` |
 
 Both database volumes target 20,000 MB in production and previews. IaC reads
 their live capacities and retains any existing capacity above this target.
@@ -385,7 +387,7 @@ inventory before planning because config apply cannot delete them. Leave importe
 TCP proxies in the inventory for the native plan's explicit `null` removals.
 
 ```bash
-pnpm run railway:check
+pnpm run check:railway
 set +x
 umask 077
 touch railway-plan.json
@@ -452,7 +454,7 @@ railway config apply --environment <target-environment> --plan railway-plan.json
 
 For an explicit production plan, use `--environment production` with the same private output capture.
 
-The equivalent package command is `pnpm railway:apply production --json`, with the same private output capture; a target value is mandatory. Pass `--json` explicitly: it bypasses native confirmation, so review the plan first. The alias itself does not enable JSON. Automatic merge apply blocks an existing main database source-image transition even when the native plan labels it safe. Use the separately approved [database rebuild procedure](indexer-operations.md#database-major-version-rebuild) and direct native apply for that release.
+The equivalent package command is `pnpm apply:railway production --json`, with the same private output capture; a target value is mandatory. Pass `--json` explicitly: it bypasses native confirmation, so review the plan first. The alias itself does not enable JSON. Automatic merge apply blocks an existing main database source-image transition even when the native plan labels it safe. Use the separately approved [database rebuild procedure](indexer-operations.md#database-major-version-rebuild) and direct native apply for that release.
 Keep the target environment unchanged between plan and apply.
 Before calling native apply, use `railway status` to verify the linked project and selected environment. Match that environment ID against the saved artifact's `environmentId`; CLI 5.75 saved plans have no `projectId`. Keep the reviewed artifact unchanged. CI retains the main database transition/current-master guards; native saved-plan validation enforces environment/source-tree/revision binding.
 The command applies the saved changes without re-evaluating the authoring file.

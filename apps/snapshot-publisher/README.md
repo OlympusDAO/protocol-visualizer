@@ -206,7 +206,7 @@ leaves the current manifest untouched.
 Generate deterministic sample snapshots without Hasura or bucket credentials:
 
 ```bash
-pnpm run snapshots:generate:local
+pnpm run generate:snapshots:local
 ```
 
 That writes files to:
@@ -222,11 +222,11 @@ To write live Hasura data locally, set `HASURA_GRAPHQL_URL`,
 To publish into the local Docker Compose bucket, use the one-shot Compose jobs:
 
 ```bash
-pnpm run stack:publish:sample
-pnpm run stack:publish
+pnpm run publish:stack:sample
+pnpm run publish:stack
 ```
 
-`stack:publish:sample` writes deterministic sample data to MinIO. `stack:publish`
+`publish:stack:sample` writes deterministic sample data to MinIO. `publish:stack`
 reads from the local Hasura service and should be run after the indexer is
 ready.
 
@@ -235,7 +235,7 @@ ready.
 ```bash
 pnpm --filter snapshot-publisher run lint:check
 pnpm --filter snapshot-publisher run build
-pnpm run docker:build:snapshot-publisher
+pnpm run build:docker:snapshot-publisher
 ```
 
 `build` compiles TypeScript and runs the Node test suite for snapshot

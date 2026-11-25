@@ -119,11 +119,11 @@ export const PUBLISHER_NOTIFICATION_STATE_KEY =
   "v1/publisher-notification-state.json";
 
 const getRequiredEnv = (key: string): string => {
-  const value = process.env[key]?.trim();
-  if (!value) {
+  const value = process.env[key];
+  if (!value?.trim()) {
     throw new Error(`${key} is required`);
   }
-  return value;
+  return key === "RAILWAY_ENVIRONMENT_NAME" ? value : value.trim();
 };
 
 const isProductionEnvironment = () => {
@@ -135,17 +135,9 @@ const isProductionEnvironment = () => {
     process.env.RAILWAY_ENVIRONMENT_ID === undefined
       ? undefined
       : getRequiredEnv("RAILWAY_ENVIRONMENT_ID");
-  const productionId =
-    process.env.DISCORD_PRODUCTION_ENVIRONMENT_ID === undefined
-      ? undefined
-      : getRequiredEnv("DISCORD_PRODUCTION_ENVIRONMENT_ID");
   if (id !== undefined && name === undefined)
     throw new Error("RAILWAY_ENVIRONMENT_NAME is required");
-  return (
-    name === undefined ||
-    name === "production" ||
-    (productionId !== undefined && id === productionId)
-  );
+  return name === undefined || name === "production";
 };
 
 const discordWebhookUrl = () => {

@@ -47,7 +47,6 @@ type MonitorStore = {
 type MonitorInput = {
   chains: ChainConfig[];
   environmentName?: string;
-  production?: boolean;
   deploymentId: string;
   manifest?: SnapshotManifest;
   progress?: IndexingProgress;
@@ -117,9 +116,9 @@ const fatalErrorDetails = (error: unknown): Record<string, unknown> => {
 };
 
 const requiredEnv = (key: string): string => {
-  const value = process.env[key]?.trim();
-  if (!value) throw new Error(`${key} is required`);
-  return value;
+  const value = process.env[key];
+  if (!value?.trim()) throw new Error(`${key} is required`);
+  return key === "RAILWAY_ENVIRONMENT_NAME" ? value : value.trim();
 };
 
 const isProductionEnvironment = () => {
@@ -131,17 +130,9 @@ const isProductionEnvironment = () => {
     process.env.RAILWAY_ENVIRONMENT_ID === undefined
       ? undefined
       : requiredEnv("RAILWAY_ENVIRONMENT_ID");
-  const productionId =
-    process.env.DISCORD_PRODUCTION_ENVIRONMENT_ID === undefined
-      ? undefined
-      : requiredEnv("DISCORD_PRODUCTION_ENVIRONMENT_ID");
   if (id !== undefined && name === undefined)
     throw new Error("RAILWAY_ENVIRONMENT_NAME is required");
-  return (
-    name === undefined ||
-    name === "production" ||
-    (productionId !== undefined && id === productionId)
-  );
+  return name === undefined || name === "production";
 };
 
 const discordWebhookUrl = () => {
@@ -323,7 +314,7 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
   const notReadyChainIds = input.notReadyChainIds ?? [];
   const nextChainProgress: MonitorState["chainProgress"] = {};
   const environmentName = input.environmentName ?? "<unknown>";
-  const production = input.production ?? environmentName === "production";
+  const production = environmentName === "production";
 
   if (!input.manifest) {
     const message = `Protocol visualizer snapshot monitor: no active manifest is published for deployment ${shortId(
@@ -489,7 +480,6 @@ export async function runMonitor(input: {
   webhookUrl: string;
   stateKey: string;
   environmentName: string;
-  production?: boolean;
   deploymentId: string;
   progress?: IndexingProgress;
   notReadyChainIds?: number[];
@@ -506,7 +496,6 @@ export async function runMonitor(input: {
     chains: input.chains,
     deploymentId: input.deploymentId,
     environmentName: input.environmentName,
-    production: input.production,
     manifest,
     progress: input.progress,
     notReadyChainIds: input.notReadyChainIds,
@@ -582,7 +571,6 @@ export async function runMonitorFromEnv(logger: MonitorLogger = defaultLogger) {
       environmentName,
       deploymentId,
       progress: readiness.indexingProgress,
-      production: isProductionEnvironment(),
       notReadyChainIds: readiness.notReadyChainIds,
       readyChainIds: readiness.readyChainIds,
       missingChainIds: readiness.missingChainIds,

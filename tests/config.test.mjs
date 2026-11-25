@@ -107,15 +107,29 @@ test("snapshot pre-deploy commands fail on missing RPC settings and validate wit
       "snapshot-publisher",
       "publish.js",
       "renamed-production",
-      "DISCORD_WEBHOOK_URL",
+      "DISCORD_WEBHOOK_URL_PREVIEW",
       "1b61e496-b565-42b4-9e5d-8096e28e13cd",
     ],
     [
       "snapshot-monitor",
       "index.js",
       "renamed-production",
-      "DISCORD_WEBHOOK_URL",
+      "DISCORD_WEBHOOK_URL_PREVIEW",
       "1b61e496-b565-42b4-9e5d-8096e28e13cd",
+    ],
+    [
+      "snapshot-publisher",
+      "publish.js",
+      " production ",
+      "DISCORD_WEBHOOK_URL_PREVIEW",
+      "fixture-preview",
+    ],
+    [
+      "snapshot-monitor",
+      "index.js",
+      " production ",
+      "DISCORD_WEBHOOK_URL_PREVIEW",
+      "fixture-preview",
     ],
     [
       "snapshot-publisher",
@@ -142,8 +156,6 @@ test("snapshot pre-deploy commands fail on missing RPC settings and validate wit
           ...environment,
           RAILWAY_ENVIRONMENT_NAME: environmentName,
           RAILWAY_ENVIRONMENT_ID: runtimeId,
-          DISCORD_PRODUCTION_ENVIRONMENT_ID:
-            "1b61e496-b565-42b4-9e5d-8096e28e13cd",
           DISCORD_WEBHOOK_URL: "https://discord.example/production",
           DISCORD_WEBHOOK_URL_PREVIEW: "https://discord.example/preview",
           ...variables,
@@ -251,9 +263,9 @@ test("CI exposes complete image coverage using existing build, scan and integrat
   ];
   for (const name of imageNames) {
     assert(
-      scripts["docker:build"]
+      scripts["build:docker"]
         .split(" && ")
-        .includes(`pnpm run docker:build:${name}`)
+        .includes(`pnpm run build:docker:${name}`)
     );
     assert(validator.includes(name));
     assert(imageJob.strategy.matrix.include.some((row) => row.image === name));
@@ -262,16 +274,16 @@ test("CI exposes complete image coverage using existing build, scan and integrat
     assert(existsSync(`Dockerfile-${name}`));
   }
   assert.equal(
-    scripts["docker:build:indexer-monitor"],
+    scripts["build:docker:indexer-monitor"],
     "node scripts/container.mjs build -f Dockerfile-indexer-monitor -t protocol-visualizer/indexer-monitor:local ."
   );
   assert.equal(imageJob.strategy["fail-fast"], false);
   assert.equal(
     steps.find((step) => step.id === "build").run.trim(),
-    "pnpm run docker:build:${{ matrix.image }}"
+    "pnpm run build:docker:${{ matrix.image }}"
   );
   const scan = steps.find((step) => step.name === "Scan application image");
-  assert.equal(scan.run.trim(), "pnpm run docker:scan -- ${{ matrix.image }}");
+  assert.equal(scan.run.trim(), "pnpm run scan:docker -- ${{ matrix.image }}");
   assert.equal(
     scan.if,
     "${{ !cancelled() && steps.build.outcome == 'success' }}"
@@ -294,12 +306,12 @@ test("CI exposes complete image coverage using existing build, scan and integrat
     steps
       .find((step) => step.id === "companion")
       .run.split(/\r?\n/)
-      .some((line) => line.trim() === "pnpm run docker:build:indexer")
+      .some((line) => line.trim() === "pnpm run build:docker:indexer")
   );
   const runtimeScan = steps.find(
     (step) => step.name === "Check runtime image policy"
   );
-  assert.equal(runtimeScan.run.trim(), "pnpm run docker:scan:runtime");
+  assert.equal(runtimeScan.run.trim(), "pnpm run scan:docker:runtime");
   assert.equal(
     runtimeScan.if,
     "${{ !cancelled() && matrix.image == 'rpc-cache' && steps.bootstrap.outcome == 'success' }}"
@@ -313,16 +325,16 @@ test("CI exposes complete image coverage using existing build, scan and integrat
     integration.if,
     "${{ !cancelled() && matrix.image == 'rpc-cache' && steps.build.outcome == 'success' && steps.companion.outcome == 'success' }}"
   );
-  assert.match(validator, /pnpm run "docker:build:\$image"/);
-  assert.match(validator, /pnpm run docker:scan -- "\$image"/);
-  assert.match(validator, /pnpm run docker:scan:dockerfiles/);
-  assert.match(validator, /pnpm run docker:scan:runtime/);
+  assert.match(validator, /pnpm run "build:docker:\$image"/);
+  assert.match(validator, /pnpm run scan:docker -- "\$image"/);
+  assert.match(validator, /pnpm run scan:docker:dockerfiles/);
+  assert.match(validator, /pnpm run scan:docker:runtime/);
   assert(dockerfiles.includes("dockerfile:Dockerfile-*"));
   assert(dockerfiles.includes('"node_modules"'));
   assert(Object.hasOwn(workflow.on, "workflow_dispatch"));
   assert(!workflowText.includes("pnpm audit"));
   const ci = readFileSync(".github/workflows/ci.yml", "utf8");
-  assert(!ci.includes("docker:build:"));
+  assert(!ci.includes("build:docker:"));
 });
 
 test("Dependabot treats the snapshot gateway as TypeScript", () => {
@@ -623,29 +635,33 @@ test("Dockerfiles remove package managers from runtime images", () => {
 
 test("Indexer monitor image deploys only its production app on the pinned non-root Node base", () => {
   const content = dockerfileContent("Dockerfile-indexer-monitor");
-  assert.equal(content.match(/^FROM\b/gm)?.length, 2);
-  const [deps, runtime] = content.split(/(?=^FROM\b)/m);
-  const [, base, dependencyStage] =
-    deps.match(/^FROM (node:[^ ]+) AS ([\w-]+)$/m) ?? [];
-  assert.match(base, /^node:\d+\.\d+\.\d+-alpine@sha256:[0-9a-f]{64}$/);
-  assert.equal(runtime.match(/^FROM (\S+)/m)?.[1], base);
-  assert.deepEqual(deps.match(/^COPY\s+.+$/gm), [
-    "COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./",
-    "COPY apps/indexer-monitor/package.json apps/indexer-monitor/tsconfig.json ./apps/indexer-monitor/",
-    "COPY apps/indexer-monitor/src/ ./apps/indexer-monitor/src/",
-  ]);
+  const stages = content.split(/(?=^FROM\b)/m);
+  const [base] = stages;
+  const build = stages.find((stage) => /^FROM base AS build$/m.test(stage));
+  const runtime = stages.find((stage) => /^FROM base AS runtime$/m.test(stage));
   assert.match(
-    deps,
-    /^RUN pnpm install --frozen-lockfile --filter indexer-monitor\.\.\.$/m
+    base,
+    /^FROM node:\d+\.\d+\.\d+-alpine@sha256:[0-9a-f]{64} AS base$/m
   );
-  assert.match(deps, /^RUN pnpm --filter indexer-monitor run build$/m);
+  assert(build);
+  assert(runtime);
   assert.match(
-    deps,
-    /^RUN pnpm --filter indexer-monitor deploy --prod \/deploy\/indexer-monitor\b/m
+    build,
+    /^COPY apps\/indexer-monitor\/src apps\/indexer-monitor\/src$/m
   );
-  assert.match(runtime, /^WORKDIR \/app$/m);
+  assert.doesNotMatch(build, /^COPY\s+.*(?:apps\/indexer\/|packages\/)/m);
+  assert.match(
+    build,
+    /^RUN pnpm install --frozen-lockfile --filter indexer-monitor$/m
+  );
+  assert.match(build, /^RUN pnpm --filter indexer-monitor build$/m);
+  assert.match(
+    build,
+    /^RUN pnpm --filter indexer-monitor deploy --prod \/deploy$/m
+  );
+  assert.match(base, /^WORKDIR \/app$/m);
   assert.deepEqual(runtime.match(/^COPY\s+.+$/gm), [
-    `COPY --from=${dependencyStage} --chown=node:node /deploy/indexer-monitor/ ./`,
+    "COPY --from=build --chown=node:node /deploy /app",
   ]);
   assert.match(runtime, /^USER node$/m);
   assert.match(runtime, /^CMD \["node", "dist\/monitor-indexer\.js"\]$/m);
@@ -759,21 +775,21 @@ test("source commands separate checks, artifact builds and all ordinary tests", 
     assert(readJson(`apps/${name}/package.json`).scripts.test);
   for (const name of ["snapshot-artifacts", "contract-abis"])
     assert(readJson(`packages/${name}/package.json`).scripts.test);
-  for (const task of ["test:config", "abis:check"])
+  for (const task of ["test:config", "check:abis"])
     assert(scripts.test.includes(task));
   assert(
     scripts.test.includes(
       "env SNAPSHOT_OUTPUT_DIR=/tmp/protocol-visualizer-snapshots SNAPSHOT_SOURCE=sample pnpm --filter snapshot-publisher start"
     )
   );
-  assert(!scripts.test.includes("snapshots:generate:local"));
+  assert(!scripts.test.includes("generate:snapshots:local"));
   const gateway = readJson("apps/snapshot-gateway/package.json").scripts;
   assert.equal(
     gateway.build,
     "tsc && node dist/scripts/generate-openapi.js --check"
   );
   assert.equal(
-    gateway["openapi:generate"],
+    gateway["generate:openapi"],
     "pnpm --filter @protocol-visualizer/snapshot-artifacts build && tsc && node dist/scripts/generate-openapi.js"
   );
   for (const file of [

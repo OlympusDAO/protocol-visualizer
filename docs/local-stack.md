@@ -45,11 +45,11 @@ testing.
 ## Start And Publish
 
 ```bash
-pnpm run stack:up
-pnpm run stack:publish:sample
+pnpm run up:stack
+pnpm run publish:stack:sample
 ```
 
-`stack:up` runs the long-running services in the foreground. Keep that terminal
+`up:stack` runs the long-running services in the foreground. Keep that terminal
 attached for logs and stop it with `Ctrl-C`; run publisher and monitor jobs from
 another terminal when needed. Publisher and monitor jobs are not started by
 default because they mirror Railway cron/manual runs.
@@ -59,7 +59,7 @@ indexer has caught up:
 
 ```bash
 curl http://localhost:9898/healthz
-pnpm run stack:publish
+pnpm run publish:stack
 ```
 
 ## REST Smoke Checks
@@ -81,30 +81,30 @@ when the environment is `production`). Both log an
 error and exit unsuccessfully when it is missing or blank. To run the monitor:
 
 ```bash
-pnpm run stack:monitor
+pnpm run monitor:stack
 ```
 
 ## Shutdown And Cleanup
 
 ```bash
-pnpm run stack:logs
-pnpm run stack:down
+pnpm run logs:stack
+pnpm run down:stack
 ```
 
-`stack:down` keeps named volumes. Do not use `down --volumes`: it would delete Envio,
+`down:stack` keeps named volumes. Do not use `down --volumes`: it would delete Envio,
 MinIO, and the independent persistent RPC cache.
 
 ## Validation
 
 ```bash
-pnpm run stack:config
+pnpm run check:stack
 pnpm validate:all
 ```
 
 `validate:all` builds production images. It does not require the local indexer
 to complete a full backfill.
 
-`stack:config` and `stack:up` require `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY`,
+`check:stack` and `up:stack` require `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY`,
 `UPSTREAM_RPC_URL_1`, `UPSTREAM_RPC_URL_10`, `UPSTREAM_RPC_URL_42161`,
 `UPSTREAM_RPC_URL_421614`, `UPSTREAM_RPC_URL_84532`, `UPSTREAM_RPC_URL_4663`, `UPSTREAM_RPC_URL_8453`, `UPSTREAM_RPC_URL_80094`, and `UPSTREAM_RPC_URL_11155111` to be
 present in `.env` or the shell environment.

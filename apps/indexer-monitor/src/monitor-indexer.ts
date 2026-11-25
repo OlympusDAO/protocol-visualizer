@@ -41,23 +41,14 @@ function configuration(env: NodeJS.ProcessEnv) {
     if (!value) throw new Error();
     return value;
   };
-  const environment =
-    env.RAILWAY_ENVIRONMENT_NAME === undefined
-      ? undefined
-      : required("RAILWAY_ENVIRONMENT_NAME");
+  const environment = env.RAILWAY_ENVIRONMENT_NAME;
+  if (environment !== undefined && !environment.trim()) throw new Error();
   const runtimeId =
     env.RAILWAY_ENVIRONMENT_ID === undefined
       ? undefined
       : required("RAILWAY_ENVIRONMENT_ID");
-  const productionId =
-    env.DISCORD_PRODUCTION_ENVIRONMENT_ID === undefined
-      ? undefined
-      : required("DISCORD_PRODUCTION_ENVIRONMENT_ID");
   if (runtimeId !== undefined && environment === undefined) throw new Error();
-  const preview =
-    environment !== undefined &&
-    environment !== "production" &&
-    (productionId === undefined || runtimeId !== productionId);
+  const preview = environment !== undefined && environment !== "production";
   const name =
     env.MONITOR_NAME === undefined ? "Indexer" : required("MONITOR_NAME");
   const cooldown = env.MONITOR_COOLDOWN_MINUTES ?? "60";
@@ -221,10 +212,7 @@ async function main() {
           color: healthy ? 0x2ecc71 : 0xe74c3c,
           fields: [
             { name: "Project", value: name.slice(0, 1024) },
-            {
-              name: "Status",
-              value: status,
-            },
+            { name: "Status", value: status },
           ],
           timestamp: new Date().toISOString(),
         },

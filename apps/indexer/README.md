@@ -168,11 +168,11 @@ Both use generated metadata, with explicit handling for known contract families.
 Refresh verified getter metadata for registered contracts:
 
 ```bash
-pnpm run indexer:metadata -- --refresh-getters
+pnpm run generate:indexer-metadata -- --refresh-getters
 ```
 
 This mode reads `ContractNames.ts` and non-label-only entries in `other-contracts.json`.
-For new policies, first run `pnpm run indexer:metadata` to extract function-role metadata through Etherscan.
+For new policies, first run `pnpm run generate:indexer-metadata` to extract function-role metadata through Etherscan.
 Getter refresh preserves existing role mappings but does not extract role modifiers from source.
 It upgrades older getter metadata through Sourcify without an Etherscan key.
 It preserves existing role mappings and skips records that already contain verified getter metadata.
@@ -188,7 +188,7 @@ The manual verified-source import remains available for saved responses.
 For named contracts in `ContractNames.ts`, fetch missing metadata:
 
 ```bash
-pnpm run indexer:metadata
+pnpm run generate:indexer-metadata
 ```
 
 The generator writes `apps/indexer/src/generated/contract-metadata.json`.
@@ -226,7 +226,7 @@ To refresh an existing named contract, restrict the request to its chain and add
 Replace `CHAIN_ID` and `ADDRESS` with the deployed identity:
 
 ```bash
-pnpm run indexer:metadata -- --chain-id CHAIN_ID --address ADDRESS --force
+pnpm run generate:indexer-metadata -- --chain-id CHAIN_ID --address ADDRESS --force
 ```
 
 For untyped entries in `ContractNames.ts`, add `--include-unknown-type`.
@@ -253,7 +253,7 @@ Known token-scoped registry getters already have that support.
 5. Import the response:
 
    ```bash
-   pnpm run indexer:metadata -- --chain-id CHAIN_ID --address ADDRESS --verified-source /tmp/compiler-record.json
+   pnpm run generate:indexer-metadata -- --chain-id CHAIN_ID --address ADDRESS --verified-source /tmp/compiler-record.json
    ```
 
 The importer accepts `runtimeMatch` values `match` and `exact_match`.
@@ -296,11 +296,11 @@ Unknown creation anchors use the first indexed observation boundary for generic 
 Historical event coverage requires a replay from the relevant start block.
 An ordinary restart does not establish missing earlier history.
 
-For an existing local Compose stack, rebuild the affected services with `pnpm run stack:up`.
+For an existing local Compose stack, rebuild the affected services with `pnpm run up:stack`.
 After the indexer catches up, publish its data from another terminal:
 
 ```bash
-pnpm run stack:publish
+pnpm run publish:stack
 curl http://localhost:8082/v1/chains/CHAIN_ID/protocol
 ```
 
@@ -353,7 +353,7 @@ that is normal for repeated local testing.
 To check progress from another terminal:
 
 ```bash
-pnpm run indexer:metrics
+pnpm run inspect:indexer:metrics
 ```
 
 ## Checking Progress
@@ -393,7 +393,7 @@ pnpm --filter indexer run lint:check
 Validate the production indexer image from the repository root:
 
 ```bash
-pnpm run docker:build:indexer
+pnpm run build:docker:indexer
 ```
 
 Full repository validation is defined at the repository root:

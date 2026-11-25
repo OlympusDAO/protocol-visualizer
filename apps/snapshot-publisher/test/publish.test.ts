@@ -138,7 +138,6 @@ const withPublisherEnv = async (
     DISCORD_WEBHOOK_URL_PREVIEW: "https://discord.example/webhook",
   };
   delete process.env.RAILWAY_ENVIRONMENT_ID;
-  delete process.env.DISCORD_PRODUCTION_ENVIRONMENT_ID;
   for (const [key, value] of Object.entries(env)) {
     if (value === undefined) {
       delete process.env[key];
@@ -771,8 +770,14 @@ for (const [railwayEnvironment, runtimeId, webhook, expectedDescription] of [
   [
     "renamed-production",
     "1b61e496-b565-42b4-9e5d-8096e28e13cd",
-    "https://discord.example/production",
-    undefined,
+    "https://discord.example/preview",
+    "Environment renamed-production",
+  ],
+  [
+    " production ",
+    "fixture-preview",
+    "https://discord.example/preview",
+    "Environment  production ",
   ],
   [
     "protocol-visualizer-pr-49",
@@ -801,8 +806,6 @@ for (const [railwayEnvironment, runtimeId, webhook, expectedDescription] of [
           INDEXER_DEPLOYMENT_ID: "deployment-a",
           RAILWAY_ENVIRONMENT_NAME: railwayEnvironment,
           RAILWAY_ENVIRONMENT_ID: runtimeId,
-          DISCORD_PRODUCTION_ENVIRONMENT_ID:
-            "1b61e496-b565-42b4-9e5d-8096e28e13cd",
           DISCORD_WEBHOOK_URL: "https://discord.example/production",
           DISCORD_WEBHOOK_URL_PREVIEW: "https://discord.example/preview",
           BUCKET: "bucket",

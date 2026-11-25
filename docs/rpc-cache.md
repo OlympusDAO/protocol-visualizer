@@ -94,7 +94,7 @@ finalized watermark remains safe if a provider later becomes unavailable.
 
 There are two persistent caches with separate databases and lifecycles. Envio's `cache: true` effects in `effects.ts` and `code-cache.ts` persist successful pinned observations in the indexer database. Canonical block hashes are part of pinned inputs, so observations at new blocks can create new entries even for the same contract. Rollbacks retain effect results; a process restart does not make this an in-memory cache. Unavailable/incomplete results explicitly disable effect caching. eRPC separately persists eligible finalized method/parameter responses in `rpc-cache-postgres`; its immutable policies have NULL expiry. Neither repository configuration defines a lifetime TTL or automatic capacity bound for these entries.
 
-Use the existing `pnpm indexer:metrics` effect/progress metrics and private `pnpm rpc-cache:metrics` hit/miss/upstream counters to relate new work to cache activity. Counters measure requests, not disk bytes. Track Railway volume usage and PostgreSQL database/relation sizes for **both** databases over the same intervals, together with progress and unique-block workload. Existing production capacities are preserved when above the requested 20,000 MB minimum; that minimum is not a retention guarantee or a measured lifetime estimate. No observed growth rate is established by this change.
+Use the existing `pnpm inspect:indexer:metrics` effect/progress metrics and private `pnpm inspect:rpc-cache:metrics` hit/miss/upstream counters to relate new work to cache activity. Counters measure requests, not disk bytes. Track Railway volume usage and PostgreSQL database/relation sizes for **both** databases over the same intervals, together with progress and unique-block workload. Existing production capacities are preserved when above the requested 20,000 MB minimum; that minimum is not a retention guarantee or a measured lifetime estimate. No observed growth rate is established by this change.
 
 Operations must provide persistent storage, backups, free-space alerts and capacity growth for the intended indexing/rebuild horizon. Keep caches through ordinary deploys and resumes. There is no supported automated eviction or deletion procedure in this change; a finite retention policy requires a separately reviewed design and verification of Envio rollback/replay and eRPC refill behavior. Do not truncate cache tables or reset project volumes as routine maintenance. The reset-isolation integration check establishes that an intentional indexer schema reset leaves the separate eRPC cache intact; it does not establish a safe purge policy for Envio effects.
 
@@ -214,12 +214,12 @@ Register an SSH key with Railway first. Follow [SSH key registration](railway-se
 Then run this command from the linked repository:
 
 ```bash
-pnpm run rpc-cache:metrics
+pnpm run inspect:rpc-cache:metrics
 ```
 
 The script uses the currently linked Railway environment.
 It prints the project and environment names and IDs before it opens the tunnel.
-To select another environment, use `pnpm run rpc-cache:metrics --environment protocol-visualizer-pr-82`.
+To select another environment, use `pnpm run inspect:rpc-cache:metrics --environment protocol-visualizer-pr-82`.
 `RAILWAY_ENVIRONMENT` also selects an environment. A command-line selector takes precedence.
 The script opens an SSH tunnel and your browser at `http://127.0.0.1:14001/metrics`.
 Keep the terminal open. Press Ctrl+C to close the tunnel and remove its temporary SSH configuration.
@@ -232,7 +232,7 @@ If your key uses a custom filename, select its private key file:
 
 ```bash
 RAILWAY_SSH_IDENTITY_FILE="$HOME/.ssh/id_ed25519_railway" \
-  pnpm run rpc-cache:metrics
+  pnpm run inspect:rpc-cache:metrics
 ```
 
 The browser shows Prometheus text, not a dashboard.
@@ -341,8 +341,8 @@ requiring per-consumer URL edits. Ephemeral local PG18.6 uses fresh versioned
 keeps all volumes; do not use `down --volumes` for this stack.
 
 ```bash
-pnpm run docker:build:rpc-cache
-pnpm run docker:build:indexer
+pnpm run build:docker:rpc-cache
+pnpm run build:docker:indexer
 pnpm test:integration
 ```
 

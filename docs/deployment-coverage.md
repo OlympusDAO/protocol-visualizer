@@ -222,7 +222,7 @@ Missing discovered references do not establish missing dependencies.
 The [contract metadata update procedure](../apps/indexer/README.md#contract-metadata) covers new contracts, verified-source imports, event coverage, and publication.
 It also explains how `--force` can remove imported verification records and disable generic links.
 
-The metadata refresh now supports `pnpm run indexer:metadata -- --refresh-getters`.
+The metadata refresh now supports `pnpm run generate:indexer-metadata -- --refresh-getters`.
 It scans both contract inventories, upgrades older records, preserves role mappings, and reports unavailable verification without replacing established records.
 At Mainnet block `26252800`, 446 generic getter observations succeeded, including Auctioneer's `CD_FACILITY()` reference to ConvertibleDepositFacility.
 The Kernel registry supplied 87 module-dependency links across ten module keycodes.

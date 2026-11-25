@@ -9,15 +9,15 @@ command -v trivy >/dev/null || { echo "Install Trivy (see mise.toml) before vali
 printf '\n[1/11] Build all eight application images\n'
 images=(rpc-cache indexer indexer-monitor frontend hasura snapshot-gateway snapshot-publisher snapshot-monitor)
 for image in "${images[@]}"; do
-  pnpm run "docker:build:$image"
+  pnpm run "build:docker:$image"
 done
 step=1
 for image in "${images[@]}"; do
   step=$((step + 1))
   printf '\n[%s/11] Scan %s local image\n' "$step" "$image"
-  pnpm run docker:scan -- "$image"
+  pnpm run scan:docker -- "$image"
 done
 printf '\n[10/11] Scan Dockerfiles\n'
-pnpm run docker:scan:dockerfiles
-printf '\n[11/11] Check owned external images; provider inventory NOT SCANNED (optional: pnpm docker:scan:provider); local fixtures excluded\n'
-pnpm run docker:scan:runtime
+pnpm run scan:docker:dockerfiles
+printf '\n[11/11] Check owned external images; provider inventory NOT SCANNED (optional: pnpm scan:docker:provider); local fixtures excluded\n'
+pnpm run scan:docker:runtime

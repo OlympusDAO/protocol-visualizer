@@ -1,6 +1,6 @@
 # Railway project infrastructure
 
-`railway.ts` defines all services, databases, volumes, the bucket, and groups.
+`railway.ts` defines all services, databases, volumes, buckets, and groups.
 It is the project definition; there is no named partial. Removing a resource
 can delete it on apply. IaC supplies connection references. Provider URLs and
 operator secrets stay in Railway through `preserve()`; optional overrides remain

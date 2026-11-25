@@ -33,6 +33,7 @@ test("whole-project IaC retains storage and wires services without embedding sec
     assert.equal(definition.variables.managed, true);
     assert(definition.variables.ignore.includes("RPC_CACHE_MAX_RPS"));
     assert.deepEqual(resources.map((r) => r.address).sort(), [
+      "bucket.monitor-state",
       "bucket.storage",
       "database.Postgres",
       "database.rpc-cache-postgres",
@@ -234,7 +235,7 @@ test("whole-project IaC retains storage and wires services without embedding sec
   }
 });
 
-test("indexer monitor schedules one private metrics job with the existing bucket", async () => {
+test("indexer monitor schedules one private metrics job with a dedicated state bucket", async () => {
   for (const environment of ["production", "protocol-visualizer-pr-82"]) {
     const { definition, resources } = await infrastructure(environment);
     const monitor = resources.find((node) => node.name === "indexer-monitor");
@@ -265,7 +266,7 @@ test("indexer monitor schedules one private metrics job with the existing bucket
           "SECRET_ACCESS_KEY",
         ].map((key) => [
           key,
-          { type: "reference", resource: "bucket.storage", output: key },
+          { type: "reference", resource: "bucket.monitor-state", output: key },
         ])
       ),
       INDEXER_METRICS_URL: {
@@ -277,10 +278,6 @@ test("indexer monitor schedules one private metrics job with the existing bucket
       DISCORD_WEBHOOK_URL_PREVIEW: {
         type: "sharedReference",
         name: "DISCORD_WEBHOOK_URL_PREVIEW",
-      },
-      DISCORD_PRODUCTION_ENVIRONMENT_ID: {
-        type: "literal",
-        value: "1b61e496-b565-42b4-9e5d-8096e28e13cd",
       },
       MONITOR_NAME: {
         type: "literal",
@@ -308,10 +305,10 @@ test("indexer monitor schedules one private metrics job with the existing bucket
         type: "sharedReference",
         name: "DISCORD_WEBHOOK_URL_PREVIEW",
       });
-      assert.deepEqual(service.variables.DISCORD_PRODUCTION_ENVIRONMENT_ID, {
-        type: "literal",
-        value: "1b61e496-b565-42b4-9e5d-8096e28e13cd",
-      });
+      assert.equal(
+        service.variables.DISCORD_PRODUCTION_ENVIRONMENT_ID,
+        undefined
+      );
     }
     for (const key of Object.keys(monitor.variables))
       assert.equal(

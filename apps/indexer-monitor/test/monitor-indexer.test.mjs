@@ -174,8 +174,8 @@ test("copied production settings use the runtime environment for webhook and lab
   const remote = await fixture(t);
   const configured = {
     ...remote.env,
-    MONITOR_NAME: "Protocol Indexer",
     DISCORD_PRODUCTION_ENVIRONMENT_ID: "fixture-production",
+    MONITOR_NAME: "Protocol Indexer",
     DISCORD_WEBHOOK_URL_PREVIEW: remote.env.DISCORD_WEBHOOK_URL.replace(
       "/webhook",
       "/preview-webhook"
@@ -185,9 +185,15 @@ test("copied production settings use the runtime environment for webhook and lab
     ["production", "POST /webhook", "Protocol Indexer", "fixture-production"],
     [
       "renamed-production",
-      "POST /webhook",
-      "Protocol Indexer",
+      "POST /preview-webhook",
+      "Protocol Indexer / renamed-production",
       "fixture-production",
+    ],
+    [
+      " production ",
+      "POST /preview-webhook",
+      "Protocol Indexer /  production ",
+      "fixture-preview",
     ],
     [
       "protocol-indexer-pr-42",
@@ -266,7 +272,6 @@ test("missing and invalid configuration exit before any requests", async (t) => 
     ["MONITOR_NAME", " "],
     ["RAILWAY_ENVIRONMENT_NAME", " "],
     ["RAILWAY_ENVIRONMENT_ID", " "],
-    ["DISCORD_PRODUCTION_ENVIRONMENT_ID", " "],
     ["MONITOR_COOLDOWN_MINUTES", ""],
     ["MONITOR_COOLDOWN_MINUTES", " "],
     ["MONITOR_COOLDOWN_MINUTES", "0"],
@@ -460,7 +465,6 @@ test("corrupt state, AccessDenied and non-NoSuchKey 404s all fail before probing
   assert.equal(remote.calls.length, 11);
   assert.deepEqual(remote.posts, []);
 });
-
 test("Discord project fields stay within the limit without shortening content", async (t) => {
   const project = "p".repeat(1024);
   const name = `${project}z`;

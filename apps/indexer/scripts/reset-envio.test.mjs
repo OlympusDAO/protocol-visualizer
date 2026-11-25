@@ -380,7 +380,7 @@ Date.now = () => now() + (clockReads !== undefined && clockReads++ > 0 ? 30001 :
 test("Railway package command requires an explicit environment and forwards it before remote arguments", async () => {
   const script = JSON.parse(
     readFileSync(new URL("../../../package.json", import.meta.url))
-  ).scripts["indexer:reset:railway"];
+  ).scripts["reset:indexer:railway"];
   const root = mkdtempSync(join(tmpdir(), "railway reset 'quoted' $path;-"));
   writeFileSync(
     join(root, "railway"),

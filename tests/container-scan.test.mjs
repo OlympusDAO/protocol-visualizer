@@ -87,7 +87,7 @@ function fixture(t) {
     }
     if (name === "pnpm") {
       process.exit(
-        args[1] === "docker:scan"
+        args[1] === "scan:docker"
           ? Number(process.env.PV_TEST_SCAN_EXIT || 0)
           : 0
       );
@@ -396,18 +396,18 @@ test("image validation builds and scans all local tags and preserves fail-fast p
   const builds = images.map((image) => [
     "pnpm",
     "run",
-    `docker:build:${image}`,
+    `build:docker:${image}`,
   ]);
   assert.deepEqual(f.calls(), [
     ...builds,
-    ...images.map((image) => ["pnpm", "run", "docker:scan", "--", image]),
-    ["pnpm", "run", "docker:scan:dockerfiles"],
-    ["pnpm", "run", "docker:scan:runtime"],
+    ...images.map((image) => ["pnpm", "run", "scan:docker", "--", image]),
+    ["pnpm", "run", "scan:docker:dockerfiles"],
+    ["pnpm", "run", "scan:docker:runtime"],
   ]);
   const failure = fixture(t);
   assert.equal(failure.pipeline({ PV_TEST_SCAN_EXIT: "43" }).status, 43);
   assert.deepEqual(failure.calls(), [
     ...builds,
-    ["pnpm", "run", "docker:scan", "--", "rpc-cache"],
+    ["pnpm", "run", "scan:docker", "--", "rpc-cache"],
   ]);
 });

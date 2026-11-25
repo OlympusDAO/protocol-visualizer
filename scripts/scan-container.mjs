@@ -8,7 +8,7 @@ const args = process.argv.slice(2);
 if (args[0] === "--") args.shift();
 const [service] = args;
 if (!ownedImages.includes(service) || args.length !== 1) {
-  console.error("Usage: pnpm run docker:scan -- <service>");
+  console.error("Usage: pnpm run scan:docker -- <service>");
   process.exit(1);
 }
 const image = `protocol-visualizer/${service}:local`;

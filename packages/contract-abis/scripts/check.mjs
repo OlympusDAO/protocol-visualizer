@@ -18,7 +18,7 @@ const problems = await checkRegistry({
 
 if (problems.length > 0) {
   console.error(
-    `The ABI registry is not consistent. Run 'pnpm abis:sync' and commit the result.\n- ${problems.join("\n- ")}`
+    `The ABI registry is not consistent. Run 'pnpm sync:abis' and commit the result.\n- ${problems.join("\n- ")}`
   );
   process.exit(1);
 }

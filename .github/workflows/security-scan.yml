@@ -52,23 +52,23 @@ jobs:
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
       - name: Build application image
         id: build
-        run: pnpm run docker:build:${{ matrix.image }}
+        run: pnpm run build:docker:${{ matrix.image }}
       # Full functional fixtures need only eRPC, indexer and their native PG fixture.
       # One cheap indexer rebuild avoids transferring images or rebuilding Go twice.
       - name: Build integration companion
         id: companion
         if: matrix.image == 'rpc-cache'
-        run: pnpm run docker:build:indexer
+        run: pnpm run build:docker:indexer
       - name: Scan application image
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: pnpm run docker:scan -- ${{ matrix.image }}
+        run: pnpm run scan:docker -- ${{ matrix.image }}
       - name: Check Dockerfile
         if: ${{ !cancelled() && steps.bootstrap.outcome == 'success' }}
         run: trivy config --severity MEDIUM,HIGH,CRITICAL --exit-code 1 --file-patterns 'dockerfile:Dockerfile-*' Dockerfile-${{ matrix.image }}
       - name: Check runtime image policy
         if: ${{ !cancelled() && matrix.image == 'rpc-cache' && steps.bootstrap.outcome == 'success' }}
         # Railway PostgreSQL stays advisory/not-run; local fixtures stay excluded.
-        run: pnpm run docker:scan:runtime
+        run: pnpm run scan:docker:runtime
       - name: Required PostgreSQL, cache, reset and docs integration
         # A scan failure must not prevent functional validation of successful builds.
         if: ${{ !cancelled() && matrix.image == 'rpc-cache' && steps.build.outcome == 'success' && steps.companion.outcome == 'success' }}

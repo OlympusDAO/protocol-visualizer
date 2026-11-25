@@ -15,7 +15,7 @@ import { test } from "node:test";
 test("native apply alias requires an explicit environment value", () => {
   const { scripts } = JSON.parse(readFileSync("package.json", "utf8"));
   assert.equal(
-    scripts["railway:apply"],
+    scripts["apply:railway"],
     "railway config apply --plan railway-plan.json --environment"
   );
 });
@@ -27,8 +27,8 @@ test("operator docs verify linked project separately from saved environment and 
     assert(text.includes("`environmentId`"));
     assert(text.includes("no `projectId`"));
     assert(!text.includes("saved plan project/environment IDs"));
-    assert(text.includes("`pnpm railway:apply production --json`"));
-    assert(!text.includes("`pnpm railway:apply production`"));
+    assert(text.includes("`pnpm apply:railway production --json`"));
+    assert(!text.includes("`pnpm apply:railway production`"));
   }
   const readme = readFileSync("apps/indexer/README.md", "utf8");
   assert(readme.includes("pnpm validate:all"));

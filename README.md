@@ -44,8 +44,8 @@ For local end-to-end testing, Docker Compose can run Postgres, Hasura, the
 indexer, a local S3-compatible bucket, the snapshot gateway, and the frontend:
 
 ```bash
-pnpm run stack:up
-pnpm run stack:publish:sample
+pnpm run up:stack
+pnpm run publish:stack:sample
 ```
 
 The full local stack guide is in `docs/local-stack.md`.
@@ -90,7 +90,7 @@ Quick local indexer commands:
 ```bash
 pnpm run dev:indexer
 pnpm run dev:indexer:reset
-pnpm run indexer:metrics
+pnpm run inspect:indexer:metrics
 ```
 
 ## Frontend

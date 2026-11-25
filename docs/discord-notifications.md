@@ -27,11 +27,9 @@ describe the chain catalog and remain independent of the Railway environment.
 Outside Railway, an omitted environment name keeps the explicit
 `DISCORD_WEBHOOK_URL` for local validation; live snapshot jobs still require
 `RAILWAY_ENVIRONMENT_NAME` to run. A supplied environment name must not be blank.
-The optional `DISCORD_PRODUCTION_ENVIRONMENT_ID` recognizes production when it
-matches Railway's runtime `RAILWAY_ENVIRONMENT_ID`; otherwise the name is used.
-IaC supplies Visualizer's existing production ID to all three alert jobs, so a
-production rename retains its channel and label while a PR clone has a different
-runtime ID. Supplied IDs must not be blank; an ID without a name fails before I/O.
+Only the exact environment name `production` uses production routing. Renamed
+environments use the preview webhook and label. A supplied runtime ID must not be
+blank and requires a name; it does not select the Discord destination.
 
 These examples use fictional values and show all nine currently indexed chains.
 Both services group configured chains into production chains and testnets.

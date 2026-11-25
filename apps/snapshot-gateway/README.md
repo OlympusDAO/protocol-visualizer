@@ -80,8 +80,8 @@ Optional:
 `openapi.json` is generated from shared route/schema constants:
 
 ```bash
-pnpm --filter snapshot-gateway run openapi:generate
-pnpm --filter snapshot-gateway run openapi:check
+pnpm --filter snapshot-gateway run generate:openapi
+pnpm --filter snapshot-gateway run check:openapi
 ```
 
 Do not hand-edit `openapi.json`.

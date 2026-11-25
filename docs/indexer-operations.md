@@ -8,7 +8,7 @@ RPC cache deployment and storage belong in [rpc-cache.md](rpc-cache.md).
 Download verified metadata before building the indexer:
 
 ```bash
-ETHERSCAN_MIN_REQUEST_INTERVAL_MS=1000 pnpm run indexer:metadata -- --prefetch-metadata --source-report benchmarks/metadata-source-coverage.json
+ETHERSCAN_MIN_REQUEST_INTERVAL_MS=1000 pnpm run generate:indexer-metadata -- --prefetch-metadata --source-report benchmarks/metadata-source-coverage.json
 ```
 
 This uses Sourcify's [contract lookup API](https://docs.sourcify.dev/docs/api/),
@@ -58,7 +58,7 @@ For the partially verified Robinhood `TokenAdminRegistry`, the public Blockscout
 ABI observation is retained as a fixture. Reproduce the offline ABI import with:
 
 ```bash
-pnpm run indexer:metadata -- --chain-id 4663 --address 0x1912c3cfafe8a76a32a92861d815ac2837f237ca --explorer-abi apps/indexer/scripts/fixtures/robinhood-token-admin-registry-abi.json
+pnpm run generate:indexer-metadata -- --chain-id 4663 --address 0x1912c3cfafe8a76a32a92861d815ac2837f237ca --explorer-abi apps/indexer/scripts/fixtures/robinhood-token-admin-registry-abi.json
 ```
 
 This narrow import validates the registered identity and Blockscout observation
@@ -107,8 +107,8 @@ separately to detect stalled ingestion. The job never resets the indexer.
 
 Set the production and preview webhook values using the
 [Discord setup instructions](discord-notifications.md). IaC supplies
-`INDEXER_METRICS_URL`, the `MONITOR_NAME` environment label, and the existing
-bucket's `BUCKET`, `ENDPOINT`, `REGION`, `ACCESS_KEY_ID` and `SECRET_ACCESS_KEY`
+`INDEXER_METRICS_URL`, the `MONITOR_NAME` project label, and the dedicated private
+`monitor-state` bucket's `BUCKET`, `ENDPOINT`, `REGION`, `ACCESS_KEY_ID` and `SECRET_ACCESS_KEY`
 references. Both service URLs and all bucket settings are required. URLs must
 use HTTP or HTTPS without embedded credentials. The optional `MONITOR_NAME`
 defaults to `Indexer`. IaC supplies `Visualizer`; runtime Railway metadata adds
@@ -171,7 +171,7 @@ requires one. If the probe fails, stop before the reset.
 From the repository root on your local machine:
 
 ```bash
-RAILWAY_ENVIRONMENT=production pnpm run indexer:reset:railway
+RAILWAY_ENVIRONMENT=production pnpm run reset:indexer:railway
 ```
 
 An explicit environment is required. Use `RAILWAY_ENVIRONMENT` or pass `--environment <name|id>`.
@@ -325,7 +325,7 @@ control. Inspect the error. After separate reset approval and confirmation that
 every other ingestion writer has stopped, run from the repository root:
 
 ```bash
-pnpm indexer:reset:railway --environment production
+pnpm reset:indexer:railway --environment production
 ```
 
 Replace `production` with the selected environment name or ID.

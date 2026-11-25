@@ -1,15 +1,29 @@
-import { addAbortSignal } from "node:stream";
+import { addAbortSignal, Readable } from "node:stream";
 import {
   GetObjectCommand,
+  type GetObjectCommandInput,
+  type GetObjectCommandOutput,
   NoSuchKey,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
 
 const stateKey = "indexer-monitor/state.json";
-const cooldownMs = 60 * 60_000;
 
-function httpUrl(value) {
+type MonitorState = { lastErrorAt: number | null; alertedDown: boolean };
+type DiscordPayload = {
+  content: string;
+  embeds: [
+    {
+      title: string;
+      color: number;
+      fields: { name: string; value: string }[];
+      timestamp: string;
+    },
+  ];
+};
+
+function httpUrl(value: string) {
   const url = new URL(value);
   if (
     !["http:", "https:"].includes(url.protocol) ||
@@ -21,16 +35,28 @@ function httpUrl(value) {
   return url.href;
 }
 
-function configuration(env) {
-  const required = (name) => {
+function configuration(env: NodeJS.ProcessEnv) {
+  const required = (name: string) => {
     const value = env[name]?.trim();
     if (!value) throw new Error();
     return value;
   };
+  const cooldown = env.MONITOR_COOLDOWN_MINUTES ?? "60";
+  const minutes = Number(cooldown);
+  const cooldownMs = minutes * 60_000;
+  if (
+    !/^\d+$/.test(cooldown) ||
+    !Number.isSafeInteger(minutes) ||
+    minutes < 1 ||
+    !Number.isSafeInteger(cooldownMs)
+  ) {
+    throw new Error();
+  }
   return {
     metricsUrl: httpUrl(required("INDEXER_METRICS_URL")),
     webhookUrl: httpUrl(required("DISCORD_WEBHOOK_URL")),
     name: env.MONITOR_NAME === undefined ? "Indexer" : required("MONITOR_NAME"),
+    cooldownMs,
     bucket: required("BUCKET"),
     endpoint: httpUrl(required("ENDPOINT")),
     region: required("REGION"),
@@ -41,13 +67,17 @@ function configuration(env) {
   };
 }
 
-function requestDeadline(shutdown) {
+function requestDeadline(shutdown: AbortSignal) {
   return AbortSignal.any([shutdown, AbortSignal.timeout(5_000)]);
 }
 
-async function readState(client, object, shutdown) {
+async function readState(
+  client: S3Client,
+  object: GetObjectCommandInput,
+  shutdown: AbortSignal
+): Promise<MonitorState> {
   const signal = requestDeadline(shutdown);
-  let body;
+  let body: GetObjectCommandOutput["Body"];
   try {
     ({ Body: body } = await client.send(new GetObjectCommand(object), {
       abortSignal: signal,
@@ -59,22 +89,37 @@ async function readState(client, object, shutdown) {
   }
 
   // The SDK returns after headers. Keep the same deadline active for the body.
-  const state = JSON.parse(
+  if (!(body instanceof Readable)) throw new Error();
+  const state: unknown = JSON.parse(
     await addAbortSignal(signal, body).transformToString()
   );
+  if (
+    !state ||
+    typeof state !== "object" ||
+    !("lastErrorAt" in state) ||
+    !("alertedDown" in state)
+  ) {
+    throw new Error();
+  }
   const { lastErrorAt, alertedDown } = state;
   if (
     (lastErrorAt !== null &&
-      (!Number.isSafeInteger(lastErrorAt) || lastErrorAt < 0)) ||
+      (typeof lastErrorAt !== "number" ||
+        !Number.isSafeInteger(lastErrorAt) ||
+        lastErrorAt < 0)) ||
     typeof alertedDown !== "boolean" ||
     (alertedDown && lastErrorAt === null)
   ) {
     throw new Error();
   }
-  return state;
+  return { lastErrorAt, alertedDown };
 }
 
-async function requestSucceeded(url, shutdown, options) {
+async function requestSucceeded(
+  url: string,
+  shutdown: AbortSignal,
+  options?: RequestInit
+) {
   try {
     const response = await fetch(url, {
       ...options,
@@ -88,13 +133,13 @@ async function requestSucceeded(url, shutdown, options) {
   }
 }
 
-function fail(message) {
+function fail(message: string) {
   console.error(message);
   process.exitCode = 1;
 }
 
 async function main() {
-  let settings;
+  let settings: ReturnType<typeof configuration>;
   try {
     settings = configuration(process.env);
   } catch {
@@ -115,6 +160,7 @@ async function main() {
     metricsUrl,
     webhookUrl,
     name,
+    cooldownMs,
   } = settings;
   const client = new S3Client({
     endpoint,
@@ -143,11 +189,30 @@ async function main() {
     if (!notify) return;
 
     operation = "webhook delivery";
-    const status = healthy ? "reachable again" : "unreachable";
+    const status = healthy ? "Reachable again" : "Unreachable";
+    const payload: DiscordPayload = {
+      content: `${name}: metrics are ${status.toLowerCase()}.`,
+      embeds: [
+        {
+          title: healthy
+            ? "Indexer metrics recovered"
+            : "Indexer metrics outage",
+          color: healthy ? 0x2ecc71 : 0xe74c3c,
+          fields: [
+            { name: "Project", value: name.slice(0, 1024) },
+            {
+              name: "Status",
+              value: status,
+            },
+          ],
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    };
     const delivered = await requestSucceeded(webhookUrl, signal, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ content: `${name}: metrics are ${status}.` }),
+      body: JSON.stringify(payload),
     });
     signal.throwIfAborted();
     if (!delivered) throw new Error();

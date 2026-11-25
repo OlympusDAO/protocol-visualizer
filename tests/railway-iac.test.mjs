@@ -248,6 +248,7 @@ test("indexer monitor schedules one private metrics job with the existing bucket
         "/Dockerfile-indexer-monitor",
         "/apps/indexer-monitor/package.json",
         "/apps/indexer-monitor/src/**",
+        "/apps/indexer-monitor/tsconfig.json",
         "/package.json",
         "/pnpm-lock.yaml",
         "/pnpm-workspace.yaml",
@@ -277,6 +278,7 @@ test("indexer monitor schedules one private metrics job with the existing bucket
         name: "DISCORD_WEBHOOK_URL",
       },
       MONITOR_NAME: { type: "literal", value: `Visualizer ${environment}` },
+      MONITOR_COOLDOWN_MINUTES: { type: "preserve" },
     });
     const isIgnored = (service, key) =>
       definition.variables.ignore.some((pattern) => {

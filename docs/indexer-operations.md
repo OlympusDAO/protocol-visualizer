@@ -110,14 +110,18 @@ Set the shared `DISCORD_WEBHOOK_URL` for each Railway environment. IaC supplies
 bucket's `BUCKET`, `ENDPOINT`, `REGION`, `ACCESS_KEY_ID` and `SECRET_ACCESS_KEY`
 references. Both service URLs and all bucket settings are required. URLs must
 use HTTP or HTTPS without embedded credentials. The optional `MONITOR_NAME`
-defaults to `Indexer`. Startup validates configuration before any network
-requests. Invalid values cause exit status `1` with a fixed diagnostic.
+defaults to `Indexer`. Set the optional `MONITOR_COOLDOWN_MINUTES` on the
+monitor service to change its 60-minute default. Use a positive whole number
+of minutes that converts safely to milliseconds. Startup validates configuration
+before any network requests. Invalid values cause exit status `1` with a fixed
+diagnostic.
 
 The job stores alert state in `indexer-monitor/state.json`, separate from
-snapshot state. A successful Discord outage delivery starts a 60-minute
+snapshot state. A successful Discord outage delivery starts the configured
 cooldown that survives restarts and recovery. A continuing outage can send
 another alert on a scheduled run after the cooldown expires. The first healthy
-run after a reported outage sends one recovery. If a delivery or state operation
+run after a reported outage sends one recovery. Both alerts carry a Discord
+embed with the project, status and timestamp. If a delivery or state operation
 fails, the job exits with status `1` and the next run can retry if the alert is
 still relevant. A successful delivery followed by a failed state write can
 produce a duplicate. The scheduled `snapshot-monitor` continues its daily

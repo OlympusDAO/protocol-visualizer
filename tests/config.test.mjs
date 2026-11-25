@@ -556,9 +556,14 @@ test("Indexer monitor image deploys only its production app on the pinned non-ro
   assert.equal(runtime.match(/^FROM (\S+)/m)?.[1], base);
   assert.deepEqual(deps.match(/^COPY\s+.+$/gm), [
     "COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./",
-    "COPY apps/indexer-monitor/package.json ./apps/indexer-monitor/",
+    "COPY apps/indexer-monitor/package.json apps/indexer-monitor/tsconfig.json ./apps/indexer-monitor/",
     "COPY apps/indexer-monitor/src/ ./apps/indexer-monitor/src/",
   ]);
+  assert.match(
+    deps,
+    /^RUN pnpm install --frozen-lockfile --filter indexer-monitor\.\.\.$/m
+  );
+  assert.match(deps, /^RUN pnpm --filter indexer-monitor run build$/m);
   assert.match(
     deps,
     /^RUN pnpm --filter indexer-monitor deploy --prod \/deploy\/indexer-monitor\b/m
@@ -568,7 +573,7 @@ test("Indexer monitor image deploys only its production app on the pinned non-ro
     `COPY --from=${dependencyStage} --chown=node:node /deploy/indexer-monitor/ ./`,
   ]);
   assert.match(runtime, /^USER node$/m);
-  assert.match(runtime, /^CMD \["node", "src\/monitor-indexer\.mjs"\]$/m);
+  assert.match(runtime, /^CMD \["node", "dist\/monitor-indexer\.js"\]$/m);
   assert.match(runtime, /\brm -rf \/usr\/local\/lib\/node_modules\b/);
   assert.doesNotMatch(runtime, /^(?:ADD|ENTRYPOINT|EXPOSE)\b/m);
   assert.doesNotMatch(
@@ -578,12 +583,12 @@ test("Indexer monitor image deploys only its production app on the pinned non-ro
 
   const app = readJson("apps/indexer-monitor/package.json");
   assert.deepEqual(Object.keys(app.dependencies), ["@aws-sdk/client-s3"]);
-  assert.deepEqual(app.files, ["src"]);
-  assert.equal(app.scripts.start, "node src/monitor-indexer.mjs");
+  assert.deepEqual(app.files, ["dist"]);
+  assert.equal(app.scripts.start, "node dist/monitor-indexer.js");
   assert.equal(app.scripts["lint:check"], "biome lint . --error-on-warnings");
-  assert.equal(app.scripts.build, undefined);
-  assert.equal(app.scripts.typecheck, undefined);
-  assert.equal(app.scripts.test, undefined);
+  assert.equal(app.scripts.build, "tsc");
+  assert.equal(app.scripts.typecheck, "tsc --noEmit");
+  assert.equal(app.scripts.test, "node --test test/*.test.mjs");
 });
 
 test("Snapshot service Dockerfiles prune source and test artifacts", () => {
@@ -671,6 +676,7 @@ test("source commands separate checks, artifact builds and all ordinary tests", 
   assert(workflow.includes("if: matrix.build == true"));
   for (const name of [
     "indexer",
+    "indexer-monitor",
     "snapshot-gateway",
     "snapshot-publisher",
     "snapshot-monitor",

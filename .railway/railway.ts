@@ -220,6 +220,7 @@ export default defineRailway((ctx) => {
       INDEXER_METRICS_URL: indexerMetricsUrl,
       DISCORD_WEBHOOK_URL: ctx.shared.DISCORD_WEBHOOK_URL,
       MONITOR_NAME: `Visualizer ${production ? "production" : (ctx.environmentName ?? "default")}`,
+      MONITOR_COOLDOWN_MINUTES: preserve(),
     },
     build: {
       builder: "DOCKERFILE",
@@ -228,6 +229,7 @@ export default defineRailway((ctx) => {
         "/Dockerfile-indexer-monitor",
         "/apps/indexer-monitor/package.json",
         "/apps/indexer-monitor/src/**",
+        "/apps/indexer-monitor/tsconfig.json",
         "/package.json",
         "/pnpm-lock.yaml",
         "/pnpm-workspace.yaml",

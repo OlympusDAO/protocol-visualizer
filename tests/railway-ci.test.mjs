@@ -1,17 +1,11 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import { test } from "node:test";
 import vm from "node:vm";
+import { parse } from "yaml";
 
 const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
 const required = [255339919, "audit.yml"];
-const requireFromFrontend = createRequire(
-  new URL("../apps/frontend/package.json", import.meta.url)
-);
-const { parse } = createRequire(
-  requireFromFrontend.resolve("vite/package.json")
-)("yaml");
 
 function releaseModule(sandbox) {
   const module = { exports: {} };
@@ -232,7 +226,7 @@ test("production release checks out the exact push revision before read-only gat
     ],
     ["Plan production changes", "plan", "{ core }"],
     ["Verify production plan target", "verify", "{ github, context }"],
-    ["Apply reviewed production plan", "apply", "{ core }"],
+    ["Apply reviewed production plan", "apply", "{ github, context, core }"],
   ])
     assert.equal(
       steps.find((step) => step.name === name).with.script.trim(),
@@ -679,6 +673,8 @@ async function checkNativeApplyResult(result, options = {}) {
     savedPlan = JSON.stringify({ changeSet: { changes: [] } }),
     error,
     operation = "apply",
+    branchHead = "merged-release",
+    branchError = false,
     token = "fixture-only",
     project,
     environment,
@@ -689,15 +685,35 @@ async function checkNativeApplyResult(result, options = {}) {
   };
   assert(
     workflow.includes(
-      `await require("./scripts/railway-release.cjs").${operation}({ core });`
+      `await require("./scripts/railway-release.cjs").${operation}({ ${operation === "apply" ? "github, context, core" : "core"} });`
     ),
     "CI must invoke the extracted native command with private output"
   );
+  let branchChecked = false;
   let privateUmask = false;
   const privateMarker = "fixture-private-output-do-not-log";
   const logs = [];
   try {
     const sandbox = {
+      context: {
+        repo: { owner: "fixture", repo: "fixture" },
+        sha: "merged-release",
+      },
+      github: {
+        rest: {
+          repos: {
+            async getBranch(args) {
+              assert.deepEqual(
+                { ...args },
+                { owner: "fixture", repo: "fixture", branch: "master" }
+              );
+              if (branchError) throw new Error("fixture branch unavailable");
+              branchChecked = true;
+              return { data: { commit: { sha: branchHead } } };
+            },
+          },
+        },
+      },
       process: {
         env: {
           RAILWAY_API_TOKEN: token,
@@ -728,6 +744,13 @@ async function checkNativeApplyResult(result, options = {}) {
         return {
           spawnSync(command, args, options) {
             assert.equal(command, "railway");
+            if (operation === "apply") {
+              assert(
+                branchChecked,
+                "master must be checked before native apply"
+              );
+              assert.equal(branchHead, "merged-release");
+            }
             if (operation === "plan")
               assert(
                 privateUmask,
@@ -781,6 +804,19 @@ async function checkNativeApplyResult(result, options = {}) {
     assert(logs.every((message) => !message.includes(privateMarker)));
   }
 }
+
+test("native apply rechecks master before sending the saved plan", async () => {
+  const result = { status: "applied", changes: [] };
+  await checkNativeApplyResult(result);
+  await assert.rejects(
+    checkNativeApplyResult(result, { branchHead: "newer-release" }),
+    /advanced/
+  );
+  await assert.rejects(
+    checkNativeApplyResult(result, { branchError: true }),
+    /branch unavailable/
+  );
+});
 
 test("native CI apply requires applied/noop result and every change, never exit zero or raw output", async () => {
   await checkNativeApplyResult({

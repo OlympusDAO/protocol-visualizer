@@ -356,7 +356,7 @@ test("production release uses trusted merged code and no PR Railway workflow or 
   assert(!ci.includes("plan.sourceTree !=="));
   assert(
     ci.includes(
-      'await require("./scripts/railway-release.cjs").apply({ core });'
+      'await require("./scripts/railway-release.cjs").apply({ github, context, core });'
     )
   );
   assert.equal(

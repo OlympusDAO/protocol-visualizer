@@ -68,6 +68,9 @@ importers:
       typescript:
         specifier: 7.0.2
         version: 7.0.2
+      yaml:
+        specifier: 2.9.1
+        version: 2.9.1
 
   apps/frontend:
     dependencies:
@@ -2972,6 +2975,14 @@ packages:
     engines: { node: ">= 14.6" }
     hasBin: true
 
+  yaml@2.9.1:
+    resolution:
+      {
+        integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==,
+      }
+    engines: { node: ">= 14.6" }
+    hasBin: true
+
   zustand@4.5.7:
     resolution:
       {
@@ -4585,6 +4596,8 @@ snapshots:
 
   yaml@2.8.3:
     optional: true
+
+  yaml@2.9.1: {}
 
   zustand@4.5.7(@types/react@19.3.0)(react@19.3.1):
     dependencies:

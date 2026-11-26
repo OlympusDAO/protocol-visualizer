@@ -290,7 +290,8 @@ Getter discovery does not generate event handlers or reconstruct earlier transit
 Metadata generation alone does not update indexed relationships or published snapshots.
 Catch-up does not sweep getters at fixed intervals.
 A bounded replay performs a full observation at its exact end block.
-An unbounded run performs full observations on 100-block callbacks within 99 blocks of the RPC head.
+An unbounded run verifies at catch-up and then once per UTC half-hour window,
+using the timestamp of an eligible block near the RPC head.
 Creation boundaries only initialize core contracts born at that block; they do not mark the chain observed.
 Unknown creation anchors use the first indexed observation boundary for generic getters.
 Historical event coverage requires a replay from the relevant start block.
@@ -482,9 +483,9 @@ allowlists, and inbound/outbound rate-limit configuration. Bridge records read
 the corresponding EVM or SVM trusted-remote getter. Chain selectors remain
 decimal strings; they are not EVM chain IDs.
 
-Configuration events invalidate the previous observation immediately. Completed
-checkpoints refresh it with hash-bound reads: at creation, every 10,000 blocks
-during catch-up, and every 100 blocks in realtime. Failed reads retain the prior
+Configuration events invalidate the previous observation immediately. Full
+observations refresh it with hash-bound reads at the bounded replay endpoint,
+on catch-up, and in each live half-hour window. Failed reads retain the prior
 configuration as unverified. Canonical-anchor checks prevent orphaned evidence
 from becoming current. Envio rollback restores both observations and events.
 

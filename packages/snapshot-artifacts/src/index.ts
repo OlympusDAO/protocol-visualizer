@@ -1,8 +1,5 @@
 export const SCHEMA_VERSION = "1.1.0" as const;
-export {
-  FULL_VERIFICATION_VERSION,
-  OBSERVATION_BLOCK_INTERVAL,
-} from "./observation-constants.js";
+export { FULL_VERIFICATION_VERSION } from "./observation-constants.js";
 export type SnapshotSchemaVersion = "1.0.0" | typeof SCHEMA_VERSION;
 
 export function isSupportedSchemaVersion(

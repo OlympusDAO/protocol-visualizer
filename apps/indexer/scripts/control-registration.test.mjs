@@ -33,8 +33,8 @@ if (mode) {
     chain.endBlock = mode === "boundary-end" ? 1023691 : 1530001;
   Handlers.startRegistration(config);
   await import("../src/EventHandlers.ts");
-  const registrations =
-    Handlers.finishRegistration(config)[80094].onBlockRegistrations;
+  const byChain = Handlers.finishRegistration(config);
+  const registrations = byChain[80094].onBlockRegistrations;
   const names = registrations.map((row) => row.name);
   assert.ok(names.includes("control-seed-80094-780011"));
   assert.ok(
@@ -48,6 +48,27 @@ if (mode) {
   assert.ok(!names.some((name) => name.startsWith("control-checkpoint-")));
   assert.equal(names.includes("control-realtime-80094"), mode === "unbounded");
   assert.equal(names.includes("control-end-80094"), mode !== "unbounded");
+  if (mode === "unbounded") {
+    const intervals = Object.fromEntries(
+      Object.entries(byChain).map(([id, { onBlockRegistrations }]) => [
+        id,
+        onBlockRegistrations.find(
+          (row) => row.name === `control-realtime-${id}`
+        )?.interval,
+      ])
+    );
+    assert.deepEqual(intervals, {
+      1: 5,
+      10: 30,
+      4663: 370,
+      8453: 300,
+      42161: 210,
+      80094: 30,
+      84532: 300,
+      421614: 193,
+      11155111: 5,
+    });
+  }
 } else {
   test("native handler registration keeps in-range seeds and excludes future seeds only for bounded replays", () => {
     for (const scenario of ["bounded", "boundary-end", "unbounded"]) {

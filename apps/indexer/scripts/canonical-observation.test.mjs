@@ -56,6 +56,25 @@ test("reuses each header only inside a phase and freshly checks every anchor, ob
   ]);
 });
 
+test("a sampled opening header still needs a fresh closing hash check", async () => {
+  const sampled = { ...header(10), timestamp: 1800n };
+  let observedHash;
+  await assert.rejects(
+    withCanonicalObservation(
+      1,
+      10n,
+      async ({ block }) => {
+        observedHash = block.hash;
+        return true;
+      },
+      async () => header(10, `0x${"f".repeat(64)}`),
+      sampled
+    ),
+    canonicalFailure
+  );
+  assert.equal(observedHash, sampled.hash);
+});
+
 test("overlapping phases and consecutive preload/execution phases have independent reads", async () => {
   let reads = 0;
   let release;

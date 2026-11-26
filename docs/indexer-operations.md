@@ -254,11 +254,11 @@ use the approved rebuild procedure when deploying it. This document does not
 authorize a reset. Existing published artifacts remain readable.
 
 Historical backfill processes events and narrowly initializes core contracts at
-creation. Full getter observations run at the bounded replay endpoint, or at the
-existing 100-block cadence when an unbounded chain is within 99 blocks of its
-current RPC head. A cold final backfill batch can perform that observation before
-Envio marks itself ready. There is no public Envio transactional catch-up hook;
-a stationary, nonaligned tip can wait for the next cadence block.
+creation. Full getter observations run at the bounded replay endpoint, or
+when an unbounded chain catches up and enters each subsequent UTC half-hour
+window. A cold final backfill batch can perform the first observation before
+Envio marks itself ready. Envio exposes no public transactional catch-up hook,
+so a stationary tip between candidate blocks can wait for the next candidate.
 
 The publisher requires native readiness and a versioned full-observation marker.
 Envio's native metrics determine catch-up readiness. The publisher checks the

@@ -264,12 +264,10 @@ test("production release checks out the exact push revision before read-only gat
   const ci = readFileSync(".github/workflows/ci.yml", "utf8");
   assert.match(ci, /^ {2}push:\n {4}branches: \[master\]$/m);
   for (const [job, path] of [["security-audit", "security-scan.yml"]]) {
-    assert.match(
-      ci,
-      new RegExp(
-        `  ${job}:\\n    if: github.event_name != 'pull_request'\\n    uses: ./\\.github/workflows/${path}`
-      )
-    );
+    const declaration = parse(ci).jobs[job];
+    assert.equal(declaration.name, "Release images and integration");
+    assert.equal(declaration.if, "github.event_name != 'pull_request'");
+    assert.equal(declaration.uses, `./.github/workflows/${path}`);
     const reusable = readFileSync(`.github/workflows/${path}`, "utf8");
     assert.match(reusable, /^ {2}workflow_call:$/m);
     assert.match(reusable, /^ {2}pull_request:$/m);
@@ -277,6 +275,7 @@ test("production release checks out the exact push revision before read-only gat
     assert(!reusable.includes("group: ${{ github.workflow }}"));
   }
   const audit = readFileSync(".github/workflows/audit.yml", "utf8");
+  assert.equal(parse(audit).jobs.audit.name, "Dependency audit");
   assert.match(audit, /^ {2}push:\n {4}branches: \[master\]$/m);
   assert(!audit.includes("workflow_call:"));
   assert(!ci.includes("uses: ./.github/workflows/audit.yml"));

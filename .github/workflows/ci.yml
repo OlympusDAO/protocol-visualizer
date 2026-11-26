@@ -55,10 +55,13 @@ jobs:
 
   # Image checks share this workflow; the standalone dependency audit is checked below.
   security-audit:
+    name: Release images and integration
+    # PRs run the standalone image workflow; this call gates release commits.
     if: github.event_name != 'pull_request'
     uses: ./.github/workflows/security-scan.yml
 
   railway-apply:
+    name: Railway infrastructure apply
     timeout-minutes: 60
     needs: [source, security-audit]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'

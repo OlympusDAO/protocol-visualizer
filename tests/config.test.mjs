@@ -300,7 +300,7 @@ test("CI exposes complete image coverage using existing build, scan and integrat
   assert.equal(
     imageJob.strategy.matrix.include.find((row) => row.image === "rpc-cache")
       .name,
-    "Cache + integration"
+    "RPC cache"
   );
   assert(
     steps

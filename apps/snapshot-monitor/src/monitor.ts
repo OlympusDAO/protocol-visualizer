@@ -147,7 +147,9 @@ const discordWebhookUrl = () => {
       url.username ||
       url.password
     )
-      throw new Error();
+      throw new Error(
+        "Webhook URL must use HTTP or HTTPS without embedded credentials."
+      );
     return url.href;
   } catch {
     throw new Error(
@@ -315,9 +317,11 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
   const nextChainProgress: MonitorState["chainProgress"] = {};
   const environmentName = input.environmentName ?? "<unknown>";
   const production = environmentName === "production";
+  const warningEnvironment =
+    input.environmentName && !production ? ` (${environmentName})` : "";
 
   if (!input.manifest) {
-    const message = `Protocol visualizer snapshot monitor: no active manifest is published for deployment ${shortId(
+    const message = `Protocol visualizer snapshot monitor${warningEnvironment}: no active manifest is published for deployment ${shortId(
       input.deploymentId
     )}.`;
     messages.push(message);
@@ -330,7 +334,7 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
       activeAgeHours !== undefined &&
       activeAgeHours * 60 * 60 * 1000 >= staleThresholdMs
     ) {
-      const message = `Protocol visualizer snapshot warning: active snapshots are ${activeAgeHours}h old. Active manifest was generated at ${input.manifest.generatedAt}.`;
+      const message = `Protocol visualizer snapshot warning${warningEnvironment}: active snapshots are ${activeAgeHours}h old. Active manifest was generated at ${input.manifest.generatedAt}.`;
       messages.push(message);
       discordMessages.push({ content: message });
     }
@@ -446,7 +450,7 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
       previous?.observedAt &&
       input.now.getTime() - Date.parse(previous.observedAt) >= staleThresholdMs
     ) {
-      const message = `Protocol visualizer indexing warning: ${name} has not advanced since ${previous.observedAt} at block ${chain.block}.`;
+      const message = `Protocol visualizer indexing warning${warningEnvironment}: ${name} has not advanced since ${previous.observedAt} at block ${chain.block}.`;
       messages.push(message);
       discordMessages.push({ content: message });
     }

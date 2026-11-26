@@ -3,8 +3,8 @@
 The publisher sends deployment progress and snapshot handover notifications.
 The monitor sends daily summaries and warnings about indexing or snapshot state.
 The jobs select their webhook at startup using Railway's actual environment
-name or its configured production ID: production uses `DISCORD_WEBHOOK_URL`; other environments require
-`DISCORD_WEBHOOK_URL_PREVIEW`. There is no fallback to the production webhook.
+name. The exact name `production` uses `DISCORD_WEBHOOK_URL`. Every other
+environment name requires `DISCORD_WEBHOOK_URL_PREVIEW`.
 Missing or blank selected values log an error and fail
 pre-deploy validation and startup before network requests or storage access.
 

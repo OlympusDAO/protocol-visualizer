@@ -113,6 +113,7 @@ references. Both service URLs and all bucket settings are required. URLs must
 use HTTP or HTTPS without embedded credentials. The optional `MONITOR_NAME`
 defaults to `Indexer`. IaC supplies `Visualizer`; runtime Railway metadata adds
 the environment label outside production and selects the preview webhook.
+The complete project/environment label must fit within 1024 characters.
 Outside Railway, the environment name is optional; when absent, the explicit
 `DISCORD_WEBHOOK_URL` and base label are used. A supplied name must not be blank.
 Use `pnpm build:indexer-monitor`,

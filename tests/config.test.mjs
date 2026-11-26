@@ -394,6 +394,14 @@ test("Compose includes the Railway-like snapshot services", () => {
   assert(compose.includes("Dockerfile-snapshot-monitor"));
   assert(compose.includes("http://hasura:8080/v1/graphql"));
   assert(compose.includes("http://localhost:8082"));
+  const services = parse(compose).services;
+  const live = services["snapshot-publisher"].environment;
+  const sample = services["snapshot-publisher-sample"].environment;
+  for (const name of [
+    "RAILWAY_ENVIRONMENT_NAME",
+    "DISCORD_WEBHOOK_URL_PREVIEW",
+  ])
+    assert.equal(sample[name], live[name], name);
 });
 
 test("Compose requires Envio API token, Etherscan key, and RPC URLs for local indexer runs", () => {

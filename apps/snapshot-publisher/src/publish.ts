@@ -152,7 +152,9 @@ const discordWebhookUrl = () => {
       url.username ||
       url.password
     )
-      throw new Error();
+      throw new Error(
+        "Webhook URL must use HTTP or HTTPS without embedded credentials."
+      );
     return url.href;
   } catch {
     throw new Error(

@@ -67,7 +67,10 @@
       "nursery": {
         "noFloatingPromises": "error"
       },
-      "preset": "recommended"
+      "preset": "recommended",
+      "suspicious": {
+        "useErrorMessage": "error"
+      }
     }
   },
   "overrides": [

@@ -263,17 +263,21 @@ test("warns when no manifest exists", () => {
   const result = evaluateMonitor({
     chains: [mainnet],
     deploymentId: "deployment-c",
+    environmentName: "renamed-production",
     state: { lastDailySummaryAt: "2026-06-05" },
     now: new Date("2026-06-05T02:00:00.000Z"),
   });
-  assert.equal(result.messages.length, 1);
-  assert.match(result.messages[0] ?? "", /no active manifest/);
+  const message =
+    "Protocol visualizer snapshot monitor (renamed-production): no active manifest is published for deployment deployment-c.";
+  assert.deepEqual(result.messages, [message]);
+  assert.deepEqual(result.discordMessages, [{ content: message }]);
 });
 
 test("warns when chain progress stops advancing beyond the threshold", () => {
   const result = evaluateMonitor({
     chains: [mainnet],
     deploymentId: "deployment-d",
+    environmentName: "protocol-visualizer-pr-49",
     manifest: manifest("2026-06-05T00:00:00.000Z"),
     state: {
       lastDailySummaryAt: "2026-06-05",
@@ -288,7 +292,10 @@ test("warns when chain progress stops advancing beyond the threshold", () => {
     now: new Date("2026-06-05T01:00:00.000Z"),
     staleThresholdMs: 24 * 60 * 60 * 1000,
   });
-  assert.match(result.messages.join("\n"), /has not advanced/);
+  const message =
+    "Protocol visualizer indexing warning (protocol-visualizer-pr-49): Mainnet has not advanced since 2026-06-04T00:00:00.000Z at block 123.";
+  assert.deepEqual(result.messages, [message]);
+  assert.deepEqual(result.discordMessages, [{ content: message }]);
   assert.equal(
     result.state.chainProgress?.Mainnet?.observedAt,
     "2026-06-04T00:00:00.000Z"
@@ -314,15 +321,32 @@ test("warns when Envio metrics report a chain is not ready", () => {
 });
 
 test("warns when active snapshots are older than the stale threshold", () => {
-  const result = evaluateMonitor({
+  const input = {
     chains: [mainnet],
     deploymentId: "deployment-f",
     manifest: manifest("2026-06-04T00:00:00.000Z"),
     state: { lastDailySummaryAt: "2026-06-05" },
     now: new Date("2026-06-05T01:00:00.000Z"),
     staleThresholdMs: 24 * 60 * 60 * 1000,
+  };
+  const preview = evaluateMonitor({
+    ...input,
+    environmentName: " production ",
   });
-  assert.match(result.messages.join("\n"), /active snapshots are 25h old/);
+  const production = evaluateMonitor({
+    ...input,
+    environmentName: "production",
+  });
+  const detail =
+    "active snapshots are 25h old. Active manifest was generated at 2026-06-04T00:00:00.000Z.";
+  const previewMessage = `Protocol visualizer snapshot warning ( production ): ${detail}`;
+  const productionMessage = `Protocol visualizer snapshot warning: ${detail}`;
+  assert.deepEqual(preview.messages, [previewMessage]);
+  assert.deepEqual(preview.discordMessages, [{ content: previewMessage }]);
+  assert.deepEqual(production.messages, [productionMessage]);
+  assert.deepEqual(production.discordMessages, [
+    { content: productionMessage },
+  ]);
 });
 
 test("does not alert when a new deployment is indexing before handover", () => {

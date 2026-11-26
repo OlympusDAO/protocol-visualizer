@@ -118,7 +118,7 @@ async function eventually(check, message) {
 }
 
 // Kept outside tests/*.test.mjs so regular builds do not require Docker.
-test("indexer image supports a non-root administrative shell", () => {
+test("indexer image runs Tini as PID 1 and supports a non-root administrative shell", () => {
   const name = `pv-indexer-shell-${process.pid}-${Date.now()}`;
   try {
     docker(
@@ -137,7 +137,7 @@ test("indexer image supports a non-root administrative shell", () => {
         name,
         "/bin/sh",
         "-c",
-        "exec /nodejs/bin/node -e 'console.log(JSON.stringify({node:process.version,uid:process.getuid()}))'"
+        'exec /nodejs/bin/node -e \'console.log(JSON.stringify({node:process.version,uid:process.getuid(),pid1:require("node:fs").readFileSync("/proc/1/comm","utf8").trim()}))\''
       )
     );
     assert.equal(
@@ -145,6 +145,7 @@ test("indexer image supports a non-root administrative shell", () => {
       `v${readFileSync(new URL("../../.node-version", import.meta.url), "utf8").trim()}`
     );
     assert.equal(result.uid, 65532);
+    assert.equal(result.pid1, "tini");
   } finally {
     docker("rm", "-f", "-v", name);
   }
@@ -1078,6 +1079,10 @@ export default config;
       await eventually(
         () => dockerLogs(waitingIndexer).includes("Envio stopped ("),
         "Native incompatible startup did not leave reset control available"
+      );
+      assert.match(
+        dockerLogs(waitingIndexer),
+        /The following config changes are incompatible with the existing indexer data:(?:\s|\\n)+- chainIdMode\b/
       );
       assert.equal(
         docker("inspect", waitingIndexer, "--format", "{{.State.Running}}"),

@@ -2,6 +2,11 @@
 # Pinned image: node:24.22.3-slim (Node v24.22.3, Debian/glibc)
 FROM node:24.22.3-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 AS deps
 
+# Reap Envio workers orphaned when their supervisor exits.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tini=0.19.0-1+b3 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@11.28.13 --activate
 
@@ -29,6 +34,8 @@ FROM gcr.io/distroless/static-debian13:debug-nonroot@sha256:12c2026b21e05857a4c7
 FROM gcr.io/distroless/nodejs24-debian13@sha256:ba59ac9916b424cdfaaa8299695530251535843623a6d8f93d40b0a2ef69e390 AS runtime
 
 COPY --from=shell --chmod=0755 /busybox/busybox /usr/bin/sh
+COPY --from=deps /usr/bin/tini-static /usr/bin/tini
+COPY --from=deps /usr/share/doc/tini/copyright /usr/share/doc/tini/copyright
 
 # Set working directory
 WORKDIR /app
@@ -51,4 +58,5 @@ EXPOSE 9898
 # Start the application
 WORKDIR /app/apps/indexer
 USER nonroot
+ENTRYPOINT ["/usr/bin/tini", "--", "/nodejs/bin/node"]
 CMD ["scripts/start-envio.mjs"]

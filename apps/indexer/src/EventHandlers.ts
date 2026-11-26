@@ -1,8 +1,5 @@
 import { indexer } from "envio";
-import {
-  FULL_VERIFICATION_VERSION,
-  OBSERVATION_BLOCK_INTERVAL,
-} from "../../../packages/snapshot-artifacts/src/observation-constants";
+import { FULL_VERIFICATION_VERSION } from "../../../packages/snapshot-artifacts/src/observation-constants";
 import { getKernelConstants } from "./constants";
 import {
   bridgeAnchorsCanonical,
@@ -10,7 +7,11 @@ import {
   getBridgeContracts,
   handleBridgeConfigurationEvent,
 } from "./events/bridge-config";
-import { withCanonicalObservation } from "./events/canonical-observation";
+import {
+  type CanonicalHeader,
+  readRpcBlockHeader,
+  withCanonicalObservation,
+} from "./events/canonical-observation";
 import { setControlCapability } from "./events/control-state";
 import {
   getBridgeConfiguration,
@@ -39,7 +40,10 @@ import {
 } from "./events/heart-tasks";
 import { handleKernelActionExecuted } from "./events/kernel";
 import { getCoreContracts, seedCoreContracts } from "./events/kernel-history";
-import { createLiveObservation } from "./events/live-observation";
+import {
+  createLiveObservation,
+  getObservationCandidateInterval,
+} from "./events/live-observation";
 import {
   completeModuleDependencies,
   getModuleDependencyFields,
@@ -71,6 +75,7 @@ import {
 } from "./events/roles";
 import { getPublicClient } from "./events/rpc";
 import type {
+  ChainObservationEntity,
   EnvioContext,
   KernelActionExecutedEvent,
   NewAdminPulledEvent,
@@ -504,7 +509,11 @@ for (const chainId of indexer.chainIds) {
     )
       relationshipFields.push(field);
   }
-  const complete = async (context: EnvioContext, number: number) => {
+  const complete = async (
+    context: EnvioContext,
+    number: number,
+    openingHeader?: CanonicalHeader
+  ) => {
     const verified = await withCanonicalObservation(
       chainId,
       BigInt(number),
@@ -716,7 +725,9 @@ for (const chainId of indexer.chainIds) {
             )
         );
         return true;
-      }
+      },
+      undefined,
+      openingHeader
     );
     context.ChainObservation.set({
       id: String(chainId),
@@ -778,18 +789,30 @@ for (const chainId of indexer.chainIds) {
     );
   }
   if (chain.endBlock === undefined) {
+    const candidateInterval = getObservationCandidateInterval(chainId);
     indexer.onBlock(
       {
         name: `control-realtime-${chainId}`,
         where: ({ chain: candidate }) =>
           candidate.id === chainId
-            ? { block: { number: { _every: OBSERVATION_BLOCK_INTERVAL } } }
+            ? { block: { number: { _every: candidateInterval } } }
             : false,
       },
-      createLiveObservation(
-        () => getPublicClient(chainId).getBlockNumber({ cacheTime: 0 }),
-        (context, number) => complete(context as EnvioContext, number)
-      )
+      createLiveObservation({
+        candidateInterval,
+        readHead: () =>
+          getPublicClient(chainId).getBlockNumber({ cacheTime: 0 }),
+        readHeader: (blockNumber) => readRpcBlockHeader(chainId, blockNumber),
+        lastObservedAt: async (context) => {
+          const previous = await (
+            context as EnvioContext
+          ).ChainObservation.get<ChainObservationEntity>(String(chainId));
+          if (previous?.verificationVersion === FULL_VERIFICATION_VERSION)
+            return BigInt(previous.indexedThrough.timestamp);
+        },
+        observe: (context, number, openingHeader) =>
+          complete(context as EnvioContext, number, openingHeader),
+      })
     );
   }
   if (chain.endBlock !== undefined) {

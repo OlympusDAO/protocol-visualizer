@@ -10,7 +10,7 @@ export type CanonicalBlockReader = (
   blockNumber: bigint
 ) => Promise<CanonicalHeader>;
 
-type CanonicalHeader = {
+export type CanonicalHeader = {
   hash?: string | null;
   parentHash?: string;
   timestamp?: bigint;
@@ -37,13 +37,36 @@ export class CanonicalObservationChanged extends Error {
   }
 }
 
+export function readRpcBlockHeader(chainId: number, blockNumber: bigint) {
+  return getPublicClient(chainId).getBlock({ blockNumber });
+}
+
+export function validateCanonicalHeader(
+  header: CanonicalHeader | undefined,
+  number: bigint
+) {
+  if (
+    !header?.hash ||
+    !/^0x[0-9a-f]{64}$/i.test(header.hash) ||
+    header.number !== number ||
+    typeof header.timestamp !== "bigint"
+  )
+    throw new CanonicalObservationChanged();
+  return Object.freeze({
+    ...header,
+    hash: header.hash.toLowerCase(),
+    number,
+    timestamp: header.timestamp,
+  });
+}
+
 /** Share numeric headers only for this callback; recheck every used anchor fresh. */
 export async function withCanonicalObservation(
   chainId: number,
   blockNumber: bigint,
   run: (phase: CanonicalObservation) => Promise<boolean | undefined>,
-  readFresh: FreshReader = (chain, number) =>
-    getPublicClient(chain).getBlock({ blockNumber: number })
+  readFresh: FreshReader = readRpcBlockHeader,
+  openingHeader?: CanonicalHeader
 ): Promise<ControlBlock> {
   let failure: Error | undefined;
   let open = true;
@@ -61,17 +84,15 @@ export async function withCanonicalObservation(
     if (!failure || safe instanceof RpcTransientFailure) failure = safe;
     throw safe;
   };
-  const fresh = async (number: bigint): Promise<CanonicalHeader> => {
+  const validated = async (
+    number: bigint,
+    sampled?: CanonicalHeader
+  ): Promise<CanonicalHeader> => {
     try {
-      const header = await readFresh(chainId, number);
-      if (
-        !header?.hash ||
-        !/^0x[0-9a-f]{64}$/i.test(header.hash) ||
-        header.number !== number ||
-        typeof header.timestamp !== "bigint"
-      )
-        return reject();
-      return Object.freeze({ ...header, hash: header.hash.toLowerCase() });
+      return validateCanonicalHeader(
+        sampled ?? (await readFresh(chainId, number)),
+        number
+      );
     } catch (error) {
       return reject(error);
     }
@@ -80,7 +101,10 @@ export async function withCanonicalObservation(
     if (!open || chain !== chainId || number < 0n) return reject();
     let result = anchors.get(number);
     if (!result) {
-      result = fresh(number);
+      result = validated(
+        number,
+        number === blockNumber ? openingHeader : undefined
+      );
       anchors.set(number, result);
     }
     return result;
@@ -121,12 +145,12 @@ export async function withCanonicalObservation(
       await Promise.all(
         historical.slice(offset, offset + 4).map(async ([number, opening]) => {
           const before = await opening;
-          const after = await fresh(number);
+          const after = await validated(number);
           if (before.hash !== after.hash) reject();
         })
       );
     }
-    const after = await fresh(blockNumber);
+    const after = await validated(blockNumber);
     if (block.hash !== after.hash) return reject();
     if (failure) throw failure;
     return block;

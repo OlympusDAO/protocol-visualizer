@@ -1,6 +1,7 @@
 import type { EvmOnEventContext } from "envio";
 import type { Address, Hex } from "viem";
 import type { FunctionContext } from "../../../../packages/snapshot-artifacts/src/index";
+import type { ControlBlock } from "./control-state";
 
 export type EntityStore = {
   get: <T>(id: string) => Promise<T | undefined>;
@@ -21,6 +22,12 @@ export type EnvioContext = EvmOnEventContext & {
   KernelExecutor: EntityStore;
   Role: EntityStore;
   RoleAssignment: EntityStore;
+};
+
+export type ChainObservationEntity = {
+  id: string;
+  indexedThrough: ControlBlock;
+  verificationVersion: number;
 };
 
 export type RequestedPolicyPermission = {

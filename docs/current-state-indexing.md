@@ -10,11 +10,15 @@ contracts. eRPC, provider protection and canonical block checks remain.
 Historical 10,000-block callbacks no longer sweep getters. Creation callbacks
 only initialize the core contracts born at that boundary, after constructor
 logs. A bounded replay performs a full observation at its exact endpoint. An
-unbounded run retains the 100-block cadence, observes only within 99 blocks of
-the current RPC head, and skips older callbacks after one head lookup. This also
-works before native readiness in the final cold backfill batch. Preload does not
-advance eligibility. A stationary, nonaligned tip can wait for the next cadence
-block; Envio exposes no public transactional catch-up callback.
+unbounded run samples candidate blocks roughly once a minute per chain. The
+stride is the approximate 30-minute block count divided by 30 (about one minute
+of blocks), and only candidates
+within one stride of the RPC head are eligible. The first eligible block gets a
+full verification even in the final cold backfill batch before native
+readiness. Once a verification completes, later candidates use their actual
+block timestamp and the stored `ChainObservation` to verify at most once per
+UTC half-hour window. Preload leaves eligibility unchanged. A stationary tip
+between candidate blocks can wait for the next candidate.
 
 Full observations read getters, dependencies and target bytecode at the canonical
 block. Cross-block deployment/immutable and Kernel reuse are removed, together
@@ -62,7 +66,7 @@ a current-only worker benefit. The matched primary replay uses one process.
 
 One remaining liveness limit is a deep head regression below the remembered live
 eligibility threshold. Verification can wait until callbacks reach that threshold
-again. A quiet, nonaligned tip can also wait for the next 100-block callback.
+again.
 Observation scheduling is separate from publication readiness: the publisher
 trusts Envio's catch-up decision and validates the marker's canonical integrity.
 An older observation keeps its actual verification block.

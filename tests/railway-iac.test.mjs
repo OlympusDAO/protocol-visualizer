@@ -524,6 +524,28 @@ test("database planning preserves larger volumes and rejects incomplete lookups"
         );
       }
     }
+    for (const name of ["frontend", "snapshot-gateway"]) {
+      for (const kind of ["serviceDomains", "customDomains"]) {
+        for (const targetPort of [8080, null, 4100, 8081, "8080", undefined]) {
+          const exposed = response([name]);
+          exposed.data.environment.serviceInstances.edges[0].node.domains[
+            kind
+          ] = [
+            { domain: "first.example", targetPort: 8080 },
+            { domain: "second.example", targetPort },
+          ];
+          fixture(exposed);
+          if (targetPort !== null && targetPort !== 8080) {
+            assert.throws(
+              () => existingResources(ctx),
+              /public HTTP target ports/
+            );
+          } else {
+            assert(existingResources(ctx).tcpPorts.has(name));
+          }
+        }
+      }
+    }
     const incompleteDomain = response(["indexer"]);
     delete incompleteDomain.data.environment.serviceInstances.edges[0].node
       .domains;

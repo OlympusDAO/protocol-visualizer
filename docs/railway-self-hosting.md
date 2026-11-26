@@ -320,6 +320,9 @@ railway domain --project d733dd5c-7076-48ad-ac8b-a147cb428300 --environment prot
 
 Replace the environment name when setting up a different PR. Reuse existing
 generated domains rather than creating replacements on every deployment.
+Planning rejects explicit generated or custom domain targets other than 8080
+on `frontend` and `snapshot-gateway`. Automatic/null targets remain allowed;
+verify their effective routing after apply.
 The IaC `domains` field manages custom domains only; it does not create these
 generated Railway domains. Generate domains only for these two public services;
 leave Hasura, the indexer, snapshot jobs, RPC cache, and databases private.

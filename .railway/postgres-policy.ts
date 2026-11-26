@@ -13,21 +13,21 @@ const managedServices = new Set([
   "snapshot-publisher",
   "snapshot-monitor",
 ]);
+const knownPorts: Record<string, number[]> = {
+  Postgres: [5432],
+  "rpc-cache-postgres": [5432],
+  indexer: [9898, 9899],
+  hasura: [8080],
+  "rpc-cache": [4000, 4001],
+  frontend: [8080],
+  "snapshot-gateway": [8080],
+};
 
 export function tcpRemovals(name: string, imported: readonly string[] = []) {
   // CLI TCP maps are sparse: only explicit nulls remove proxies. Include imported
   // ports so an unexpected existing exposure cannot survive the managed defaults.
-  const known: Record<string, number[]> = {
-    Postgres: [5432],
-    "rpc-cache-postgres": [5432],
-    indexer: [9898, 9899],
-    hasura: [8080],
-    "rpc-cache": [4000, 4001],
-    frontend: [8080],
-    "snapshot-gateway": [8080],
-  };
   return Object.fromEntries(
-    [...new Set([...(known[name] ?? []).map(String), ...imported])].map(
+    [...new Set([...(knownPorts[name] ?? []).map(String), ...imported])].map(
       (port) => [port, null]
     )
   );
@@ -46,7 +46,7 @@ export function existingResources(ctx: RailwayContext):
         "railway",
         [
           "api",
-          "query($id: String!) { environment(id: $id) { config(decryptVariables: false) serviceInstances(first: 100) { edges { node { serviceId serviceName domains { serviceDomains { domain } customDomains { domain } } } } pageInfo { hasNextPage } } volumeInstances(first: 100) { edges { node { sizeMB volume { name } } } pageInfo { hasNextPage } } } }",
+          "query($id: String!) { environment(id: $id) { config(decryptVariables: false) serviceInstances(first: 100) { edges { node { serviceId serviceName domains { serviceDomains { domain targetPort } customDomains { domain targetPort } } } } pageInfo { hasNextPage } } volumeInstances(first: 100) { edges { node { sizeMB volume { name } } } pageInfo { hasNextPage } } } }",
           "--var",
           `id=${ctx.environmentId}`,
           "--compact",
@@ -158,6 +158,15 @@ export function existingResources(ctx: RailwayContext):
         throw new Error(
           "Existing private service has public HTTP domains; provider removal and verification required"
         );
+      if (
+        publicServices.has(node.serviceName) &&
+        [...domains.serviceDomains, ...domains.customDomains].some(
+          (domain) =>
+            domain.targetPort !== null &&
+            domain.targetPort !== knownPorts[node.serviceName][0]
+        )
+      )
+        throw new Error("Unexpected public HTTP target port");
       const networking = configured[node.serviceId]?.networking;
       if (
         networking != null &&
@@ -188,7 +197,7 @@ export function existingResources(ctx: RailwayContext):
     };
   } catch {
     throw new Error(
-      "Cannot establish safe existing Railway services, volumes and exposure; refusing to plan database passwords or capacity. Verify private HTTP domains were removed separately and networking metadata is complete."
+      "Cannot establish safe existing Railway services, volumes and exposure; refusing to plan database passwords or capacity. Verify private HTTP domains were removed separately, public HTTP target ports match their service port or automatic routing, and networking metadata is complete."
     );
   }
 }

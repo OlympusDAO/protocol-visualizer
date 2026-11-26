@@ -78,7 +78,16 @@ async function runGate(
           listCommitStatusesForRef: "statuses",
           async getBranch(args) {
             assert.equal(args.branch, "master");
-            return { data: { commit: { sha: branchHead } } };
+            return {
+              data: {
+                commit: {
+                  sha:
+                    typeof branchHead === "function"
+                      ? branchHead()
+                      : branchHead,
+                },
+              },
+            };
           },
         },
         actions: {
@@ -116,8 +125,8 @@ test("requiring release gates only declares functions without reading environmen
       assert.fail(`Module loading must not read, spawn or import ${name}`);
     },
   });
-  assert.equal(typeof release.select, "function");
   assert.equal(typeof release.waitForExternalChecks, "function");
+  assert.equal(typeof release.verify, "function");
 });
 
 test("production release checks out the exact push revision before read-only gates and gates bootstrap and credentials", async () => {
@@ -171,18 +180,65 @@ test("production release checks out the exact push revision before read-only gat
   );
   assert(!apply.includes('install-dependencies: "false"'));
   const steps = parse(workflow).jobs["railway-apply"].steps;
+  assert.equal(
+    parse(workflow).jobs["railway-apply"].if,
+    "github.event_name == 'push' && github.ref == 'refs/heads/master'"
+  );
   const eligibility = steps.find(
     (step) => step.name === "Select production infrastructure change"
   );
   assert(eligibility.id, "release selection must declare its output ID");
-  for (const name of [
+  const dependentSteps = [
     "Wait for external checks",
     "Bootstrap",
     "Plan production changes",
     "Verify cache password before infrastructure apply",
     "Verify production plan target",
     "Apply reviewed production plan",
+  ];
+  assert.deepEqual(
+    steps.map((step) => step.name),
+    [
+      "Checkout merged configuration",
+      "Select production infrastructure change",
+      ...dependentSteps,
+    ]
+  );
+  assert.equal(
+    parse(workflow).jobs["railway-apply"]["continue-on-error"] ?? false,
+    false
+  );
+  assert.equal(
+    parse(workflow).concurrency["cancel-in-progress"],
+    "${{ github.event_name == 'pull_request' }}"
+  );
+  assert.deepEqual(parse(workflow).jobs["railway-apply"].concurrency, {
+    group: "railway-infrastructure-production",
+    "cancel-in-progress": false,
+    queue: "max",
+  });
+  assert.equal(
+    steps.find((step) => step.name === "Wait for external checks").env
+      .MERGE_COMMIT_SHA,
+    `\${{ github.sha }}`
+  );
+  for (const step of steps)
+    assert.equal(step["continue-on-error"] ?? false, false);
+  for (const [name, method, args] of [
+    [
+      "Wait for external checks",
+      "waitForExternalChecks",
+      "{ github, context, core }",
+    ],
+    ["Plan production changes", "plan", "{ core }"],
+    ["Verify production plan target", "verify", "{ github, context }"],
+    ["Apply reviewed production plan", "apply", "{ core }"],
   ])
+    assert.equal(
+      steps.find((step) => step.name === name).with.script.trim(),
+      `await require("./scripts/railway-release.cjs").${method}(${args});`
+    );
+  for (const name of dependentSteps)
     assert.equal(
       steps.find((step) => step.name === name).if,
       `steps.${eligibility.id}.outputs.relevant == 'true'`,
@@ -240,7 +296,12 @@ const mergedPR = {
   head: { sha: "reviewed-head", repo: { full_name: "fixture/fixture" } },
 };
 
-async function selectRelease({ prs } = {}) {
+async function selectRelease({
+  prs,
+  eventName = "push",
+  ref = "refs/heads/master",
+  push = {},
+} = {}) {
   const match = workflow.match(
     / {6}- name: Select production infrastructure change\n[\s\S]*? {10}script: \|\n([\s\S]*?)(?=^ {6}- name:)/m
   );
@@ -248,10 +309,17 @@ async function selectRelease({ prs } = {}) {
   const outputs = {};
   const calls = [];
   const sandbox = {
+    require(name) {
+      assert.fail(
+        `Release eligibility must not load ${name} from the checkout`
+      );
+    },
     context: {
       repo: { owner: "fixture", repo: "fixture" },
       sha: "merged-release",
-      payload: { repository: { full_name: "fixture/fixture" } },
+      payload: { repository: { full_name: "fixture/fixture" }, ...push },
+      eventName,
+      ref,
     },
     core: {
       info() {},
@@ -276,7 +344,8 @@ async function selectRelease({ prs } = {}) {
       },
     },
   };
-  await runWorkflowGate(match[1].replace(/^ {12}/gm, ""), sandbox);
+  const script = match[1].replace(/^ {12}/gm, "");
+  await vm.runInNewContext(`(async () => {${script}\n})()`, sandbox);
   return { outputs, calls };
 }
 
@@ -308,28 +377,40 @@ test("CI reconciles reviewed master merges including docs-only and fork PRs with
   );
 });
 
-test("CI skips infrastructure apply for direct pushes and untrusted merge targets", async () => {
-  assert.deepEqual((await selectRelease({ prs: [] })).outputs, {});
+test("CI blocks deployment for direct pushes and untrusted merge targets", async () => {
+  await assert.rejects(
+    selectRelease({ prs: [] }),
+    /reviewed PR merged into master/
+  );
+  for (const input of [
+    { push: { forced: true } },
+    { push: { created: true } },
+    { push: { deleted: true } },
+    { eventName: "pull_request" },
+    { eventName: "workflow_dispatch" },
+    { ref: "refs/heads/MASTER" },
+    { ref: "refs/heads/develop" },
+  ])
+    await assert.rejects(selectRelease(input), /exact master push/);
   for (const merge_commit_sha of ["another-merge", null]) {
-    assert.deepEqual(
-      (
-        await selectRelease({
-          prs: [{ merged_at: "2026-11-13", merge_commit_sha }],
-        })
-      ).outputs,
-      {}
+    await assert.rejects(
+      selectRelease({ prs: [{ ...mergedPR, merge_commit_sha }] }),
+      /reviewed PR merged into master/
     );
   }
   for (const pr of [
     { ...mergedPR, merged_at: null },
-    { ...mergedPR, base: { ref: "another-branch" } },
+    { ...mergedPR, base: { ...mergedPR.base, ref: "another-branch" } },
     {
       ...mergedPR,
       base: { ref: "master", repo: { full_name: "another/fixture" } },
     },
     { ...mergedPR, base: { ref: "master", repo: null } },
   ]) {
-    assert.deepEqual((await selectRelease({ prs: [pr] })).outputs, {});
+    await assert.rejects(
+      selectRelease({ prs: [pr] }),
+      /reviewed PR merged into master/
+    );
   }
 });
 
@@ -463,6 +544,7 @@ test("production apply uses the newest status per context and excludes downstrea
 });
 
 async function verifyPlan({
+  raw,
   branchHead = "merged-release",
   kind = "railway.config.plan",
   version = 1,
@@ -484,6 +566,7 @@ async function verifyPlan({
         return {
           readFileSync(path) {
             assert.equal(path, "reviewed-plan");
+            if (raw !== undefined) return raw;
             return JSON.stringify({
               kind,
               version,
@@ -508,6 +591,14 @@ async function verifyPlan({
 }
 
 test("automatic apply blocks existing main DB image transitions but permits normal unrelated changes", async () => {
+  await assert.rejects(
+    verifyPlan({ raw: "fixture-private-plan-do-not-log" }),
+    (error) => {
+      assert.match(error.message, /Native Railway plan could not be read/);
+      assert(!error.message.includes("fixture-private-plan-do-not-log"));
+      return true;
+    }
+  );
   const sourceUpdate = {
     kind: "resource.update",
     address: "database.Postgres",
@@ -555,6 +646,16 @@ test("automatic apply blocks existing main DB image transitions but permits norm
 });
 
 test("production apply rejects an older queued release after master advances", async () => {
+  let branchReads = 0;
+  await assert.rejects(
+    runGate(
+      () => [],
+      undefined,
+      [],
+      () => (++branchReads === 1 ? "merged-release" : "newer-release")
+    ),
+    /advanced/
+  );
   await assert.rejects(
     runGate(
       () => [{ status: "completed", conclusion: "success" }],
@@ -571,10 +672,21 @@ test("production apply rejects an older queued release after master advances", a
   );
 });
 
-async function checkNativeApplyResult(
-  result,
-  { exitCode = 0, raw, error, operation = "apply", token = "fixture-only" } = {}
-) {
+async function checkNativeApplyResult(result, options = {}) {
+  const {
+    exitCode = 0,
+    raw,
+    savedPlan = JSON.stringify({ changeSet: { changes: [] } }),
+    error,
+    operation = "apply",
+    token = "fixture-only",
+    project,
+    environment,
+  } = {
+    project: "fixture-project-id",
+    environment: "fixture-production-id",
+    ...options,
+  };
   assert(
     workflow.includes(
       `await require("./scripts/railway-release.cjs").${operation}({ core });`
@@ -590,7 +702,8 @@ async function checkNativeApplyResult(
         env: {
           RAILWAY_API_TOKEN: token,
           RUNNER_TEMP: "/fixture-private",
-          RAILWAY_ENVIRONMENT_ID: "fixture-production-id",
+          RAILWAY_PROJECT_ID: project,
+          RAILWAY_ENVIRONMENT_ID: environment,
         },
         umask(mode) {
           assert.equal(mode, 0o077);
@@ -603,6 +716,14 @@ async function checkNativeApplyResult(
         },
       },
       require(name) {
+        if (name === "node:fs")
+          return {
+            readFileSync(path, encoding) {
+              assert.equal(path, "/fixture-private/railway-plan.json");
+              assert.equal(encoding, "utf8");
+              return savedPlan;
+            },
+          };
         assert.equal(name, "node:child_process");
         return {
           spawnSync(command, args, options) {
@@ -662,12 +783,38 @@ async function checkNativeApplyResult(
 }
 
 test("native CI apply requires applied/noop result and every change, never exit zero or raw output", async () => {
-  for (const status of ["applied", "noop"])
-    await checkNativeApplyResult({
-      status,
-      changes: [{ status: "applied" }, { status: "noop" }],
-    });
+  await checkNativeApplyResult({
+    status: "applied",
+    changes: [{ status: "applied" }, { status: "noop" }],
+  });
   await checkNativeApplyResult({ status: "noop", changes: [] });
+  await assert.rejects(
+    checkNativeApplyResult({
+      status: "noop",
+      changes: [{ status: "applied" }],
+    }),
+    /no-op requires an empty/
+  );
+  await assert.rejects(
+    checkNativeApplyResult(
+      { status: "noop", changes: [] },
+      {
+        savedPlan: JSON.stringify({
+          changeSet: {
+            changes: [{ kind: "update", address: "service.fixture" }],
+          },
+        }),
+      }
+    ),
+    /no-op requires an empty/
+  );
+  await assert.rejects(
+    checkNativeApplyResult(
+      { status: "noop", changes: [] },
+      { savedPlan: "fixture-private-output-do-not-log invalid JSON" }
+    ),
+    /plan could not be read/
+  );
   for (const status of [
     "failed",
     "partially_applied",
@@ -722,6 +869,12 @@ test("native CI apply requires applied/noop result and every change, never exit 
 });
 
 test("native CI planning is private, fails on missing token and retains native errors", async () => {
+  for (const field of ["project", "environment"])
+    for (const value of ["", undefined])
+      await assert.rejects(
+        checkNativeApplyResult({}, { operation: "plan", [field]: value }),
+        /RAILWAY_PROJECT_ID|RAILWAY_ENVIRONMENT_ID/
+      );
   await checkNativeApplyResult({}, { operation: "plan" });
   await assert.rejects(
     checkNativeApplyResult({}, { operation: "plan", exitCode: 7 }),

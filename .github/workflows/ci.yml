@@ -90,7 +90,34 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
-            await require("./scripts/railway-release.cjs").select({ github, context, core });
+            // Keep this gate inline so the checked-out revision cannot grant its own release eligibility.
+            if (
+              context.eventName !== "push" || context.ref !== "refs/heads/master" ||
+              context.payload.forced || context.payload.created || context.payload.deleted
+            ) {
+              throw new Error("Production apply requires an exact master push.");
+            }
+            const prs = await github.paginate(
+              github.rest.repos.listPullRequestsAssociatedWithCommit,
+              {
+                ...context.repo,
+                commit_sha: context.sha,
+                per_page: 100,
+              }
+            );
+            const pr = prs.find(
+              (pr) =>
+                pr.merged_at &&
+                pr.merge_commit_sha === context.sha &&
+                pr.base.ref === "master" &&
+                pr.base.repo?.full_name === context.payload.repository.full_name
+            );
+            if (!pr) {
+              throw new Error(
+                "Production deployment requires a reviewed PR merged into master at this commit."
+              );
+            }
+            core.setOutput("relevant", "true");
       - name: Wait for external checks
         if: steps.eligibility.outputs.relevant == 'true'
         timeout-minutes: 35

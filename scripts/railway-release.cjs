@@ -1,28 +1,4 @@
 module.exports = {
-  async select({ github, context, core }) {
-    const prs = await github.paginate(
-      github.rest.repos.listPullRequestsAssociatedWithCommit,
-      {
-        ...context.repo,
-        commit_sha: context.sha,
-        per_page: 100,
-      }
-    );
-    const pr = prs.find(
-      (pr) =>
-        pr.merged_at &&
-        pr.merge_commit_sha === context.sha &&
-        pr.base.ref === "master" &&
-        pr.base.repo?.full_name === context.payload.repository.full_name
-    );
-    if (!pr) {
-      core.info(
-        "No PR merged into this repository at this commit; infrastructure apply is skipped."
-      );
-      return;
-    }
-    core.setOutput("relevant", "true");
-  },
   async waitForExternalChecks({ github, context, core }) {
     const { data: currentRun } = await github.rest.actions.getWorkflowRun({
       ...context.repo,
@@ -36,6 +12,14 @@ module.exports = {
       ["audit.yml", "push"],
     ];
     for (let attempt = 0; attempt < 120; attempt++) {
+      const { data: latestBranch } = await github.rest.repos.getBranch({
+        ...context.repo,
+        branch: "master",
+      });
+      if (latestBranch.commit.sha !== context.sha)
+        throw new Error(
+          "Production branch advanced; refusing an outdated queued release."
+        );
       let workflowsPassed = true;
       for (const [workflow, event] of requiredWorkflows) {
         const { data } = await github.rest.actions.listWorkflowRuns({
@@ -126,6 +110,10 @@ module.exports = {
     );
   },
   async plan({ core }) {
+    if (!process.env.RAILWAY_PROJECT_ID || !process.env.RAILWAY_ENVIRONMENT_ID)
+      throw new Error(
+        "Set explicit RAILWAY_PROJECT_ID and RAILWAY_ENVIRONMENT_ID for production apply."
+      );
     if (!process.env.RAILWAY_API_TOKEN)
       throw new Error(
         "Set the production environment-only RAILWAY_DEPLOY_TOKEN secret."
@@ -154,9 +142,16 @@ module.exports = {
     core.info("Fresh native production plan saved privately for this release.");
   },
   async verify({ github, context }) {
-    const plan = JSON.parse(
-      require("node:fs").readFileSync(process.env.PLAN_PATH, "utf8")
-    );
+    let plan;
+    try {
+      plan = JSON.parse(
+        require("node:fs").readFileSync(process.env.PLAN_PATH, "utf8")
+      );
+    } catch {
+      throw new Error(
+        "Native Railway plan could not be read; raw output withheld."
+      );
+    }
     // Native apply binds environment/sourceTree/ETag/hash to this saved plan.
     // CLI 5.75 source updates can redeploy a database despite severity=safe.
     // Main image transitions require the separately approved fresh-data release.
@@ -249,6 +244,29 @@ module.exports = {
       throw new Error(
         "Native Railway apply did not report applied/noop for the result and every change; raw output withheld. Do not retry blindly."
       );
+    }
+    if (result.status === "noop") {
+      let savedPlan;
+      try {
+        savedPlan = JSON.parse(
+          require("node:fs").readFileSync(
+            `${process.env.RUNNER_TEMP}/railway-plan.json`,
+            "utf8"
+          )
+        );
+      } catch {
+        throw new Error(
+          "Native Railway plan could not be read; raw output withheld."
+        );
+      }
+      if (
+        result.changes.length !== 0 ||
+        !Array.isArray(savedPlan?.changeSet?.changes) ||
+        savedPlan.changeSet.changes.length !== 0
+      )
+        throw new Error(
+          "Native Railway no-op requires an empty saved plan and empty result."
+        );
     }
     core.info(
       "Native apply result accepted. Deployment acceptance still requires a fresh read-only plan and complete HTTP/TCP inventory."

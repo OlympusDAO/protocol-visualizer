@@ -222,8 +222,8 @@ place to execute untrusted PR code with production credentials.
 
 On a `master` push, after all five source checks and Image security and integration
 succeed, the job checks out the exact push SHA with persisted credentials disabled, then selects a reviewed PR merged at that SHA into this repository's
-`master`. A reviewed fork PR is trusted after merge too. Direct pushes, unmerged
-PRs skip infrastructure release. Every reviewed merge, including application-only
+`master`. A reviewed fork PR is trusted after merge too. Direct pushes and untrusted
+merge targets fail the release job, so CI cannot pass without IaC. Every reviewed merge, including application-only
 and Markdown-only changes, reconciles the current configuration; unchanged
 infrastructure produces a native no-op. The job then:
 
@@ -237,7 +237,7 @@ Plan and apply remain inside the CI dependency graph, serialized together with
 `railway-infrastructure-production`, without cancelling an active release. Both
 use the repository-pinned native CLI 5.75.0. The single job references GitHub
 environment name `production` with `deployment: false`: secrets and branch policy
-still apply, without GitHub deployment records for skipped releases. Railway owns
+still apply, without GitHub deployment records for this job. Railway owns
 actual application deployment status. The job maps only the environment-only
 `RAILWAY_DEPLOY_TOKEN` to native `RAILWAY_API_TOKEN`; it never uses the old repository secret. The
 [activation prerequisites above](#bootstrap-and-migration) must be configured live.
@@ -252,6 +252,11 @@ a file upload. It performs no automatic database migration/reset. Application co
 continues through Railway GitHub autodeploys and watch patterns with `checkSuites: true`;
 verify effective "Wait for CI" settings and actual deployment health after release.
 The CI success message is not proof of live HTTP/TCP privacy or application readiness.
+The production push workflow does not automatically cancel an older run. Manual
+cancellation is not a deployment stop: Railway can ignore a cancelled workflow
+when another succeeded. Native IaC can start builds during apply, so this is not
+an atomic infrastructure/code rollout; dependent service replacements need
+compatible staged changes even though GitHub autodeploy waits for completed CI.
 
 The external gate retains latest-per-context commit-status checks, excluding
 Railway deployment statuses that wait for CI and its own workflow suite to avoid

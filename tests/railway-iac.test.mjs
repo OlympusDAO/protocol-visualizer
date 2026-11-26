@@ -588,8 +588,8 @@ test("database planning preserves larger volumes and rejects incomplete lookups"
       .flat(Infinity)
       .filter((r) => r.type === "database"))
       assert.deepEqual(db.variables.POSTGRES_PASSWORD, {
-        type: "raw",
-        value: { defaultValue: '${{ secret(64, "0123456789abcdef") }}' },
+        type: "literal",
+        value: '${{ secret(64, "0123456789abcdef") }}',
       });
     assert.equal(
       existingResources(ctx).tcpPorts.size,

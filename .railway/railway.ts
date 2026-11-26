@@ -68,8 +68,8 @@ export default defineRailway((ctx) => {
         existing === undefined || existing.tcpPorts.has(db.name)
           ? preserve()
           : {
-              type: "raw",
-              value: { defaultValue: '${{ secret(64, "0123456789abcdef") }}' },
+              type: "literal",
+              value: '${{ secret(64, "0123456789abcdef") }}',
             },
     };
   }

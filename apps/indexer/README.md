@@ -440,37 +440,23 @@ The Docker image starts:
 node scripts/start-envio.mjs
 ```
 
-That wrapper exists so the same image can run locally or on Railway with
-Railway-style environment variables. It maps:
+The bootstrap validates the local or Railway environment, waits for Hasura
+metadata access before `envio start`, and replaces itself with the installed
+Envio CLI. Local `envio dev` skips the Hasura wait because Envio owns the local
+stack lifecycle. The bootstrap maps:
 
 - `DATABASE_URL` to `ENVIO_PG_HOST`, `ENVIO_PG_PORT`, `ENVIO_PG_USER`,
   `ENVIO_PG_PASSWORD`, and `ENVIO_PG_DATABASE`
-- missing Envio production defaults required by `NODE_ENV=production`:
-  `ENVIO_PG_SSL_MODE=prefer`, `HASURA_GRAPHQL_ROLE=admin`,
-  `ENVIO_THROTTLE_CHAIN_METADATA_INTERVAL_MILLIS=500`, and
-  `ENVIO_THROTTLE_PRUNE_STALE_DATA_INTERVAL_MILLIS=30000`
-- `HASURA_GRAPHQL_ENDPOINT` readiness before production `envio start`, when
-  both it and `HASURA_GRAPHQL_ADMIN_SECRET` are set. This avoids a Railway
-  startup race where Envio can attempt table tracking before Hasura is accepting
-  metadata requests. Local `envio dev` skips this wait because Envio owns the
-  local stack lifecycle.
-- production readiness on `PORT`, when `PORT` is set. The wrapper moves Envio to
-  an internal port, proxies normal requests through, returns `200` from
-  `/healthz` for process-level Railway health, and keeps `/ready` data-aware for
-  manual checks.
-- Railway deployments must set `PORT=9898` so sibling services can reach the
-  proxied metrics endpoint at `http://indexer.railway.internal:9898/metrics`.
-  Keep `snapshot-publisher.INDEXER_METRICS_URL` and
-  `snapshot-monitor.INDEXER_METRICS_URL` aligned with this value.
-- `PORT` to `ENVIO_INDEXER_PORT`, when no indexer port is explicitly set and the
-  healthcheck wrapper is disabled or not used
+- missing production settings to `ENVIO_PG_SSL_MODE=prefer`,
+  `HASURA_GRAPHQL_ROLE=admin`, `ENVIO_THROTTLE_CHAIN_METADATA_INTERVAL_MILLIS=500`,
+  and `ENVIO_THROTTLE_PRUNE_STALE_DATA_INTERVAL_MILLIS=30000`
+- `PORT` to `ENVIO_INDEXER_PORT` when no indexer port is explicitly set
 
-Set `ENVIO_HASURA_STARTUP_TIMEOUT_MS` to change the Hasura readiness wait from
-the default 180 seconds.
-
-Set `ENVIO_HEALTHCHECK_WRAPPER_ENABLED=false` to disable the production
-healthcheck wrapper. If you need to choose the internal Envio port explicitly,
-set `ENVIO_INDEXER_INTERNAL_PORT`.
+Railway sets `PORT=9898`. Envio serves native `/healthz` and private metrics at
+`http://indexer.railway.internal:9898/metrics`. Keep the snapshot publisher and
+monitor metrics URLs aligned with that port. Set
+`ENVIO_HASURA_STARTUP_TIMEOUT_MS` to change the default 180-second Hasura wait.
+For an approved schema reset, follow [indexer operations](../../docs/indexer-operations.md#reset-the-railway-indexer-from-the-database-host).
 
 The runtime image removes package-manager binaries after install to reduce the
 container scan surface.

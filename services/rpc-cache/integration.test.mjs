@@ -984,9 +984,6 @@ export default config;
       `Proxy resume verified; published port changed: ${base !== originalBase}; cache rows after probes: ${resetBaseline.size}.`
     );
     if (!skipReset) {
-      // The reset command must run in the actual distroless deployed image, with
-      // its real config and a separate disposable Envio DB. The operator reset
-      // later resumes ingestion, which can append legitimate cache entries.
       const indexerEnv = [
         "-e",
         `DATABASE_URL=postgresql://postgres:fixture@${envioPg}:5432/postgres`,
@@ -1002,38 +999,26 @@ export default config;
           "-e",
           `ENVIO_RPC_URL_${id}=http://${erpc}:4000/pv/evm/${id}`
         );
-      const reset = () =>
-        runFile(
-          "docker",
-          [
-            "run",
-            "--pull=never",
-            "--rm",
-            "--network",
-            prefix,
-            "--add-host",
-            "host.docker.internal:host-gateway",
-            ...indexerEnv,
-            indexerImage,
-            "scripts/start-envio.mjs",
-            "local",
-            "db-migrate",
-            "setup",
-          ],
-          { encoding: "utf8", timeout: 120_000 }
-        );
-      const sql = (query) =>
-        docker(
-          "exec",
-          envioPg,
-          "psql",
-          "-U",
-          "postgres",
-          "-v",
-          "ON_ERROR_STOP=1",
-          "-Atc",
-          query
-        );
+
+      const psql = [
+        "-e",
+        "PGPASSWORD=fixture",
+        envioPg,
+        "psql",
+        "-X",
+        "-w",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5432",
+        "--dbname",
+        "postgres",
+        "--username",
+        "postgres",
+        "-v",
+        "ON_ERROR_STOP=1",
+      ];
+      const sql = (query) => docker("exec", ...psql, "-Atc", query);
       const databaseHash = () =>
         createHash("sha256")
           .update(
@@ -1043,23 +1028,50 @@ export default config;
               "pg_dump",
               "-U",
               "postgres",
+              "-d",
+              "postgres",
               "--no-owner",
               "--no-privileges"
             ).replace(/^\\(?:un)?restrict .*$/gm, "")
           )
           .digest("hex");
-      await reset();
-      sql(
-        `UPDATE public.envio_info SET config = jsonb_set(config::jsonb, '{chainIdMode}', '"fixture-incompatible"')::text`
+
+      await runFile(
+        "docker",
+        [
+          "run",
+          "--pull=never",
+          "--rm",
+          "--network",
+          prefix,
+          "--add-host",
+          "host.docker.internal:host-gateway",
+          ...indexerEnv,
+          indexerImage,
+          "scripts/start-envio.mjs",
+          "local",
+          "db-migrate",
+          "setup",
+        ],
+        { encoding: "utf8", timeout: 120_000 }
       );
-      const waitingIndexer = `${prefix}-indexer`;
+      sql(`
+        UPDATE public.envio_info
+          SET config = jsonb_set(config::jsonb, '{chainIdMode}', '"fixture-incompatible"')::text;
+        CREATE TABLE public.reset_canary (id integer PRIMARY KEY);
+        INSERT INTO public.reset_canary VALUES (1);
+        CREATE SCHEMA fixture_other;
+        CREATE TABLE fixture_other.reset_canary (id integer PRIMARY KEY);
+        INSERT INTO fixture_other.reset_canary VALUES (2);
+      `);
       const beforeStartup = databaseHash();
+      const indexer = `${prefix}-indexer`;
       docker(
         "run",
         "--pull=never",
         "-d",
         "--name",
-        waitingIndexer,
+        indexer,
         "--network",
         prefix,
         "--add-host",
@@ -1071,26 +1083,24 @@ export default config;
         "PORT=9898",
         indexerImage
       );
-      created.push(waitingIndexer);
-      const waitingPort = docker("port", waitingIndexer, "9898/tcp")
-        .split(":")
-        .at(-1);
-      const indexerBase = `http://127.0.0.1:${waitingPort}`;
+      created.push(indexer);
+      const indexerState = () =>
+        JSON.parse(docker("inspect", indexer, "--format", "{{json .State}}"));
       await eventually(
-        () => dockerLogs(waitingIndexer).includes("Envio stopped ("),
-        "Native incompatible startup did not leave reset control available"
+        () => indexerState().Status === "exited",
+        "Native incompatible startup did not exit"
       );
-      assert.match(
-        dockerLogs(waitingIndexer),
-        /The following config changes are incompatible with the existing indexer data:(?:\s|\\n)+- chainIdMode\b/
+      assert.notEqual(
+        indexerState().ExitCode,
+        0,
+        "Native Envio must exit nonzero"
       );
-      assert.equal(
-        docker("inspect", waitingIndexer, "--format", "{{.State.Running}}"),
-        "true"
+      assert(
+        /The following config changes are incompatible with the existing indexer data:(?:\s|\\n)+- chainIdMode\b/.test(
+          dockerLogs(indexer)
+        ),
+        "Native Envio did not report the expected configuration incompatibility"
       );
-      assert.equal((await fetch(`${indexerBase}/healthz`)).status, 200);
-      for (const route of ["/ready", "/metrics"])
-        assert.equal((await fetch(`${indexerBase}${route}`)).status, 503);
       assert.equal(
         databaseHash(),
         beforeStartup,
@@ -1100,67 +1110,77 @@ export default config;
         sql("SELECT config::jsonb->>'chainIdMode' FROM public.envio_info"),
         "fixture-incompatible"
       );
-      const operatorReset = await runFile(
-        "docker",
-        [
-          "exec",
-          waitingIndexer,
-          "/nodejs/bin/node",
-          "/app/apps/indexer/scripts/reset-envio.mjs",
-        ],
-        { encoding: "utf8", timeout: 120_000 }
+      assert.equal(sql("SELECT id FROM public.reset_canary"), "1");
+
+      const resetScript = readFileSync(
+        new URL("../../scripts/reset-indexer-schema.sql", import.meta.url)
       );
-      assert.match(
-        operatorReset.stdout,
-        /Envio migration completed. Envio restarted inside the existing container/
+      const resetSchema = () =>
+        execFileSync("docker", ["exec", "-i", ...psql, "--file=-"], {
+          input: resetScript,
+          encoding: "utf8",
+          stdio: ["pipe", "pipe", "pipe"],
+          timeout: 120_000,
+        });
+      const publicSchema = () =>
+        sql(`SELECT json_build_array(nspowner::regrole::text, ARRAY(
+          SELECT entry::text FROM unnest(nspacl) AS entry
+          ORDER BY entry::text COLLATE "C"
+        )) FROM pg_namespace WHERE nspname = 'public'`);
+      const originalPublicSchema = publicSchema();
+      sql("REVOKE USAGE ON SCHEMA public FROM PUBLIC");
+      const alteredPublicSchema = publicSchema();
+      assert.notEqual(alteredPublicSchema, originalPublicSchema);
+      assert.throws(resetSchema, {
+        status: 3,
+        stderr: /Unsupported owner or ACL on existing public schema/,
+      });
+      assert.equal(publicSchema(), alteredPublicSchema);
+      assert.equal(databaseHash(), beforeStartup);
+      console.log(
+        "Reset SQL refused an unsupported public schema ACL and preserved the database contents, schema owner and grants."
       );
-      // Exercise the real wrapper/proxied Envio HTTP server in the built image.
-      await eventually(
-        async () => (await fetch(`${indexerBase}/docs`)).status === 404,
-        "Normal indexer HTTP server did not become available after reset"
+
+      sql("GRANT USAGE ON SCHEMA public TO PUBLIC");
+      assert.equal(publicSchema(), originalPublicSchema);
+      resetSchema();
+      assert.equal(publicSchema(), originalPublicSchema);
+      assert.equal(sql("SELECT to_regclass('public.envio_info') IS NULL"), "t");
+      assert.equal(
+        sql("SELECT to_regclass('public.reset_canary') IS NULL"),
+        "t"
       );
-      for (const route of ["/docs", "/openapi.json", "/llms.txt"])
+      assert.equal(sql("SELECT id FROM fixture_other.reset_canary"), "2");
+      docker("start", indexer);
+      const indexerPort = docker("port", indexer, "9898/tcp").split(":").at(-1);
+      const indexerBase = `http://127.0.0.1:${indexerPort}`;
+      await eventually(async () => {
+        const response = await fetch(`${indexerBase}/metrics`);
+        return (
+          response.ok &&
+          /^hyperindex_synced_to_head [01]$/m.test(await response.text())
+        );
+      }, "Native indexer metrics were unavailable after ordinary restart");
+      assert.equal(
+        sql("SELECT to_regclass('public.envio_info') IS NOT NULL"),
+        "t"
+      );
+      assert.equal((await fetch(`${indexerBase}/healthz`)).status, 200);
+      for (const route of [
+        "/docs",
+        "/openapi.json",
+        "/llms.txt",
+        "/llms-full.txt",
+        "/ready",
+      ])
         assert.equal(
           (await fetch(`${indexerBase}${route}`)).status,
           404,
           route
         );
-      assert.equal((await fetch(`${indexerBase}/healthz`)).status, 200);
-      const readyResponse = await fetch(`${indexerBase}/ready`);
-      assert([200, 503].includes(readyResponse.status));
-      assert.equal(typeof (await readyResponse.json()).ready, "boolean");
+      docker("stop", indexer);
       console.log(
-        "Actual ingestion image returns 404 for docs/openapi/llms while health/readiness remain available."
-      );
-      docker("stop", waitingIndexer);
-      console.log(
-        "Actual indexer image refused incompatible storage without writes or automatic reset, retained reset control, and recovered after an explicit socket reset."
-      );
-      await reset();
-      docker(
-        "exec",
-        envioPg,
-        "psql",
-        "-U",
-        "postgres",
-        "-v",
-        "ON_ERROR_STOP=1",
-        "-c",
-        "CREATE TABLE public.rpc_cache_reset_canary (id integer PRIMARY KEY); INSERT INTO public.rpc_cache_reset_canary VALUES (1)"
-      );
-      await reset();
-      assert.equal(
-        docker(
-          "exec",
-          envioPg,
-          "psql",
-          "-U",
-          "postgres",
-          "-Atc",
-          "SELECT to_regclass('public.rpc_cache_reset_canary') IS NULL"
-        ),
-        "t",
-        "Envio setup did not reset its own schema"
+        "Native startup refused incompatible storage without changes. The main schema reset and ordinary restart restored Envio health and metrics while keeping ingestion docs private."
       );
       const afterReset = cacheContents();
       for (const [key, value] of resetBaseline) {
@@ -1188,10 +1208,6 @@ export default config;
         !output.includes("fixture-query-secret"),
       "upstream URL leaked to logs"
     );
-    if (!skipReset)
-      console.log(
-        "Distroless Envio setup/reset ran twice with the deployed config; eRPC rows and hits survived."
-      );
   } catch (error) {
     // Do not print arbitrary runtime logs or environment (may contain URLs).
     if (error.stderr)

@@ -1,6 +1,6 @@
 # Native Envio workers
 
-The indexer uses Envio 3.18.1's built-in supervisor and native per-chain entity
+The indexer uses Envio 3.19.0's built-in supervisor and native per-chain entity
 storage. It does not run independent indexers or add a custom process scheduler.
 A shared-schema deployment needs an approved rebuild before using this schema;
 see [indexer operations](indexer-operations.md).

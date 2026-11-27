@@ -85,17 +85,11 @@ restarts resume compatible state. Envio retains its configuration and schema
 compatibility checks. If startup reports incompatibility, inspect the error.
 No startup error automatically resets the database.
 
-Envio 3.18.1 checks configuration and configured addresses before taking over
-existing storage. If the native `start` child exits nonzero or by signal, the
-parent keeps health and the reset socket available so Railway SSH can recover
-the deployment without changing its production start command. `/healthz` 200
-means control-process liveness; `/ready` and `/metrics` return 503 while paused.
-This also parks ordinary terminal child failures: Railway will not automatically
-restart a container whose parent remains healthy. Inspect the failure, then
-explicitly restart/redeploy or obtain approval for a destructive reset; an
-ordinary crash does not mean a reset is needed. A clean child exit, one-off
-command completion, parent shutdown, or spawn/control-setup failure still exits
-the wrapper.
+Envio 3.19.0 checks configuration and configured addresses before taking over
+existing storage. If startup refuses the database, the deployment exits nonzero.
+Once Envio starts, its native `/healthz` reports process liveness. Use `/metrics`
+to check indexed block progress and `hyperindex_synced_to_head` for catch-up.
+Inspect ordinary crashes and restart with the same command once the cause is fixed.
 
 ## Indexer availability alerts
 
@@ -136,88 +130,86 @@ still relevant. A successful delivery followed by a failed state write can
 produce a duplicate. The scheduled `snapshot-monitor` continues its daily
 snapshot and indexing checks.
 
-## Reset the Railway indexer from your local machine
+## Reset the Railway indexer from the database host
 
-**This operation drops and recreates the Envio schema.** Record the recovery
-choice before you start: a compatible backup or another full rebuild.
-The separate RPC cache database remains intact.
+This operation deletes the selected main Envio schema and its effect tables.
+Obtain approval for the exact target and record a compatible backup or approved
+full rebuild before starting. Leave the separate eRPC service and database intact.
 
-The package command uses [Railway SSH](https://docs.railway.com/cli/ssh).
-It runs Node directly; the image does not include `pnpm` or `npx`.
-Railway SSH also requires a shell to launch that command. The indexer retains
-its pinned distroless Node runtime and non-root user, with one BusyBox executable
-copied from a digest-pinned official distroless image to provide `/bin/sh`.
-This adds shell access and BusyBox's compiled applets, not a package manager.
-The deployed image must include the reset control script and updated startup wrapper.
-This socket command requires the running parent, including when its Envio child
-has failed. It cannot reach an exited deployment.
-
-### Prepare
-
-1. Authenticate the Railway CLI and link this checkout to the intended project.
-2. Check that the target environment has exactly one active indexer replica.
-3. Pause indexer autodeploys, publisher jobs, and monitor jobs.
-4. Keep Hasura, Envio Postgres, and the RPC cache running.
-5. Check SSH access with this read-only command:
+1. Verify the project, environment, main `Postgres` service and effective Envio
+   database. Review the [data inventory](#inventory-and-recovery) and confirm
+   which schema, owner, grants and dependencies belong to this indexer.
+   Verify that `ENVIO_PG_SCHEMA` is unset and that `ENVIO_PG_PUBLIC_SCHEMA` is
+   either unset or set to `public`. Envio defaults to `public` when both are
+   unset. Confirm that `public` is the effective schema before using the SQL
+   below.
+2. Pause indexer autodeploys, publisher and monitor jobs. Stop every indexer
+   writer, including old rolling deployments, and confirm that writers cannot
+   restart during the reset. If clients can write to the schema through Hasura,
+   stop Hasura too. Keep the databases available.
+3. Set `target_project` and `target_environment` to the verified Railway
+   project and environment IDs. Open [Railway SSH](https://docs.railway.com/cli/ssh)
+   on the main database host.
+   Complete SSH host verification during this interactive connection.
 
    ```bash
-   railway ssh --service indexer --environment production -- /nodejs/bin/node --version
+   railway ssh --project "$target_project" --environment "$target_environment" --service Postgres
    ```
 
-Replace `production` with the target environment. Register an SSH key if Railway
-requires one. If the probe fails, stop before the reset.
+   From that host, open `psql` against the recorded main database under its
+   approved maintenance role. If those correspond to the service's configured
+   `POSTGRES_DB` and `POSTGRES_USER`, use:
 
-### Stop ingestion, reset, and resume Envio
+   ```bash
+   psql --no-psqlrc --set=ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB"
+   ```
 
-From the repository root on your local machine:
+4. Run these commands in `psql` to record the database port, name and role and
+   confirm the schema owner, ACL and Envio metadata.
 
-```bash
-RAILWAY_ENVIRONMENT=production pnpm run reset:indexer:railway
-```
+   ```psql
+   \conninfo
+   \dn+ public
+   \dt public.envio_info
+   ```
 
-An explicit environment is required. Use `RAILWAY_ENVIRONMENT` or pass `--environment <name|id>`.
-The script prints the project and environment names and IDs before it starts the reset.
-The command always targets the `indexer` service in the linked project.
+   Confirm that the schema is dedicated to Envio and review dependencies
+   outside it before dropping it. Stop if the drop would remove any object
+   outside the approved reset scope.
+5. Exit the interactive session. From the repository root, stream the
+   [checked-in reset script](../scripts/reset-indexer-schema.sql) to the same
+   verified database host. Replace `VERIFIED_DB_PORT`, `VERIFIED_DB_NAME` and
+   `VERIFIED_DB_ROLE` with the values recorded above. The command uses the
+   service's `POSTGRES_PASSWORD` for its configured `POSTGRES_USER` role.
+   A different maintenance role requires separately approved noninteractive
+   authentication.
 
-The remote script connects to a private Unix socket owned by the indexer user.
-The startup wrapper stops the entire Envio process group and waits for it to exit.
-If shutdown exceeds 30 seconds, the wrapper refuses to start the migration.
+   ```bash
+   railway ssh --project "$target_project" --environment "$target_environment" --service Postgres -- \
+     'PGPASSWORD="$POSTGRES_PASSWORD" psql -X -w -v ON_ERROR_STOP=1 --host 127.0.0.1 --port VERIFIED_DB_PORT --dbname VERIFIED_DB_NAME --username VERIFIED_DB_ROLE --file=-' \
+     < scripts/reset-indexer-schema.sql
+   ```
 
-The migration drops Envio's schema, including its effect cache (cached contract
-reads). The wrapper does not stash or restore those tables. A deliberate reset
-starts with a cold effect cache and refetches contract reads. The separate eRPC
-cache database is retained.
-The wrapper then runs the deployed Envio command, with its configuration and variables:
+   The script requires `public.envio_info` and the standard `public` schema
+   owner and grants. It preserves an existing direct `USAGE` and `CREATE`
+   grant to the database owner and verifies the recreated ACL before commit.
+   If the script refuses the reset, keep writers stopped. For a different
+   approved owner or ACL, use a separately reviewed restore and verify the
+   recorded owner and exact grants before committing that transaction.
 
-```text
-/nodejs/bin/node /app/apps/indexer/node_modules/envio/bin.mjs local db-migrate setup
-```
+6. Verify that the recreated schema is empty and that its permissions permit
+   normal Envio initialization. Start Hasura if you stopped it. Before starting
+   the indexer, verify that an authenticated `export_metadata` POST to Hasura's
+   private `/v1/metadata` returns HTTP 2xx. Railway allows 30 seconds for the
+   indexer's `/healthz`, and the bootstrap can wait up to 180 seconds for Hasura
+   by default. Start one reviewed indexer deployment with its ordinary command. Native Envio
+   initializes the empty schema and rebuilds its data and effect cache. Follow
+   [Publish after recovery](#publish-after-recovery) after committed heights
+   advance and all configured chains catch up.
 
-After a successful migration, the wrapper starts Envio again inside the same
-container. No Railway service restart, deployment, or start-command change is
-needed for this explicit reset. Normal compatible restarts retain the native
-effect cache: cached entries have no handler-version stamp. Envio rejects
-outputs that fail the current schema, but cannot detect a same-shaped change in
-meaning. Version the effect name when its input or output meaning changes. An
-Envio upgrade or restoration to a fresh cluster requires separate compatibility
-and recovery review; ordinary startup never resets storage automatically.
-The command prints a completion message and exits with the migration status.
-A successful launch does not mean that indexing has caught up.
-
-During the reset, `/healthz` returns 200 and `/ready` and `/metrics` return 503.
-Concurrent reset requests are rejected. The reset continues if SSH disconnects.
-If completion is not confirmed, inspect the indexer logs before you run another reset.
-If migration fails, ingestion remains stopped. Inspect the failure before retrying.
-Never configure this command as the normal start command or pre-deploy command.
-
-### Check recovery
-
-1. Wait for indexer `/ready` and check that indexing progress advances.
-2. Resume publisher and monitor jobs, then check the gateway manifest.
-3. Restore the normal autodeploy configuration.
-
-Use a fresh `INDEXER_DEPLOYMENT_ID` if a same-commit rebuild needs a new snapshot
-namespace. Leave the RPC cache service, database, and volume intact.
+Normal compatible restarts retain the native effect cache. Cached entries have
+no handler version stamp. Envio rejects outputs that fail the current schema.
+Version the effect name when its input or output meaning changes.
 
 ## Plan a production rebuild
 
@@ -257,9 +249,9 @@ proof that every row is disposable:
 
 Pause indexer autodeploys, publisher and monitor jobs before a rebuild. Verify
 that every ingestion writer has stopped, including old rolling deployments, and
-that no publisher job remains active. Keep Hasura and the databases running for
-an ordinary schema reset; the major-version procedure below has a separate stop
-sequence. The reset socket stops only its own process group.
+that no publisher job remains active. For an ordinary schema reset, follow the
+[database-host stop sequence](#reset-the-railway-indexer-from-the-database-host).
+Use the separate stop sequence below for a major-version rebuild.
 
 The gateway and frontend can serve the last valid snapshot during the rebuild.
 Its block dates remain old, and freshness checks can report stale data.
@@ -300,15 +292,15 @@ there is no automatic reset or CI bypass. For a separately approved rebuild:
    HTTP/TCP inventory and database verification pass. Verify server version, image,
    fresh/reset data location inside the volume, effective `PGDATA`, TLS, roles and
    extensions before starting ingestion. Never start a new major against old-major
-   files. Restore Hasura metadata/configuration deliberately after database readiness.
+   files. Start Hasura after database readiness and verify authenticated
+   `export_metadata` succeeds before starting the indexer.
    Defer the native procedure's indexer route/health/progress checks until ingestion
    starts; it must not resume writers early.
 5. Start the reviewed Envio image normally. If native compatibility refusal needs
-   an approved schema reset, use the SSH command below only after database readiness
-   and confirmation that every other writer is stopped. It is not a PostgreSQL
-   major-version converter. Never add reset flags to ordinary startup or predeploy.
-   Verify private docs routes and health, then advancing canonical observations,
-   all configured chains and eventual readiness. Readiness may be 503 during reindex.
+   an approved schema reset, follow the [database-host procedure](#reset-the-railway-indexer-from-the-database-host)
+   once the database is ready and every writer has stopped. Verify private docs
+   routes and health, then advancing canonical observations and eventual catch-up
+   across all configured chains. Keep ordinary startup and predeploy free of reset flags.
 6. Follow [Publish after recovery](#publish-after-recovery) only after catch-up.
    Fresh schema creation recreates its indexes; any separate REINDEX,
    extension/constraint or backup-chain maintenance needs its own review. Retain
@@ -320,25 +312,20 @@ clear eRPC storage to repair the main database.
 
 ### Handle an incompatible deployment
 
-Deploy the approved image with the normal start command. If native startup
-refuses the schema, ingestion stays stopped while the parent retains reset
-control. Inspect the error. After separate reset approval and confirmation that
-every other ingestion writer has stopped, run from the repository root:
-
-```bash
-pnpm reset:indexer:railway --environment production
-```
-
-Replace `production` with the selected environment name or ID.
-It drains any remaining child processes,
-runs native setup, and restarts ingestion only after setup succeeds. It stops
-only its own process group, so the single-writer check still applies.
-
-If the parent itself has exited, the socket is unavailable; inspect and recover
-that deployment before attempting the SSH reset. Never retain `start -r` as the
-production start command.
+If native startup refuses the stored schema, inspect the deployment error and
+confirm which compatibility check failed. For an approved rebuild, stop every
+writer and follow the [database-host reset](#reset-the-railway-indexer-from-the-database-host).
+Restart with the normal command once the database is ready.
 
 ### Publish after recovery
+
+When Envio initializes an empty schema, it clears Hasura metadata and recreates
+its table tracking, permissions and relationships. After initialization, verify
+that tracking succeeded. Use the saved export to reapply only reviewed custom
+permissions, relationships and other entries whose dependencies and access rules
+are valid for the rebuilt schema. Keep Envio's regenerated metadata. Before
+resuming publication, verify the publisher's private GraphQL query returns data
+without errors.
 
 Set a unique `INDEXER_DEPLOYMENT_ID` on the snapshot publisher before its first
 post-reset publication. This prevents a same-commit rebuild from reusing the old
@@ -350,39 +337,28 @@ Resume the publisher and verify the new manifest and referenced artifacts.
 The publisher uploads the active manifest last and withholds publication while
 chains are unready. Resume monitor jobs and autodeploys after recovery.
 
-If setup fails or its completion is unknown, keep ingestion stopped and inspect
-the migration logs before another attempt. A previous image cannot safely resume
+If the reset or startup fails, keep ingestion stopped and inspect the database
+and Envio diagnostics before another attempt. A previous image cannot safely resume
 against an incompatible new schema. Restore its compatible database and affected
 Hasura metadata, or complete another rebuild. Restarting or rolling back the image
 alone does not restore deleted data. Do not clear the eRPC cache to repair an Envio reset.
 
 ## Local Compose reset
 
-After stopping the local indexer, run:
-
-```bash
-docker compose run --rm --no-deps indexer scripts/start-envio.mjs local db-migrate setup
-```
-
-Start the indexer normally after successful completion. Do not remove any
-project volumes. An explicit `scripts/start-envio.mjs start -r` or `--restart`
-also resets and starts ingestion, but it must remain an operator-only action.
+Stop the local `indexer` and all other writers first. Open `psql` on the Compose
+`postgres` service with the main database and role from the local configuration.
+Confirm `public` and its permissions with the same database checks above, then
+reset only that schema and start the `indexer` normally. Preserve the Compose
+volumes and the separate `rpc-cache-postgres` service.
 
 ## Verification boundary
 
-Local process fixtures check complete ingestion shutdown before migration,
-restart after success, maintenance after failure, and concurrent reset rejection.
-They also cover retained control after failed native starts without automatic
-reset, clean completion, and propagation of one-off command statuses.
-The Railway command test uses a fake CLI to check explicit environment selection.
-The actual distroless image runs the official reset command against disposable
-Postgres and fixture Hasura responses. A separate image check executes Node through
-`/bin/sh` in a running container and verifies the pinned Node version and non-root
-UID. These local checks do not validate live Railway SSH transport.
-The image fixture checks that native incompatible startup leaves control alive
-without changing the database dump hash or incompatibility sentinel, then uses
-the existing explicit socket reset before normal ingestion resumes.
-No arbitrary cursor SQL or partial historical replay is part of this procedure.
+Local subprocess tests check fail-fast configuration, Hasura startup, CLI
+arguments, exit status and signals. The image fixture checks Tini and the
+non-root UID. It checks native incompatible startup exits without changing the
+main database, resets the disposable main schema from the database host, then
+checks ordinary restart, native metrics, health, private ingestion docs and
+unchanged eRPC cache rows. Live provider behavior needs separate verification.
 
 ## Current-state schema change
 

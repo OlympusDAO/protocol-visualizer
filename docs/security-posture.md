@@ -51,7 +51,7 @@ Native exit zero, source maps and scans do not establish deployment acceptance.
 image/path contracts, the data inventory, backups and separate data-loss approval.
 Back up non-rebuildable metadata and Hasura customizations; do not assume every
 effect-cache entry is chain-derived. The separate eRPC cache and bucket are not
-reset targets. Envio is pinned to 3.18.1; native startup refuses incompatible storage and never resets it automatically. After a nonzero or signaled native `start` exit, the parent retains Railway SSH reset control with health 200 and readiness/metrics 503; ordinary child crashes also require explicit recovery.
+reset targets. Envio is pinned to 3.19.0. Native startup refuses incompatible storage and never resets it automatically. The bootstrap replaces itself with native `start`, so the deployment stops when Envio exits. An approved reset targets only the verified Envio schema from the main database host. Start Envio normally after recovery.
 
 Every published Compose port binds `127.0.0.1`; containers still communicate on
 the Compose network. Loopback does not authenticate local processes. Development

@@ -44,7 +44,6 @@
     "plan:railway": "railway config plan --out railway-plan.json",
     "publish:stack": "node scripts/container.mjs compose run --rm snapshot-publisher",
     "publish:stack:sample": "node scripts/container.mjs compose run --rm snapshot-publisher-sample",
-    "reset:indexer:railway": "node scripts/railway-ops.mjs reset",
     "scan:docker": "node scripts/scan-container.mjs",
     "scan:docker:dockerfiles": "node scripts/scan-dockerfiles.mjs",
     "scan:docker:hasura": "node scripts/scan-container.mjs hasura",

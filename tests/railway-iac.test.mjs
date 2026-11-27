@@ -11,7 +11,11 @@ import { tmpdir } from "node:os";
 import { join, matchesGlob } from "node:path";
 import { test } from "node:test";
 import { createRailwayContext } from "railway/iac";
-import { existingResources, tcpRemovals } from "../.railway/postgres-policy.ts";
+import {
+  existingResources,
+  publicHttpTargetPorts,
+  tcpRemovals,
+} from "../.railway/postgres-policy.ts";
 import defineInfrastructure from "../.railway/railway.ts";
 
 async function infrastructure(environment) {
@@ -27,6 +31,14 @@ async function infrastructure(environment) {
 }
 
 test("whole-project IaC retains storage and wires services without embedding secrets", async () => {
+  const nginx = readFileSync(
+    new URL("../apps/frontend/nginx.conf", import.meta.url),
+    "utf8"
+  );
+  assert.equal(
+    Number(nginx.match(/^\s*listen (\d+);/m)?.[1]),
+    publicHttpTargetPorts.frontend
+  );
   for (const environment of ["production", "protocol-visualizer-pr-82"]) {
     const { definition, resources } = await infrastructure(environment);
     assert.equal(definition.name, "protocol-visualizer");
@@ -52,6 +64,12 @@ test("whole-project IaC retains storage and wires services without embedding sec
       "volume.rpc-cache-postgres-volume",
     ]);
     const get = (name) => resources.find((r) => r.name === name);
+    for (const [name, port] of Object.entries(publicHttpTargetPorts)) {
+      assert.deepEqual(get(name).variables.PORT, {
+        type: "literal",
+        value: String(port),
+      });
+    }
     assert.deepEqual(
       resources
         .filter(
@@ -224,13 +242,14 @@ test("whole-project IaC retains storage and wires services without embedding sec
       ["frontend", "protocol-visualizer.olympusdao.finance"],
       ["snapshot-gateway", "protocol-visualizer-api.olympusdao.finance"],
     ]) {
+      const { customDomains, serviceDomains } = get(name).networking;
+      assert.equal(serviceDomains, undefined);
+      assert.deepEqual(
+        Object.keys(customDomains ?? {}),
+        environment === "production" ? [domain] : []
+      );
       if (environment === "production")
-        assert.equal(get(name).networking.customDomains[domain].port, 8080);
-      else
-        assert.equal(
-          Object.keys(get(name).networking?.customDomains ?? {}).length,
-          0
-        );
+        assert.equal(customDomains[domain].port, 8080);
     }
   }
 });
@@ -382,6 +401,11 @@ test("database planning preserves larger volumes and rejects incomplete lookups"
   const executable = join(directory, "railway");
   const originalPath = process.env.PATH;
   const ctx = createRailwayContext({ environmentId: "fixture-environment" });
+  const environments = ["production", "protocol-visualizer-pr-97"];
+  const render = (environment) =>
+    defineInfrastructure(
+      createRailwayContext({ environment, environmentId: ctx.environmentId })
+    );
   const response = (services, hasNextPage = false, volumes = []) => ({
     data: {
       environment: {
@@ -466,41 +490,28 @@ test("database planning preserves larger volumes and rejects incomplete lookups"
       fixture(incomplete);
       assert.throws(() => existingResources(ctx), /safe existing Railway/);
     }
-    const imported = response([
-      "Postgres",
+    const privateServices = [
       "hasura",
       "indexer",
       "indexer-monitor",
+      "rpc-cache",
       "snapshot-publisher",
       "snapshot-monitor",
-    ]);
-    for (const name of [
-      "hasura",
-      "indexer",
-      "indexer-monitor",
-      "snapshot-publisher",
-      "snapshot-monitor",
-    ])
+    ];
+    const publicServices = ["frontend", "snapshot-gateway"];
+    const proxyServices = [...privateServices, ...publicServices];
+    const imported = response(["Postgres", ...proxyServices]);
+    for (const name of proxyServices)
       imported.data.environment.config.services[name] = {
+        name,
         networking: { tcpProxies: { 15432: {} } },
       };
     fixture(imported);
-    const desired = await defineInfrastructure(
-      createRailwayContext({
-        environment: "production",
-        environmentId: "fixture-environment",
-      })
-    );
+    const desired = await render("production");
     const serialized = JSON.parse(JSON.stringify(desired)).resources.flat(
       Infinity
     );
-    for (const name of [
-      "hasura",
-      "indexer",
-      "indexer-monitor",
-      "snapshot-publisher",
-      "snapshot-monitor",
-    ]) {
+    for (const name of privateServices) {
       const networking = serialized.find((r) => r.name === name).networking;
       assert.deepEqual(networking.serviceDomains, {});
       assert.deepEqual(networking.customDomains, {});
@@ -511,46 +522,89 @@ test("database planning preserves larger volumes and rejects incomplete lookups"
       serialized.find((r) => r.name === "Postgres").networking.tcpProxies,
       { 5432: null }
     );
+    for (const name of publicServices) {
+      assert.deepEqual(
+        serialized.find((r) => r.name === name).networking.tcpProxies,
+        { 8080: null, 15432: null }
+      );
+    }
     for (const kind of ["serviceDomains", "customDomains"]) {
-      for (const name of ["hasura", "indexer-monitor"]) {
+      for (const name of ["hasura", "rpc-cache", "indexer-monitor"]) {
         const exposed = response([name]);
         exposed.data.environment.serviceInstances.edges[0].node.domains[
           kind
-        ].push({ domain: "fixture.example" });
+        ].push({
+          id: "domain-id",
+          domain: "fixture.example",
+          targetPort: null,
+        });
         fixture(exposed);
-        assert.throws(
-          () => existingResources(ctx),
-          /Verify private HTTP domains/
-        );
+        for (const environment of environments) {
+          assert.throws(() => render(environment), {
+            message: `Unexpected HTTP exposure on ${name}. Obtain separate authorization for native domain removal and verify it before planning.`,
+          });
+        }
       }
     }
-    for (const name of ["frontend", "snapshot-gateway"]) {
+    for (const name of publicServices) {
       for (const kind of ["serviceDomains", "customDomains"]) {
-        for (const targetPort of [8080, null, 4100, 8081, "8080", undefined]) {
+        for (const targetPort of [8080, null, 4100, 8081]) {
           const exposed = response([name]);
           exposed.data.environment.serviceInstances.edges[0].node.domains[
             kind
           ] = [
-            { domain: "first.example", targetPort: 8080 },
-            { domain: "second.example", targetPort },
+            { id: "first-id", domain: "first.example", targetPort: 8080 },
+            { id: "second-id", domain: "second.example", targetPort },
           ];
           fixture(exposed);
-          if (targetPort !== null && targetPort !== 8080) {
-            assert.throws(
-              () => existingResources(ctx),
-              /public HTTP target ports/
-            );
-          } else {
-            assert(existingResources(ctx).tcpPorts.has(name));
+          for (const environment of environments) {
+            if (targetPort === null || targetPort === 8080) {
+              const definition = await render(environment);
+              const service = definition.resources
+                .flat(Infinity)
+                .find((resource) => resource.name === name);
+              assert.equal(service.networking.serviceDomains, undefined);
+            } else {
+              assert.throws(() => render(environment), {
+                message: `Unexpected HTTP target port on ${name}: expected 8080 or automatic. Verify the routing and obtain separate authorization for any native repair before planning.`,
+              });
+            }
           }
         }
       }
+    }
+    for (const fields of [
+      { id: undefined },
+      { id: "" },
+      { id: "  " },
+      { id: 123 },
+      { targetPort: undefined },
+      { targetPort: "8080" },
+      { targetPort: 0 },
+      { targetPort: 65536 },
+      { targetPort: 8080.5 },
+    ]) {
+      const malformed = response(["frontend"]);
+      const { domains } =
+        malformed.data.environment.serviceInstances.edges[0].node;
+      domains.serviceDomains.push({
+        id: "domain-id",
+        domain: "fixture.example",
+        targetPort: 8080,
+        ...fields,
+      });
+      fixture(malformed);
+      assert.throws(() => existingResources(ctx), /safe existing Railway/);
     }
     const incompleteDomain = response(["indexer"]);
     delete incompleteDomain.data.environment.serviceInstances.edges[0].node
       .domains;
     const incompleteConfig = response(["indexer"]);
     delete incompleteConfig.data.environment.config.services.indexer;
+    const mismatchedConfig = response(["indexer"]);
+    mismatchedConfig.data.environment.config.services.indexer = {
+      name: "other-service",
+    };
     const unaccountedConfig = response(["indexer"]);
     unaccountedConfig.data.environment.config.services["unaccounted-id"] = {};
     const badPort = response(["indexer"]);
@@ -560,15 +614,13 @@ test("database planning preserves larger volumes and rejects incomplete lookups"
     for (const incomplete of [
       incompleteDomain,
       incompleteConfig,
+      mismatchedConfig,
       unaccountedConfig,
       badPort,
       response(["unexpected-service"]),
     ]) {
       fixture(incomplete);
-      assert.throws(
-        () => existingResources(ctx),
-        /Verify private HTTP domains/
-      );
+      assert.throws(() => existingResources(ctx), /safe existing Railway/);
     }
     for (const value of [null, []]) {
       const malformed = response([]);
@@ -602,13 +654,8 @@ test("database planning preserves larger volumes and rejects incomplete lookups"
         ["rpc-cache-postgres-volume", 50000],
       ])
     );
-    for (const environment of ["production", "protocol-visualizer-pr-97"]) {
-      const definition = await defineInfrastructure(
-        createRailwayContext({
-          environment,
-          environmentId: "fixture-environment",
-        })
-      );
+    for (const environment of environments) {
+      const definition = await render(environment);
       for (const db of definition.resources
         .flat(Infinity)
         .filter((r) => r.type === "database"))

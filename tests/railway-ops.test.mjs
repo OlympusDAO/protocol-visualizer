@@ -79,7 +79,7 @@ test("documented plan preparation restricts both fresh and pre-existing artifact
   }
 });
 
-test("Railway operations announce and pin linked or explicit targets, and reject removed plan/apply wrappers", () => {
+test("Railway metrics announces and pins targets and rejects removed commands", () => {
   const root = mkdtempSync(join(tmpdir(), "railway-ops-"));
   const log = join(root, "calls.jsonl");
   const script = resolve("scripts/railway-ops.mjs");
@@ -133,35 +133,25 @@ else console.error("EXECUTED " + command);
     assert.equal(calls().at(-1).environment, "preview-id");
     assert.equal(calls().at(-1).project, "project-id");
 
-    for (const removed of ["plan", "apply"]) {
+    for (const removed of ["plan", "apply", "reset"]) {
       const result = run(removed);
       assert.equal(result.status, 1);
-      assert.match(result.stderr, /Choose metrics or reset/);
+      assert.match(result.stderr, /Choose metrics/);
       assert.equal(calls().length, 0);
     }
-    const reset = run("reset", ["--environment", "production"]);
-    assert.equal(reset.status, 0, reset.stderr);
+    const production = run("metrics", ["--environment", "production"]);
+    assert.equal(production.status, 0, production.stderr);
     assert.equal(calls().at(-1).environment, "production-id");
-    assert.deepEqual(calls().at(-1).args, [
-      "ssh",
-      "--service",
-      "indexer",
-      "--environment",
-      "production-id",
-      "--",
-      "/nodejs/bin/node",
-      "/app/apps/indexer/scripts/reset-envio.mjs",
-    ]);
-    assert.equal(run("reset").status, 1);
-    assert.equal(calls().length, 0);
+    assert.equal(calls().at(-1).command, "bash");
 
     const unlinked = run("metrics", [], { RAILWAY_TEST_UNLINKED: "1" });
     assert.equal(unlinked.status, 1);
     assert.match(unlinked.stderr, /Cannot select one Railway environment/);
     assert(!calls().some((call) => call.command === "bash"));
-    const unknown = run("reset", ["--environment", "does-not-exist"]);
+    const unknown = run("metrics", ["--environment", "does-not-exist"]);
     assert.equal(unknown.status, 1);
-    assert(!calls().some((call) => call.args[0] === "config"));
+    assert.match(unknown.stderr, /Cannot select one Railway environment/);
+    assert(!calls().some((call) => call.command === "bash"));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

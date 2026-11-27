@@ -26,7 +26,7 @@ Optional operator settings listed in `variables.ignore` remain outside IaC owner
 | --- | --- |
 | `Postgres` / `destruction-volume` | Envio data and Hasura metadata |
 | `rpc-cache-postgres` / `rpc-cache-postgres-volume` | Independent RPC cache; PG18.6, preserved data |
-| `hasura` | Private GraphQL for publisher and monitor |
+| `hasura` | Private GraphQL for the publisher and metadata API for the indexer |
 | `indexer` | Private Envio indexer |
 | `rpc-cache` | Private JSON-RPC cache |
 | `snapshot-publisher` | Hourly bucket publisher |
@@ -307,9 +307,21 @@ Railway deletes that temporary environment.
 
 ### First-use public domains for PR environments
 
-Once `frontend` and `snapshot-gateway` exist in a new PR environment, generate a
-Railway public domain for each, targeting port **8080**, before the first frontend
-build. Keep frontend deployment paused while provisioning these prerequisites.
+Keep Railway-generated domains on the base environment's `frontend` and
+`snapshot-gateway` services, targeting port **8080**.
+[Railway automatically generates PR domains](https://docs.railway.com/environments#domains-in-pr-environments)
+only when the corresponding base services have Railway-generated domains;
+custom domains alone do not enable this. Production custom domains are not
+assigned to previews.
+
+If an existing PR environment is missing either generated domain, create it
+before the first frontend build. Keep frontend deployment paused while
+provisioning these prerequisites.
+
+Before repairing a route, inspect the generated domains for both public
+services in the base environment and in the exact PR environment. Create only
+the missing routes in the environment you intend to repair.
+
 In each service's Settings → Networking, choose **Generate Domain** and port 8080,
 or use the CLI with explicit project and environment selectors:
 
@@ -323,9 +335,14 @@ generated domains rather than creating replacements on every deployment.
 Planning rejects explicit generated or custom domain targets other than 8080
 on `frontend` and `snapshot-gateway`. Automatic/null targets remain allowed;
 verify their effective routing after apply.
-The IaC `domains` field manages custom domains only; it does not create these
-generated Railway domains. Generate domains only for these two public services;
-leave Hasura, the indexer, snapshot jobs, RPC cache, and databases private.
+The [`publicHttpTargetPorts` map](../.railway/postgres-policy.ts#L4) defines
+the allowed explicit targets. The [gateway declaration](../.railway/railway.ts#L130)
+and [frontend declaration](../.railway/railway.ts#L264) set their `PORT`
+variables and production custom domains. The frontend's
+[Nginx configuration](../apps/frontend/nginx.conf#L2) fixes its listener at 8080.
+Railway generated domains are managed separately. Generate them only for the two
+public services. Keep Hasura, the indexer, snapshot jobs, RPC cache, and
+databases private.
 
 The frontend's `VITE_PROTOCOL_SNAPSHOT_BASE_URL` is set to
 `https://${{snapshot-gateway.RAILWAY_PUBLIC_DOMAIN}}`. Confirm that Railway resolves
@@ -390,9 +407,19 @@ Changing Git branches does not change the Railway link. Link again when switchin
 Before planning, inventory generated/custom HTTP domains and active TCP proxies
 for every service/database in the selected environment, including unexpected
 resources without decrypting variables. Check the frontend/gateway public allowlist.
-Existing private HTTP domains need separately approved native removal and a fresh
-inventory before planning because config apply cannot delete them. Leave imported
-TCP proxies in the inventory for the native plan's explicit `null` removals.
+Planning stops when it finds HTTP domains on private services. Config apply
+cannot delete them. Obtain separate authorization for the exact project,
+environment, private service, and domain before removing it through Railway.
+Use the reviewed identifiers as the arguments below.
+
+```bash
+railway domain delete <DOMAIN_OR_ID> --project <PROJECT_ID> --environment <ENVIRONMENT_ID> --service <PRIVATE_SERVICE> --yes --json
+```
+
+Re-inventory the selected environment after removal and verify that the service
+has no public HTTP domain and remains reachable on the private network before
+planning. Leave imported TCP proxies in the inventory for the native plan's
+explicit `null` removals.
 
 ```bash
 pnpm run check:railway
@@ -478,7 +505,7 @@ Raw results, outputs, diagnostics and stderr can contain sensitive values. Do no
 
 After an accepted result, generate a fresh **read-only plan** for the same project, environment and reviewed revision. Keep its artifact/output private too, for example with native `railway config plan --environment <target-environment> --out "$railway_apply_directory/verification-plan.json"` and private stdout/stderr capture. Review all remaining drift; do not infer convergence from the apply result alone.
 
-Then complete the provider **HTTP/TCP** inventory for every service/database in that exact environment, including unknown/unexpected resources: generated HTTP domains, custom HTTP domains and TCP proxies/ports. Match frontend/gateway against the public allowlist and verify no private service has public domains/proxies. Verify actual public/private reachability and database mounts, effective PGDATA, TLS and persistence. After services are running, verify indexer `/docs`, `/openapi.json`, `/llms.txt` and `/llms-full.txt` return 404, `/healthz` returns 200 and readiness/indexing progress are appropriate for the deployment. Readiness may return 503 during normal reindexing; the [database rebuild sequence](indexer-operations.md#database-major-version-rebuild) controls when writers resume. See [security posture](security-posture.md) for trust boundaries. Source empty maps, a clean plan, process exit zero and success text cannot replace this verification. No native plan/apply/provider action is performed by this documentation change.
+Then complete the provider **HTTP/TCP** inventory for every service/database in that exact environment, including unknown/unexpected resources: generated HTTP domains, custom HTTP domains and TCP proxies/ports. Match frontend/gateway against the public allowlist and verify no private service has public domains/proxies. Verify actual public/private reachability and database mounts, effective PGDATA, TLS and persistence. After services are running, verify indexer `/docs`, `/openapi.json`, `/llms.txt` and `/llms-full.txt` return 404, `/healthz` returns 200 and readiness/indexing progress are appropriate for the deployment. During reindexing, native `/metrics` reports progress and catch-up; the [database rebuild sequence](indexer-operations.md#database-major-version-rebuild) controls when writers resume. See [security posture](security-posture.md) for trust boundaries. Source empty maps, a clean plan, process exit zero and success text cannot replace this verification. No native plan/apply/provider action is performed by this documentation change.
 
 ### 6. Verify the application deployments
 
@@ -585,24 +612,24 @@ ETHERSCAN_API_KEY=<etherscan-api-key>
 ```
 
 `ENVIO_API_TOKEN` should be set for production deployments. When
-`ENVIO_RPC_MODE` is left blank, the indexer wrapper derives `fallback` from the
+`ENVIO_RPC_MODE` is left blank, the indexer bootstrap derives `fallback` from the
 token so Envio uses HyperSync with RPC fallback. Running without a token falls
 back to RPC-only indexing and is materially slower for cold backfills.
 `ETHERSCAN_API_KEY` is required so the indexer can fetch contract metadata that
 is not already precomputed or available in local ABI/source-code files.
 
-Do not set `ENVIO_PG_SCHEMA` on Railway. The indexer wrapper fails fast if it is
-set. Railway start commands run `envio start` and resume compatible state.
-Envio rejects incompatible changes; it does not automatically wipe data.
-For an intentional reset, follow [indexer-operations.md](indexer-operations.md),
-including the manual SSH reset in the existing indexer service.
+Leave `ENVIO_PG_SCHEMA` unset on Railway. The bootstrap waits for Hasura, then
+replaces itself with `envio start`. Before a manual start, verify authenticated
+`export_metadata` succeeds on Hasura's private metadata endpoint. Native startup
+resumes compatible state and exits on incompatibility. For an approved reset,
+follow the [database-host procedure](indexer-operations.md#reset-the-railway-indexer-from-the-database-host).
 
-The publisher and monitor read Envio's private `/metrics` endpoint to decide
-whether a deployment is ready. The indexer Railway service must set `PORT=9898`
-so the health wrapper exposes `/healthz`, `/ready`, and proxied `/metrics` on
-`indexer.railway.internal:9898`. If that port is changed, update
-`INDEXER_METRICS_URL` on both `snapshot-publisher` and `snapshot-monitor` to
-match the indexer's `PORT`.
+Railway sets `PORT=9898` so Envio serves native `/healthz` and `/metrics` on
+`indexer.railway.internal:9898`. IaC gives `snapshot-publisher`, `snapshot-monitor`
+and `indexer-monitor` the same private `INDEXER_METRICS_URL` reference, which
+follows `indexer.PORT`. The publisher uses readiness to gate publication,
+the snapshot monitor checks indexing progress, and the indexer monitor checks
+metrics reachability.
 
 Set all nine `RPC_URL_<chainId>` variables on both snapshot jobs to the private
 proxy paths documented in [rpc-cache.md](rpc-cache.md).
@@ -613,7 +640,7 @@ Set on `snapshot-publisher`:
 HASURA_GRAPHQL_URL=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql
 HASURA_GRAPHQL_ADMIN_SECRET=${{hasura.HASURA_GRAPHQL_ADMIN_SECRET}}
 RAILWAY_ENVIRONMENT_NAME=<provided by Railway>
-INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
+INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:${{indexer.PORT}}/metrics
 BUCKET=${{storage.BUCKET}}
 ACCESS_KEY_ID=${{storage.ACCESS_KEY_ID}}
 SECRET_ACCESS_KEY=${{storage.SECRET_ACCESS_KEY}}
@@ -647,7 +674,7 @@ Set on `snapshot-monitor`:
 DISCORD_WEBHOOK_URL=<production webhook URL>
 DISCORD_WEBHOOK_URL_PREVIEW=${{shared.DISCORD_WEBHOOK_URL_PREVIEW}}
 RAILWAY_ENVIRONMENT_NAME=<provided by Railway>
-INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
+INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:${{indexer.PORT}}/metrics
 BUCKET=${{storage.BUCKET}}
 ACCESS_KEY_ID=${{storage.ACCESS_KEY_ID}}
 SECRET_ACCESS_KEY=${{storage.SECRET_ACCESS_KEY}}

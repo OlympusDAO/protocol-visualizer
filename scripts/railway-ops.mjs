@@ -23,8 +23,7 @@ function readRailway(args, env = process.env) {
 }
 
 try {
-  if (!["metrics", "reset"].includes(operation))
-    throw new Error("Choose metrics or reset.");
+  if (operation !== "metrics") throw new Error("Choose metrics.");
   // biome-ignore lint/suspicious/noUndeclaredEnvVars: Local Railway operations run outside Turbo.
   let requested = process.env.RAILWAY_ENVIRONMENT?.trim();
   const args = [];
@@ -38,10 +37,6 @@ try {
       if (!requested) throw new Error("--environment requires a name or ID.");
     } else args.push(input[i]);
   }
-  if (operation === "reset" && !requested)
-    throw new Error(
-      "Set RAILWAY_ENVIRONMENT to the target Railway environment before resetting the indexer."
-    );
   if (args.length)
     throw new Error("Only --environment is supported for this operation.");
   const project = readRailway(["status", "--json"]);
@@ -67,28 +62,13 @@ try {
   );
   console.error(`Environment: ${target.name} (${target.id})`);
 
-  let command = "railway";
-  let commandArgs;
-  if (operation === "metrics") {
-    command = "bash";
-    commandArgs = [
-      fileURLToPath(new URL("rpc-cache-metrics.sh", import.meta.url)),
-    ];
-  } else {
-    commandArgs = [
-      "ssh",
-      "--service",
-      "indexer",
-      "--environment",
-      target.id,
-      "--",
-      "/nodejs/bin/node",
-      "/app/apps/indexer/scripts/reset-envio.mjs",
-    ];
-  }
-  const result = spawnSync(command, commandArgs, { env, stdio: "inherit" });
+  const result = spawnSync(
+    "bash",
+    [fileURLToPath(new URL("rpc-cache-metrics.sh", import.meta.url))],
+    { env, stdio: "inherit" }
+  );
   if (result.error)
-    throw new Error(`Cannot start ${command}. Check that it is installed.`);
+    throw new Error("Cannot start bash. Check that it is installed.");
   process.exitCode = result.status ?? 1;
 } catch (error) {
   console.error(error.message);

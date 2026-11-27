@@ -4,11 +4,12 @@ import { pathToFileURL } from "node:url";
 
 const require = createRequire(import.meta.url);
 const envio = pathToFileURL(require.resolve("envio"));
-const [UserContext, LoadManager, EffectState, RunScope] = await Promise.all(
-  ["UserContext", "LoadManager", "EffectState", "RunScope"].map(
-    (name) => import(new URL(`./src/${name}.res.mjs`, envio))
-  )
-);
+const [UserContext, LoadManager, EffectState, RunScope, Clock] =
+  await Promise.all(
+    ["UserContext", "LoadManager", "EffectState", "RunScope", "Clock"].map(
+      (name) => import(new URL(`./src/${name}.res.mjs`, envio))
+    )
+  );
 
 export async function makeEffectRuntime({
   rows = new Map(),
@@ -29,7 +30,8 @@ export async function makeEffectRuntime({
   };
   const state = {
     config,
-    effectState: EffectState.make(),
+    clock: Clock.real,
+    effectState: EffectState.make(Clock.real),
     committedFrontier: { 1: 0n },
     storageLoadStats: {},
     storedEffectCaches: new Proxy({}, { has: () => true }),

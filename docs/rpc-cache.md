@@ -350,9 +350,10 @@ The integration check uses the real pinned images, disposable Postgres
 containers, and a counted HTTP fixture upstream. It checks chain/parameter/block
 isolation, permanent rows, legitimate empties, mixed log ranges, unfinalized and
 unknown-finality bypass, RPC/transport errors, restart persistence, new queries,
-and an actual distroless Envio reset against a separate disposable database
-(with a fixture Hasura metadata endpoint). A canary table proves the reset
-clears Envio's schema while cache rows and hits remain intact.
+and native indexer failure against incompatible storage. The test resets the
+disposable Envio schema from its database host, then restarts the distroless
+indexer against a fixture Hasura endpoint. Canaries check schema isolation,
+and every original eRPC key and value remains available after recovery.
 It removes only containers/networks created by that test and creates no project
 volumes. Fixture evidence does not establish live provider behavior.
 

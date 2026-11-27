@@ -12,7 +12,7 @@ import {
 } from "railway/iac";
 import {
   existingResources,
-  publicServices,
+  publicHttpTargetPorts,
   tcpRemovals,
 } from "./postgres-policy.ts";
 
@@ -129,7 +129,10 @@ export default defineRailway((ctx) => {
 
   const snapshotGateway = service("snapshot-gateway", {
     source,
-    env: { ...bucketVariables, PORT: "8080" },
+    env: {
+      ...bucketVariables,
+      PORT: String(publicHttpTargetPorts["snapshot-gateway"]),
+    },
     build: {
       builder: "DOCKERFILE",
       dockerfilePath: "Dockerfile-snapshot-gateway",
@@ -154,7 +157,12 @@ export default defineRailway((ctx) => {
     replicas: { "us-west2": 1 },
     networking: { privateNetworkEndpoint: "graphql-proxy" },
     domains: production
-      ? [{ domain: "protocol-visualizer-api.olympusdao.finance", port: 8080 }]
+      ? [
+          {
+            domain: "protocol-visualizer-api.olympusdao.finance",
+            port: publicHttpTargetPorts["snapshot-gateway"],
+          },
+        ]
       : [],
   });
 
@@ -256,6 +264,7 @@ export default defineRailway((ctx) => {
   const frontend = service("frontend", {
     source,
     env: {
+      PORT: String(publicHttpTargetPorts.frontend),
       VITE_PROTOCOL_SNAPSHOT_BASE_URL:
         "https://${{snapshot-gateway.RAILWAY_PUBLIC_DOMAIN}}",
     },
@@ -281,7 +290,12 @@ export default defineRailway((ctx) => {
     },
     replicas: { "us-west2": 1 },
     domains: production
-      ? [{ domain: "protocol-visualizer.olympusdao.finance", port: 8080 }]
+      ? [
+          {
+            domain: "protocol-visualizer.olympusdao.finance",
+            port: publicHttpTargetPorts.frontend,
+          },
+        ]
       : [],
   });
 
@@ -385,7 +399,7 @@ export default defineRailway((ctx) => {
         resource.name,
         existing?.tcpPorts.get(resource.name)
       ),
-      ...(!publicServices.has(resource.name)
+      ...(!Object.hasOwn(publicHttpTargetPorts, resource.name)
         ? { serviceDomains: {}, customDomains: {} }
         : {}),
     };

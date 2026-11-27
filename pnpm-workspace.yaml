@@ -1,5 +1,12 @@
 minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
+  # User-selected Envio 3.19.0 and its exact native binaries, released 2026-11-26.
+  - "envio@3.19.0"
+  - "envio-linux-x64@3.19.0"
+  - "envio-darwin-x64@3.19.0"
+  - "envio-linux-arm64@3.19.0"
+  - "envio-darwin-arm64@3.19.0"
+  - "envio-linux-x64-musl@3.19.0"
   - "body-parser@1.20.9"
   - "fast-uri@3.1.9"
 preferFrozenLockfile: true
@@ -46,12 +53,15 @@ overrides:
   "minimatch@>=9.0.0 <9.0.7": "9.0.7"
   "picomatch@<4.0.7": "4.0.7"
   "rollup@<4.59.0": "4.59.0"
-  "vite@>=8.0.0 <8.0.16": "^8.0.16"
+  # Vite dev-server path traversal (GHSA-p4f5-76q4-ffq7), patched on each minor.
+  "vite@>=8.0.0 <8.1.7": "8.1.7"
+  "vite@>=8.2.0 <8.2.5": "8.2.5"
+  "vite@>=8.3.0 <8.3.7": "8.3.7"
   "vitest@<4.1.11": "4.1.11"
 allowBuilds:
   "esbuild@0.28.2": true
-auditConfig:
-  ignoreGhsas:
+audit:
+  ignore:
     # picomatch 4.0.7 (ReDoS in repeated extglobs). No patched version exists.
     # Only apps/frontend > vite (and tinyglobby/fdir) uses it, at build time,
     # with glob patterns from the repository config. Remove this entry when a

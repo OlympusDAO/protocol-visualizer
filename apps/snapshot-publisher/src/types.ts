@@ -155,15 +155,16 @@ export type SnapshotFile = {
   body: string;
   publishLast?: boolean;
 };
+
 import type {
   BridgeConfiguration,
+  ChainObservation,
+  ContractRelationship,
+  ContractState,
   HeartTasks,
   IndexingProgress,
-  ContractState,
-  ContractRelationship,
-  ChainObservation,
-  SnapshotExtension,
-  SnapshotSchemaVersion,
   RecordCounts,
+  SnapshotExtension,
   SnapshotManifest,
+  SnapshotSchemaVersion,
 } from "@protocol-visualizer/snapshot-artifacts";

@@ -1,13 +1,19 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
-  "vcs": {
-    "enabled": true,
-    "clientKind": "git",
-    "useIgnoreFile": true
+  "$schema": "https://biomejs.dev/schemas/2.6.3/schema.json",
+  "assist": {
+    "actions": {
+      "source": {
+        "useSortedPackageJson": "on"
+      }
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
   },
   "files": {
     "ignoreUnknown": true,
-    "maxSize": 8388608,
     "includes": [
       "**",
       "!**/node_modules",
@@ -21,7 +27,8 @@
       "!**/*.tsbuildinfo",
       "!apps/indexer/envio-env.d.ts",
       "!apps/snapshot-gateway/openapi.json"
-    ]
+    ],
+    "maxSize": 8388608
   },
   "formatter": {
     "enabled": true,
@@ -31,8 +38,8 @@
   },
   "javascript": {
     "formatter": {
-      "quoteStyle": "double",
       "jsxQuoteStyle": "double",
+      "quoteStyle": "double",
       "semicolons": "always",
       "trailingCommas": "es5"
     }
@@ -43,20 +50,14 @@
       "allowTrailingCommas": true
     }
   },
-  "css": {
-    "parser": {
-      "tailwindDirectives": true
-    }
-  },
   "linter": {
     "enabled": true,
     "includes": [
-      "**/*.{js,mjs,cjs,jsx,ts,tsx}",
+      "**/*.{js,mjs,cjs,jsx,ts,tsx,yml,yaml}",
       "!**/*.config.ts",
       "!**/eslint.config.mjs"
     ],
     "rules": {
-      "preset": "recommended",
       "correctness": {
         "noUnusedImports": "warn",
         "noUnusedVariables": "warn",
@@ -65,7 +66,56 @@
       },
       "nursery": {
         "noFloatingPromises": "error"
+      },
+      "preset": "recommended",
+      "suspicious": {
+        "useErrorMessage": "error"
       }
     }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.test.mjs", "**/*.test.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noFocusedTests": "error"
+          }
+        }
+      }
+    },
+    {
+      "assist": {
+        "actions": {
+          "source": {
+            "useSortedKeys": "on"
+          }
+        }
+      },
+      "includes": [
+        "**/*.{json,jsonc}",
+        "!**/package.json",
+        "!docs/performance/**",
+        "!apps/snapshot-gateway/openapi.json",
+        "!apps/indexer/src/generated/**",
+        "!apps/indexer/abis/**",
+        "!packages/contract-abis/abis/**"
+      ]
+    },
+    {
+      "includes": ["scripts/railway-release.cjs"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noUndeclaredEnvVars": "off"
+          }
+        }
+      }
+    }
+  ],
+  "vcs": {
+    "clientKind": "git",
+    "enabled": true,
+    "useIgnoreFile": true
   }
 }

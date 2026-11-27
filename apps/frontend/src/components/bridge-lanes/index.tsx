@@ -1,25 +1,25 @@
-import { useEffect, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import ReactFlow, {
   Background,
   Controls,
-  MarkerType,
-  Position,
-  type Node,
   type Edge,
+  MarkerType,
+  type Node,
+  Position,
   type XYPosition,
 } from "reactflow";
-import { SUPPORTED_CHAINS, type ProtocolChain } from "../../lib/constants";
-import { getProtocolVisualizerData } from "../../services/contracts";
 import type {
   BridgeConfiguration,
   BridgeRateLimit,
 } from "../../../../../packages/snapshot-artifacts/src/index";
+import { type ProtocolChain, SUPPORTED_CHAINS } from "../../lib/constants";
+import { getProtocolVisualizerData } from "../../services/contracts";
 import { BridgeLaneEdge } from "./lane-edge";
 import {
+  getBridgeCirclePositions,
   getBridgeLanes,
   isCurrentConfiguration,
-  getBridgeCirclePositions,
 } from "./model";
 
 const colors = {

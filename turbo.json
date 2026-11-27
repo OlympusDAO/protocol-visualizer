@@ -4,7 +4,16 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "frontend#build": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
     },
     "lint": {
       "dependsOn": ["^lint"],
@@ -14,9 +23,14 @@
       "dependsOn": ["^lint:check"],
       "outputs": []
     },
-    "dev": {
+    "test": {
       "cache": false,
-      "persistent": true
+      "outputs": []
+    },
+    "typecheck": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "outputs": []
     }
   }
 }

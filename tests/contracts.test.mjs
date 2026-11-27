@@ -3,8 +3,8 @@ import { once } from "node:events";
 import { createServer } from "node:http";
 import { test } from "node:test";
 import "../apps/indexer/scripts/register-typescript.mjs";
-import { createSnapshotBatch } from "../apps/snapshot-publisher/dist/src/snapshot.js";
 import { createSnapshotGateway } from "../apps/snapshot-gateway/dist/src/server.js";
+import { createSnapshotBatch } from "../apps/snapshot-publisher/dist/src/snapshot.js";
 import { getSampleProtocolData } from "../apps/snapshot-publisher/src/sample-data.ts";
 
 const { decodeProtocolSnapshot, getAdditionalGraphContracts } = await import(

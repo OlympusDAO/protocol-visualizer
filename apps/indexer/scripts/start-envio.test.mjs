@@ -1,8 +1,22 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
-import { tmpdir } from "node:os";
-import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
+import { once } from "node:events";
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { createServer } from "node:http";
+import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { test } from "node:test";
+import { pathToFileURL } from "node:url";
 
 const validEnv = {
   DATABASE_URL:
@@ -21,148 +35,219 @@ const validEnv = {
   ETHERSCAN_API_KEY: "etherscan-api-key",
 };
 
-async function loadModule() {
-  Object.assign(process.env, validEnv);
-  process.env.ENVIO_HASURA_STARTUP_TIMEOUT_MS = "1";
-  return import(`./start-envio.mjs?test=${Date.now()}-${Math.random()}`);
+test("native handler typechecking uses the installed TypeScript CLI and rejects handler errors", async (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "pv-handler-typecheck-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const require = createRequire(import.meta.url);
+  mkdirSync(join(directory, "node_modules"));
+  symlinkSync(
+    dirname(require.resolve("typescript/package.json")),
+    join(directory, "node_modules/typescript")
+  );
+  writeFileSync(join(directory, "package.json"), '{"type":"module"}');
+  writeFileSync(
+    join(directory, "tsconfig.json"),
+    '{"compilerOptions":{"strict":true,"types":[]},"include":["handler.ts"]}'
+  );
+  const handler = join(directory, "handler.ts");
+  const { check } = await import(
+    new URL(
+      "./src/HandlerTypeCheck.res.mjs",
+      pathToFileURL(require.resolve("envio"))
+    )
+  );
+  writeFileSync(handler, "export const answer: number = 42;");
+  assert.equal(await check(directory, [handler]), "Passed");
+  writeFileSync(handler, 'export const answer: number = "wrong";');
+  const rejected = await check(directory, [handler]);
+  assert.equal(rejected.TAG, "TypeErrors");
+  assert.match(rejected._0, /TS2322/);
+});
+
+function bootstrapFixture(t, { installedEnvio = false } = {}) {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "pv-envio-bootstrap-")));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const app = join(root, "apps/indexer");
+  const scripts = join(app, "scripts");
+  const envio = join(app, "node_modules/envio");
+  mkdirSync(scripts, { recursive: true });
+  mkdirSync(dirname(envio));
+  const bootstrap = join(scripts, "start-envio.mjs");
+  copyFileSync(new URL("./start-envio.mjs", import.meta.url), bootstrap);
+  if (installedEnvio) {
+    const require = createRequire(import.meta.url);
+    symlinkSync(dirname(require.resolve("envio")), envio);
+  } else {
+    mkdirSync(envio);
+    writeFileSync(
+      join(envio, "bin.mjs"),
+      `
+      const result = {
+        args: process.argv.slice(2),
+        cwd: process.cwd(),
+        pid: process.pid,
+        port: process.env.ENVIO_INDEXER_PORT,
+        database: [process.env.ENVIO_PG_HOST, process.env.ENVIO_PG_PORT,
+          process.env.ENVIO_PG_DATABASE, process.env.ENVIO_PG_SSL_MODE],
+        rpcMode: process.env.ENVIO_RPC_MODE
+      };
+      process.stdout.write("fixture:" + JSON.stringify(result) + "\\n");
+      if (process.env.ENVIO_TEST_STAY_ALIVE) setInterval(() => {}, 1000);
+      process.exitCode = Number(process.env.ENVIO_TEST_EXIT ?? 0);
+    `
+    );
+  }
+  return {
+    app,
+    launch(args, env) {
+      const child = spawn(process.execPath, [bootstrap, ...args], {
+        cwd: root,
+        env: { ...validEnv, ...env },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      t.after(() => child.kill());
+      let stdout = "",
+        stderr = "";
+      const outcome = new Promise((done, fail) => {
+        child.once("error", fail);
+        child.once("close", (code, signal) =>
+          done({ code, signal, stdout, stderr })
+        );
+      });
+      const observed = new Promise((done) => {
+        child.stdout.on("data", (chunk) => {
+          stdout += chunk;
+          const match = stdout.match(/^fixture:(.+)\n/m);
+          if (match) done(JSON.parse(match[1]));
+        });
+        child.once("close", () => done(undefined));
+      });
+      child.stderr.on("data", (chunk) => {
+        stderr += chunk;
+      });
+      return { child, outcome, observed };
+    },
+  };
 }
 
-test("shutdown forcibly stops an unresponsive process group after the deadline", async () => {
-  const { stopEnvioGroup } = await loadModule();
-  const child = spawn(
-    process.execPath,
-    [
-      "-e",
-      'process.on("SIGTERM",()=>{});process.stdout.write("ready");setInterval(()=>{},1000)',
-    ],
-    { detached: true, stdio: ["ignore", "pipe", "ignore"] }
-  );
-  const exited = new Promise((accept) =>
-    child.once("exit", (code, signal) => accept({ code, signal }))
-  );
-  try {
-    await new Promise((accept, reject) => {
-      child.stdout.once("data", accept);
-      child.once("error", reject);
+async function hasuraFixture(t) {
+  const requests = [];
+  const server = createServer(async (request, response) => {
+    let body = "";
+    for await (const chunk of request) body += chunk;
+    requests.push({
+      method: request.method,
+      secret: request.headers["x-hasura-admin-secret"],
+      body: JSON.parse(body),
     });
-    await stopEnvioGroup(child, "SIGTERM", 100);
-    assert.equal((await exited).signal, "SIGKILL");
-    await stopEnvioGroup(child, "SIGTERM", 100);
-    await stopEnvioGroup(undefined, "SIGTERM", 100);
-  } finally {
-    child.kill("SIGKILL");
+    response.end("{}");
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  t.after(() => new Promise((done) => server.close(done)));
+  const endpoint = `http://127.0.0.1:${server.address().port}/v1/metadata`;
+  return { endpoint, requests };
+}
+
+test("bootstrap checks Hasura and replaces itself with an ordinary Envio start", {
+  timeout: 10_000,
+}, async (t) => {
+  const { endpoint, requests } = await hasuraFixture(t);
+  const { app, launch } = bootstrapFixture(t);
+  const run = launch([], {
+    RAILWAY_SERVICE_ID: "fixture",
+    PORT: "9898",
+    DATABASE_URL:
+      "postgres://user:password@db.example:5433/main?sslmode=require",
+    HASURA_GRAPHQL_ENDPOINT: endpoint,
+    ENVIO_TEST_EXIT: "23",
+  });
+  const result = await run.outcome;
+  assert.equal(result.code, 23, result.stderr);
+  assert.equal(result.signal, null);
+  assert.deepEqual(await run.observed, {
+    args: ["start"],
+    cwd: app,
+    pid: run.child.pid,
+    port: "9898",
+    database: ["db.example", "5433", "main", "require"],
+    rpcMode: "sync",
+  });
+  assert.deepEqual(requests, [
+    {
+      method: "POST",
+      secret: validEnv.HASURA_GRAPHQL_ADMIN_SECRET,
+      body: { type: "export_metadata", args: {} },
+    },
+  ]);
+});
+
+test("bootstrap forwards explicit local arguments and preserves native signals", {
+  timeout: 10_000,
+}, async (t) => {
+  const { launch } = bootstrapFixture(t);
+  for (const signal of ["SIGINT", "SIGTERM"]) {
+    const run = launch(["dev", "-r"], {
+      DATABASE_URL: undefined,
+      HASURA_GRAPHQL_ENDPOINT: undefined,
+      HASURA_GRAPHQL_ADMIN_SECRET: undefined,
+      ENVIO_TEST_STAY_ALIVE: "1",
+    });
+    const ready = await run.observed;
+    assert.deepEqual(ready?.args, ["dev", "-r"]);
+    assert.equal(ready.pid, run.child.pid);
+    assert(run.child.kill(signal));
+    const result = await run.outcome;
+    assert.equal(result.code, null);
+    assert.equal(result.signal, signal);
   }
 });
 
-test("resumes on Railway by default and resets only when explicitly requested", async () => {
-  const { resolveEnvioArgs } = await loadModule();
-  assert.deepEqual(resolveEnvioArgs([], { RAILWAY_SERVICE_ID: "svc" }), [
-    "start",
-  ]);
-  assert.deepEqual(
-    resolveEnvioArgs(["start", "-r"], { RAILWAY_SERVICE_ID: "svc" }),
-    ["start", "-r"]
-  );
-  assert.deepEqual(resolveEnvioArgs(["dev"], { RAILWAY_SERVICE_ID: "svc" }), [
-    "dev",
-  ]);
-  assert.deepEqual(resolveEnvioArgs(["start"], {}), ["start"]);
-  assert.deepEqual(
-    resolveEnvioArgs(["start", "--restart"], { RAILWAY_SERVICE_ID: "svc" }),
-    ["start", "--restart"]
-  );
-  assert.deepEqual(resolveEnvioArgs(["local", "db-migrate", "setup"], {}), [
-    "local",
-    "db-migrate",
-    "setup",
-  ]);
-});
-
-test("rejects Railway schema configuration and port mismatches", async () => {
-  const { validateIndexerEnv } = await loadModule();
-  assert.throws(
-    () =>
-      validateIndexerEnv({
-        ...validEnv,
-        PORT: "9898",
-        ENVIO_INDEXER_PORT: "9898",
-        ENVIO_PG_SCHEMA: "public",
-        RAILWAY_SERVICE_ID: "svc",
-      }),
-    /ENVIO_PG_SCHEMA must not be set/
-  );
-  assert.throws(
-    () =>
-      validateIndexerEnv({
-        ...validEnv,
-        PORT: "9898",
-        ENVIO_INDEXER_PORT: "9899",
-      }),
-    /ENVIO_INDEXER_PORT must match PORT/
-  );
-});
-
-test("allows local dev validation without managed database variables", async () => {
-  const { validateIndexerEnv } = await loadModule();
-  const {
-    DATABASE_URL,
-    HASURA_GRAPHQL_ENDPOINT,
-    HASURA_GRAPHQL_ADMIN_SECRET,
-    ...devEnv
-  } = validEnv;
-
-  assert.doesNotThrow(() =>
-    validateIndexerEnv(devEnv, { requireManagedRuntimeEnv: false })
-  );
-  assert.throws(
-    () => validateIndexerEnv(devEnv, { requireManagedRuntimeEnv: true }),
-    /DATABASE_URL, HASURA_GRAPHQL_ENDPOINT, HASURA_GRAPHQL_ADMIN_SECRET/
-  );
-});
-
-test("requires Etherscan API key for contract metadata", async () => {
-  const { validateIndexerEnv } = await loadModule();
-  const { ETHERSCAN_API_KEY, ...envWithoutEtherscan } = validEnv;
-
-  assert.throws(
-    () =>
-      validateIndexerEnv(envWithoutEtherscan, {
-        requireManagedRuntimeEnv: false,
-      }),
-    /ETHERSCAN_API_KEY/
-  );
-});
-
-test("formats spawn failures loudly", async () => {
-  const { formatEnvioSpawnError } = await loadModule();
-  assert.match(
-    formatEnvioSpawnError(
-      Object.assign(new Error("spawn envio ENOENT"), { code: "ENOENT" })
-    ),
-    /Envio entrypoint was not found/
-  );
-});
-
-test("spawns Envio through node instead of the pnpm shell shim", async () => {
-  const { resolveEnvioCommand } = await loadModule();
-  const command = resolveEnvioCommand("/app/apps/indexer");
-  assert.equal(command.command, process.execPath);
-  assert.deepEqual(command.args, [
-    "/app/apps/indexer/node_modules/envio/bin.mjs",
-    "start",
-  ]);
-});
-
-test("resolves the Envio entrypoint independently of the SSH working directory", async () => {
-  const { resolveEnvioCommand } = await loadModule();
-  const previous = process.cwd();
-  try {
-    process.chdir(tmpdir());
-    assert.equal(
-      resolveEnvioCommand().args[0],
-      fileURLToPath(new URL("../node_modules/envio/bin.mjs", import.meta.url))
-    );
-  } finally {
-    process.chdir(previous);
+test("invalid managed configuration exits before Hasura or Envio and logs variable names", {
+  timeout: 10_000,
+}, async (t) => {
+  const { endpoint, requests } = await hasuraFixture(t);
+  const { launch } = bootstrapFixture(t);
+  const cases = [
+    [{ ETHERSCAN_API_KEY: undefined }, /ETHERSCAN_API_KEY/],
+    [{ DATABASE_URL: "fixture-private-invalid" }, /DATABASE_URL/],
+    [{ ENVIO_RPC_URL_1: "fixture-private-invalid" }, /ENVIO_RPC_URL_1/],
+    [
+      { RAILWAY_SERVICE_ID: "fixture", ENVIO_PG_SCHEMA: "public" },
+      /ENVIO_PG_SCHEMA/,
+    ],
+    [{ RAILWAY_SERVICE_ID: "fixture" }, /PORT must be set/],
+    [
+      { PORT: "9898", ENVIO_INDEXER_PORT: "9899" },
+      /ENVIO_INDEXER_PORT must match/,
+    ],
+    [{ PORT: "fixture-private-invalid" }, /PORT must be a valid TCP port/],
+    [{ ENVIO_RPC_MODE: "fixture-private-invalid" }, /ENVIO_RPC_MODE/],
+    [
+      { ENVIO_HASURA_STARTUP_TIMEOUT_MS: "fixture-private-invalid" },
+      /ENVIO_HASURA_STARTUP_TIMEOUT_MS/,
+    ],
+  ];
+  for (const [env, diagnostic] of cases) {
+    const run = launch([], { HASURA_GRAPHQL_ENDPOINT: endpoint, ...env });
+    const result = await run.outcome;
+    assert.equal(result.code, 1);
+    assert.match(result.stderr, diagnostic);
+    assert.doesNotMatch(result.stderr, /fixture-private-invalid/);
+    assert.equal(await run.observed, undefined);
   }
+  assert.deepEqual(requests, []);
+});
+
+test("bootstrap executes the installed native Envio CLI", {
+  timeout: 10_000,
+}, async (t) => {
+  const { launch } = bootstrapFixture(t, { installedEnvio: true });
+  const { code, stdout, stderr } = await launch(["--version"]).outcome;
+  assert.equal(code, 0, stderr);
+  // The test loader rewrites local JSON modules. Read the manifest as JSON data.
+  const manifest = JSON.parse(
+    readFileSync(new URL("../package.json", import.meta.url), "utf8")
+  );
+  assert(stdout.split("\n").includes(`envio ${manifest.dependencies.envio}`));
 });

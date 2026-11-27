@@ -2,7 +2,7 @@
 FROM node:24.22.3-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5 AS builder
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@11.28.7 --activate
+RUN corepack enable && corepack prepare pnpm@11.28.13 --activate
 
 # Set working directory
 WORKDIR /app
@@ -38,14 +38,8 @@ RUN apk upgrade --no-cache brotli-libs c-ares curl libcurl libexpat musl musl-ut
 # Copy the built static files to Nginx's serve directory
 COPY --from=builder /app/apps/frontend/dist /usr/share/nginx/html
 
-# Remove scaffold/default assets that are not referenced by the app.
-RUN rm -f \
-    /usr/share/nginx/html/50x.html \
-    /usr/share/nginx/html/file.svg \
-    /usr/share/nginx/html/globe.svg \
-    /usr/share/nginx/html/next.svg \
-    /usr/share/nginx/html/vercel.svg \
-    /usr/share/nginx/html/window.svg
+# Remove the nginx default error page.
+RUN rm -f /usr/share/nginx/html/50x.html
 
 # Copy Nginx config
 COPY --from=builder --chmod=0644 /app/apps/frontend/nginx.conf /etc/nginx/conf.d/default.conf

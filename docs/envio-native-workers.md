@@ -1,6 +1,6 @@
 # Native Envio workers
 
-The indexer uses Envio 3.14.1's built-in supervisor and native per-chain entity
+The indexer uses Envio 3.19.0's built-in supervisor and native per-chain entity
 storage. It does not run independent indexers or add a custom process scheduler.
 A shared-schema deployment needs an approved rebuild before using this schema;
 see [indexer operations](indexer-operations.md).
@@ -9,11 +9,11 @@ see [indexer operations](indexer-operations.md).
 
 Envio derives processing groups from its PostgreSQL connection budget:
 
-| `ENVIO_PG_MAX_CONNECTIONS` | Processing configuration |
-| --- | --- |
-| 2 (default) | One process |
-| 4 | Two workers plus supervisor |
-| 8 | Four workers plus supervisor |
+| `ENVIO_PG_MAX_CONNECTIONS` | Processing configuration     |
+| -------------------------- | ---------------------------- |
+| 2 (default)                | One process                  |
+| 4                          | Two workers plus supervisor  |
+| 8                          | Four workers plus supervisor |
 
 Allow additional database capacity for the supervisor and other consumers.
 The default remains one process. Extra workers increase memory and startup cost;

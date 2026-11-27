@@ -11,16 +11,16 @@ import {
   ACTIVE_MANIFEST_KEY,
   PUBLISHER_LOCK_KEY,
 } from "@protocol-visualizer/snapshot-artifacts";
+import { loadSupportedChains } from "../src/chains.js";
 import {
   PUBLISHER_NOTIFICATION_STATE_KEY,
   runPublisher,
-  sendDiscordMessage,
   type SnapshotS3Client,
+  sendDiscordMessage,
   uploadSnapshotFiles,
 } from "../src/publish.js";
-import type { SnapshotFile } from "../src/types.js";
-import { loadSupportedChains } from "../src/chains.js";
 import { getSampleProtocolData } from "../src/sample-data.js";
+import type { SnapshotFile } from "../src/types.js";
 
 const snapshotFile = (key: string, publishLast = false): SnapshotFile => ({
   publicPath: `/${key}`,
@@ -69,7 +69,10 @@ class MemoryS3Client implements SnapshotS3Client {
       this.calls.push(`get:${key}`);
       const body = this.objects[key];
       if (body === undefined) throw new Error(`missing ${key}`);
-      return { Body: body, ETag: etagFor(body) };
+      return {
+        Body: { transformToString: async () => body },
+        ETag: etagFor(body),
+      };
     }
     if (command instanceof PutObjectCommand) {
       const key = String(command.input.Key);
@@ -132,7 +135,9 @@ const withPublisherEnv = async (
   process.env = {
     ...originalEnv,
     DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+    DISCORD_WEBHOOK_URL_PREVIEW: "https://discord.example/webhook",
   };
+  delete process.env.RAILWAY_ENVIRONMENT_ID;
   for (const [key, value] of Object.entries(env)) {
     if (value === undefined) {
       delete process.env[key];
@@ -245,6 +250,7 @@ test("publisher rejects missing RPC variables before metrics or storage access",
   process.env = {
     ...originalEnv,
     DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+    DISCORD_WEBHOOK_URL_PREVIEW: "https://discord.example/webhook",
     SNAPSHOT_SOURCE: "hasura",
     SNAPSHOT_CHAIN_IDS: "1",
     INDEXER_DEPLOYMENT_ID: "deployment-a",
@@ -276,6 +282,7 @@ test("publisher skips before Hasura reads when indexer metrics are not ready", a
   process.env = {
     ...originalEnv,
     DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+    DISCORD_WEBHOOK_URL_PREVIEW: "https://discord.example/webhook",
     SNAPSHOT_SOURCE: "hasura",
     RPC_URL_10: "https://rpc.example/optimism",
     RPC_URL_1: "https://rpc.example/mainnet",
@@ -389,6 +396,7 @@ test("native readiness permits completed canonical observations without a second
           HASURA_GRAPHQL_URL: "http://hasura/v1/graphql",
           RPC_URL_1: "https://private-proxy.example/1",
           DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+          DISCORD_WEBHOOK_URL_PREVIEW: "https://discord.example/webhook",
           BUCKET: "bucket",
         },
         () =>
@@ -427,6 +435,7 @@ test("publisher logs continuing indexing for a previously observed deployment", 
   process.env = {
     ...originalEnv,
     DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+    DISCORD_WEBHOOK_URL_PREVIEW: "https://discord.example/webhook",
     SNAPSHOT_SOURCE: "hasura",
     RPC_URL_1: "https://rpc.example/mainnet",
     SNAPSHOT_CHAIN_IDS: "1",
@@ -488,6 +497,7 @@ test("publisher reports the RPC block date during backfill in its result and Dis
     INDEXER_METRICS_URL: "http://indexer:9898/metrics",
     RPC_URL_1: "https://rpc.example/envio",
     DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+    DISCORD_WEBHOOK_URL_PREVIEW: "https://discord.example/webhook",
     BUCKET: "bucket",
   };
   delete process.env.HASURA_GRAPHQL_URL;
@@ -575,6 +585,7 @@ test("publisher reports indexer metrics network failures with safe context", asy
   process.env = {
     ...originalEnv,
     DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+    DISCORD_WEBHOOK_URL_PREVIEW: "https://discord.example/webhook",
     SNAPSHOT_SOURCE: "hasura",
     RPC_URL_1: "https://rpc.example/mainnet",
     SNAPSHOT_CHAIN_IDS: "1",
@@ -616,6 +627,7 @@ test("publisher requires Railway environment name for live Hasura runs", async (
   process.env = {
     ...originalEnv,
     DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+    DISCORD_WEBHOOK_URL_PREVIEW: "https://discord.example/webhook",
     SNAPSHOT_SOURCE: "hasura",
     RPC_URL_1: "https://rpc.example/mainnet",
     SNAPSHOT_CHAIN_IDS: "1",
@@ -735,12 +747,12 @@ test("publisher rejects missing webhooks before network or storage access", asyn
         INDEXER_DEPLOYMENT_ID: "deployment-a",
         RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
         BUCKET: "bucket",
-        DISCORD_WEBHOOK_URL: webhook,
+        DISCORD_WEBHOOK_URL_PREVIEW: webhook,
       },
       () =>
         assert.rejects(
           () => runPublisher({ createS3Client: () => client }),
-          /DISCORD_WEBHOOK_URL is required/
+          /DISCORD_WEBHOOK_URL_PREVIEW is required/
         )
     );
   }
@@ -748,90 +760,121 @@ test("publisher rejects missing webhooks before network or storage access", asyn
   assert.deepEqual(client.calls, []);
 });
 
-test("publisher sends all nine chains in a handover embed within Discord's field limit", async () => {
-  const originalFetch = globalThis.fetch;
-  const consoleCapture = captureConsole();
-  const client = new MemoryS3Client();
-  const discordBodies: unknown[] = [];
+for (const [railwayEnvironment, runtimeId, webhook, expectedDescription] of [
+  [
+    "production",
+    "1b61e496-b565-42b4-9e5d-8096e28e13cd",
+    "https://discord.example/production",
+    undefined,
+  ],
+  [
+    "renamed-production",
+    "1b61e496-b565-42b4-9e5d-8096e28e13cd",
+    "https://discord.example/preview",
+    "Environment renamed-production",
+  ],
+  [
+    " production ",
+    "fixture-preview",
+    "https://discord.example/preview",
+    "Environment  production ",
+  ],
+  [
+    "protocol-visualizer-pr-49",
+    "fixture-preview",
+    "https://discord.example/preview",
+    "Environment protocol-visualizer-pr-49",
+  ],
+] as const) {
+  test(`publisher sends all nine chains in a handover embed within Discord's field limit in ${railwayEnvironment}`, async () => {
+    const originalFetch = globalThis.fetch;
+    const consoleCapture = captureConsole();
+    const client = new MemoryS3Client();
+    const discordBodies: unknown[] = [];
 
-  globalThis.fetch = async (url, init) => {
-    assert.equal(String(url), "https://discord.example/webhook");
-    discordBodies.push(JSON.parse(String(init?.body)));
-    return new Response(null, { status: 204 });
-  };
+    globalThis.fetch = async (url, init) => {
+      assert.equal(String(url), webhook);
+      discordBodies.push(JSON.parse(String(init?.body)));
+      return new Response(null, { status: 204 });
+    };
 
-  try {
-    await withPublisherEnv(
-      {
-        SNAPSHOT_SOURCE: "sample",
-        SNAPSHOT_CHAIN_IDS: undefined,
-        INDEXER_DEPLOYMENT_ID: "deployment-a",
-        RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
-        DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
-        BUCKET: "bucket",
-      },
-      () =>
-        runPublisher({
-          createS3Client: () => client,
-        })
-    );
-  } finally {
-    globalThis.fetch = originalFetch;
-    consoleCapture.restore();
-  }
+    try {
+      await withPublisherEnv(
+        {
+          SNAPSHOT_SOURCE: "sample",
+          SNAPSHOT_CHAIN_IDS: undefined,
+          INDEXER_DEPLOYMENT_ID: "deployment-a",
+          RAILWAY_ENVIRONMENT_NAME: railwayEnvironment,
+          RAILWAY_ENVIRONMENT_ID: runtimeId,
+          DISCORD_WEBHOOK_URL: "https://discord.example/production",
+          DISCORD_WEBHOOK_URL_PREVIEW: "https://discord.example/preview",
+          BUCKET: "bucket",
+        },
+        () =>
+          runPublisher({
+            createS3Client: () => client,
+          })
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+      consoleCapture.restore();
+    }
 
-  assert.equal(discordBodies.length, 2);
-  const bodies = discordBodies as Array<{
-    content: string;
-    embeds: Array<{
-      color: number;
-      fields: Array<{ name: string; value: string; inline?: boolean }>;
+    assert.equal(discordBodies.length, 2);
+    const bodies = discordBodies as Array<{
+      content: string;
+      embeds: Array<{
+        color: number;
+        description?: string;
+        fields: Array<{ name: string; value: string; inline?: boolean }>;
+      }>;
     }>;
-  }>;
-  const active = JSON.parse(client.objects[ACTIVE_MANIFEST_KEY] ?? "{}");
-  assert.equal(active.chains.length, 9);
-  const fields = bodies.flatMap((body, index) => {
-    assert.equal(
-      body.content,
-      `Protocol visualizer snapshot handover completed — ${index === 0 ? "Production chains" : "Testnets"}`
-    );
-    assert.equal(body.embeds[0]?.color, 0x2ecc71);
-    const fields = body.embeds[0]?.fields ?? [];
-    assert.equal(fields.length, index === 0 ? 7 : 4);
-    assert(fields.every((field) => field.inline === false));
-    assert.equal(fields[0]?.name, "Deployment ID");
-    assert.equal(fields[0]?.value, "deployment-a");
+    const active = JSON.parse(client.objects[ACTIVE_MANIFEST_KEY] ?? "{}");
+    assert.equal(active.chains.length, 9);
+    const fields = bodies.flatMap((body, index) => {
+      assert.equal(
+        body.content,
+        `Protocol visualizer snapshot handover completed — ${index === 0 ? "Production chains" : "Testnets"}`
+      );
+      assert.equal(body.embeds[0]?.color, 0x2ecc71);
+      assert.equal(body.embeds[0]?.description, expectedDescription);
+      const fields = body.embeds[0]?.fields ?? [];
+      assert.equal(fields.length, index === 0 ? 7 : 4);
+      assert(fields.every((field) => field.inline === false));
+      assert.equal(fields[0]?.name, "Deployment ID");
+      assert.equal(fields[0]?.value, "deployment-a");
+      assert(
+        fields
+          .slice(1)
+          .every((field) =>
+            /^Status: Published\nBlock: \d+\nTime: <t:\d+:F>$/.test(field.value)
+          )
+      );
+      return fields.slice(1);
+    });
+    const chains = await loadSupportedChains();
+    for (const [index, environment] of ["production", "testnet"].entries()) {
+      assert.deepEqual(
+        bodies[index]?.embeds[0]?.fields.slice(1).map((field) => field.name),
+        chains
+          .filter((chain) => chain.environment === environment)
+          .map((chain) => `🟢 ${chain.name}`)
+      );
+    }
+    for (const chain of active.chains)
+      assert.equal(
+        fields.filter((field) => field.name === `🟢 ${chain.name}`).length,
+        1
+      );
     assert(
-      fields
-        .slice(1)
-        .every((field) =>
-          /^Status: Published\nBlock: \d+\nTime: <t:\d+:F>$/.test(field.value)
-        )
+      consoleCapture.logs.some(
+        (line) =>
+          line.includes('"event":"snapshot_publisher_discord_result"') &&
+          line.includes('"delivered":true')
+      )
     );
-    return fields.slice(1);
   });
-  const chains = await loadSupportedChains();
-  for (const [index, environment] of ["production", "testnet"].entries()) {
-    assert.deepEqual(
-      bodies[index]?.embeds[0]?.fields.slice(1).map((field) => field.name),
-      chains
-        .filter((chain) => chain.environment === environment)
-        .map((chain) => `🟢 ${chain.name}`)
-    );
-  }
-  for (const chain of active.chains)
-    assert.equal(
-      fields.filter((field) => field.name === `🟢 ${chain.name}`).length,
-      1
-    );
-  assert(
-    consoleCapture.logs.some(
-      (line) =>
-        line.includes('"event":"snapshot_publisher_discord_result"') &&
-        line.includes('"delivered":true')
-    )
-  );
-});
+}
 
 test("publisher groups new and continuing deployment notifications, including unavailable chains", async (t) => {
   const chains = await loadSupportedChains();
@@ -840,6 +883,7 @@ test("publisher groups new and continuing deployment notifications, including un
     content: string;
     embeds: Array<{
       title: string;
+      description?: string;
       color: number;
       fields: Array<{ name: string; value: string; inline?: boolean }>;
     }>;
@@ -866,7 +910,12 @@ test("publisher groups new and continuing deployment notifications, including un
   );
   const capture = captureConsole();
   try {
-    for (const seenBefore of [false, true]) {
+    for (const [seenBefore, railwayEnvironment] of [
+      [false, "production"],
+      [true, "production"],
+      [false, "protocol-visualizer-pr-49"],
+      [true, "protocol-visualizer-pr-49"],
+    ] as const) {
       const client = new MemoryS3Client({
         [ACTIVE_MANIFEST_KEY]: manifestBody("deployment-active"),
         ...(seenBefore
@@ -883,9 +932,10 @@ test("publisher groups new and continuing deployment notifications, including un
           SNAPSHOT_SOURCE: "hasura",
           SNAPSHOT_CHAIN_IDS: undefined,
           INDEXER_DEPLOYMENT_ID: "deployment-a",
-          RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
+          RAILWAY_ENVIRONMENT_NAME: railwayEnvironment,
           INDEXER_METRICS_URL: "http://indexer:9898/metrics",
           DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+          DISCORD_WEBHOOK_URL_PREVIEW: "https://discord.example/webhook",
           BUCKET: "bucket",
           ...Object.fromEntries(
             chains.map((chain) => [
@@ -904,6 +954,12 @@ test("publisher groups new and continuing deployment notifications, including un
           `Protocol visualizer ${seenBefore ? "indexing continues" : "new deployment indexing"} — ${index === 0 ? "Production chains" : "Testnets"}`
         );
         const embed = body?.embeds[0];
+        assert.equal(
+          embed?.description,
+          railwayEnvironment === "production"
+            ? undefined
+            : `Environment ${railwayEnvironment}`
+        );
         assert.match(
           embed?.title ?? "",
           seenBefore ? /Indexing Continues/ : /New Deployment Indexing/
@@ -981,6 +1037,7 @@ test("publisher attempts both groups after a delivery failure and continues its 
             RAILWAY_ENVIRONMENT_NAME: "protocol-visualizer-pr-49",
             INDEXER_METRICS_URL: "http://indexer:9898/metrics",
             DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+            DISCORD_WEBHOOK_URL_PREVIEW: "https://discord.example/webhook",
             BUCKET: "bucket",
             ...Object.fromEntries(
               chains.map((chain) => [

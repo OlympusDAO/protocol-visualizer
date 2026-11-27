@@ -2,9 +2,34 @@
 
 The publisher sends deployment progress and snapshot handover notifications.
 The monitor sends daily summaries and warnings about indexing or snapshot state.
-Both services use the environment's shared `DISCORD_WEBHOOK_URL` in Railway.
-Both jobs require the webhook. Missing or blank values log an error and fail
+The jobs select their webhook at startup using Railway's actual environment
+name. The exact name `production` uses `DISCORD_WEBHOOK_URL`. Every other
+environment name requires `DISCORD_WEBHOOK_URL_PREVIEW`.
+Missing or blank selected values log an error and fail
 pre-deploy validation and startup before network requests or storage access.
+
+Set each job's production service value and shared preview reference once in the
+base environment, including for the indexer monitor. Automatic PR deployments copy the preview
+reference; runtime selection does not require a plan or apply for each PR.
+IaC preserves `DISCORD_WEBHOOK_URL` and declares the shared preview reference.
+Seal the production service value so it is not copied:
+see [Railway's sealed-variable rules](https://docs.railway.com/variables#sealed-variables).
+Keep the preview value copyable. If a production value is currently a shared
+reference, an operator must replace it with a service-level secret before
+sealing and review the old shared secret separately. `preserve()` retains an
+existing alias until that migration; it neither converts nor seals it. This
+setup avoids creating a production shared alias that a PR clone must resolve.
+
+Production notifications omit the Railway environment label. Other environments
+retain their name. This applies to indexer alerts, snapshot summaries, indexing
+progress, and handover notifications. Chain groups such as `Production chains`
+describe the chain catalog and remain independent of the Railway environment.
+Outside Railway, an omitted environment name keeps the explicit
+`DISCORD_WEBHOOK_URL` for local validation; live snapshot jobs still require
+`RAILWAY_ENVIRONMENT_NAME` to run. A supplied environment name must not be blank.
+Only the exact environment name `production` uses production routing. Renamed
+environments use the preview webhook and label. A supplied runtime ID must not be
+blank and requires a name; it does not select the Discord destination.
 
 These examples use fictional values and show all nine currently indexed chains.
 Both services group configured chains into production chains and testnets.
@@ -26,11 +51,11 @@ Each chain occupies one full-width field. Its indicator and `Status` line replac
 Discord supports color on the whole embed border, rather than individual fields.
 A group has an orange border when any chain is behind, green when all are synced, and gray otherwise.
 
-| Indicator | Status |
-| --- | --- |
-| 🟠 | Behind head, according to Envio readiness metrics |
-| 🟢 | Synced to head, according to Envio readiness metrics |
-| ⚪ | Progress or readiness unavailable; never inferred as synced |
+| Indicator | Status                                                      |
+| --------- | ----------------------------------------------------------- |
+| 🟠        | Behind head, according to Envio readiness metrics           |
+| 🟢        | Synced to head, according to Envio readiness metrics        |
+| ⚪        | Progress or readiness unavailable; never inferred as synced |
 
 Missing metrics show `Block: Unavailable` and `Time: Timestamp unavailable`.
 A missing timestamp alone does not change the readiness status.
@@ -327,14 +352,14 @@ Time: <t:1700000000:F>
 
 Each chain uses one field with its block and timestamp. No chain is removed to fit the field limit.
 
-| Notification | Fields with nine chains |
-| --- | ---: |
-| Monitor production summary | 7: deployment ID plus six chains |
-| Monitor testnet summary | 4: deployment ID plus three chains |
-| Publisher production handover | 7: deployment ID plus six chains |
-| Publisher testnet handover | 4: deployment ID plus three chains |
-| Publisher production indexing progress | 10: four metadata fields plus six chains |
-| Publisher testnet indexing progress | 7: four metadata fields plus three chains |
+| Notification                           |                   Fields with nine chains |
+| -------------------------------------- | ----------------------------------------: |
+| Monitor production summary             |          7: deployment ID plus six chains |
+| Monitor testnet summary                |        4: deployment ID plus three chains |
+| Publisher production handover          |          7: deployment ID plus six chains |
+| Publisher testnet handover             |        4: deployment ID plus three chains |
+| Publisher production indexing progress |  10: four metadata fields plus six chains |
+| Publisher testnet indexing progress    | 7: four metadata fields plus three chains |
 
 Both senders reject an embed with more than 25 fields before any HTTP request.
 Exactly 25 fields per embed are allowed. An oversized embed raises `Discord embeds must have at most 25 fields`.

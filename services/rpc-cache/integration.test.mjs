@@ -13,6 +13,7 @@ import { test } from "node:test";
 import { inspect, promisify } from "node:util";
 
 const runFile = promisify(execFile);
+const zeroWord = `0x${"00".repeat(32)}`;
 const requireIndexer = createRequire(
   new URL("../../apps/indexer/package.json", import.meta.url)
 );
@@ -86,8 +87,9 @@ const keyFor = (value) =>
       : v
   );
 const pgImage =
-  "postgres:17-alpine@sha256:979c4379dd698aba0b890599a6104e082035f98ef31d9b9291ec22f2b13059ca";
+  "postgres:18.6-alpine3.24@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b";
 const image = "protocol-visualizer/rpc-cache:local";
+const indexerImage = "protocol-visualizer/indexer:local";
 const docker = (...args) =>
   execFileSync("docker", args, {
     encoding: "utf8",
@@ -116,15 +118,16 @@ async function eventually(check, message) {
 }
 
 // Kept outside tests/*.test.mjs so regular builds do not require Docker.
-test("indexer image supports a non-root administrative shell", () => {
+test("indexer image runs Tini as PID 1 and supports a non-root administrative shell", () => {
   const name = `pv-indexer-shell-${process.pid}-${Date.now()}`;
   try {
     docker(
       "run",
+      "--pull=never",
       "-d",
       "--name",
       name,
-      "protocol-visualizer/indexer:local",
+      indexerImage,
       "-e",
       "setInterval(() => {}, 1000)"
     );
@@ -134,7 +137,7 @@ test("indexer image supports a non-root administrative shell", () => {
         name,
         "/bin/sh",
         "-c",
-        "exec /nodejs/bin/node -e 'console.log(JSON.stringify({node:process.version,uid:process.getuid()}))'"
+        'exec /nodejs/bin/node -e \'console.log(JSON.stringify({node:process.version,uid:process.getuid(),pid1:require("node:fs").readFileSync("/proc/1/comm","utf8").trim()}))\''
       )
     );
     assert.equal(
@@ -142,14 +145,16 @@ test("indexer image supports a non-root administrative shell", () => {
       `v${readFileSync(new URL("../../.node-version", import.meta.url), "utf8").trim()}`
     );
     assert.equal(result.uid, 65532);
+    assert.equal(result.pid1, "tini");
   } finally {
-    docker("rm", "-f", name);
+    docker("rm", "-f", "-v", name);
   }
 });
 
 test("indexer image loads every handler and its runtime imports offline", () => {
   const result = docker(
     "run",
+    "--pull=never",
     "--rm",
     "--network=none",
     "-e",
@@ -164,7 +169,7 @@ test("indexer image loads every handler and its runtime imports offline", () => 
       "-e",
       `ENVIO_RPC_URL_${chain}=http://127.0.0.1:1`,
     ]),
-    "protocol-visualizer/indexer:local",
+    indexerImage,
     "--import",
     "./scripts/typescript-loader.mjs",
     "--input-type=module",
@@ -297,7 +302,18 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
               message: "fixture-url-secret fixture-query-secret",
               data: { url: "fixture-url-secret", key: "fixture-query-secret" },
             };
-          else result = params[0]?.data === "0x0000" ? "0x" : "0x1234";
+          else if (params[0]?.data === "0xeee1")
+            error = { code: -32602, message: " \tInTeRnAl ErRoR\n" };
+          else if (params[0]?.data === "0xeee2")
+            error = {
+              code: -32602,
+              message: "Internal error fixture-url-secret fixture-query-secret",
+            };
+          else if (data === "0x0000") result = "0x";
+          else if (data === "0x0001") result = zeroWord;
+          else if (data === "0xbbbb") result = null;
+          else if (data === "0xabcd") result = "0xabcd";
+          else result = "0x1234";
           break;
         }
         case "eth_estimateGas":
@@ -358,15 +374,18 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
     for (const name of skipReset ? [pg] : [pg, envioPg]) {
       docker(
         "run",
+        "--pull=never",
         "-d",
         "--name",
         name,
         "--network",
         prefix,
         "--tmpfs",
-        "/var/lib/postgresql/data",
+        "/var/lib/postgresql",
         "-e",
         "POSTGRES_PASSWORD=fixture",
+        "-e",
+        "PGDATA=/var/lib/postgresql/18/docker",
         pgImage
       );
       created.push(name);
@@ -388,6 +407,7 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
       );
     docker(
       "run",
+      "--pull=never",
       "-d",
       "--name",
       erpc,
@@ -433,15 +453,11 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
     };
     const count = (id, method, params) =>
       counts.get(keyFor([id, method, params])) || 0;
+    const cacheQuery = (sql) =>
+      docker("exec", pg, "psql", "-U", "postgres", "-Atc", sql);
     const cacheRows = (id, method) =>
       Number(
-        docker(
-          "exec",
-          pg,
-          "psql",
-          "-U",
-          "postgres",
-          "-Atc",
+        cacheQuery(
           `SELECT count(*) FROM rpc_cache WHERE partition_key LIKE 'evm:${id}:%' AND range_key LIKE '${method}:%'`
         )
       );
@@ -498,7 +514,20 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
       await cachedPair(id, "eth_call", call);
     await cachedPair(1, "eth_call", [call[0], "0x101"]);
     await cachedPair(1, "eth_call", [{ ...call[0], data: "0x1235" }, "0x100"]);
-    await cachedPair(1, "eth_call", [{ ...call[0], data: "0x0000" }, "0x100"]);
+    assert.equal(
+      await cachedPair(1, "eth_call", [
+        { ...call[0], data: "0x0000" },
+        "0x100",
+      ]),
+      "0x"
+    );
+    assert.equal(
+      await cachedPair(1, "eth_call", [
+        { ...call[0], data: "0x0001" },
+        "0x100",
+      ]),
+      zeroWord
+    );
     await cachedPair(1, "eth_getCode", [call[0].to, "0x100"]);
     await cachedPair(1, "eth_getBalance", [call[0].to, "0x100"]);
     const logs = [
@@ -506,6 +535,45 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
     ];
     assert.deepEqual(await cachedPair(1, "eth_getLogs", logs), []);
     await cachedPair(1, "eth_getLogs", [{ ...logs[0], toBlock: "0x103" }]);
+
+    const nullCall = [{ ...call[0], data: "0xbbbb" }, "0x100"];
+    for (let i = 0; i < 2; i++) {
+      const result = await rpc(1, "eth_call", nullCall);
+      assert.equal(result.cached, "MISS");
+      assert.equal(result.body.result, null);
+    }
+    assert.equal(count(1, "eth_call", nullCall), 2);
+    const nullRows = () =>
+      cacheQuery(
+        "SELECT count(*) FROM rpc_cache WHERE value = convert_to('null', 'UTF8')"
+      );
+
+    const legacyCall = [{ ...call[0], data: "0xabcd" }, "0x100"];
+    assert.equal(await cachedPair(1, "eth_call", legacyCall), "0xabcd");
+    const legacyValue = `value = convert_to('"0xabcd"', 'UTF8')`;
+    const legacyRows = () =>
+      cacheQuery(`SELECT count(*) FROM rpc_cache WHERE ${legacyValue}`);
+    assert.equal(legacyRows(), "1");
+    assert.equal(nullRows(), "0");
+    assert.equal(
+      cacheQuery(`WITH seeded AS (
+        UPDATE rpc_cache SET value = convert_to('null', 'UTF8') WHERE ${legacyValue} RETURNING 1
+      ) SELECT count(*) FROM seeded`),
+      "1"
+    );
+    const refetched = await rpc(1, "eth_call", legacyCall);
+    assert.equal(refetched.cached, "MISS");
+    assert.equal(refetched.body.result, "0xabcd");
+    assert.equal(count(1, "eth_call", legacyCall), 2);
+    await eventually(
+      () => legacyRows() === "1",
+      "Refetched result was not cached"
+    );
+    const repaired = await rpc(1, "eth_call", legacyCall);
+    assert.equal(repaired.cached, "HIT");
+    assert.equal(repaired.body.result, "0xabcd");
+    assert.equal(nullRows(), "0");
+
     const bypassPair = async (id, method, params, expectError = false) => {
       const before = count(id, method, params);
       for (let i = 0; i < 2; i++) {
@@ -536,12 +604,21 @@ test("pinned eRPC read-through persistence, finality, isolation and safe errors"
       if (toBlock) filter.toBlock = toBlock;
       await bypassPair(1, "eth_getLogs", [filter]);
     }
-    await bypassPair(
-      1,
-      "eth_call",
-      [{ ...call[0], data: "0xeeee" }, "0x100"],
-      true
-    );
+    for (const [data, expected] of [
+      ["0xeeee", "RPC request failed"],
+      ["0xeee1", "Internal error"],
+      ["0xeee2", "RPC request failed"],
+    ]) {
+      const params = [{ ...call[0], data }, "0x100"];
+      for (let i = 0; i < 2; i++) {
+        const before = count(1, "eth_call", params);
+        const error = await rpc(1, "eth_call", params);
+        assert(count(1, "eth_call", params) > before);
+        assert.equal(error.body.error?.message, expected);
+        if (data !== "0xeeee") assert.equal(error.body.error?.code, -32602);
+        assert.notEqual(error.cached, "HIT");
+      }
+    }
     await bypassPair(
       1,
       "eth_call",
@@ -723,6 +800,7 @@ export default config;
     const multi = `${prefix}-multi`;
     docker(
       "run",
+      "--pull=never",
       "-d",
       "--name",
       multi,
@@ -785,6 +863,7 @@ export default config;
     const budget = 20;
     docker(
       "run",
+      "--pull=never",
       "-d",
       "--name",
       limited,
@@ -882,21 +961,29 @@ export default config;
     docker("start", erpc);
     base = `http://127.0.0.1:${docker("port", erpc, "4000/tcp").split(":").at(-1)}`;
     await eventually(health, "original eRPC did not resume");
-    const resetBaseline = docker(
-      "exec",
-      pg,
-      "psql",
-      "-U",
-      "postgres",
-      "-Atc",
-      "SELECT count(*) FROM rpc_cache"
-    );
+    const cacheContents = () =>
+      new Map(
+        JSON.parse(
+          docker(
+            "exec",
+            pg,
+            "psql",
+            "-U",
+            "postgres",
+            "-Atc",
+            "SELECT COALESCE(json_agg(json_build_array(partition_key, range_key, value)), '[]'::json) FROM rpc_cache"
+          )
+        ).map(([partition, range, value]) => [
+          JSON.stringify([partition, range]),
+          value,
+        ])
+      );
+    const resetBaseline = cacheContents();
+    assert(resetBaseline.size > 0);
     console.log(
-      `Proxy resume verified; published port changed: ${base !== originalBase}; cache rows after probes: ${resetBaseline}.`
+      `Proxy resume verified; published port changed: ${base !== originalBase}; cache rows after probes: ${resetBaseline.size}.`
     );
     if (!skipReset) {
-      // The reset command must run in the actual distroless deployed image, with
-      // its real config and a separate disposable Envio DB. No indexer is running.
       const indexerEnv = [
         "-e",
         `DATABASE_URL=postgresql://postgres:fixture@${envioPg}:5432/postgres`,
@@ -912,37 +999,26 @@ export default config;
           "-e",
           `ENVIO_RPC_URL_${id}=http://${erpc}:4000/pv/evm/${id}`
         );
-      const reset = () =>
-        runFile(
-          "docker",
-          [
-            "run",
-            "--rm",
-            "--network",
-            prefix,
-            "--add-host",
-            "host.docker.internal:host-gateway",
-            ...indexerEnv,
-            "protocol-visualizer/indexer:local",
-            "scripts/start-envio.mjs",
-            "local",
-            "db-migrate",
-            "setup",
-          ],
-          { encoding: "utf8", timeout: 120_000 }
-        );
-      const sql = (query) =>
-        docker(
-          "exec",
-          envioPg,
-          "psql",
-          "-U",
-          "postgres",
-          "-v",
-          "ON_ERROR_STOP=1",
-          "-Atc",
-          query
-        );
+
+      const psql = [
+        "-e",
+        "PGPASSWORD=fixture",
+        envioPg,
+        "psql",
+        "-X",
+        "-w",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5432",
+        "--dbname",
+        "postgres",
+        "--username",
+        "postgres",
+        "-v",
+        "ON_ERROR_STOP=1",
+      ];
+      const sql = (query) => docker("exec", ...psql, "-Atc", query);
       const databaseHash = () =>
         createHash("sha256")
           .update(
@@ -952,83 +1028,50 @@ export default config;
               "pg_dump",
               "-U",
               "postgres",
+              "-d",
+              "postgres",
               "--no-owner",
               "--no-privileges"
             ).replace(/^\\(?:un)?restrict .*$/gm, "")
           )
           .digest("hex");
-      sql(
-        "CREATE ROLE reset_reader LOGIN PASSWORD 'fixture'; GRANT USAGE ON SCHEMA public TO reset_reader"
+
+      await runFile(
+        "docker",
+        [
+          "run",
+          "--pull=never",
+          "--rm",
+          "--network",
+          prefix,
+          "--add-host",
+          "host.docker.internal:host-gateway",
+          ...indexerEnv,
+          indexerImage,
+          "scripts/start-envio.mjs",
+          "local",
+          "db-migrate",
+          "setup",
+        ],
+        { encoding: "utf8", timeout: 120_000 }
       );
-      const checkStorage = async (expected, password = "fixture") => {
-        const before = databaseHash();
-        let status = 0,
-          output = "";
-        try {
-          const result = await runFile(
-            "docker",
-            [
-              "run",
-              "--rm",
-              "--network",
-              prefix,
-              ...indexerEnv,
-              "-e",
-              `ENVIO_PG_HOST=${envioPg}`,
-              "-e",
-              "ENVIO_PG_PORT=5432",
-              "-e",
-              "ENVIO_PG_DATABASE=postgres",
-              "-e",
-              "ENVIO_PG_USER=reset_reader",
-              "-e",
-              `ENVIO_PG_PASSWORD=${password}`,
-              "-e",
-              "ENVIO_PG_SSL_MODE=prefer",
-              "-e",
-              "HASURA_GRAPHQL_ROLE=admin",
-              "-e",
-              "ENVIO_THROTTLE_CHAIN_METADATA_INTERVAL_MILLIS=500",
-              "-e",
-              "ENVIO_THROTTLE_PRUNE_STALE_DATA_INTERVAL_MILLIS=30000",
-              "protocol-visualizer/indexer:local",
-              "scripts/check-envio-storage.mjs",
-              "start",
-            ],
-            { encoding: "utf8", timeout: 45_000 }
-          );
-          output = result.stdout + result.stderr;
-        } catch (error) {
-          status = error.code;
-          output = error.stdout + error.stderr;
-        }
-        assert.equal(status, expected, output);
-        assert(
-          !output.includes("fixture-private-password"),
-          "compatibility errors leaked credentials"
-        );
-        assert.equal(
-          databaseHash(),
-          before,
-          "compatibility check modified its database"
-        );
-      };
-      await checkStorage(0); // Empty storage: normal initialization remains allowed.
-      await reset();
-      sql("GRANT SELECT ON ALL TABLES IN SCHEMA public TO reset_reader");
-      await checkStorage(0); // Compatible metadata, using a SELECT-only role.
-      await checkStorage(1, "fixture-private-password");
-      sql(
-        `UPDATE public.envio_info SET config = jsonb_set(config::jsonb, '{chainIdMode}', '"fixture-incompatible"')::text`
-      );
-      await checkStorage(78);
-      const waitingIndexer = `${prefix}-indexer`;
+      sql(`
+        UPDATE public.envio_info
+          SET config = jsonb_set(config::jsonb, '{chainIdMode}', '"fixture-incompatible"')::text;
+        CREATE TABLE public.reset_canary (id integer PRIMARY KEY);
+        INSERT INTO public.reset_canary VALUES (1);
+        CREATE SCHEMA fixture_other;
+        CREATE TABLE fixture_other.reset_canary (id integer PRIMARY KEY);
+        INSERT INTO fixture_other.reset_canary VALUES (2);
+      `);
       const beforeStartup = databaseHash();
+      const indexer = `${prefix}-indexer`;
       docker(
         "run",
+        "--pull=never",
         "-d",
         "--name",
-        waitingIndexer,
+        indexer,
         "--network",
         prefix,
         "--add-host",
@@ -1038,96 +1081,121 @@ export default config;
         ...indexerEnv,
         "-e",
         "PORT=9898",
-        "protocol-visualizer/indexer:local"
+        indexerImage
       );
-      created.push(waitingIndexer);
-      const waitingPort = docker("port", waitingIndexer, "9898/tcp")
-        .split(":")
-        .at(-1);
+      created.push(indexer);
+      const indexerState = () =>
+        JSON.parse(docker("inspect", indexer, "--format", "{{json .State}}"));
       await eventually(
-        () =>
-          docker("logs", waitingIndexer).includes(
-            "Envio storage is incompatible."
-          ),
-        "Incompatible indexer did not remain available for reset"
+        () => indexerState().Status === "exited",
+        "Native incompatible startup did not exit"
       );
-      for (const [route, status] of [
-        ["healthz", 200],
-        ["ready", 503],
-        ["metrics", 503],
-      ])
-        assert.equal(
-          (await fetch(`http://127.0.0.1:${waitingPort}/${route}`)).status,
-          status
-        );
+      assert.notEqual(
+        indexerState().ExitCode,
+        0,
+        "Native Envio must exit nonzero"
+      );
+      assert(
+        /The following config changes are incompatible with the existing indexer data:(?:\s|\\n)+- chainIdMode\b/.test(
+          dockerLogs(indexer)
+        ),
+        "Native Envio did not report the expected configuration incompatibility"
+      );
       assert.equal(
         databaseHash(),
         beforeStartup,
-        "Incompatible startup changed stored data"
-      );
-      const operatorReset = await runFile(
-        "docker",
-        [
-          "exec",
-          waitingIndexer,
-          "/nodejs/bin/node",
-          "/app/apps/indexer/scripts/reset-envio.mjs",
-        ],
-        { encoding: "utf8", timeout: 120_000 }
-      );
-      assert.match(
-        operatorReset.stdout,
-        /Envio migration completed. Envio restarted inside the existing container/
-      );
-      docker("stop", waitingIndexer);
-      sql("GRANT SELECT ON ALL TABLES IN SCHEMA public TO reset_reader");
-      await checkStorage(0);
-      console.log(
-        "Actual indexer image waited on incompatible schema without writes, accepted its operator reset and launched normal ingestion without another deployment."
-      );
-      sql("DROP TABLE public.envio_info");
-      await checkStorage(78); // Older storage without native compatibility metadata.
-      console.log(
-        "Native storage preflight: empty/compatible/incompatible/legacy/auth cases passed; SELECT-only role and database hashes verified no writes."
-      );
-      await reset();
-      docker(
-        "exec",
-        envioPg,
-        "psql",
-        "-U",
-        "postgres",
-        "-v",
-        "ON_ERROR_STOP=1",
-        "-c",
-        "CREATE TABLE public.rpc_cache_reset_canary (id integer PRIMARY KEY); INSERT INTO public.rpc_cache_reset_canary VALUES (1)"
-      );
-      await reset();
-      assert.equal(
-        docker(
-          "exec",
-          envioPg,
-          "psql",
-          "-U",
-          "postgres",
-          "-Atc",
-          "SELECT to_regclass('public.rpc_cache_reset_canary') IS NULL"
-        ),
-        "t",
-        "Envio setup did not reset its own schema"
+        "Native incompatible startup changed stored data or reset automatically"
       );
       assert.equal(
-        docker(
-          "exec",
-          pg,
-          "psql",
-          "-U",
-          "postgres",
-          "-Atc",
-          "SELECT count(*) FROM rpc_cache"
-        ),
-        resetBaseline,
-        "Envio reset touched cache storage"
+        sql("SELECT config::jsonb->>'chainIdMode' FROM public.envio_info"),
+        "fixture-incompatible"
+      );
+      assert.equal(sql("SELECT id FROM public.reset_canary"), "1");
+
+      const resetScript = readFileSync(
+        new URL("../../scripts/reset-indexer-schema.sql", import.meta.url)
+      );
+      const resetSchema = () =>
+        execFileSync("docker", ["exec", "-i", ...psql, "--file=-"], {
+          input: resetScript,
+          encoding: "utf8",
+          stdio: ["pipe", "pipe", "pipe"],
+          timeout: 120_000,
+        });
+      const publicSchema = () =>
+        sql(`SELECT json_build_array(nspowner::regrole::text, ARRAY(
+          SELECT entry::text FROM unnest(nspacl) AS entry
+          ORDER BY entry::text COLLATE "C"
+        )) FROM pg_namespace WHERE nspname = 'public'`);
+      const originalPublicSchema = publicSchema();
+      sql("REVOKE USAGE ON SCHEMA public FROM PUBLIC");
+      const alteredPublicSchema = publicSchema();
+      assert.notEqual(alteredPublicSchema, originalPublicSchema);
+      assert.throws(resetSchema, {
+        status: 3,
+        stderr: /Unsupported owner or ACL on existing public schema/,
+      });
+      assert.equal(publicSchema(), alteredPublicSchema);
+      assert.equal(databaseHash(), beforeStartup);
+      console.log(
+        "Reset SQL refused an unsupported public schema ACL and preserved the database contents, schema owner and grants."
+      );
+
+      sql("GRANT USAGE ON SCHEMA public TO PUBLIC");
+      assert.equal(publicSchema(), originalPublicSchema);
+      resetSchema();
+      assert.equal(publicSchema(), originalPublicSchema);
+      assert.equal(sql("SELECT to_regclass('public.envio_info') IS NULL"), "t");
+      assert.equal(
+        sql("SELECT to_regclass('public.reset_canary') IS NULL"),
+        "t"
+      );
+      assert.equal(sql("SELECT id FROM fixture_other.reset_canary"), "2");
+      docker("start", indexer);
+      const indexerPort = docker("port", indexer, "9898/tcp").split(":").at(-1);
+      const indexerBase = `http://127.0.0.1:${indexerPort}`;
+      await eventually(async () => {
+        const response = await fetch(`${indexerBase}/metrics`);
+        return (
+          response.ok &&
+          /^hyperindex_synced_to_head [01]$/m.test(await response.text())
+        );
+      }, "Native indexer metrics were unavailable after ordinary restart");
+      assert.equal(
+        sql("SELECT to_regclass('public.envio_info') IS NOT NULL"),
+        "t"
+      );
+      assert.equal((await fetch(`${indexerBase}/healthz`)).status, 200);
+      for (const route of [
+        "/docs",
+        "/openapi.json",
+        "/llms.txt",
+        "/llms-full.txt",
+        "/ready",
+      ])
+        assert.equal(
+          (await fetch(`${indexerBase}${route}`)).status,
+          404,
+          route
+        );
+      docker("stop", indexer);
+      console.log(
+        "Native startup refused incompatible storage without changes. The main schema reset and ordinary restart restored Envio health and metrics while keeping ingestion docs private."
+      );
+      const afterReset = cacheContents();
+      for (const [key, value] of resetBaseline) {
+        assert(
+          afterReset.has(key),
+          "Envio reset removed an original cache key"
+        );
+        assert.deepEqual(
+          afterReset.get(key),
+          value,
+          "Envio reset changed an original cached value"
+        );
+      }
+      console.log(
+        `Envio reset preserved all ${resetBaseline.size} original cache keys and values; ${afterReset.size} rows remain after resumed ingestion.`
       );
       assert.equal((await rpc(1, "eth_call", call)).cached, "HIT");
     } else
@@ -1140,10 +1208,6 @@ export default config;
         !output.includes("fixture-query-secret"),
       "upstream URL leaked to logs"
     );
-    if (!skipReset)
-      console.log(
-        "Distroless Envio setup/reset ran twice with the deployed config; eRPC rows and hits survived."
-      );
   } catch (error) {
     // Do not print arbitrary runtime logs or environment (may contain URLs).
     if (error.stderr)
@@ -1152,7 +1216,7 @@ export default config;
       );
     throw error;
   } finally {
-    for (const name of created.reverse()) docker("rm", "-f", name);
+    for (const name of created.reverse()) docker("rm", "-f", "-v", name);
     try {
       docker("network", "rm", prefix);
     } catch {}

@@ -3,10 +3,10 @@ import http from "node:http";
 import { test } from "node:test";
 import { toFunctionSelector } from "viem";
 import {
-  getControlGetter,
   getBridgeConfiguration,
-  getModuleDependencies,
   getCanonicalCodeHash,
+  getControlGetter,
+  getModuleDependencies,
 } from "../src/events/effects.ts";
 import { makeEffectRuntime } from "./fixtures/effect-runtime.mjs";
 

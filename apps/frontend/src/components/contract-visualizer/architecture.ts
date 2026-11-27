@@ -1,5 +1,5 @@
-import type { Edge, Node } from "reactflow";
 import dagre from "dagre";
+import type { Edge, Node } from "reactflow";
 import {
   getGraphNodeWidth,
   getKernelHistorySection,

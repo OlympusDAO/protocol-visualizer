@@ -1,11 +1,4 @@
 {
-  "env": {
-    "repo": "OlympusDAO/olympus-v3",
-    "branch": "master",
-    "path": "src/scripts/env.json",
-    "ref": "b5ef05aea90b19d1a317de2a2902ece9d845a59f"
-  },
-  "snapshotBaseUrl": "https://protocol-visualizer-api.olympusdao.finance",
   "chains": [
     "arbitrum",
     "arbitrum-sepolia",
@@ -17,6 +10,12 @@
     "robinhood",
     "sepolia"
   ],
+  "env": {
+    "branch": "master",
+    "path": "src/scripts/env.json",
+    "ref": "b5ef05aea90b19d1a317de2a2902ece9d845a59f",
+    "repo": "OlympusDAO/olympus-v3"
+  },
   "excludedChains": {
     "berachain-bartio": "Retired network. Etherscan V2 does not support it.",
     "goerli": "Retired network. Etherscan V2 does not support it.",
@@ -27,30 +26,31 @@
     "config": {
       "reason": "Deployment configuration entries, not protocol contracts."
     },
-    "multisig": {
-      "reason": "Safe multisig wallets, not protocol contracts."
-    },
     "legacy": {
       "keep": ["OHM", "OlympusAuthority", "Staking", "gOHM", "sOHM"],
       "reason": "Pre-V3 contracts that are no longer used. The kept contracts are still live."
+    },
+    "multisig": {
+      "reason": "Safe multisig wallets, not protocol contracts."
     }
   },
   "exclusions": [
     {
-      "chain": "mainnet",
       "address": "0x4A8c9502A34962a2C6d73c5D181dAaeF3dcDc88D",
+      "chain": "mainnet",
       "reason": "RPC eth_getCode returns no bytecode at this address."
     },
     {
-      "chain": "mainnet",
       "address": "0xb212D9584cfc56EFf1117F412Fe0bBdc53673954",
+      "chain": "mainnet",
       "reason": "Replaced module: the Kernel uses OlympusRangeV2 for RANGE."
     },
     {
-      "chain": "mainnet",
       "address": "0x50f441a3387625bDA8B8081cE3fd6C04CC48C0A2",
+      "chain": "mainnet",
       "reason": "Shut down on 2025-11-30: locallyActive() returns false, and the Heart calls EmissionManager v1.2 instead."
     }
   ],
-  "labels": []
+  "labels": [],
+  "snapshotBaseUrl": "https://protocol-visualizer-api.olympusdao.finance"
 }

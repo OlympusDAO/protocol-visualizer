@@ -1,670 +1,199 @@
-import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import http from "node:http";
 import { dirname, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { startResetServer } from "./reset-envio.mjs";
+import { setTimeout as sleep } from "node:timers/promises";
+import { fileURLToPath } from "node:url";
 
 const RPC_MODES = new Set(["sync", "fallback"]);
+const RPC_URLS = [1, 10, 42161, 421614, 84532, 4663, 8453, 80094, 11155111].map(
+  (chainId) => `ENVIO_RPC_URL_${chainId}`
+);
 const DEFAULT_HASURA_STARTUP_TIMEOUT_MS = 180_000;
 const HASURA_STARTUP_RETRY_INTERVAL_MS = 2_000;
 const HASURA_STARTUP_REQUEST_TIMEOUT_MS = 5_000;
-const DEFAULT_INDEXER_INTERNAL_PORT_OFFSET = 1;
-const HEALTHCHECK_REQUEST_TIMEOUT_MS = 5_000;
-
-const shellEnvKeys = new Set(Object.keys(process.env));
-const scriptDir = dirname(fileURLToPath(import.meta.url));
-const indexerDir = resolve(scriptDir, "..");
+const indexerDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = resolve(indexerDir, "../..");
 
-const loadDotEnv = (envPath) => {
-  if (!existsSync(envPath)) return;
-
-  for (const rawLine of readFileSync(envPath, "utf8").split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) continue;
-
-    const separatorIndex = line.indexOf("=");
-    if (separatorIndex === -1) continue;
-
-    const key = line.slice(0, separatorIndex).trim();
-    let value = line.slice(separatorIndex + 1).trim();
-    if (!key || shellEnvKeys.has(key)) continue;
-
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
+function loadDotEnv() {
+  const shellEnvKeys = new Set(Object.keys(process.env));
+  const envPaths = new Set([
+    resolve(repoRoot, ".env"),
+    resolve(indexerDir, ".env"),
+    resolve(process.cwd(), ".env"),
+  ]);
+  for (const envPath of envPaths) {
+    if (!existsSync(envPath)) continue;
+    for (const rawLine of readFileSync(envPath, "utf8").split(/\r?\n/)) {
+      const line = rawLine.trim();
+      if (!line || line.startsWith("#")) continue;
+      const separator = line.indexOf("=");
+      if (separator === -1) continue;
+      const key = line.slice(0, separator).trim();
+      if (!key || shellEnvKeys.has(key)) continue;
+      let value = line.slice(separator + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+      process.env[key] = value;
     }
-
-    process.env[key] = value;
-  }
-};
-
-for (const envPath of new Set([
-  resolve(repoRoot, ".env"),
-  resolve(indexerDir, ".env"),
-  resolve(process.cwd(), ".env"),
-])) {
-  loadDotEnv(envPath);
-}
-
-const setDefaultEnv = (key, value) => {
-  if (process.env[key] === undefined || process.env[key] === "") {
-    process.env[key] = value;
-  }
-};
-
-const databaseUrl = process.env.DATABASE_URL;
-
-if (databaseUrl && !process.env.ENVIO_PG_HOST) {
-  const parsed = new URL(databaseUrl);
-  const sslMode = parsed.searchParams.get("sslmode");
-
-  process.env.ENVIO_PG_HOST = parsed.hostname;
-  process.env.ENVIO_PG_PORT = parsed.port || "5432";
-  process.env.ENVIO_PG_USER = decodeURIComponent(parsed.username);
-  process.env.ENVIO_PG_PASSWORD = decodeURIComponent(parsed.password);
-  process.env.ENVIO_PG_DATABASE = parsed.pathname.replace(/^\//, "");
-
-  if (sslMode && !process.env.ENVIO_PG_SSL_MODE) {
-    process.env.ENVIO_PG_SSL_MODE = sslMode;
   }
 }
 
-setDefaultEnv("ENVIO_PG_SSL_MODE", "prefer");
-setDefaultEnv("HASURA_GRAPHQL_ROLE", "admin");
-setDefaultEnv("ENVIO_THROTTLE_CHAIN_METADATA_INTERVAL_MILLIS", "500");
-setDefaultEnv("ENVIO_THROTTLE_PRUNE_STALE_DATA_INTERVAL_MILLIS", "30000");
-
-export const isRailwayRuntime = (env = process.env) =>
-  Object.entries(env).some(
-    ([key, value]) => key.startsWith("RAILWAY_") && value?.trim()
-  );
-
-// Envio checks compatibility and resumes by default. Reset is operator-only.
-export const resolveEnvioArgs = (args) =>
-  args.length === 0 ? ["start"] : [...args];
-
-const envioArgs = resolveEnvioArgs(process.argv.slice(2));
-
-export const resolveEnvioCommand = (cwd = indexerDir) => {
-  const envioBinPath = resolve(cwd, "node_modules/envio/bin.mjs");
-  return {
-    command: process.execPath,
-    args: [envioBinPath, ...envioArgs],
-  };
-};
-
-const isStartCommand = () => {
-  const [command] = envioArgs;
-  return command === "start";
-};
-
-const getPositiveIntegerEnv = (key, defaultValue) => {
-  const value = process.env[key];
-  if (value === undefined || value === "") {
-    return defaultValue;
+function parseDatabaseUrl(value) {
+  try {
+    const url = new URL(value);
+    if (!url.hostname || !["postgres:", "postgresql:"].includes(url.protocol))
+      throw new Error("Expected a PostgreSQL URL with a hostname");
+    return {
+      host: url.hostname,
+      port: url.port || "5432",
+      user: decodeURIComponent(url.username),
+      password: decodeURIComponent(url.password),
+      database: url.pathname.replace(/^\//, ""),
+      sslMode: url.searchParams.get("sslmode"),
+    };
+  } catch {
+    throw new Error("DATABASE_URL must be a valid PostgreSQL URL");
   }
-
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new Error(`${key} must be a positive integer; received ${value}`);
-  }
-
-  return parsed;
-};
-
-const getBooleanEnv = (key, defaultValue) => {
-  const value = process.env[key];
-  if (value === undefined || value === "") {
-    return defaultValue;
-  }
-
-  if (value === "true" || value === "1") {
-    return true;
-  }
-
-  if (value === "false" || value === "0") {
-    return false;
-  }
-
-  throw new Error(`${key} must be true, false, 1, or 0; received ${value}`);
-};
-
-const sleep = (durationMs) =>
-  new Promise((resolveSleep) => setTimeout(resolveSleep, durationMs));
+}
 
 const isBlank = (value) => value === undefined || value.trim() === "";
 
-const isUrl = (value) => {
+function isHttpUrl(value) {
   try {
-    const parsed = new URL(value);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
+    return ["http:", "https:"].includes(new URL(value).protocol);
   } catch {
     return false;
   }
-};
+}
 
-export const prepareIndexerEnv = (env = process.env) => {
-  if (env.PORT && !env.ENVIO_INDEXER_PORT) {
-    env.ENVIO_INDEXER_PORT = env.PORT;
-  }
-  return env;
-};
-
-export const validateIndexerEnv = (
-  env = process.env,
-  { requireManagedRuntimeEnv = true } = {}
-) => {
-  const required = [
-    "ETHERSCAN_API_KEY",
-    "ENVIO_RPC_URL_1",
-    "ENVIO_RPC_URL_10",
-    "ENVIO_RPC_URL_42161",
-    "ENVIO_RPC_URL_421614",
-    "ENVIO_RPC_URL_84532",
-    "ENVIO_RPC_URL_4663",
-    "ENVIO_RPC_URL_8453",
-    "ENVIO_RPC_URL_80094",
-    "ENVIO_RPC_URL_11155111",
-  ];
-  if (requireManagedRuntimeEnv) {
-    required.unshift(
-      "DATABASE_URL",
-      "HASURA_GRAPHQL_ENDPOINT",
-      "HASURA_GRAPHQL_ADMIN_SECRET"
-    );
-  }
-  const missing = required.filter((key) => isBlank(env[key]));
-  if (missing.length > 0) {
+function validateIndexerEnv(managed) {
+  const env = process.env;
+  const urls = managed ? ["HASURA_GRAPHQL_ENDPOINT", ...RPC_URLS] : RPC_URLS;
+  const required = ["ETHERSCAN_API_KEY", ...urls];
+  if (managed) required.unshift("DATABASE_URL", "HASURA_GRAPHQL_ADMIN_SECRET");
+  const missing = required.filter((name) => isBlank(env[name]));
+  if (missing.length)
     throw new Error(
       `Missing required environment variables: ${missing.join(", ")}`
     );
-  }
+  const invalid = urls.filter((name) => !isHttpUrl(env[name]));
+  if (invalid.length)
+    throw new Error(`Invalid URL environment variables: ${invalid.join(", ")}`);
 
-  const urlVars = [
-    "ENVIO_RPC_URL_1",
-    "ENVIO_RPC_URL_10",
-    "ENVIO_RPC_URL_42161",
-    "ENVIO_RPC_URL_421614",
-    "ENVIO_RPC_URL_84532",
-    "ENVIO_RPC_URL_4663",
-    "ENVIO_RPC_URL_8453",
-    "ENVIO_RPC_URL_80094",
-    "ENVIO_RPC_URL_11155111",
-  ];
-  if (requireManagedRuntimeEnv) {
-    urlVars.unshift("HASURA_GRAPHQL_ENDPOINT");
-  }
-  const invalidUrls = urlVars.filter((key) => !isUrl(env[key] ?? ""));
-  if (invalidUrls.length > 0) {
-    throw new Error(
-      `Invalid URL environment variables: ${invalidUrls.join(", ")}`
-    );
-  }
-
-  if (isRailwayRuntime(env) && !isBlank(env.ENVIO_PG_SCHEMA)) {
+  const onRailway = Object.entries(env).some(
+    ([key, value]) => key.startsWith("RAILWAY_") && value?.trim()
+  );
+  if (onRailway && !isBlank(env.ENVIO_PG_SCHEMA))
     throw new Error("ENVIO_PG_SCHEMA must not be set on Railway");
-  }
-  if (isRailwayRuntime(env) && isBlank(env.PORT)) {
+  if (onRailway && isBlank(env.PORT))
     throw new Error("PORT must be set when running on Railway");
+  for (const key of ["PORT", "ENVIO_INDEXER_PORT"]) {
+    const port = Number(env[key]);
+    if (
+      !isBlank(env[key]) &&
+      (!Number.isInteger(port) || port < 1 || port > 65535)
+    )
+      throw new Error(`${key} must be a valid TCP port`);
   }
-  if (
-    !isBlank(env.PORT) &&
-    !isBlank(env.ENVIO_INDEXER_PORT) &&
-    env.PORT !== env.ENVIO_INDEXER_PORT
-  ) {
+  if (env.PORT && env.ENVIO_INDEXER_PORT && env.PORT !== env.ENVIO_INDEXER_PORT)
     throw new Error("ENVIO_INDEXER_PORT must match PORT when PORT is set");
+}
+
+function prepareIndexerEnv() {
+  const env = process.env;
+  if (env.DATABASE_URL) {
+    const database = parseDatabaseUrl(env.DATABASE_URL);
+    if (!env.ENVIO_PG_HOST) {
+      env.ENVIO_PG_HOST = database.host;
+      env.ENVIO_PG_PORT = database.port;
+      env.ENVIO_PG_USER = database.user;
+      env.ENVIO_PG_PASSWORD = database.password;
+      env.ENVIO_PG_DATABASE = database.database;
+      if (!env.ENVIO_PG_SSL_MODE && database.sslMode)
+        env.ENVIO_PG_SSL_MODE = database.sslMode;
+    }
   }
-};
+  env.ENVIO_PG_SSL_MODE ||= "prefer";
+  env.HASURA_GRAPHQL_ROLE ||= "admin";
+  env.ENVIO_THROTTLE_CHAIN_METADATA_INTERVAL_MILLIS ||= "500";
+  env.ENVIO_THROTTLE_PRUNE_STALE_DATA_INTERVAL_MILLIS ||= "30000";
+  if (!env.ENVIO_INDEXER_PORT && env.PORT) env.ENVIO_INDEXER_PORT = env.PORT;
 
-if (!process.env.ENVIO_RPC_MODE) {
-  process.env.ENVIO_RPC_MODE = process.env.ENVIO_API_TOKEN?.trim()
-    ? "fallback"
-    : "sync";
+  env.ENVIO_RPC_MODE ||= env.ENVIO_API_TOKEN?.trim() ? "fallback" : "sync";
+  if (!RPC_MODES.has(env.ENVIO_RPC_MODE))
+    throw new Error("ENVIO_RPC_MODE must be sync or fallback");
+  console.log(`Using ENVIO_RPC_MODE=${env.ENVIO_RPC_MODE}`);
 }
 
-if (!RPC_MODES.has(process.env.ENVIO_RPC_MODE)) {
-  throw new Error(
-    `ENVIO_RPC_MODE must be one of ${Array.from(RPC_MODES).join(", ")}; received ${JSON.stringify(
-      process.env.ENVIO_RPC_MODE
-    )}`
+async function waitForHasura() {
+  const { HASURA_GRAPHQL_ENDPOINT, HASURA_GRAPHQL_ADMIN_SECRET } = process.env;
+  const timeoutMs = Number(
+    process.env.ENVIO_HASURA_STARTUP_TIMEOUT_MS ||
+      DEFAULT_HASURA_STARTUP_TIMEOUT_MS
   );
-}
-
-console.log(`Using ENVIO_RPC_MODE=${process.env.ENVIO_RPC_MODE}`);
-
-const shouldUseHealthcheckWrapper = () =>
-  isStartCommand() &&
-  Boolean(process.env.PORT) &&
-  getBooleanEnv("ENVIO_HEALTHCHECK_WRAPPER_ENABLED", true);
-
-const useHealthcheckWrapper = shouldUseHealthcheckWrapper();
-
-prepareIndexerEnv(process.env);
-validateIndexerEnv(process.env, {
-  requireManagedRuntimeEnv: isStartCommand(),
-});
-
-if (useHealthcheckWrapper) {
-  const externalPort = getPositiveIntegerEnv("PORT", 9898);
-  const internalPort =
-    process.env.ENVIO_INDEXER_PORT === process.env.PORT
-      ? getPositiveIntegerEnv(
-          "ENVIO_INDEXER_INTERNAL_PORT",
-          externalPort + DEFAULT_INDEXER_INTERNAL_PORT_OFFSET
-        )
-      : getPositiveIntegerEnv("ENVIO_INDEXER_PORT", 9899);
-
-  process.env.ENVIO_INDEXER_PORT = String(internalPort);
-  process.env.ENVIO_HEALTHCHECK_WRAPPER_PORT = String(externalPort);
-
-  console.log(
-    `Using healthcheck wrapper on port ${externalPort}; Envio indexer will listen on port ${internalPort}`
-  );
-}
-
-const waitForHasura = async () => {
-  const endpoint = process.env.HASURA_GRAPHQL_ENDPOINT;
-  const secret = process.env.HASURA_GRAPHQL_ADMIN_SECRET;
-
-  if (!isStartCommand() || !endpoint || !secret) {
-    return;
-  }
-
-  const timeoutMs = getPositiveIntegerEnv(
-    "ENVIO_HASURA_STARTUP_TIMEOUT_MS",
-    DEFAULT_HASURA_STARTUP_TIMEOUT_MS
-  );
+  if (!Number.isInteger(timeoutMs) || timeoutMs <= 0)
+    throw new Error(
+      "ENVIO_HASURA_STARTUP_TIMEOUT_MS must be a positive integer"
+    );
   const deadline = Date.now() + timeoutMs;
   let lastLogAt = 0;
-  let lastError = "not attempted";
-
-  console.log(`Waiting for Hasura metadata endpoint at ${endpoint}`);
+  let lastError = "request not attempted";
+  console.log("Waiting for Hasura metadata endpoint");
 
   while (Date.now() < deadline) {
-    const controller = new AbortController();
-    const timeout = setTimeout(
-      () => controller.abort(),
-      HASURA_STARTUP_REQUEST_TIMEOUT_MS
-    );
-
     try {
-      const response = await fetch(endpoint, {
+      const response = await fetch(HASURA_GRAPHQL_ENDPOINT, {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          "x-hasura-admin-secret": secret,
+          "x-hasura-admin-secret": HASURA_GRAPHQL_ADMIN_SECRET,
         },
         body: JSON.stringify({ type: "export_metadata", args: {} }),
-        signal: controller.signal,
+        signal: AbortSignal.timeout(HASURA_STARTUP_REQUEST_TIMEOUT_MS),
       });
-
+      await response.body?.cancel();
       if (response.ok) {
         console.log("Hasura metadata endpoint is reachable");
         return;
       }
-
-      const responseText = await response.text();
-      lastError = `HTTP ${response.status}: ${responseText.slice(0, 200)}`;
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : String(error);
-    } finally {
-      clearTimeout(timeout);
+      lastError = `HTTP ${response.status}`;
+    } catch {
+      lastError = "request failed";
     }
-
     const now = Date.now();
     if (now - lastLogAt >= 10_000) {
       console.log(`Still waiting for Hasura metadata endpoint: ${lastError}`);
       lastLogAt = now;
     }
-
     await sleep(HASURA_STARTUP_RETRY_INTERVAL_MS);
   }
-
   throw new Error(
-    `Hasura metadata endpoint did not become reachable within ${timeoutMs}ms: ${lastError}`
+    `Hasura metadata endpoint did not become reachable: ${lastError}`
   );
-};
-
-const readReadyStatusFromMetrics = (metrics) => {
-  const syncedToHead = metrics.match(
-    /^hyperindex_synced_to_head\s+([0-9.]+)$/m
-  );
-  if (syncedToHead) {
-    const value = Number(syncedToHead[1]);
-    return {
-      ready: value === 1,
-      reason:
-        value === 1
-          ? "hyperindex_synced_to_head is 1"
-          : "hyperindex_synced_to_head is not 1",
-    };
-  }
-
-  const chainReadiness = [
-    ...metrics.matchAll(
-      /^envio_progress_ready\{[^}]*chainId="([^"]+)"[^}]*\}\s+([0-9.]+)$/gm
-    ),
-  ].map((match) => ({
-    chainId: match[1],
-    ready: Number(match[2]) === 1,
-  }));
-
-  if (chainReadiness.length === 0) {
-    return {
-      ready: false,
-      reason: "readiness metrics are not available yet",
-    };
-  }
-
-  const waitingChains = chainReadiness
-    .filter((chain) => !chain.ready)
-    .map((chain) => chain.chainId);
-
-  return {
-    ready: waitingChains.length === 0,
-    reason:
-      waitingChains.length === 0
-        ? "all envio_progress_ready metrics are 1"
-        : `waiting for chains: ${waitingChains.join(", ")}`,
-  };
-};
-
-const fetchIndexerMetrics = async (internalPort) => {
-  const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    HEALTHCHECK_REQUEST_TIMEOUT_MS
-  );
-
-  try {
-    const response = await fetch(`http://127.0.0.1:${internalPort}/metrics`, {
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      return {
-        metrics: "",
-        error: `metrics endpoint returned HTTP ${response.status}`,
-      };
-    }
-
-    return { metrics: await response.text(), error: "" };
-  } catch (error) {
-    return {
-      metrics: "",
-      error: error instanceof Error ? error.message : String(error),
-    };
-  } finally {
-    clearTimeout(timeout);
-  }
-};
-
-const proxyToIndexer = (request, response, internalPort) => {
-  const proxyRequest = http.request(
-    {
-      hostname: "127.0.0.1",
-      port: internalPort,
-      path: request.url,
-      method: request.method,
-      headers: request.headers,
-    },
-    (proxyResponse) => {
-      response.writeHead(
-        proxyResponse.statusCode ?? 502,
-        proxyResponse.headers
-      );
-      proxyResponse.pipe(response);
-    }
-  );
-
-  proxyRequest.on("error", (error) => {
-    response.writeHead(502, { "content-type": "application/json" });
-    response.end(
-      JSON.stringify({
-        ready: false,
-        reason: `indexer proxy failed: ${error.message}`,
-      })
-    );
-  });
-
-  request.pipe(proxyRequest);
-};
-
-let maintenanceMode = false;
-
-const startHealthcheckWrapper = () => {
-  if (!useHealthcheckWrapper) {
-    return undefined;
-  }
-
-  const externalPort = getPositiveIntegerEnv("ENVIO_HEALTHCHECK_WRAPPER_PORT");
-  const internalPort = getPositiveIntegerEnv("ENVIO_INDEXER_PORT");
-
-  const server = http.createServer(async (request, response) => {
-    const pathname = request.url?.split("?")[0];
-    if (pathname === "/healthz") {
-      response.writeHead(200, {
-        "content-type": "application/json",
-      });
-      response.end(JSON.stringify({ ok: true }));
-      return;
-    }
-
-    if (maintenanceMode) {
-      response.writeHead(503, { "content-type": "application/json" });
-      response.end(
-        JSON.stringify({
-          ready: false,
-          reason: "Ingestion paused for an explicit reset",
-        })
-      );
-      return;
-    }
-
-    if (pathname !== "/ready") {
-      proxyToIndexer(request, response, internalPort);
-      return;
-    }
-
-    const { metrics, error } = await fetchIndexerMetrics(internalPort);
-    const status = error
-      ? { ready: false, reason: error }
-      : readReadyStatusFromMetrics(metrics);
-
-    response.writeHead(status.ready ? 200 : 503, {
-      "content-type": "application/json",
-    });
-    response.end(JSON.stringify(status));
-  });
-
-  server.listen(externalPort, "::", () => {
-    console.log(`Healthcheck wrapper listening on port ${externalPort}`);
-  });
-
-  server.on("error", (error) => {
-    console.error(`Healthcheck wrapper failed: ${error.message}`);
-    process.exit(1);
-  });
-
-  return server;
-};
-
-export const formatEnvioSpawnError = (error) => {
-  if (error?.code === "ENOENT") {
-    return `Failed to start Envio: node or the Envio entrypoint was not found (${error.message})`;
-  }
-  return `Failed to start Envio: ${error.message}`;
-};
-
-export async function stopEnvioGroup(child, signal, timeoutMs = 30_000) {
-  if (!child) return;
-  try {
-    process.kill(-child.pid, signal);
-    const deadline = Date.now() + timeoutMs;
-    while (true) {
-      process.kill(-child.pid, 0);
-      if (Date.now() >= deadline) {
-        process.kill(-child.pid, "SIGKILL");
-        return;
-      }
-      await sleep(100);
-    }
-  } catch (error) {
-    if (error.code !== "ESRCH") throw error;
-  }
 }
 
-export const run = async () => {
-  await waitForHasura();
+try {
+  loadDotEnv();
+  const args = process.argv.length === 2 ? ["start"] : process.argv.slice(2);
+  const managed = args[0] === "start";
+  validateIndexerEnv(managed);
+  prepareIndexerEnv();
+  if (managed) await waitForHasura();
 
-  const wrapperServer = startHealthcheckWrapper();
-  const envioCommand = resolveEnvioCommand();
-
-  if (isStartCommand()) {
-    maintenanceMode = true;
-    const status = await new Promise((accept, reject) => {
-      const check = spawn(
-        process.execPath,
-        [resolve(scriptDir, "check-envio-storage.mjs"), ...envioArgs],
-        { cwd: indexerDir, env: process.env, stdio: "inherit", timeout: 30_000 }
-      );
-      check.once("error", reject);
-      check.once("exit", (code) => accept(code));
-    });
-    if (status !== 0 && status !== 78) {
-      wrapperServer?.close();
-      process.exit(1);
-    }
-    maintenanceMode = status === 78;
-    if (maintenanceMode)
-      console.log(
-        "Envio storage is incompatible. Ingestion is paused until an operator runs indexer:reset:railway for this environment. No reset was performed."
-      );
-  }
-
-  let child;
-  let shuttingDown = false;
-  const startChild = (args = envioCommand.args) => {
-    const started = spawn(envioCommand.command, args, {
-      env: process.env,
-      cwd: indexerDir,
-      detached: isStartCommand(),
-      stdio: "inherit",
-    });
-    child = started;
-    started.on("error", (error) => {
-      console.error(formatEnvioSpawnError(error));
-      process.exit(1);
-    });
-    started.on("exit", (code, signal) => {
-      if (shuttingDown || maintenanceMode || child !== started) return;
-      wrapperServer?.close();
-      if (signal) {
-        process.kill(process.pid, signal);
-        return;
-      }
-      process.exit(code ?? 1);
-    });
-  };
-  if (!maintenanceMode) startChild();
-
-  if (isStartCommand()) {
-    for (const signal of ["SIGINT", "SIGTERM"])
-      process.on(signal, async () => {
-        if (shuttingDown) return;
-        shuttingDown = true;
-        try {
-          await stopEnvioGroup(child, signal);
-        } catch (error) {
-          console.error(error.message);
-        }
-        wrapperServer?.close();
-        process.exit(signal === "SIGINT" ? 130 : 143);
-      });
-    try {
-      await startResetServer(async (sendLog) => {
-        const log = (message) => {
-          process.stdout.write(message);
-          sendLog(message);
-        };
-        maintenanceMode = true;
-        log("Stopping Envio ingestion...\n");
-        if (child)
-          try {
-            process.kill(-child.pid, "SIGTERM");
-          } catch (error) {
-            if (error.code !== "ESRCH") throw error;
-          }
-        const deadline = Date.now() + 30_000;
-        while (child) {
-          try {
-            process.kill(-child.pid, 0);
-          } catch (error) {
-            if (error.code === "ESRCH") break;
-            throw error;
-          }
-          if (Date.now() >= deadline)
-            throw new Error(
-              "Ingestion did not stop within 30 seconds; migration was not started"
-            );
-          await sleep(100);
-        }
-        log("Ingestion stopped. Running Envio local db-migrate setup...\n");
-        const code = await new Promise((accept, reject) => {
-          const migration = spawn(
-            process.execPath,
-            [envioCommand.args[0], "local", "db-migrate", "setup"],
-            {
-              env: process.env,
-              cwd: indexerDir,
-              stdio: ["ignore", "pipe", "pipe"],
-            }
-          );
-          migration.stdout.on("data", (chunk) => {
-            process.stdout.write(chunk);
-            sendLog(chunk.toString());
-          });
-          migration.stderr.on("data", (chunk) => {
-            process.stderr.write(chunk);
-            sendLog(chunk.toString());
-          });
-          migration.once("error", reject);
-          migration.once("exit", (code) => accept(code ?? 1));
-        });
-        if (code === 0) {
-          startChild(
-            envioCommand.args.filter(
-              (arg) => arg !== "-r" && arg !== "--restart"
-            )
-          );
-          maintenanceMode = false;
-          log(
-            "Envio migration completed. Envio restarted inside the existing container. Check /ready and indexing progress.\n"
-          );
-        } else {
-          log(
-            "Envio migration failed. Ingestion remains stopped. Inspect the error before retrying.\n"
-          );
-        }
-        return code;
-      });
-    } catch (error) {
-      console.error(`Reset control could not start: ${error.message}`);
-      try {
-        if (child) process.kill(-child.pid, "SIGTERM");
-      } catch (stopError) {
-        if (stopError.code !== "ESRCH") console.error(stopError.message);
-      }
-      wrapperServer?.close();
-      process.exit(1);
-    }
-  }
-};
-
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
-  await run();
+  process.chdir(indexerDir);
+  process.execve(
+    process.execPath,
+    [
+      process.execPath,
+      resolve(indexerDir, "node_modules/envio/bin.mjs"),
+      ...args,
+    ],
+    process.env
+  );
+} catch (error) {
+  console.error(error.message);
+  process.exitCode = 1;
 }

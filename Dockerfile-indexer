@@ -2,8 +2,13 @@
 # Pinned image: node:24.22.3-slim (Node v24.22.3, Debian/glibc)
 FROM node:24.22.3-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 AS deps
 
+# Reap Envio workers orphaned when their supervisor exits.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tini=0.19.0-1+b3 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@11.28.7 --activate
+RUN corepack enable && corepack prepare pnpm@11.28.13 --activate
 
 # Set working directory
 WORKDIR /app
@@ -25,10 +30,12 @@ COPY packages/snapshot-artifacts/src/observation-constants.ts ./packages/snapsho
 FROM gcr.io/distroless/static-debian13:debug-nonroot@sha256:12c2026b21e05857a4c730b4dbf812becf02b396cb7916166c8305f45f140ab0 AS shell
 
 # Runtime stage
-# Pinned image index: gcr.io/distroless/nodejs24-debian13 (Node 24.22.3; patched zlib1g)
-FROM gcr.io/distroless/nodejs24-debian13@sha256:d1c8c1be703f1dca243457ac656e7eee7c571a7136a6e681d17c4294e6fe7a6d AS runtime
+# Pinned image index: gcr.io/distroless/nodejs24-debian13 (Node 24.22.3; libc6 2.41-12+deb13u5)
+FROM gcr.io/distroless/nodejs24-debian13@sha256:235cae47d37e0ba4ab70a723ed0bfd4f619c04d16d4226371d5d0c71a52f9211 AS runtime
 
 COPY --from=shell --chmod=0755 /busybox/busybox /usr/bin/sh
+COPY --from=deps /usr/bin/tini-static /usr/bin/tini
+COPY --from=deps /usr/share/doc/tini/copyright /usr/share/doc/tini/copyright
 
 # Set working directory
 WORKDIR /app
@@ -51,4 +58,5 @@ EXPOSE 9898
 # Start the application
 WORKDIR /app/apps/indexer
 USER nonroot
+ENTRYPOINT ["/usr/bin/tini", "--", "/nodejs/bin/node"]
 CMD ["scripts/start-envio.mjs"]

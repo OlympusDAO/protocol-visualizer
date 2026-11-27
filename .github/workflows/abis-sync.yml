@@ -1,6 +1,6 @@
 name: ABI registry sync
 
-# Runs `pnpm abis:sync --latest` every day and opens one pull request with the
+# Runs `pnpm sync:abis --latest` every day and opens one pull request with the
 # changes. The daily run also finds the changes that env.json does not show,
 # such as a policy that the Kernel activates, or a proxy upgrade.
 on:
@@ -20,11 +20,19 @@ jobs:
   # read-only token. The pull-request job below has the write token and does
   # not install dependencies.
   sync:
+    if: github.ref == 'refs/heads/master'
+    environment:
+      name: production
+      deployment: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
       changed: ${{ steps.patch.outputs.changed }}
     steps:
+      # GitHub expression equality ignores case; this check does not.
+      - name: Require exact master ref
+        run: test "$GITHUB_REF" = refs/heads/master
+
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -34,7 +42,7 @@ jobs:
         uses: ./.github/actions/bootstrap
 
       - name: Sync ABI registry
-        run: pnpm run abis:sync --latest
+        run: pnpm run sync:abis --latest
         env:
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -49,7 +57,7 @@ jobs:
           ENVIO_RPC_URL_11155111: ${{ secrets.ENVIO_RPC_URL_11155111 }}
 
       - name: Check ABI registry
-        run: pnpm run abis:check
+        run: pnpm run check:abis
 
       - name: Make the patch
         id: patch
@@ -112,9 +120,11 @@ jobs:
       # A push with GITHUB_TOKEN does not start `on: pull_request` workflows.
       # GITHUB_TOKEN can start `workflow_dispatch`, and the checks of that run
       # show on the pull request.
-      - name: Start CI on the pull request
+      - name: Start CI and dependency audit on the pull request
         if: contains(fromJSON('["created", "updated"]'), steps.pr.outputs.pull-request-operation)
         env:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ steps.pr.outputs.pull-request-branch }}
-        run: gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
+        run: |
+          gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
+          gh workflow run audit.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"

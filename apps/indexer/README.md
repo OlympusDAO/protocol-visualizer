@@ -22,7 +22,7 @@ surface effect metrics for those reads.
 ## Prerequisites
 
 - Node.js 24.22.3 or newer (24.x)
-- pnpm 11.28.7
+- pnpm 11.28.13
 - Docker Desktop, for the local Envio Postgres/Hasura stack
 - RPC URLs for the enabled chains
 - `ENVIO_API_TOKEN` is strongly recommended and required by the local Docker
@@ -142,11 +142,11 @@ Etherscan requests require `ETHERSCAN_API_KEY`.
 1. Verify the chain, deployed address, contract name, and creation block against deployment receipts and verified source.
 2. Add the contract to the appropriate inventory:
 
-   | Contract | File | Fields |
-   | --- | --- | --- |
-   | Kernel, module, or policy | `apps/indexer/src/ContractNames.ts` | Chain, address, `name`, `type`, verified `startBlock`, and available `version` |
-   | Periphery or external contract | `packages/protocol-config/other-contracts.json` | `chainId`, lowercase `address`, `name`, and verified `startBlock` for tracked state |
-   | Name for a referenced address only | `packages/protocol-config/other-contracts.json` | `chainId`, lowercase `address`, `name`, and `labelOnly: true` |
+   | Contract                           | File                                            | Fields                                                                              |
+   | ---------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------- |
+   | Kernel, module, or policy          | `apps/indexer/src/ContractNames.ts`             | Chain, address, `name`, `type`, verified `startBlock`, and available `version`      |
+   | Periphery or external contract     | `packages/protocol-config/other-contracts.json` | `chainId`, lowercase `address`, `name`, and verified `startBlock` for tracked state |
+   | Name for a referenced address only | `packages/protocol-config/other-contracts.json` | `chainId`, lowercase `address`, `name`, and `labelOnly: true`                       |
 
    A label-only entry does not create a standalone snapshot contract.
    A reference can still introduce that address into the graph.
@@ -168,11 +168,11 @@ Both use generated metadata, with explicit handling for known contract families.
 Refresh verified getter metadata for registered contracts:
 
 ```bash
-pnpm run indexer:metadata -- --refresh-getters
+pnpm run generate:indexer-metadata -- --refresh-getters
 ```
 
 This mode reads `ContractNames.ts` and non-label-only entries in `other-contracts.json`.
-For new policies, first run `pnpm run indexer:metadata` to extract function-role metadata through Etherscan.
+For new policies, first run `pnpm run generate:indexer-metadata` to extract function-role metadata through Etherscan.
 Getter refresh preserves existing role mappings but does not extract role modifiers from source.
 It upgrades older getter metadata through Sourcify without an Etherscan key.
 It preserves existing role mappings and skips records that already contain verified getter metadata.
@@ -188,7 +188,7 @@ The manual verified-source import remains available for saved responses.
 For named contracts in `ContractNames.ts`, fetch missing metadata:
 
 ```bash
-pnpm run indexer:metadata
+pnpm run generate:indexer-metadata
 ```
 
 The generator writes `apps/indexer/src/generated/contract-metadata.json`.
@@ -226,7 +226,7 @@ To refresh an existing named contract, restrict the request to its chain and add
 Replace `CHAIN_ID` and `ADDRESS` with the deployed identity:
 
 ```bash
-pnpm run indexer:metadata -- --chain-id CHAIN_ID --address ADDRESS --force
+pnpm run generate:indexer-metadata -- --chain-id CHAIN_ID --address ADDRESS --force
 ```
 
 For untyped entries in `ContractNames.ts`, add `--include-unknown-type`.
@@ -253,7 +253,7 @@ Known token-scoped registry getters already have that support.
 5. Import the response:
 
    ```bash
-   pnpm run indexer:metadata -- --chain-id CHAIN_ID --address ADDRESS --verified-source /tmp/compiler-record.json
+   pnpm run generate:indexer-metadata -- --chain-id CHAIN_ID --address ADDRESS --verified-source /tmp/compiler-record.json
    ```
 
 The importer accepts `runtimeMatch` values `match` and `exact_match`.
@@ -290,17 +290,18 @@ Getter discovery does not generate event handlers or reconstruct earlier transit
 Metadata generation alone does not update indexed relationships or published snapshots.
 Catch-up does not sweep getters at fixed intervals.
 A bounded replay performs a full observation at its exact end block.
-An unbounded run performs full observations on 100-block callbacks within 99 blocks of the RPC head.
+An unbounded run verifies at catch-up and then at most once per UTC half-hour window,
+using the timestamp of an eligible block near the RPC head.
 Creation boundaries only initialize core contracts born at that block; they do not mark the chain observed.
 Unknown creation anchors use the first indexed observation boundary for generic getters.
 Historical event coverage requires a replay from the relevant start block.
 An ordinary restart does not establish missing earlier history.
 
-For an existing local Compose stack, rebuild the affected services with `pnpm run stack:up`.
+For an existing local Compose stack, rebuild the affected services with `pnpm run up:stack`.
 After the indexer catches up, publish its data from another terminal:
 
 ```bash
-pnpm run stack:publish
+pnpm run publish:stack
 curl http://localhost:8082/v1/chains/CHAIN_ID/protocol
 ```
 
@@ -327,7 +328,7 @@ For the quickest local loop, run Envio's built-in local stack and a host
 indexer process from the repository root:
 
 ```bash
-pnpm run indexer:dev
+pnpm run dev:indexer
 ```
 
 This loads `apps/indexer/.env`, derives `ENVIO_RPC_MODE=fallback` when
@@ -341,7 +342,7 @@ for host indexer runs.
 For a cold local run that resets Envio's local database state:
 
 ```bash
-pnpm run indexer:dev:reset
+pnpm run dev:indexer:reset
 ```
 
 This starts `envio dev -r`, which clears the local Envio database and reindexes
@@ -353,7 +354,7 @@ that is normal for repeated local testing.
 To check progress from another terminal:
 
 ```bash
-pnpm run indexer:metrics
+pnpm run inspect:indexer:metrics
 ```
 
 ## Checking Progress
@@ -393,13 +394,13 @@ pnpm --filter indexer run lint:check
 Validate the production indexer image from the repository root:
 
 ```bash
-pnpm run container:build:indexer
+pnpm run build:docker:indexer
 ```
 
 Full repository validation is defined at the repository root:
 
 ```bash
-pnpm run validate:local
+pnpm validate:all
 ```
 
 ## Benchmarking Startup
@@ -439,37 +440,23 @@ The Docker image starts:
 node scripts/start-envio.mjs
 ```
 
-That wrapper exists so the same image can run locally or on Railway with
-Railway-style environment variables. It maps:
+The bootstrap validates the local or Railway environment, waits for Hasura
+metadata access before `envio start`, and replaces itself with the installed
+Envio CLI. Local `envio dev` skips the Hasura wait because Envio owns the local
+stack lifecycle. The bootstrap maps:
 
 - `DATABASE_URL` to `ENVIO_PG_HOST`, `ENVIO_PG_PORT`, `ENVIO_PG_USER`,
   `ENVIO_PG_PASSWORD`, and `ENVIO_PG_DATABASE`
-- missing Envio production defaults required by `NODE_ENV=production`:
-  `ENVIO_PG_SSL_MODE=prefer`, `HASURA_GRAPHQL_ROLE=admin`,
-  `ENVIO_THROTTLE_CHAIN_METADATA_INTERVAL_MILLIS=500`, and
-  `ENVIO_THROTTLE_PRUNE_STALE_DATA_INTERVAL_MILLIS=30000`
-- `HASURA_GRAPHQL_ENDPOINT` readiness before production `envio start`, when
-  both it and `HASURA_GRAPHQL_ADMIN_SECRET` are set. This avoids a Railway
-  startup race where Envio can attempt table tracking before Hasura is accepting
-  metadata requests. Local `envio dev` skips this wait because Envio owns the
-  local stack lifecycle.
-- production readiness on `PORT`, when `PORT` is set. The wrapper moves Envio to
-  an internal port, proxies normal requests through, returns `200` from
-  `/healthz` for process-level Railway health, and keeps `/ready` data-aware for
-  manual checks.
-- Railway deployments must set `PORT=9898` so sibling services can reach the
-  proxied metrics endpoint at `http://indexer.railway.internal:9898/metrics`.
-  Keep `snapshot-publisher.INDEXER_METRICS_URL` and
-  `snapshot-monitor.INDEXER_METRICS_URL` aligned with this value.
-- `PORT` to `ENVIO_INDEXER_PORT`, when no indexer port is explicitly set and the
-  healthcheck wrapper is disabled or not used
+- missing production settings to `ENVIO_PG_SSL_MODE=prefer`,
+  `HASURA_GRAPHQL_ROLE=admin`, `ENVIO_THROTTLE_CHAIN_METADATA_INTERVAL_MILLIS=500`,
+  and `ENVIO_THROTTLE_PRUNE_STALE_DATA_INTERVAL_MILLIS=30000`
+- `PORT` to `ENVIO_INDEXER_PORT` when no indexer port is explicitly set
 
-Set `ENVIO_HASURA_STARTUP_TIMEOUT_MS` to change the Hasura readiness wait from
-the default 180 seconds.
-
-Set `ENVIO_HEALTHCHECK_WRAPPER_ENABLED=false` to disable the production
-healthcheck wrapper. If you need to choose the internal Envio port explicitly,
-set `ENVIO_INDEXER_INTERNAL_PORT`.
+Railway sets `PORT=9898`. Envio serves native `/healthz` and private metrics at
+`http://indexer.railway.internal:9898/metrics`. Keep the snapshot publisher and
+monitor metrics URLs aligned with that port. Set
+`ENVIO_HASURA_STARTUP_TIMEOUT_MS` to change the default 180-second Hasura wait.
+For an approved schema reset, follow [indexer operations](../../docs/indexer-operations.md#reset-the-railway-indexer-from-the-database-host).
 
 The runtime image removes package-manager binaries after install to reduce the
 container scan surface.
@@ -482,9 +469,9 @@ allowlists, and inbound/outbound rate-limit configuration. Bridge records read
 the corresponding EVM or SVM trusted-remote getter. Chain selectors remain
 decimal strings; they are not EVM chain IDs.
 
-Configuration events invalidate the previous observation immediately. Completed
-checkpoints refresh it with hash-bound reads: at creation, every 10,000 blocks
-during catch-up, and every 100 blocks in realtime. Failed reads retain the prior
+Configuration events invalidate the previous observation immediately. Full
+observations refresh it with hash-bound reads at the bounded replay endpoint,
+on catch-up, and at most once per live half-hour window with an eligible candidate. Failed reads retain the prior
 configuration as unverified. Canonical-anchor checks prevent orphaned evidence
 from becoming current. Envio rollback restores both observations and events.
 

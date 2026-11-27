@@ -1,9 +1,9 @@
 import {
+  type SetStateAction,
   useCallback,
   useEffect,
   useRef,
   useState,
-  type SetStateAction,
 } from "react";
 import { DEFAULT_CHAIN_ID, SUPPORTED_CHAINS } from "../../lib/constants";
 

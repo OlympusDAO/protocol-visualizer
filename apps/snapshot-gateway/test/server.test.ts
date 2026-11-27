@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
-import { createServer, request as httpRequest } from "node:http";
-import { test } from "node:test";
 import { once } from "node:events";
+import { promises as fs } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { createServer, request as httpRequest } from "node:http";
+import { syncBuiltinESMExports } from "node:module";
+import { test } from "node:test";
 import {
   ACTIVE_MANIFEST_KEY,
   SCHEMA_VERSION,
@@ -292,6 +295,102 @@ async function request(
   }
 }
 
+for (const method of ["GET", "HEAD"]) {
+  test(`${method} / serves the static HTML catalogue without storage access`, async () => {
+    const reader = new FakeReader({});
+    const { response, text } = await request("/", { method, reader });
+    assert.equal(response.status, 200);
+    assert.deepEqual(reader.keys, []);
+    assert.equal(
+      response.headers.get("content-type"),
+      "text/html; charset=utf-8"
+    );
+    assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+    if (method === "HEAD") assert.equal(text, "");
+    else {
+      assert.equal(
+        text,
+        await readFile(new URL("../../index.html", import.meta.url), "utf8")
+      );
+      assert(text.includes('href="/v1/openapi.json"'));
+      assert(text.includes('href="/v1/chains"'));
+      assert(!/<script\b|<link\b|\son[a-z]+\s*=|\ssrc\s*=/i.test(text));
+    }
+  });
+}
+
+test("catalogue retries a failed read and shares pending and successful reads", async (t) => {
+  const server = createServer(
+    createSnapshotGateway(createTestConfig(new FakeReader({})))
+  );
+  const listening = once(server, "listening");
+  server.listen(0, "127.0.0.1");
+  await listening;
+  const address = server.address();
+  assert(typeof address === "object" && address !== null);
+  const url = `http://127.0.0.1:${address.port}/`;
+  const body = "<!doctype html><title>Recovered catalogue</title>";
+  let reads = 0;
+  let releaseRead: (() => void) | undefined;
+  const pendingRead = new Promise<string>((resolve) => {
+    releaseRead = () => resolve(body);
+  });
+  const readMock = t.mock.method(fs, "readFile", () => {
+    reads += 1;
+    if (reads === 1)
+      return Promise.reject(
+        Object.assign(new Error("synthetic file limit"), { code: "EMFILE" })
+      );
+    return pendingRead;
+  });
+  syncBuiltinESMExports();
+  try {
+    const failed = await fetch(url);
+    assert.equal(failed.status, 502);
+    await failed.text();
+
+    const getArrived = once(server, "request");
+    const get = fetch(url);
+    await getArrived;
+    const headArrived = once(server, "request");
+    const head = fetch(url, { method: "HEAD" });
+    await headArrived;
+    const pendingReads = reads;
+    releaseRead?.();
+    const [getResponse, headResponse] = await Promise.all([get, head]);
+    assert.equal(getResponse.status, 200);
+    assert.equal(await getResponse.text(), body);
+    assert.equal(headResponse.status, 200);
+    assert.equal(await headResponse.text(), "");
+    assert.equal(
+      pendingReads,
+      2,
+      "concurrent retry requests must share one read"
+    );
+
+    for (const method of ["GET", "HEAD"]) {
+      const cached = await fetch(url, { method });
+      assert.equal(cached.status, 200);
+      assert.equal(await cached.text(), method === "HEAD" ? "" : body);
+    }
+    assert.equal(reads, 2, "successful catalogue reads must remain cached");
+  } finally {
+    releaseRead?.();
+    readMock.mock.restore();
+    syncBuiltinESMExports();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
+
+test("public OpenAPI remains available alongside the static HTML catalogue", async () => {
+  for (const method of ["GET", "HEAD"]) {
+    const { response, text } = await request("/v1/openapi.json", { method });
+    assert.equal(response.status, 200);
+    if (method === "HEAD") assert.equal(text, "");
+    else assert(JSON.parse(text).paths["/v1/chains/{chainId}/protocol"]);
+  }
+});
+
 test("serves REST protocol snapshots through active manifest artifact keys", async () => {
   const { response, text, reader } = await request("/v1/chains/1/protocol");
   assert.equal(response.status, 200);
@@ -324,6 +423,7 @@ test("rejects old static routes and unsupported query params", async () => {
   );
   assert.equal((await request("/v1/manifest.json")).response.status, 404);
   assert.equal((await request("/v1/chains?x=1")).response.status, 400);
+  assert.equal((await request("/?x=1")).response.status, 400);
 });
 
 test("does not expose deployment ids or object keys in public manifest", async () => {
@@ -342,15 +442,13 @@ test("reports bounds with indexing progress", async () => {
 });
 
 test("rejects request bodies and unsupported methods", async () => {
-  assert.equal(
-    (await request("/v1/chains/1/protocol", { body: "{}" })).response.status,
-    400
-  );
-  assert.equal(
-    (await request("/v1/chains/1/protocol", { method: "POST" })).response
-      .status,
-    405
-  );
+  for (const path of ["/", "/v1/chains/1/protocol"]) {
+    assert.equal((await request(path, { body: "{}" })).response.status, 400);
+    assert.equal(
+      (await request(path, { method: "POST" })).response.status,
+      405
+    );
+  }
 });
 
 test("healthz reports process liveness without accessing snapshot storage", async () => {

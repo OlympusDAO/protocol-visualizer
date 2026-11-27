@@ -1,21 +1,21 @@
-import {
-  assertRpcConfiguration,
-  resolveEnvioProgressTimestamps,
-} from "@protocol-visualizer/snapshot-artifacts/indexer-progress";
+import { readFile } from "node:fs/promises";
 import {
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
-import { readFile } from "node:fs/promises";
 import {
   ACTIVE_MANIFEST_KEY,
   DEFAULT_MONITOR_STATE_KEY,
+  type IndexingProgress,
   parseDeploymentId,
   parseEnvioMetricsReadiness,
-  type IndexingProgress,
   type SnapshotManifest,
 } from "@protocol-visualizer/snapshot-artifacts";
+import {
+  assertRpcConfiguration,
+  resolveEnvioProgressTimestamps,
+} from "@protocol-visualizer/snapshot-artifacts/indexer-progress";
 
 type MonitorState = {
   activeGeneratedAt?: string;
@@ -116,9 +116,46 @@ const fatalErrorDetails = (error: unknown): Record<string, unknown> => {
 };
 
 const requiredEnv = (key: string): string => {
-  const value = process.env[key]?.trim();
-  if (!value) throw new Error(`${key} is required`);
-  return value;
+  const value = process.env[key];
+  if (!value?.trim()) throw new Error(`${key} is required`);
+  return key === "RAILWAY_ENVIRONMENT_NAME" ? value : value.trim();
+};
+
+const isProductionEnvironment = () => {
+  const name =
+    process.env.RAILWAY_ENVIRONMENT_NAME === undefined
+      ? undefined
+      : requiredEnv("RAILWAY_ENVIRONMENT_NAME");
+  const id =
+    process.env.RAILWAY_ENVIRONMENT_ID === undefined
+      ? undefined
+      : requiredEnv("RAILWAY_ENVIRONMENT_ID");
+  if (id !== undefined && name === undefined)
+    throw new Error("RAILWAY_ENVIRONMENT_NAME is required");
+  return name === undefined || name === "production";
+};
+
+const discordWebhookUrl = () => {
+  const key = isProductionEnvironment()
+    ? "DISCORD_WEBHOOK_URL"
+    : "DISCORD_WEBHOOK_URL_PREVIEW";
+  const value = requiredEnv(key);
+  try {
+    const url = new URL(value);
+    if (
+      !["http:", "https:"].includes(url.protocol) ||
+      url.username ||
+      url.password
+    )
+      throw new Error(
+        "Webhook URL must use HTTP or HTTPS without embedded credentials."
+      );
+    return url.href;
+  } catch {
+    throw new Error(
+      `${key} must be an HTTP or HTTPS URL without embedded credentials`
+    );
+  }
 };
 
 const safeUrlForLog = (value: string): string => {
@@ -149,20 +186,6 @@ const describeFetchError = (error: unknown): string => {
   return `${error.message}${cause}`;
 };
 
-const objectBodyToString = async (body: unknown): Promise<string> => {
-  if (typeof body === "string") return body;
-  if (body instanceof Uint8Array) return Buffer.from(body).toString("utf8");
-  if (
-    body &&
-    typeof body === "object" &&
-    "transformToString" in body &&
-    typeof body.transformToString === "function"
-  ) {
-    return body.transformToString();
-  }
-  return "";
-};
-
 function createS3Store(): MonitorStore {
   const bucket = requiredEnv("BUCKET");
   const client = new S3Client({
@@ -181,7 +204,7 @@ function createS3Store(): MonitorStore {
         const output = await client.send(
           new GetObjectCommand({ Bucket: bucket, Key: key })
         );
-        return JSON.parse(await objectBodyToString(output.Body));
+        return JSON.parse((await output.Body?.transformToString()) ?? "");
       } catch {
         return undefined;
       }
@@ -237,7 +260,7 @@ export async function loadConfiguredChains(): Promise<ChainConfig[]> {
 
 export async function checkConfiguration(): Promise<void> {
   await loadConfiguredChains();
-  requiredEnv("DISCORD_WEBHOOK_URL");
+  discordWebhookUrl();
 }
 
 export async function fetchIndexerMetricsReadiness(input: {
@@ -293,9 +316,12 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
   const notReadyChainIds = input.notReadyChainIds ?? [];
   const nextChainProgress: MonitorState["chainProgress"] = {};
   const environmentName = input.environmentName ?? "<unknown>";
+  const production = environmentName === "production";
+  const warningEnvironment =
+    input.environmentName && !production ? ` (${environmentName})` : "";
 
   if (!input.manifest) {
-    const message = `Protocol visualizer snapshot monitor: no active manifest is published for deployment ${shortId(
+    const message = `Protocol visualizer snapshot monitor${warningEnvironment}: no active manifest is published for deployment ${shortId(
       input.deploymentId
     )}.`;
     messages.push(message);
@@ -308,7 +334,7 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
       activeAgeHours !== undefined &&
       activeAgeHours * 60 * 60 * 1000 >= staleThresholdMs
     ) {
-      const message = `Protocol visualizer snapshot warning: active snapshots are ${activeAgeHours}h old. Active manifest was generated at ${input.manifest.generatedAt}.`;
+      const message = `Protocol visualizer snapshot warning${warningEnvironment}: active snapshots are ${activeAgeHours}h old. Active manifest was generated at ${input.manifest.generatedAt}.`;
       messages.push(message);
       discordMessages.push({ content: message });
     }
@@ -384,7 +410,9 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
           {
             title: `Protocol Visualizer Indexing Summary — ${group}`,
             color,
-            description: `Environment ${environmentName}`,
+            description: production
+              ? undefined
+              : `Environment ${environmentName}`,
             fields: [
               {
                 name: "Deployment ID",
@@ -422,7 +450,7 @@ export function evaluateMonitor(input: MonitorInput): MonitorResult {
       previous?.observedAt &&
       input.now.getTime() - Date.parse(previous.observedAt) >= staleThresholdMs
     ) {
-      const message = `Protocol visualizer indexing warning: ${name} has not advanced since ${previous.observedAt} at block ${chain.block}.`;
+      const message = `Protocol visualizer indexing warning${warningEnvironment}: ${name} has not advanced since ${previous.observedAt} at block ${chain.block}.`;
       messages.push(message);
       discordMessages.push({ content: message });
     }
@@ -509,7 +537,7 @@ export async function runMonitorFromEnv(logger: MonitorLogger = defaultLogger) {
   let stage = "load_configuration";
 
   try {
-    const webhookUrl = requiredEnv("DISCORD_WEBHOOK_URL");
+    const webhookUrl = discordWebhookUrl();
     const environmentName = requiredEnv("RAILWAY_ENVIRONMENT_NAME");
     const metricsUrl = requiredEnv("INDEXER_METRICS_URL");
     const staleThresholdHours = Number(

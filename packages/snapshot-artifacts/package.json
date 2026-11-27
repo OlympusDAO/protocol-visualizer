@@ -1,12 +1,8 @@
 {
   "name": "@protocol-visualizer/snapshot-artifacts",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
-  "files": [
-    "dist/src"
-  ],
-  "types": "./dist/src/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/src/index.d.ts",
@@ -19,15 +15,21 @@
       "default": "./dist/src/indexer-progress.js"
     }
   },
+  "types": "./dist/src/index.d.ts",
+  "files": [
+    "dist/src"
+  ],
   "scripts": {
-    "build": "tsc && node --test dist/test/*.test.js",
+    "build": "tsc",
     "lint": "biome lint --write . --error-on-warnings",
-    "lint:check": "biome lint . --error-on-warnings"
+    "lint:check": "biome lint . --error-on-warnings",
+    "test": "node --test dist/test/*.test.js",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/node": "^24.19.2",
+    "@types/node": "24.19.2",
     "ajv": "8.20.0",
-    "typescript": "^7.0.2"
+    "typescript": "7.0.2"
   },
   "engines": {
     "node": ">=24.22.3"

@@ -4,16 +4,17 @@ This package has the ABI of each live Olympus contract. Consumers such as the
 Olympus MCP server use it to decode calls, events and reverts of the deployed
 addresses. The snapshot gateway serves it:
 
-| Route                               | Response                                        |
-| ----------------------------------- | ----------------------------------------------- |
-| `/v1/abis`                          | The contracts of each chain: label and address. |
-| `/v1/abis/{chainId}/{address}`      | The ABI and the metadata of one contract.       |
-| `/v1/abis/{chainId}/labels/{label}` | The same, found by label.                       |
+<!-- biome-ignore format: keep table cells unpadded -->
+| Route | Response |
+| --- | --- |
+| `/v1/abis` | The contracts of each chain: label and address. |
+| `/v1/abis/{chainId}/{address}` | The ABI and the metadata of one contract. |
+| `/v1/abis/{chainId}/labels/{label}` | The same, found by label. |
 
 The gateway does not serve the exclusions or the env.json ref. They are only in
 `abis/manifest.json`.
 
-`pnpm indexer:metadata` also reads this registry. It gets the ABI of each
+`pnpm generate:indexer-metadata` also reads this registry. It gets the ABI of each
 address from `abis/manifest.json` and writes the function selectors to
 `apps/indexer/src/generated/contract-metadata.json`. It skips an address that
 the registry does not have; then the indexer resolves that address at runtime.
@@ -29,7 +30,7 @@ abis/<chain>/<Label>.json           the ABI of one deployment
 src/, scripts/, test/               the sync and check code
 ```
 
-Do not edit the files in `abis/` manually. Run `pnpm abis:sync`.
+Do not edit the files in `abis/` manually. Run `pnpm sync:abis`.
 
 ## Sources
 
@@ -122,13 +123,14 @@ same `abiHash` have the same interface.
 
 ## Commands
 
-| Command                  | Purpose                                                                | Network                    |
-| ------------------------ | ---------------------------------------------------------------------- | -------------------------- |
-| `pnpm abis:sync`         | Update the registry. Gets ABIs only for new addresses and changed proxies. | GitHub, gateway, Etherscan, RPC |
-| `pnpm abis:sync --latest` | Move `env.ref` to the last olympus-v3 `master` commit that changed env.json, then update. | Same |
-| `pnpm abis:check`        | Check that the manifest and the ABI files agree. Writes nothing.        | None                       |
+<!-- biome-ignore format: keep table cells unpadded -->
+| Command | Purpose | Network |
+| --- | --- | --- |
+| `pnpm sync:abis` | Update the registry. Gets ABIs only for new addresses and changed proxies. | GitHub, gateway, Etherscan, RPC |
+| `pnpm sync:abis --latest` | Move `env.ref` to the last olympus-v3 `master` commit that changed env.json, then update. | Same |
+| `pnpm check:abis` | Check that the manifest and the ABI files agree. Writes nothing. | None |
 
-`pnpm abis:sync` needs `ETHERSCAN_API_KEY`. It reads a `.env` file in this
+`pnpm sync:abis` needs `ETHERSCAN_API_KEY`. It reads a `.env` file in this
 package or in the repository root. It also needs `ENVIO_RPC_URL_<chainId>` for
 each chain in `config.json` `chains`. The indexer uses the same variables. The
 names in `chains` are the chain names in `env.json`. The chain ID of each name
@@ -137,10 +139,10 @@ the viem export `arbitrumSepolia`.
 
 ## Automation
 
-- The `build` job in `.github/workflows/ci.yml` runs `pnpm abis:check` and the
+- The `build` job in `.github/workflows/ci.yml` runs `pnpm check:abis` and the
   package tests. It does not use the network, so a new contract on-chain cannot
   make an unrelated pull request fail.
-- `.github/workflows/abis-sync.yml` runs `pnpm abis:sync --latest` every day,
+- `.github/workflows/abis-sync.yml` runs `pnpm sync:abis --latest` every day,
   and on manual dispatch. The daily run also finds the changes that env.json
   does not show, such as a policy that the Kernel activates, or a proxy
   upgrade. If the registry changed, it opens or updates one pull request from

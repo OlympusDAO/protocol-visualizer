@@ -8,8 +8,6 @@ does not expose Hasura, bucket keys, or deployment ids publicly.
 ## Public Routes
 
 ```text
-GET  /
-HEAD /
 GET  /healthz
 HEAD /healthz
 GET  /ready
@@ -29,6 +27,8 @@ HEAD /v1/chains/{chainId}/protocol
 `OPTIONS` is supported for allowlisted routes. Request bodies, unsupported
 methods, unknown paths, unsupported query parameters, and unsupported chain ids
 are rejected.
+
+GET/HEAD `/` serve the static [API catalogue](index.html), with no JavaScript or external assets. HEAD returns the same content type without a body. No standalone `/docs` route is implemented. The JSON specification remains at `/v1/openapi.json`, and the frontend and data/ABI endpoints remain available.
 
 ## Health and readiness
 
@@ -80,8 +80,8 @@ Optional:
 `openapi.json` is generated from shared route/schema constants:
 
 ```bash
-pnpm --filter snapshot-gateway run build
-pnpm --filter snapshot-gateway run openapi:check
+pnpm --filter snapshot-gateway run generate:openapi
+pnpm --filter snapshot-gateway run check:openapi
 ```
 
 Do not hand-edit `openapi.json`.

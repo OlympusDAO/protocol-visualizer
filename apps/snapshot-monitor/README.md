@@ -40,7 +40,9 @@ Required production variables are uncommented; optional variables are commented.
 Required production variables:
 
 ```bash
-DISCORD_WEBHOOK_URL=${{shared.DISCORD_WEBHOOK_URL}}
+# Production only: set and seal this service variable in Railway.
+DISCORD_WEBHOOK_URL=<production webhook URL>
+DISCORD_WEBHOOK_URL_PREVIEW=${{shared.DISCORD_WEBHOOK_URL_PREVIEW}}
 RAILWAY_ENVIRONMENT_NAME=<provided by Railway>
 INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
 BUCKET=${{<bucket-service>.BUCKET}}

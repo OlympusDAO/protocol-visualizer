@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { after, before, test } from "node:test";
 import http from "node:http";
+import { after, before, test } from "node:test";
 import { getKernelConstants } from "../src/constants.ts";
 import { parsePolicyPermissions } from "../src/events/contractParsing.ts";
 import { handleKernelActionExecuted } from "../src/events/kernel.ts";

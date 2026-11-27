@@ -1,25 +1,26 @@
 {
   "name": "snapshot-monitor",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "files": [
     "dist/src"
   ],
   "scripts": {
-    "start": "node dist/src/index.js",
     "build": "tsc",
-    "test": "node --test dist/test/*.test.js",
     "lint": "biome lint --write . --error-on-warnings",
-    "lint:check": "biome lint . --error-on-warnings"
+    "lint:check": "biome lint . --error-on-warnings",
+    "start": "node dist/src/index.js",
+    "test": "node --test dist/test/*.test.js",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1152.0",
     "@protocol-visualizer/snapshot-artifacts": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^24.19.2",
-    "typescript": "^7.0.2"
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2"
   },
   "engines": {
     "node": ">=24.22.3"

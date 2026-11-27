@@ -14,30 +14,33 @@ consumers through the proxy.
 ## Infrastructure as Code
 
 [`.railway/railway.ts`](../.railway/railway.ts) defines the whole project:
-all seven application services, both databases, both volumes, the storage bucket,
-production domains, and canvas groups. It preserves the current database image
-majors and volume names. IaC supplies service connections through Railway references.
+all eight application services, both databases, both volumes, the snapshot and monitor-state buckets,
+production domains, and canvas groups. Database image pins live in that definition;
+main database image changes require the separately approved [production rebuild procedure](indexer-operations.md#database-major-version-rebuild).
+Volume names and production mount paths remain unchanged. IaC supplies service connections through Railway references.
 Provider URLs and operator secrets use `preserve()`; their values stay in Railway.
 Optional operator settings listed in `variables.ignore` remain outside IaC ownership.
 
+<!-- biome-ignore format: keep table cells unpadded -->
 | Resource | Role |
 | --- | --- |
-| `Postgres` / `destruction-volume` | Envio data and Hasura metadata; existing Postgres 16 |
-| `rpc-cache-postgres` / `rpc-cache-postgres-volume` | Independent RPC cache; existing Postgres 18 |
-| `hasura` | Private GraphQL for publisher and monitor |
+| `Postgres` / `destruction-volume` | Envio data and Hasura metadata |
+| `rpc-cache-postgres` / `rpc-cache-postgres-volume` | Independent RPC cache; PG18.6, preserved data |
+| `hasura` | Private GraphQL for the publisher and metadata API for the indexer |
 | `indexer` | Private Envio indexer |
 | `rpc-cache` | Private JSON-RPC cache |
 | `snapshot-publisher` | Hourly bucket publisher |
 | `snapshot-monitor` | Daily indexing monitor |
+| `indexer-monitor` | Private 15-minute metrics reachability job |
 | `snapshot-gateway` | Public REST API |
 | `frontend` | Public UI |
 | `storage` | Private snapshot bucket in `sjc` |
+| `monitor-state` | Private indexer alert cooldown state in `sjc` |
 
 Both database volumes target 20,000 MB in production and previews. IaC reads
 their live capacities and retains any existing capacity above this target.
-On 2026-11-16, production's `destruction-volume` was 10,000 MB; its plan can grow
-it to 20,000 MB. The existing 50,000 MB cache and preview volumes stay at
-50,000 MB. No shrinking, database replacement, or migration is requested.
+This capacity policy never requests a shrink. It does not authorize the separate
+main database reset; preserve the cache and existing larger volumes.
 With `allowOnlineResize: true`, Railway normally expands the mounted filesystem
 without downtime; a full volume can require an offline resize and restart.
 See [Railway volume resizing](https://docs.railway.com/volumes/reference).
@@ -51,7 +54,7 @@ operation. Preserve the attached database volumes during this capacity change.
 
 ## Bootstrap and migration
 
-Use Railway CLI 5.71.0 or newer, Node and pnpm from this repository, and the
+Use the repository-pinned native Railway CLI 5.75.0, Node and pnpm from this repository, and the
 pinned Railway SDK installed by `pnpm install --frozen-lockfile`.
 
 The local migration used Railway's `config migrate --show` preview and
@@ -92,14 +95,13 @@ an empty string; sending `null` leaves the old value unchanged. For a preview,
 verify its `sourceEnvironment` and compare other environments before and after
 the update. Do not clear production settings as part of preview recovery.
 
-Before the first merge:
+Before activating automatic production releases:
 
-1. Create a Railway API token scoped to the **Olympus workspace** in Account Settings → Tokens.
-2. Add it as the GitHub Actions repository secret **`RAILWAY_TOKEN`**.
+1. Create/configure the GitHub environment **`production`** with deployment branches explicitly limited to **`master`**. Configure repository/branch protection for reviewed merges and required source, image, dependency-audit and CodeQL checks; restrict bypasses, repository write/admin access and deployment permissions. For unattended releases, configure no required reviewer approvals; `deployment: false` is incompatible with custom deployment-protection apps. Master-only deployment branches and environment-only secrets remain required. A YAML environment reference does not establish these live protections.
+2. Add **`RAILWAY_DEPLOY_TOKEN` only as a secret of that environment**, with the least Railway workspace/API privileges needed for this project. Do not create a repository secret with that name. Separately approve and remove the old repository **`RAILWAY_TOKEN`** secret before activation; the workflow never falls back to it. Existing GitHub secret values cannot be retrieved to copy them: supply the credential securely through the authorized operator process. No secret/environment/ruleset changes are performed by this source edit.
 3. Provision and verify the private cache service and its separate database first.
 4. Supply all nine `UPSTREAM_RPC_URL_<id>` values on `rpc-cache` and verify its `RPC_CACHE_DATABASE_URL` reference to `rpc-cache-postgres.DATABASE_URL`. Existing databases must have URL-safe passwords before applying this reference; see [the password policy](../.railway/README.md).
-5. Preserve the other operator secrets listed below.
-6. Review the production plan posted on the PR.
+5. Preserve the other operator secrets listed below. Confirm the environment restrictions, secret placement and branch protections independently before enabling the token; repository code alone does not prove live settings or deployed privacy.
 
 IaC supplies all nine consumer RPC URLs. The production rollout must wait until
 the cache service passes private-network and provider checks. Otherwise, a whole-project
@@ -112,17 +114,30 @@ on `rpc-cache`. Configure its Dockerfile as `Dockerfile-rpc-cache`, its healthch
 as `/healthcheck`, and its database references as shown in [rpc-cache.md](rpc-cache.md).
 Verify the proxy before the whole-project apply routes consumers through it.
 
+The scheduled/manual ABI sync runs only on `master` and declares the existing
+GitHub `production` environment with `deployment: false`. Read-only verification
+found no protection rules or deployment branch policy on that environment;
+environment-secret migration remains **unperformed**. In addition to the Railway
+setup above, an authorized administrator must securely provision `ETHERSCAN_API_KEY`
+and all nine `ENVIO_RPC_URL_<id>` secrets used by `abis-sync.yml` in `production`.
+Verify all ten names in that environment's secret list and a sync on `master`,
+then remove their repository-scoped copies and verify another sync. A successful
+sync before removal alone can use repository-secret fallbacks. Existing secret
+values cannot be retrieved from GitHub; use the authorized credential source.
+The source job condition does not prove environment-secret storage or live
+restrictions.
+
 ## Automatic variables and manual secrets
 
-| Destination | Supplied by IaC | Manual values retained in Railway |
-| --- | --- | --- |
-| `rpc-cache` | `PORT=4000`; `RPC_CACHE_DATABASE_URL` references `rpc-cache-postgres.DATABASE_URL` | Nine `UPSTREAM_RPC_URL_<id>` values; optional `RPC_CACHE_MAX_RPS` |
-| `indexer` | Nine `ENVIO_RPC_URL_<id>` paths through `rpc-cache`; Envio database and Hasura references; `PORT=9898` | `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY`; optional `ENVIO_RPC_MODE` |
-| `snapshot-publisher` | Nine `RPC_URL_<id>` paths; bucket, Hasura, indexer metrics, and shared webhook references | Shared `DISCORD_WEBHOOK_URL` value; optional operator overrides |
-| `snapshot-monitor` | Nine `RPC_URL_<id>` paths; bucket, indexer metrics, and shared webhook references | Shared `DISCORD_WEBHOOK_URL` value; optional operator overrides |
-| `snapshot-gateway` | Five bucket references; `PORT=8080` | Optional operator overrides |
-| `hasura` | Envio database reference; shared admin-secret reference; `PORT=8080` | The shared `HASURA_GRAPHQL_ADMIN_SECRET` value |
-| `frontend` | HTTPS URL from `snapshot-gateway.RAILWAY_PUBLIC_DOMAIN` | None for these connections |
+| Destination          | Supplied by IaC                                                                                        | Manual values retained in Railway                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| `rpc-cache`          | `PORT=4000`; `RPC_CACHE_DATABASE_URL` references `rpc-cache-postgres.DATABASE_URL`                     | Nine `UPSTREAM_RPC_URL_<id>` values; optional `RPC_CACHE_MAX_RPS` |
+| `indexer`            | Nine `ENVIO_RPC_URL_<id>` paths through `rpc-cache`; Envio database and Hasura references; `PORT=9898` | `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY`; optional `ENVIO_RPC_MODE` |
+| `snapshot-publisher` | Nine `RPC_URL_<id>` paths; bucket, Hasura, indexer metrics, and shared preview webhook reference       | Production webhook; shared preview webhook; optional overrides    |
+| `snapshot-monitor`   | Nine `RPC_URL_<id>` paths; bucket, indexer metrics, and shared preview webhook reference               | Production webhook; shared preview webhook; optional overrides    |
+| `snapshot-gateway`   | Five bucket references; `PORT=8080`                                                                    | Optional operator overrides                                       |
+| `hasura`             | Envio database reference; shared admin-secret reference; `PORT=8080`                                   | The shared `HASURA_GRAPHQL_ADMIN_SECRET` value                    |
+| `frontend`           | HTTPS URL from `snapshot-gateway.RAILWAY_PUBLIC_DOMAIN`                                                | None for these connections                                        |
 
 The bucket references use `storage.BUCKET`, `storage.ACCESS_KEY_ID`,
 `storage.SECRET_ACCESS_KEY`, `storage.REGION`, and `storage.ENDPOINT`.
@@ -134,12 +149,17 @@ API token, or webhook. Supply required secrets in Railway before deploying the s
 The RPC cache fails clearly at runtime when a required upstream value is absent.
 Builds and IaC evaluation do not need provider credentials.
 
-Add `DISCORD_WEBHOOK_URL` once per environment in Project Settings → Shared Variables.
-IaC sets both snapshot jobs to `${{shared.DISCORD_WEBHOOK_URL}}`; it does not create or overwrite the shared value.
-Use a separate webhook for preview environments. Keep the URL out of source and frontend variables.
-Add the shared value before generating the plan, then review and apply that plan to deploy the references.
+Configure each job's production service value `DISCORD_WEBHOOK_URL` and the
+copyable shared `DISCORD_WEBHOOK_URL_PREVIEW` once in the base environment.
+IaC preserves the production value and declares the preview reference; it does
+not create or seal either secret. The jobs choose at
+startup using Railway's actual environment name, so automatic PR deployments
+need no per-PR plan or apply. See [webhook isolation](discord-notifications.md).
+Keep both URLs out of source and frontend variables. Initial IaC reference changes
+still use the reviewed native plan/apply procedure; setting existing variables
+in Railway's dashboard does not require a plan command.
 Variable changes require a deployment to reach the jobs. Apply the staged changes to deploy the affected services together.
-Both jobs require the webhook. Missing or blank values are logged as errors and
+Both jobs require the selected webhook. Missing or blank values are logged as errors and
 fail pre-deploy checks and job startup before network or storage access.
 See [Discord notification examples](discord-notifications.md) for summaries, warnings, and deployment lifecycle messages.
 
@@ -150,7 +170,7 @@ Before any consumer switch, retain the previous provider values for rollback.
 
 ## SSH key registration
 
-Use Railway CLI 5.71.0 or newer.
+Use the repository-pinned native Railway CLI 5.75.0.
 To use your personal login, unset local `RAILWAY_TOKEN` and `RAILWAY_API_TOKEN` values first.
 Then sign in:
 
@@ -193,69 +213,92 @@ The script does not register keys automatically.
 
 ## Automatic plan and apply
 
-[`.github/workflows/railway-config.yml`](../.github/workflows/railway-config.yml)
-creates plans; [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) applies them.
-Both use Railway CLI 5.71.0 with workspace API authentication.
-For same-repository PRs into `master` that affect IaC or its tooling:
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) owns routine production
+releases in its existing `railway-apply` job. PRs run offline IaC/typechecks and
+source/image checks with **no Railway production credential or live plan**.
+Native plan previews infrastructure changes, but evaluating the authoring code
+runs repository JavaScript with its token. A preview operation is not a safe
+place to execute untrusted PR code with production credentials.
 
-- Opening, reopening, or updating the PR produces a **production** plan and a PR comment linking to its run.
-- Merging applies that exact saved plan to production after build, security,
-  dependency, and CodeQL checks pass for the merge commit.
-- Closing without merging does not apply anything.
-- Fork PRs do not receive the Railway credential or run these jobs.
+On a `master` push, after all five source checks and Image security and integration
+succeed, the job checks out the exact push SHA with persisted credentials disabled, then selects a reviewed PR merged at that SHA into this repository's
+`master`. A reviewed fork PR is trusted after merge too. Direct pushes and untrusted
+merge targets fail the release job, so CI cannot pass without IaC. Every reviewed merge, including application-only
+and Markdown-only changes, reconciles the current configuration; unchanged
+infrastructure produces a native no-op. The job then:
 
-On a `master` push, CI finds the same-repository PR whose merge commit is that
-exact SHA. Direct pushes and merges without Railway-related changes do not apply
-infrastructure. A relevant merge without a successful plan fails the plan-selection job.
-The apply job downloads the artifact from a successful Railway plan run for the merged PR's exact head commit.
-It verifies the production environment ID. The CLI checks the environment revision and `.railway/` tree before apply.
-A changed environment or configuration requires a fresh PR plan. Destructive
-changes are blocked without `--confirm-destructive`; they need a separate,
-explicitly approved operator action. Workflow runs are serialized for production
-and do not cancel an apply already in progress.
+1. Waits for the newest exact-SHA Dependency Audit **push** run, managed CodeQL **dynamic** run (workflow `255339919`), and reported external checks/statuses. Missing/pending results time out; failed/cancelled/skipped required runs block release. It then rejects an outdated `master` SHA before dependency installation or Railway token use; the final pre-apply current-master check remains.
+2. Uses the locked shared bootstrap with dependencies for SDK evaluation. The earlier checkout only makes the declaration-only release module available to read-only gates; no dependency installation or Railway credential is used by those gates. A missing deployment token fails before the native plan or any other provider command.
+3. Runs native `railway config plan --environment "$RAILWAY_ENVIRONMENT_ID" --out <temporary-plan>` under umask 077, capturing stdout/stderr privately. The plan reads/evaluates/previews; it does not apply infrastructure changes. No PR plan, uploaded/downloaded artifact or cross-run state is used.
+4. After the fresh plan captures its ETag, checks the cache-password prerequisite once, before apply. Validates the plan shape/main database image-transition policy and rejects an outdated queued release if current `master` differs. Native saved-plan apply binds the environment, source tree, revision/ETag and hash; CI does not duplicate those checks in JavaScript.
+5. Applies that fresh local plan with the native CLI and accepts only `applied`/`noop` at the top level and for every change, never exit zero alone. No `--confirm-destructive` is supplied. Main PostgreSQL source-image changes require the separately approved [production rebuild procedure](indexer-operations.md#database-major-version-rebuild).
 
-One workspace token covers all environments. The existing GitHub secret name
-remains `RAILWAY_TOKEN`; both CLI steps export its value as `RAILWAY_API_TOKEN`.
-They do not set the CLI's `RAILWAY_TOKEN` variable, which expects a project token.
-The workflow selects project `d733dd5c-7076-48ad-ac8b-a147cb428300` and production
-environment `1b61e496-b565-42b4-9e5d-8096e28e13cd` explicitly.
-These IDs are configuration, not credentials. Environment selection is independent of authentication.
-Production sources always use `master`, including plans generated from unmerged PRs.
-See [Railway CLI authentication](https://docs.railway.com/cli/login#environment-variables) for the token types.
+Plan and apply remain inside the CI dependency graph, serialized together with
+`railway-infrastructure-production`, without cancelling an active release. Both
+use the repository-pinned native CLI 5.75.0. The single job references GitHub
+environment name `production` with `deployment: false`: secrets and branch policy
+still apply, without GitHub deployment records for this job. Railway owns
+actual application deployment status. The job maps only the environment-only
+`RAILWAY_DEPLOY_TOKEN` to native `RAILWAY_API_TOKEN`; it never uses the old repository secret. The
+[activation prerequisites above](#bootstrap-and-migration) must be configured live.
+The target project is `d733dd5c-7076-48ad-ac8b-a147cb428300` and production environment
+`1b61e496-b565-42b4-9e5d-8096e28e13cd`. Both native plan and apply pass this exact environment ID from
+`RAILWAY_ENVIRONMENT_ID`, rather than the mutable name `production`, matching the
+cache precondition. IaC recognizes this pinned production ID even if Railway renames the environment; the name `production` still works for offline/self-hosted evaluation. These IDs select the destination; they do not restrict token permissions. Production application sources use `master`.
 
-Application code continues to use Railway GitHub autodeploys and watch patterns.
-IaC requests `checkSuites: true` on each GitHub source. Verify the effective
-"Wait for CI" setting on newly created services; production `rpc-cache` needed
-a manual correction during initial creation. CI's apply job uses native `needs`
-dependencies on lint, build, and reusable Security Audit and Dependency Audit jobs.
-Failed, cancelled, or skipped prerequisites prevent apply. On PRs, the audits
-retain their separate runs and dependency-audit comments; on `master` pushes,
-CI calls them once through `workflow_call`. Their concurrency groups are separate
-from the caller's group.
+Apply can change infrastructure **and** service/build/source/environment/network
+settings. Some changes trigger builds, deployments or restarts; this is not merely
+a file upload. It performs no automatic database migration/reset. Application code
+continues through Railway GitHub autodeploys and watch patterns with `checkSuites: true`;
+verify effective "Wait for CI" settings and actual deployment health after release.
+The CI success message is not proof of live HTTP/TCP privacy or application readiness.
+The production push workflow does not automatically cancel an older run. Manual
+cancellation is not a deployment stop: Railway can ignore a cancelled workflow
+when another succeeded. Native IaC can start builds during apply, so this is not
+an atomic infrastructure/code rollout; dependent service replacements need
+compatible staged changes even though GitHub autodeploy waits for completed CI.
 
-The remaining gate waits only for GitHub-managed CodeQL (`dynamic` event,
-repository workflow ID `255339919`) and external commit checks on the exact merge
-commit. Update that ID if managed CodeQL is recreated. Missing or unfinished
-external results time out after 30 minutes; failed, cancelled, or skipped CodeQL
-runs block apply. Additional reported commit checks, such as
-Socket, must finish without failure; neutral or skipped optional checks are allowed.
-The gate excludes only its own workflow run's check suite, since its apply job
-is still running. Checks from other workflow runs remain subject to the gate.
+The external gate retains latest-per-context commit-status checks, excluding
+Railway deployment statuses that wait for CI and its own workflow suite to avoid
+waiting on itself. Other workflow suites remain checked. The wait step allows
+35 minutes (the polling loop stops after about 30); the full release job allows
+60 minutes. Dependency Audit remains standalone, with same-repository PR comments
+and no fork token use. Routine production release is automatic; the native manual
+procedure below is only for separately approved maintenance/recovery, not a bypass
+for missing or failed release gates.
 
 Before a manual production apply or operator redeploy, inspect the exact merge SHA:
 
 ```bash
 gh run list --commit <merge-sha> --limit 100 --json workflowName,event,status,conclusion
 gh api repos/OlympusDAO/protocol-visualizer/commits/<merge-sha>/check-runs --paginate --jq '.check_runs[] | {name,status,conclusion}'
+gh api "repos/OlympusDAO/protocol-visualizer/commits/<merge-sha>/statuses" --paginate --jq '.[] | {context,state}'
 ```
 
-Require a successful `pnpm CI` run, including both reusable audit jobs, successful
-CodeQL, and no pending or failed external commit checks. For previews and other non-master targets, verify the equivalent
-PR or manually dispatched runs for the target revision instead of master push runs.
-If required runs are missing, trigger the matching workflows and wait for success;
-do not treat missing runs as a pass.
-This workflow does **not** auto-apply IaC changes to PR environments on every
-commit. Preview infrastructure changes use the manual procedure below.
+Require all five `CI` source checks and the Image security and integration gate,
+plus no pending or failed external commit checks. For the exact production merge
+SHA, identify the newest `audit.yml` **push** run and managed CodeQL workflow
+`255339919` **dynamic** run; both must be completed with conclusion `success`.
+A successful scheduled/manual run or `workflow_dispatch` is not a substitute.
+For a separately approved main database source-image transition, automatic `railway-apply` is
+intentionally blocked: do not require that job or whole-workflow success as a
+circular prerequisite. All source/image/external gates and the reviewed manual
+release procedure still apply. Previews use equivalent source checks for their
+target revision; they do not relax these production event requirements.
+Commit statuses are newest first: review the first entry for each lowercase context and require
+`success`, excluding only contexts whose lowercase name starts with
+`protocol-visualizer - ` because those deployments wait for CI.
+Missing required runs are not a pass; obtain matching event/commit results
+before production release.
+Preview infrastructure/domain bootstrap requires separately approved operator
+work; PRs do not run authenticated production planning.
+
+If a queued release is rejected after `master` advances, follow the latest reviewed
+`master` push CI run, or re-run that exact latest push run after its gates pass.
+Every reviewed merge is eligible for reconciliation, including application-only
+and Markdown-only merges, so the latest run can reconcile a superseded change.
+Re-running an older revision cannot recover the superseded release. Local native
+operations remain separately approved maintenance/recovery only.
 
 Preview branches follow Railway's PR metadata. No production custom domains are attached to
 previews. Operator secrets and generated Railway domains remain on Railway.
@@ -264,9 +307,21 @@ Railway deletes that temporary environment.
 
 ### First-use public domains for PR environments
 
-Once `frontend` and `snapshot-gateway` exist in a new PR environment, generate a
-Railway public domain for each, targeting port **8080**, before the first frontend
-build. Keep frontend deployment paused while provisioning these prerequisites.
+Keep Railway-generated domains on the base environment's `frontend` and
+`snapshot-gateway` services, targeting port **8080**.
+[Railway automatically generates PR domains](https://docs.railway.com/environments#domains-in-pr-environments)
+only when the corresponding base services have Railway-generated domains;
+custom domains alone do not enable this. Production custom domains are not
+assigned to previews.
+
+If an existing PR environment is missing either generated domain, create it
+before the first frontend build. Keep frontend deployment paused while
+provisioning these prerequisites.
+
+Before repairing a route, inspect the generated domains for both public
+services in the base environment and in the exact PR environment. Create only
+the missing routes in the environment you intend to repair.
+
 In each service's Settings → Networking, choose **Generate Domain** and port 8080,
 or use the CLI with explicit project and environment selectors:
 
@@ -277,9 +332,17 @@ railway domain --project d733dd5c-7076-48ad-ac8b-a147cb428300 --environment prot
 
 Replace the environment name when setting up a different PR. Reuse existing
 generated domains rather than creating replacements on every deployment.
-The IaC `domains` field manages custom domains only; it does not create these
-generated Railway domains. Generate domains only for these two public services;
-leave Hasura, the indexer, snapshot jobs, RPC cache, and databases private.
+Planning rejects explicit generated or custom domain targets other than 8080
+on `frontend` and `snapshot-gateway`. Automatic/null targets remain allowed;
+verify their effective routing after apply.
+The [`publicHttpTargetPorts` map](../.railway/postgres-policy.ts#L4) defines
+the allowed explicit targets. The [gateway declaration](../.railway/railway.ts#L130)
+and [frontend declaration](../.railway/railway.ts#L264) set their `PORT`
+variables and production custom domains. The frontend's
+[Nginx configuration](../apps/frontend/nginx.conf#L2) fixes its listener at 8080.
+Railway generated domains are managed separately. Generate them only for the two
+public services. Keep Hasura, the indexer, snapshot jobs, RPC cache, and
+databases private.
 
 The frontend's `VITE_PROTOCOL_SNAPSHOT_BASE_URL` is set to
 `https://${{snapshot-gateway.RAILWAY_PUBLIC_DOMAIN}}`. Confirm that Railway resolves
@@ -292,8 +355,11 @@ protocol requests can then reach frontend Nginx and return HTML instead of JSON.
 
 ## Manual IaC plan and deployment
 
+Routine production releases use CI above. Use this procedure only for separately
+approved maintenance/recovery, including main database rebuilds.
+
 Run these commands from the repository root on your local machine.
-Use Railway CLI 5.71.0 or newer and the repository-pinned Node and pnpm versions.
+Use the repository-pinned native Railway CLI 5.75.0 and the repository-pinned Node and pnpm versions.
 The target Railway environment must already exist.
 
 A plan reads Railway configuration without changing resources or service variables.
@@ -314,7 +380,7 @@ railway whoami
 
 If a valid CLI login already exists, omit `railway login`.
 If using a workspace token locally, set `RAILWAY_API_TOKEN` and leave `RAILWAY_TOKEN` unset.
-The GitHub workflow maps its existing `RAILWAY_TOKEN` secret to `RAILWAY_API_TOKEN` automatically.
+The production CI job maps its environment-only `RAILWAY_DEPLOY_TOKEN` secret to `RAILWAY_API_TOKEN`; local maintenance uses separately authorized operator credentials.
 The same workspace credential can access different environments; the CLI's link or explicit selectors choose the destination.
 
 ### 2. Select the environment
@@ -327,9 +393,9 @@ railway status
 ```
 
 Select `protocol-visualizer` if prompted. Verify the project and environment names.
-The plan and apply scripts use this linked context without repeated environment exports.
-Metrics, plan, apply, and reset print the project and environment names and IDs before their operation.
-The selector order is `--environment`, then `RAILWAY_ENVIRONMENT`, then the linked environment.
+Native plan/apply commands use the linked project and an explicit target environment.
+The retained metrics/reset helpers print the project and environment names and IDs before their operation.
+For these helpers, the selector order is `--environment`, then `RAILWAY_ENVIRONMENT`, then the linked environment.
 Reset still requires an explicit selector because it removes indexer data.
 Railway gets the source branch from its PR environment metadata when creating services.
 Existing preview services retain their configured branch. Production sources always use `master`.
@@ -338,26 +404,42 @@ Changing Git branches does not change the Railway link. Link again when switchin
 
 ### 3. Generate a plan without deploying
 
+Before planning, inventory generated/custom HTTP domains and active TCP proxies
+for every service/database in the selected environment, including unexpected
+resources without decrypting variables. Check the frontend/gateway public allowlist.
+Planning stops when it finds HTTP domains on private services. Config apply
+cannot delete them. Obtain separate authorization for the exact project,
+environment, private service, and domain before removing it through Railway.
+Use the reviewed identifiers as the arguments below.
+
 ```bash
-pnpm run railway:check
-umask 077
-pnpm run railway:plan
+railway domain delete <DOMAIN_OR_ID> --project <PROJECT_ID> --environment <ENVIRONMENT_ID> --service <PRIVATE_SERVICE> --yes --json
 ```
 
-The script saves `railway-plan.json` for the linked environment.
-To select production explicitly, use `pnpm run railway:plan --environment production`.
+Re-inventory the selected environment after removal and verify that the service
+has no public HTTP domain and remains reachable on the private network before
+planning. Leave imported TCP proxies in the inventory for the native plan's
+explicit `null` removals.
+
+```bash
+pnpm run check:railway
+set +x
+umask 077
+touch railway-plan.json
+chmod 600 railway-plan.json
+railway config plan --environment <target-environment> --out railway-plan.json
+```
+
+Set this umask in the **current operator shell** before the first plan. Precreate the artifact with `touch` under 077 and restrict any pre-existing file with `chmod 600` before a native write; stop if these commands fail. CLI 5.75 uses ordinary file writes and does not itself establish owner-only permissions. Keep shell tracing/session logging disabled when handling private artifacts.
+
+The native CLI saves `railway-plan.json` for the explicitly selected environment.
+To select production explicitly, use `railway config plan --environment production --out railway-plan.json`.
 Pass the same environment to apply. Verify the target in the plan before continuing.
 
-The equivalent direct command is:
-
-```bash
-railway config plan --out railway-plan.json
-```
-
-For a terminal-only preview, run `railway config plan`.
-For a different artifact path, use the direct CLI command with `--out <path>`.
+For a terminal-only preview, run `railway config plan --environment <target-environment>`.
+For a different artifact path, pass `--out <path>` to the same native command.
 The saved artifact pins the proposed changes and environment revision for the later apply.
-`railway-plan.json` is ignored by Git. Treat it as private even though terminal values are redacted.
+`railway-plan.json` is ignored by Git; Gitignore is not filesystem protection. Treat it as private even though terminal values are redacted. Archive only with owner-readable/writable file permissions (600) inside an owner-only directory (700).
 Do not commit, share, or force-add the artifact.
 
 ### 4. Review the plan
@@ -382,8 +464,8 @@ Here, `preserve()` represents the hidden current value. The update replaces it w
 `«hidden»` means that the CLI redacts the desired value. It does not mean that the variable stays unchanged.
 An explicit `preserve()` in the service's `env` definition retains its existing value.
 Provider URLs and API tokens use that explicit form.
-The snapshot jobs use a shared reference for `DISCORD_WEBHOOK_URL`.
-Set the shared value in the target environment before deployment.
+The snapshot jobs preserve production service values and reference a shared preview webhook.
+Configure their values using [the webhook setup](discord-notifications.md) before deployment.
 Shared references, connection references, and consumer RPC URLs do not use `preserve()`.
 
 Warnings such as `variables.ignore pattern "RPC_CACHE_MAX_RPS" matches no variable` describe absent optional operator variables.
@@ -400,16 +482,30 @@ If the configuration, checkout revision, or live environment changes, generate a
 Only after reviewing the saved plan, run:
 
 ```bash
-pnpm run railway:apply
+umask 077
+railway_apply_directory="$(mktemp -d)"
+railway config apply --environment <target-environment> --plan railway-plan.json --json >"$railway_apply_directory/result.json" 2>"$railway_apply_directory/stderr.txt"
 ```
 
-For an explicit production plan, use `pnpm run railway:apply --environment production`.
+For an explicit production plan, use `--environment production` with the same private output capture.
+
+The equivalent package command is `pnpm apply:railway production --json`, with the same private output capture; a target value is mandatory. Pass `--json` explicitly: it bypasses native confirmation, so review the plan first. The alias itself does not enable JSON. Automatic merge apply blocks an existing main database source-image transition even when the native plan labels it safe. Use the separately approved [database rebuild procedure](indexer-operations.md#database-major-version-rebuild) and direct native apply for that release.
 Keep the target environment unchanged between plan and apply.
-The apply script rejects a saved plan for another environment or project before it calls Railway apply.
+Before calling native apply, use `railway status` to verify the linked project and selected environment. Match that environment ID against the saved artifact's `environmentId`; CLI 5.75 saved plans have no `projectId`. Keep the reviewed artifact unchanged. CI retains the main database transition/current-master guards; native saved-plan validation enforces environment/source-tree/revision binding.
 The command applies the saved changes without re-evaluating the authoring file.
 If Railway rejects a stale plan, generate a fresh plan and review it again.
 Do not add `--confirm-destructive` to bypass an unexpected destructive change.
-A manual production apply can invalidate an older saved plan from the GitHub workflow.
+A manual production apply can invalidate an in-flight CI plan; coordinate separately approved maintenance with automatic releases.
+
+#### Verify native apply results
+
+CLI 5.75's saved-plan path can exit zero and print success for failed or partial provider results. The native command/explicit environment remains the interface; no custom mutation wrapper is required. With native `--json`, inspect the top-level result in the restricted private directory above. Its `status` must be `applied` or `noop`, `changes` must be an array, and every change must have status `applied` or `noop`. Reject `failed`, `partially_applied`, `applying`, `staged`, missing/malformed or unknown statuses at either level, even when the process exits zero. A nonzero process exit is also failure. Do not retry a failed/uncertain apply blindly.
+
+Raw results, outputs, diagnostics and stderr can contain sensitive values. Do not print them to shared terminal/GitHub logs, commit them or upload them as artifacts. Keep them private and share only sanitized status/count evidence. The existing CI apply step captures both streams only in memory and checks the same accepted statuses before reporting success; it retains the exact native saved-plan/environment arguments.
+
+After an accepted result, generate a fresh **read-only plan** for the same project, environment and reviewed revision. Keep its artifact/output private too, for example with native `railway config plan --environment <target-environment> --out "$railway_apply_directory/verification-plan.json"` and private stdout/stderr capture. Review all remaining drift; do not infer convergence from the apply result alone.
+
+Then complete the provider **HTTP/TCP** inventory for every service/database in that exact environment, including unknown/unexpected resources: generated HTTP domains, custom HTTP domains and TCP proxies/ports. Match frontend/gateway against the public allowlist and verify no private service has public domains/proxies. Verify actual public/private reachability and database mounts, effective PGDATA, TLS and persistence. After services are running, verify indexer `/docs`, `/openapi.json`, `/llms.txt` and `/llms-full.txt` return 404, `/healthz` returns 200 and readiness/indexing progress are appropriate for the deployment. During reindexing, native `/metrics` reports progress and catch-up; the [database rebuild sequence](indexer-operations.md#database-major-version-rebuild) controls when writers resume. See [security posture](security-posture.md) for trust boundaries. Source empty maps, a clean plan, process exit zero and success text cannot replace this verification. No native plan/apply/provider action is performed by this documentation change.
 
 ### 6. Verify the application deployments
 
@@ -425,16 +521,16 @@ See [Deployment checks](#deployment-checks) and [the cache checks](rpc-cache.md#
 
 ### Troubleshooting
 
-| Message | Action |
-| --- | --- |
-| `Set RAILWAY_SOURCE_BRANCH to the target PR branch` | Update the checkout. Current IaC follows Railway's PR branch metadata without this export. |
-| No linked project or wrong environment | Run `railway link` and verify `railway status`, or pass `--environment <name>` to both scripts. |
-| `Invalid RAILWAY_TOKEN` with a workspace token | Use `RAILWAY_API_TOKEN` for workspace authentication. The current workflow maps the existing Actions secret correctly; publish this fix before starting a new workflow run. |
-| `variables.ignore pattern ... matches no variable` | If the optional operator variable is absent, no action is required. |
-| `preserve() → «hidden»` | Read this as a hidden current value changing to the value declared in IaC. |
-| `CI check suite failed` / deployment `SKIPPED` | Fix the failing GitHub check and publish the fix to the configured source branch. An IaC apply uses published application code; local fixes are not uploaded. |
-| Stale saved plan or environment revision mismatch | Generate and review a fresh plan for the same target environment. |
-| Service still managed by a repository config file | Follow [Bootstrap and migration](#bootstrap-and-migration) before applying. |
+| Message                                             | Action                                                                                                                                                                      |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Set RAILWAY_SOURCE_BRANCH to the target PR branch` | Update the checkout. Current IaC follows Railway's PR branch metadata without this export.                                                                                  |
+| No linked project or wrong environment              | Run `railway link` and verify `railway status`, or pass `--environment <name>` to both scripts.                                                                             |
+| `Invalid RAILWAY_TOKEN` with a workspace token      | Use `RAILWAY_API_TOKEN` for workspace authentication. The current workflow maps the existing Actions secret correctly; publish this fix before starting a new workflow run. |
+| `variables.ignore pattern ... matches no variable`  | If the optional operator variable is absent, no action is required.                                                                                                         |
+| `preserve() → «hidden»`                             | Read this as a hidden current value changing to the value declared in IaC.                                                                                                  |
+| `CI check suite failed` / deployment `SKIPPED`      | Fix the failing GitHub check and publish the fix to the configured source branch. An IaC apply uses published application code; local fixes are not uploaded.               |
+| Stale saved plan or environment revision mismatch   | Generate and review a fresh plan for the same target environment.                                                                                                           |
+| Service still managed by a repository config file   | Follow [Bootstrap and migration](#bootstrap-and-migration) before applying.                                                                                                 |
 
 ## Rollback
 
@@ -461,7 +557,6 @@ Public REST responses never expose deployment ids or S3 object keys.
 ## Public REST API
 
 ```text
-GET /
 GET /healthz
 GET /ready
 GET /v1/openapi.json
@@ -470,6 +565,8 @@ GET /v1/manifest
 GET /v1/chains
 GET /v1/chains/{chainId}/protocol
 ```
+
+GET/HEAD `/` serve a static API catalogue without JavaScript or external assets; HEAD has no body. There is no separate `/docs` route; `/v1/openapi.json` remains the JSON API specification. See the [production rebuild procedure](indexer-operations.md#database-major-version-rebuild) before changing the main database major version.
 
 `/v1/bounds` includes `indexingProgress.chains[*] = { chainId, date,
 timestamp, block }`. Static JSON paths such as `/v1/manifest.json` and
@@ -515,24 +612,24 @@ ETHERSCAN_API_KEY=<etherscan-api-key>
 ```
 
 `ENVIO_API_TOKEN` should be set for production deployments. When
-`ENVIO_RPC_MODE` is left blank, the indexer wrapper derives `fallback` from the
+`ENVIO_RPC_MODE` is left blank, the indexer bootstrap derives `fallback` from the
 token so Envio uses HyperSync with RPC fallback. Running without a token falls
 back to RPC-only indexing and is materially slower for cold backfills.
 `ETHERSCAN_API_KEY` is required so the indexer can fetch contract metadata that
 is not already precomputed or available in local ABI/source-code files.
 
-Do not set `ENVIO_PG_SCHEMA` on Railway. The indexer wrapper fails fast if it is
-set. Railway start commands run `envio start` and resume compatible state.
-Envio rejects incompatible changes; it does not automatically wipe data.
-For an intentional reset, follow [indexer-operations.md](indexer-operations.md),
-including the manual SSH reset in the existing indexer service.
+Leave `ENVIO_PG_SCHEMA` unset on Railway. The bootstrap waits for Hasura, then
+replaces itself with `envio start`. Before a manual start, verify authenticated
+`export_metadata` succeeds on Hasura's private metadata endpoint. Native startup
+resumes compatible state and exits on incompatibility. For an approved reset,
+follow the [database-host procedure](indexer-operations.md#reset-the-railway-indexer-from-the-database-host).
 
-The publisher and monitor read Envio's private `/metrics` endpoint to decide
-whether a deployment is ready. The indexer Railway service must set `PORT=9898`
-so the health wrapper exposes `/healthz`, `/ready`, and proxied `/metrics` on
-`indexer.railway.internal:9898`. If that port is changed, update
-`INDEXER_METRICS_URL` on both `snapshot-publisher` and `snapshot-monitor` to
-match the indexer's `PORT`.
+Railway sets `PORT=9898` so Envio serves native `/healthz` and `/metrics` on
+`indexer.railway.internal:9898`. IaC gives `snapshot-publisher`, `snapshot-monitor`
+and `indexer-monitor` the same private `INDEXER_METRICS_URL` reference, which
+follows `indexer.PORT`. The publisher uses readiness to gate publication,
+the snapshot monitor checks indexing progress, and the indexer monitor checks
+metrics reachability.
 
 Set all nine `RPC_URL_<chainId>` variables on both snapshot jobs to the private
 proxy paths documented in [rpc-cache.md](rpc-cache.md).
@@ -543,14 +640,16 @@ Set on `snapshot-publisher`:
 HASURA_GRAPHQL_URL=http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql
 HASURA_GRAPHQL_ADMIN_SECRET=${{hasura.HASURA_GRAPHQL_ADMIN_SECRET}}
 RAILWAY_ENVIRONMENT_NAME=<provided by Railway>
-INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
+INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:${{indexer.PORT}}/metrics
 BUCKET=${{storage.BUCKET}}
 ACCESS_KEY_ID=${{storage.ACCESS_KEY_ID}}
 SECRET_ACCESS_KEY=${{storage.SECRET_ACCESS_KEY}}
 REGION=${{storage.REGION}}
 ENDPOINT=${{storage.ENDPOINT}}
 # INDEXER_DEPLOYMENT_ID=${{shared.INDEXER_DEPLOYMENT_ID}}
-DISCORD_WEBHOOK_URL=${{shared.DISCORD_WEBHOOK_URL}}
+# Production only: set and seal this service variable in Railway.
+DISCORD_WEBHOOK_URL=<production webhook URL>
+DISCORD_WEBHOOK_URL_PREVIEW=${{shared.DISCORD_WEBHOOK_URL_PREVIEW}}
 # MONITOR_STALE_CHAIN_HOURS=24
 ```
 
@@ -571,9 +670,11 @@ handover to a fresh bucket prefix.
 Set on `snapshot-monitor`:
 
 ```bash
-DISCORD_WEBHOOK_URL=${{shared.DISCORD_WEBHOOK_URL}}
+# Production only: set and seal this service variable in Railway.
+DISCORD_WEBHOOK_URL=<production webhook URL>
+DISCORD_WEBHOOK_URL_PREVIEW=${{shared.DISCORD_WEBHOOK_URL_PREVIEW}}
 RAILWAY_ENVIRONMENT_NAME=<provided by Railway>
-INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:9898/metrics
+INDEXER_METRICS_URL=http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:${{indexer.PORT}}/metrics
 BUCKET=${{storage.BUCKET}}
 ACCESS_KEY_ID=${{storage.ACCESS_KEY_ID}}
 SECRET_ACCESS_KEY=${{storage.SECRET_ACCESS_KEY}}
@@ -584,9 +685,10 @@ ENDPOINT=${{storage.ENDPOINT}}
 # MONITOR_STALE_CHAIN_HOURS=24
 ```
 
-`snapshot-publisher` and `snapshot-monitor` require `DISCORD_WEBHOOK_URL` for their notifications.
-Set the shared webhook value in Railway before deployment. IaC supplies the reference to both snapshot jobs.
-Use a separate Discord webhook for PR environments to keep test alerts out of production channels.
+`snapshot-publisher` and `snapshot-monitor` use `DISCORD_WEBHOOK_URL` in production
+and require `DISCORD_WEBHOOK_URL_PREVIEW` elsewhere. IaC preserves production
+service values and supplies the shared preview reference. Runtime selection also applies to Railway's automatic PR deployments;
+it does not depend on evaluating IaC for each PR and never falls back to production.
 Both pre-deploy checks and job startup log and reject a missing or blank webhook
 without sending a notification. Local publisher file exports do not send notifications.
 The monitor also fails fast if `RAILWAY_ENVIRONMENT_NAME` is missing.
@@ -654,10 +756,9 @@ paths outside the public REST surface. Let Cloudflare handle edge compression.
 
 ## Validation
 
-Run `pnpm validate` for the eleven-step sequence in `AGENTS.md`. It checks
-OpenAPI after building the shared snapshot-artifacts package and before the full
-build can regenerate the file. The `validate:local` script uses the same ordering
-and builds the additional service images, including the monitor.
+Run `pnpm validate` for the source-only sequence in `AGENTS.md`. It checks
+OpenAPI drift during gateway build; explicit regeneration first builds shared
+snapshot artifacts from current source. `pnpm validate:all` then builds/scans all seven images and Dockerfiles and runs required container integration. See [validation.md](validation.md) for prerequisites and evidence.
 
 
 ## Recorded initial migration checks (2026-10-29)
@@ -674,7 +775,8 @@ cover the resource inventory, database images, capacities, branch/domain rules,
 variable ownership, and merge workflow guards. Checksum-verified Actionlint
 1.7.12 validated the workflow. The workflow itself has not run against GitHub.
 The current GitHub credential received HTTP 403 when listing secret names, so
-the presence and scope of `RAILWAY_TOKEN` must be confirmed by a repository admin.
+that historical secret configuration was not verified. It is not evidence for
+today's environment-only deployment secret or master-only protections.
 These initial checks were read-only. Later PR 82 cache creation, upstream variable
 setup and deployment follow [rpc-cache.md](rpc-cache.md).
 No production apply was run.

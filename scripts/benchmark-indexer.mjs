@@ -7,8 +7,8 @@ import {
   mkdirSync,
   mkdtempSync,
   openSync,
-  readFileSync,
   readdirSync,
+  readFileSync,
   realpathSync,
   renameSync,
   rmSync,
@@ -78,7 +78,8 @@ const selectedRanges = (options) =>
         : [{ chainId: 1, start: options.start, end: options.end }];
 const queuedProtocol = "protocol-visualizer-indexer-queued-benchmark-v2";
 const image = "protocol-visualizer/rpc-cache:local";
-const pgImage = "postgres:17-alpine";
+const pgImage =
+  "postgres:18.6-alpine3.24@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b";
 const compareText = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
 class BenchmarkFailure extends Error {
@@ -982,11 +983,13 @@ async function collectRun(options, setup, runNumber, cancelled) {
       "--network",
       id,
       "--tmpfs",
-      "/var/lib/postgresql/data",
+      "/var/lib/postgresql",
       "-p",
       "127.0.0.1::5432",
       "-e",
       `POSTGRES_PASSWORD=${password}`,
+      "-e",
+      "PGDATA=/var/lib/postgresql/18/docker",
       "-e",
       "POSTGRES_DB=indexer",
       setup.pgImageId

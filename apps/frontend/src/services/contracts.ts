@@ -1,11 +1,11 @@
+import otherContracts from "../../../../packages/protocol-config/other-contracts.json";
 import {
+  type AdditionalContract,
+  type FunctionContext,
   readSnapshotData,
   type SnapshotExtension,
   type SnapshotSchemaVersion,
-  type AdditionalContract,
-  type FunctionContext,
 } from "../../../../packages/snapshot-artifacts/src/index";
-import otherContracts from "../../../../packages/protocol-config/other-contracts.json";
 
 type ContractType = "kernel" | "module" | "policy";
 type EnvioContractType = "KERNEL" | "MODULE" | "POLICY";
@@ -185,8 +185,4 @@ export function getAdditionalGraphContracts(
       });
   }
   return [...unique.values()];
-}
-
-export async function getContracts(chainId: number): Promise<Contract[]> {
-  return (await getProtocolVisualizerData(chainId)).contracts;
 }

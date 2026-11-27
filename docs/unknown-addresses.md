@@ -15,6 +15,7 @@ unresolved identities are preserved.
 
 ## Identified addresses
 
+<!-- biome-ignore format: keep table cells unpadded -->
 | Chain | Address | Label | Evidence |
 | --- | --- | --- | --- |
 | Mainnet | `0x0941233c964e7d7efeb05d253176e5e634ceffcd` | Governor | [Verified compiler metadata](https://sourcify.dev/server/v2/contract/1/0x0941233c964e7d7efeb05d253176e5e634ceffcd?fields=metadata): `GovernorBravoDelegator`; Olympus V3 environment `olympus.governance.GovernorBravoDelegator`. Added on 23 October 2026. |
@@ -47,6 +48,7 @@ from the DAO MS administering OHM within that registry.
 
 ## Unresolved identities
 
+<!-- biome-ignore format: keep table cells unpadded -->
 | Chain(s) | Address | Established context | Still unknown |
 | --- | --- | --- | --- |
 | Mainnet | `0x0000000000000000000000000000000000000020` | Older Operator `0x5f15b91b59ad65d490921016d4134c2301197485` returns this from `wrappedReserve()`. The constructor argument is also `0x20`. No code at block 26252800; Operator `isActive()` is false. | Why this value was supplied. No token identity established. |
@@ -95,6 +97,7 @@ Verified compiler targets supplied contract identities; pinned `name()`,
 `symbol()`, `description()`, and `typeAndVersion()` reads added context where available.
 No-code addresses were not assigned another chain's deployed contract name.
 
+<!-- biome-ignore format: keep table cells unpadded -->
 | Available snapshot | Canonical block |
 | --- | --- |
 | Ethereum Mainnet | 26252800 (`0xd345d195433dfbafbb1e17b42133a85327237d1c84bbbbc5086887000990eb80`) |
@@ -116,6 +119,7 @@ available local snapshot name configured endpoints; they do not imply current
 indexing or lane availability. Goerli has no CCIP endpoint entries in the source.
 Bartio entries are historical.
 
+<!-- biome-ignore format: keep table cells unpadded -->
 | Chain | CCIP Router | CCIP RMN Proxy | Evidence |
 | --- | --- | --- | --- |
 | Ethereum Mainnet | `0x80226fc0ee2b096224eeac085bb9a8cba1146f7d` | `0x411de17f12d1a34ecc7f45f49844626267c75e81` | Olympus V3 environment; verified source/runtime and version getters. |
@@ -136,6 +140,7 @@ supplemented with observed token names and symbols. In particular, Arbitrum's
 Silo OHM deposit token is distinct from Olympus sOHM. Sepolia's configured
 Maker flash lender is verified as `MockFlashloanLender`.
 
+<!-- biome-ignore format: keep table cells unpadded -->
 | Chain | Address | Label | Evidence |
 | --- | --- | --- | --- |
 | Ethereum Mainnet | `0x9a315bdf513367c0377fb36545857d12e85813ef` | TreasuryV3 (legacy) | [Verified source](https://sourcify.dev/server/v2/contract/1/0x9a315bdf513367c0377fb36545857d12e85813ef?fields=metadata): OlympusTreasury. Environment: `current.mainnet.olympus.legacy.TreasuryV3`. |

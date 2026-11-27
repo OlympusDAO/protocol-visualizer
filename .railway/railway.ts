@@ -10,13 +10,21 @@ import {
   service,
   volume,
 } from "railway/iac";
-import { existingResources, postgresPassword } from "./postgres-policy.ts";
+import {
+  existingResources,
+  publicHttpTargetPorts,
+  tcpRemovals,
+} from "./postgres-policy.ts";
 
 // Secret values remain in Railway; IaC owns connections, not provider credentials.
 // Long-running services inherit Railway's ON_FAILURE default. CLI 5.71 treats
 // explicitly declaring that omitted platform default as perpetual deploy drift.
+const productionEnvironmentId = "1b61e496-b565-42b4-9e5d-8096e28e13cd";
+
 export default defineRailway((ctx) => {
-  const production = ctx.isEnvironment("production");
+  const production =
+    ctx.isEnvironment("production") ||
+    ctx.environmentId === productionEnvironmentId;
   const source = github("OlympusDAO/protocol-visualizer", {
     // Explicit undefined overrides the SDK's "main" default for PR environments.
     branch: production ? "master" : undefined,
@@ -33,9 +41,10 @@ export default defineRailway((ctx) => {
       allowOnlineResize: true,
       alerts: { usage: { "80": {}, "95": {}, "100": {} } },
     });
-  // Retain imported database identities and image majors.
+  // Prepare the approved main-DB rebuild on PG18.6; live reset remains separate.
   const envioDatabase = database("Postgres", "postgres", {
-    image: "ghcr.io/railwayapp-templates/postgres-ssl:16",
+    image:
+      "ghcr.io/railwayapp-templates/postgres-ssl:18@sha256:4fc833b43d2aaf6ecc9b18615f5533602b723a32d0e2efe2dae8ca0f7217c863",
     output: "DATABASE_URL",
     defaultMountPath: "/var/lib/postgresql/data",
     region: "us-west2",
@@ -46,14 +55,22 @@ export default defineRailway((ctx) => {
   };
   const envioData = databaseVolume("destruction-volume");
   const cacheDatabase = database("rpc-cache-postgres", "postgres", {
-    image: "ghcr.io/railwayapp-templates/postgres-ssl:18",
+    image:
+      "ghcr.io/railwayapp-templates/postgres-ssl:18@sha256:4fc833b43d2aaf6ecc9b18615f5533602b723a32d0e2efe2dae8ca0f7217c863",
     output: "DATABASE_URL",
     defaultMountPath: "/var/lib/postgresql/data",
     region: "us-west2",
   });
   for (const db of [envioDatabase, cacheDatabase]) {
     db.variables = {
-      POSTGRES_PASSWORD: postgresPassword(db.name, existing?.serviceNames),
+      // Offline checks cannot establish a new database; preserve existing roles.
+      POSTGRES_PASSWORD:
+        existing === undefined || existing.tcpPorts.has(db.name)
+          ? preserve()
+          : {
+              type: "literal",
+              value: '${{ secret(64, "0123456789abcdef") }}',
+            },
     };
   }
   const cacheData = databaseVolume("rpc-cache-postgres-volume");
@@ -71,6 +88,8 @@ export default defineRailway((ctx) => {
       (key) => [key, ref(storage, key)]
     )
   );
+  const indexerMetricsUrl =
+    "http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:${{indexer.PORT}}/metrics";
 
   const snapshotPublisher = service("snapshot-publisher", {
     source,
@@ -80,9 +99,9 @@ export default defineRailway((ctx) => {
       HASURA_GRAPHQL_ADMIN_SECRET: ctx.shared.HASURA_GRAPHQL_ADMIN_SECRET,
       HASURA_GRAPHQL_URL:
         "http://${{hasura.RAILWAY_PRIVATE_DOMAIN}}:8080/v1/graphql",
-      INDEXER_METRICS_URL:
-        "http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:${{indexer.PORT}}/metrics",
-      DISCORD_WEBHOOK_URL: ctx.shared.DISCORD_WEBHOOK_URL,
+      INDEXER_METRICS_URL: indexerMetricsUrl,
+      DISCORD_WEBHOOK_URL: preserve(),
+      DISCORD_WEBHOOK_URL_PREVIEW: ctx.shared.DISCORD_WEBHOOK_URL_PREVIEW,
     },
     build: {
       builder: "DOCKERFILE",
@@ -96,7 +115,6 @@ export default defineRailway((ctx) => {
         "/pnpm-lock.yaml",
         "/pnpm-workspace.yaml",
         "/Dockerfile-snapshot-publisher",
-        "/.railway/**",
       ],
       buildEnvironment: "V3",
     },
@@ -111,7 +129,10 @@ export default defineRailway((ctx) => {
 
   const snapshotGateway = service("snapshot-gateway", {
     source,
-    env: { ...bucketVariables, PORT: "8080" },
+    env: {
+      ...bucketVariables,
+      PORT: String(publicHttpTargetPorts["snapshot-gateway"]),
+    },
     build: {
       builder: "DOCKERFILE",
       dockerfilePath: "Dockerfile-snapshot-gateway",
@@ -124,7 +145,6 @@ export default defineRailway((ctx) => {
         "/pnpm-lock.yaml",
         "/pnpm-workspace.yaml",
         "/Dockerfile-snapshot-gateway",
-        "/.railway/**",
       ],
       buildEnvironment: "V3",
     },
@@ -137,7 +157,12 @@ export default defineRailway((ctx) => {
     replicas: { "us-west2": 1 },
     networking: { privateNetworkEndpoint: "graphql-proxy" },
     domains: production
-      ? [{ domain: "protocol-visualizer-api.olympusdao.finance", port: 8080 }]
+      ? [
+          {
+            domain: "protocol-visualizer-api.olympusdao.finance",
+            port: publicHttpTargetPorts["snapshot-gateway"],
+          },
+        ]
       : [],
   });
 
@@ -151,7 +176,7 @@ export default defineRailway((ctx) => {
     build: {
       builder: "DOCKERFILE",
       dockerfilePath: "Dockerfile-hasura",
-      watchPatterns: ["/Dockerfile-hasura", "/.railway/**"],
+      watchPatterns: ["/Dockerfile-hasura"],
       buildEnvironment: "V3",
     },
     deploy: {
@@ -180,13 +205,13 @@ export default defineRailway((ctx) => {
       dockerfilePath: "Dockerfile-indexer",
       watchPatterns: [
         "/apps/indexer/**",
+        "/packages/snapshot-artifacts/src/observation-constants.ts",
         "/packages/contract-abis/abis/**",
         "/packages/protocol-config/**",
         "/package.json",
         "/pnpm-lock.yaml",
         "/pnpm-workspace.yaml",
         "/Dockerfile-indexer",
-        "/.railway/**",
       ],
       buildEnvironment: "V3",
     },
@@ -199,9 +224,47 @@ export default defineRailway((ctx) => {
     replicas: { "us-west2": 1 },
   });
 
+  const monitorState = bucket("monitor-state", { region: "sjc" });
+  const indexerMonitor = service("indexer-monitor", {
+    source,
+    env: {
+      BUCKET: ref(monitorState, "BUCKET"),
+      ENDPOINT: ref(monitorState, "ENDPOINT"),
+      REGION: ref(monitorState, "REGION"),
+      ACCESS_KEY_ID: ref(monitorState, "ACCESS_KEY_ID"),
+      SECRET_ACCESS_KEY: ref(monitorState, "SECRET_ACCESS_KEY"),
+      INDEXER_METRICS_URL: indexerMetricsUrl,
+      DISCORD_WEBHOOK_URL: preserve(),
+      DISCORD_WEBHOOK_URL_PREVIEW: ctx.shared.DISCORD_WEBHOOK_URL_PREVIEW,
+      MONITOR_NAME: "Visualizer",
+      MONITOR_COOLDOWN_MINUTES: preserve(),
+    },
+    build: {
+      builder: "DOCKERFILE",
+      dockerfilePath: "Dockerfile-indexer-monitor",
+      watchPatterns: [
+        "/Dockerfile-indexer-monitor",
+        "/apps/indexer-monitor/package.json",
+        "/apps/indexer-monitor/src/**",
+        "/apps/indexer-monitor/tsconfig.json",
+        "/package.json",
+        "/pnpm-lock.yaml",
+        "/pnpm-workspace.yaml",
+      ],
+      buildEnvironment: "V3",
+    },
+    deploy: {
+      cronSchedule: "*/15 * * * *",
+      restartPolicyType: "NEVER",
+      limitOverride: { containers: { cpu: 0.5, memoryBytes: 1000000000 } },
+    },
+    replicas: { "us-west2": 1 },
+  });
+
   const frontend = service("frontend", {
     source,
     env: {
+      PORT: String(publicHttpTargetPorts.frontend),
       VITE_PROTOCOL_SNAPSHOT_BASE_URL:
         "https://${{snapshot-gateway.RAILWAY_PUBLIC_DOMAIN}}",
     },
@@ -210,12 +273,12 @@ export default defineRailway((ctx) => {
       dockerfilePath: "Dockerfile-frontend",
       watchPatterns: [
         "/apps/frontend/**",
+        "/packages/snapshot-artifacts/src/**",
         "/packages/protocol-config/**",
         "/package.json",
         "/pnpm-lock.yaml",
         "/pnpm-workspace.yaml",
         "/Dockerfile-frontend",
-        "/.railway/**",
       ],
       buildEnvironment: "V3",
     },
@@ -227,7 +290,12 @@ export default defineRailway((ctx) => {
     },
     replicas: { "us-west2": 1 },
     domains: production
-      ? [{ domain: "protocol-visualizer.olympusdao.finance", port: 8080 }]
+      ? [
+          {
+            domain: "protocol-visualizer.olympusdao.finance",
+            port: publicHttpTargetPorts.frontend,
+          },
+        ]
       : [],
   });
 
@@ -236,9 +304,9 @@ export default defineRailway((ctx) => {
     env: {
       ...bucketVariables,
       ...rpcUrls("RPC_URL_"),
-      INDEXER_METRICS_URL:
-        "http://${{indexer.RAILWAY_PRIVATE_DOMAIN}}:${{indexer.PORT}}/metrics",
-      DISCORD_WEBHOOK_URL: ctx.shared.DISCORD_WEBHOOK_URL,
+      INDEXER_METRICS_URL: indexerMetricsUrl,
+      DISCORD_WEBHOOK_URL: preserve(),
+      DISCORD_WEBHOOK_URL_PREVIEW: ctx.shared.DISCORD_WEBHOOK_URL_PREVIEW,
     },
     build: {
       builder: "DOCKERFILE",
@@ -251,7 +319,6 @@ export default defineRailway((ctx) => {
         "/pnpm-lock.yaml",
         "/pnpm-workspace.yaml",
         "/Dockerfile-snapshot-monitor",
-        "/.railway/**",
       ],
       buildEnvironment: "V3",
     },
@@ -276,11 +343,7 @@ export default defineRailway((ctx) => {
     build: {
       builder: "DOCKERFILE",
       dockerfilePath: "Dockerfile-rpc-cache",
-      watchPatterns: [
-        "/services/rpc-cache/**",
-        "/Dockerfile-rpc-cache",
-        "/.railway/**",
-      ],
+      watchPatterns: ["/services/rpc-cache/**", "/Dockerfile-rpc-cache"],
     },
     healthcheck: "/healthcheck",
     healthcheckTimeout: 30,
@@ -288,9 +351,13 @@ export default defineRailway((ctx) => {
     deploy: { restartPolicyMaxRetries: 1 },
   });
 
-  const privateIndexing = group("Private Indexing", [hasura, indexer]);
+  const privateIndexing = group("Private Indexing", [
+    hasura,
+    indexer,
+    indexerMonitor,
+  ]);
   const data = group("Data", [envioDatabase]);
-  const publicServices = group("Public", [snapshotGateway, frontend]);
+  const publicGroup = group("Public", [snapshotGateway, frontend]);
   const definition = {
     variables: {
       managed: true,
@@ -298,7 +365,8 @@ export default defineRailway((ctx) => {
       ignore: [
         "ENVIO_RPC_MODE",
         "INDEXER_DEPLOYMENT_ID",
-        "MONITOR_*",
+        "snapshot-monitor/MONITOR_*",
+        "snapshot-publisher/MONITOR_*",
         "SNAPSHOT_*",
         "PUBLISHER_*",
         "PROTOCOL_CHAINS_CONFIG_PATH",
@@ -314,10 +382,27 @@ export default defineRailway((ctx) => {
       envioData,
       cacheData,
       storage,
+      monitorState,
       privateIndexing,
       data,
-      publicServices,
+      publicGroup,
     ],
   };
+  // Apply native maps AFTER SDK normalization so its networking defaults cannot
+  // replace the explicit CLI removals. TCP maps are sparse patches:
+  // null deletes each known/imported port; an empty map cannot remove a proxy.
+  for (const resource of definition.resources.flat()) {
+    if (resource.type !== "service" && resource.type !== "database") continue;
+    resource.networking = {
+      ...resource.networking,
+      tcpProxies: tcpRemovals(
+        resource.name,
+        existing?.tcpPorts.get(resource.name)
+      ),
+      ...(!Object.hasOwn(publicHttpTargetPorts, resource.name)
+        ? { serviceDomains: {}, customDomains: {} }
+        : {}),
+    };
+  }
   return project("protocol-visualizer", definition);
 });

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import "../apps/indexer/scripts/register-typescript.mjs";
+
 const { parseGraphUrl, writeGraphUrl } = await import(
   "../apps/frontend/src/components/contract-visualizer/navigation.ts"
 );

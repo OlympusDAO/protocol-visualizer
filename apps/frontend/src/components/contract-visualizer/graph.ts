@@ -1,12 +1,12 @@
+import type { Node } from "reactflow";
 import otherContracts from "../../../../../packages/protocol-config/other-contracts.json";
 import type {
-  ContractState,
-  ContractRelationship,
   ChainObservation,
+  ContractRelationship,
+  ContractState,
   FunctionContext,
   HeartTasks,
 } from "../../../../../packages/snapshot-artifacts/src/index";
-import type { Node } from "reactflow";
 
 export const KERNEL_HISTORY_SECTIONS = [
   {

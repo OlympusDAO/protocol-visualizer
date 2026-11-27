@@ -10,11 +10,15 @@ contracts. eRPC, provider protection and canonical block checks remain.
 Historical 10,000-block callbacks no longer sweep getters. Creation callbacks
 only initialize the core contracts born at that boundary, after constructor
 logs. A bounded replay performs a full observation at its exact endpoint. An
-unbounded run retains the 100-block cadence, observes only within 99 blocks of
-the current RPC head, and skips older callbacks after one head lookup. This also
-works before native readiness in the final cold backfill batch. Preload does not
-advance eligibility. A stationary, nonaligned tip can wait for the next cadence
-block; Envio exposes no public transactional catch-up callback.
+unbounded run samples candidate blocks roughly once a minute per chain. The
+stride is the approximate 30-minute block count divided by 30 (about one minute
+of blocks), and only candidates
+within one stride of the RPC head are eligible. The first eligible block gets a
+full verification even in the final cold backfill batch before native
+readiness. Once a verification completes, later candidates use their actual
+block timestamp and the stored `ChainObservation` to verify at most once per
+UTC half-hour window. Preload leaves eligibility unchanged. A stationary tip
+between candidate blocks can wait for the next candidate.
 
 Full observations read getters, dependencies and target bytecode at the canonical
 block. Cross-block deployment/immutable and Kernel reuse are removed, together
@@ -45,15 +49,15 @@ check at manifest promotion.
 
 ## Decisions and limits
 
-| Decision | Reason and remaining cost |
-| --- | --- |
+| Decision                                                 | Reason and remaining cost                                                                                                                                                                                                                                           |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Remove cross-block immutable/deployment and Kernel reuse | Current-only verification removes most repeated sweeps. Deployment lifetime, custom proxy and event-invalidation assumptions no longer justify a separate reuse system. New contracts receive fresh reads; immutable detection is no longer a runtime optimization. |
-| Remove the raw-call effect layer | eRPC and existing domain effects already cache calls. Deletion trades a small increase in proxy traffic for a simpler read path; eRPC cannot absorb every hash-bound call when finality is unknown. |
-| Keep block-hash bytecode/domain effects | Their cache identity and opening/closing canonical checks protect against forks. Failures do not become reusable successful observations. |
-| Keep bounded RPC recovery and HTTP batching | They cap private-proxy pressure and prevent exhausted capacity reads from being committed as missing values. Long outages can still exhaust recovery and require restart. |
-| Keep the two-subject scheduler | It overlaps independent I/O while preserving same-address ordering and draining sibling work on failure. No generic worker scheduler is added. |
-| Keep ownership dialects and proof provenance | OZ, Solmate and Chainlink have different pending-owner semantics; some nominees have no public getter. This is now correctness/provenance code, not a getter-saving claim. Readable getters are checked at every full observation. |
-| Keep metadata prefetch/cache and admission | Source-service quotas remain independent of RPC capacity. Metadata admission depends on Envio's internal worker description and the pinned maximum of four workers. Recheck that compatibility on Envio upgrades or topology changes. |
+| Remove the raw-call effect layer                         | eRPC and existing domain effects already cache calls. Deletion trades a small increase in proxy traffic for a simpler read path; eRPC cannot absorb every hash-bound call when finality is unknown.                                                                 |
+| Keep block-hash bytecode/domain effects                  | Their cache identity and opening/closing canonical checks protect against forks. Failures do not become reusable successful observations.                                                                                                                           |
+| Keep bounded RPC recovery and HTTP batching              | They cap private-proxy pressure and prevent exhausted capacity reads from being committed as missing values. Long outages can still exhaust recovery and require restart.                                                                                           |
+| Keep the two-subject scheduler                           | It overlaps independent I/O while preserving same-address ordering and draining sibling work on failure. No generic worker scheduler is added.                                                                                                                      |
+| Keep ownership dialects and proof provenance             | OZ, Solmate and Chainlink have different pending-owner semantics; some nominees have no public getter. This is now correctness/provenance code, not a getter-saving claim. Readable getters are checked at every full observation.                                  |
+| Keep metadata prefetch/cache and admission               | Source-service quotas remain independent of RPC capacity. Metadata admission depends on Envio's internal worker description and the pinned maximum of four workers. Recheck that compatibility on Envio upgrades or topology changes.                               |
 
 The static review found no demonstrated correctness blocker in the retained
 runtime. It did not attribute the whole-branch timing gain to individual retained
@@ -62,7 +66,7 @@ a current-only worker benefit. The matched primary replay uses one process.
 
 One remaining liveness limit is a deep head regression below the remembered live
 eligibility threshold. Verification can wait until callbacks reach that threshold
-again. A quiet, nonaligned tip can also wait for the next 100-block callback.
+again.
 Observation scheduling is separate from publication readiness: the publisher
 trusts Envio's catch-up decision and validates the marker's canonical integrity.
 An older observation keeps its actual verification block.
@@ -108,12 +112,12 @@ Both revisions used the same recorded proxy image. The later pgx v5 security
 migration has separate integration/security validation; these numbers do not
 measure a speed change from that driver upgrade.
 
-| Median | Robinhood base | Current branch |
-| --- | ---: | ---: |
-| Committed time | 170.550s | 25.035s |
-| Blocks/second | 293.2 | 1,997.3 |
-| Requests reaching eRPC | 20,385 | 902 |
-| Upstream requests, including health probes | 10,491 | 898 |
+| Median                                     | Robinhood base | Current branch |
+| ------------------------------------------ | -------------: | -------------: |
+| Committed time                             |       170.550s |        25.035s |
+| Blocks/second                              |          293.2 |        1,997.3 |
+| Requests reaching eRPC                     |         20,385 |            902 |
+| Upstream requests, including health probes |         10,491 |            898 |
 
 Throughput improved **581.26% (6.81×)**; elapsed time fell **85.32%**. Requests
 reaching eRPC fell **95.58%**, and upstream requests fell **91.44%**. These are

@@ -1,12 +1,12 @@
 version: 2
+# Security updates only; zero limits disable routine version-update PRs.
 updates:
   # Root package.json
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 5
+      interval: "daily"
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
     versioning-strategy: increase
@@ -15,9 +15,8 @@ updates:
   - package-ecosystem: "npm"
     directory: "/apps/frontend"
     schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 3
+      interval: "daily"
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
     versioning-strategy: increase
@@ -26,9 +25,8 @@ updates:
   - package-ecosystem: "npm"
     directory: "/apps/indexer"
     schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 3
+      interval: "daily"
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
     versioning-strategy: increase
@@ -37,9 +35,8 @@ updates:
   - package-ecosystem: "npm"
     directory: "/apps/snapshot-publisher"
     schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 3
+      interval: "daily"
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
     versioning-strategy: increase
@@ -48,9 +45,8 @@ updates:
   - package-ecosystem: "npm"
     directory: "/apps/snapshot-gateway"
     schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 3
+      interval: "daily"
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
     versioning-strategy: increase

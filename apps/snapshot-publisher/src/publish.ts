@@ -119,11 +119,48 @@ export const PUBLISHER_NOTIFICATION_STATE_KEY =
   "v1/publisher-notification-state.json";
 
 const getRequiredEnv = (key: string): string => {
-  const value = process.env[key]?.trim();
-  if (!value) {
+  const value = process.env[key];
+  if (!value?.trim()) {
     throw new Error(`${key} is required`);
   }
-  return value;
+  return key === "RAILWAY_ENVIRONMENT_NAME" ? value : value.trim();
+};
+
+const isProductionEnvironment = () => {
+  const name =
+    process.env.RAILWAY_ENVIRONMENT_NAME === undefined
+      ? undefined
+      : getRequiredEnv("RAILWAY_ENVIRONMENT_NAME");
+  const id =
+    process.env.RAILWAY_ENVIRONMENT_ID === undefined
+      ? undefined
+      : getRequiredEnv("RAILWAY_ENVIRONMENT_ID");
+  if (id !== undefined && name === undefined)
+    throw new Error("RAILWAY_ENVIRONMENT_NAME is required");
+  return name === undefined || name === "production";
+};
+
+const discordWebhookUrl = () => {
+  const key = isProductionEnvironment()
+    ? "DISCORD_WEBHOOK_URL"
+    : "DISCORD_WEBHOOK_URL_PREVIEW";
+  const value = getRequiredEnv(key);
+  try {
+    const url = new URL(value);
+    if (
+      !["http:", "https:"].includes(url.protocol) ||
+      url.username ||
+      url.password
+    )
+      throw new Error(
+        "Webhook URL must use HTTP or HTTPS without embedded credentials."
+      );
+    return url.href;
+  } catch {
+    throw new Error(
+      `${key} must be an HTTP or HTTPS URL without embedded credentials`
+    );
+  }
 };
 
 const createS3Client = () =>
@@ -194,27 +231,6 @@ export const uploadSnapshotFiles = async (
   }
 };
 
-const objectBodyToString = async (body: unknown): Promise<string> => {
-  if (typeof body === "string") return body;
-  if (body instanceof Uint8Array) return Buffer.from(body).toString("utf8");
-  if (
-    body &&
-    typeof body === "object" &&
-    "transformToString" in body &&
-    typeof body.transformToString === "function"
-  ) {
-    return body.transformToString();
-  }
-  if (body && typeof body === "object" && Symbol.asyncIterator in body) {
-    const chunks: Buffer[] = [];
-    for await (const chunk of body as AsyncIterable<Uint8Array | string>) {
-      chunks.push(Buffer.from(chunk));
-    }
-    return Buffer.concat(chunks).toString("utf8");
-  }
-  return "";
-};
-
 const isConditionalWriteFailure = (error: unknown) =>
   error instanceof Error &&
   ["PreconditionFailed", "ConditionalRequestConflict", "NotModified"].includes(
@@ -231,7 +247,7 @@ const getJsonObjectWithMetadata = async <T>(
       new GetObjectCommand({ Bucket: bucket, Key: key })
     );
     return {
-      value: JSON.parse(await objectBodyToString(output.Body)) as T,
+      value: JSON.parse((await output.Body?.transformToString()) ?? "") as T,
       etag: typeof output.ETag === "string" ? output.ETag : undefined,
     };
   } catch {
@@ -615,7 +631,7 @@ const sendChainNotifications = async (input: {
   progress?: IndexingProgress;
   readiness?: EnvioMetricsReadiness;
 }): Promise<DiscordNotificationResult> => {
-  const webhookUrl = getRequiredEnv("DISCORD_WEBHOOK_URL");
+  const webhookUrl = discordWebhookUrl();
   if (
     input.chains.some(
       (chain) => !["production", "testnet"].includes(chain.environment ?? "")
@@ -731,7 +747,9 @@ const notifyHandover = async (
     content: "Protocol visualizer snapshot handover completed",
     embed: {
       title: "Protocol Visualizer Snapshot Handover",
-      description: `Environment ${environmentName}`,
+      description: isProductionEnvironment()
+        ? undefined
+        : `Environment ${environmentName}`,
       fields: [
         {
           name: "Deployment ID",
@@ -788,7 +806,9 @@ const notifyIndexingProgress = async (input: {
         input.decision === "handover_in_progress"
           ? "Protocol Visualizer New Deployment Indexing"
           : "Protocol Visualizer Indexing Continues",
-      description: `Environment ${input.environmentName}`,
+      description: isProductionEnvironment()
+        ? undefined
+        : `Environment ${input.environmentName}`,
       fields: [
         {
           name: "Indexing deployment",
@@ -879,7 +899,7 @@ const loadPublisherChains = async () => {
 
 export async function runPublisher(deps: PublisherDependencies = {}) {
   const outputDir = process.env.SNAPSHOT_OUTPUT_DIR;
-  if (!outputDir) getRequiredEnv("DISCORD_WEBHOOK_URL");
+  if (!outputDir) discordWebhookUrl();
   const publicBasePath =
     process.env.SNAPSHOT_PUBLIC_BASE_PATH || DEFAULT_PUBLIC_BASE_PATH;
   const publicOrigin = process.env.SNAPSHOT_PUBLIC_ORIGIN;
@@ -1146,7 +1166,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const run = process.argv.includes("--check-config")
     ? loadPublisherChains().then((chains) => {
         assertRpcConfiguration(chains);
-        getRequiredEnv("DISCORD_WEBHOOK_URL");
+        discordWebhookUrl();
       })
     : runPublisher();
   run.catch((error) => {

@@ -90,7 +90,7 @@ test("shortens deployment ids for Discord output", () => {
 });
 
 test("sends one daily indexing summary", () => {
-  const result = evaluateMonitor({
+  const input: Parameters<typeof evaluateMonitor>[0] = {
     chains: [mainnet],
     environmentName: "protocol-visualizer-pr-49",
     deploymentId: "deployment-a",
@@ -100,7 +100,8 @@ test("sends one daily indexing summary", () => {
     state: {},
     now: new Date("2026-06-05T01:00:00.000Z"),
     staleThresholdMs: Number.MAX_SAFE_INTEGER,
-  });
+  };
+  const result = evaluateMonitor(input);
   assert.equal(result.messages.length, 1);
   assert.match(
     result.messages[0] ?? "",
@@ -133,6 +134,14 @@ test("sends one daily indexing summary", () => {
     },
   ]);
   assert.equal(result.state.lastDailySummaryAt, "2026-06-05");
+  const production = evaluateMonitor({
+    ...input,
+    environmentName: "production",
+  });
+  assert.equal(
+    production.discordMessages[0]?.embeds?.[0]?.description,
+    undefined
+  );
 });
 
 test("groups all nine indexed chains by catalog environment with full-width status rows", () => {
@@ -254,17 +263,21 @@ test("warns when no manifest exists", () => {
   const result = evaluateMonitor({
     chains: [mainnet],
     deploymentId: "deployment-c",
+    environmentName: "renamed-production",
     state: { lastDailySummaryAt: "2026-06-05" },
     now: new Date("2026-06-05T02:00:00.000Z"),
   });
-  assert.equal(result.messages.length, 1);
-  assert.match(result.messages[0] ?? "", /no active manifest/);
+  const message =
+    "Protocol visualizer snapshot monitor (renamed-production): no active manifest is published for deployment deployment-c.";
+  assert.deepEqual(result.messages, [message]);
+  assert.deepEqual(result.discordMessages, [{ content: message }]);
 });
 
 test("warns when chain progress stops advancing beyond the threshold", () => {
   const result = evaluateMonitor({
     chains: [mainnet],
     deploymentId: "deployment-d",
+    environmentName: "protocol-visualizer-pr-49",
     manifest: manifest("2026-06-05T00:00:00.000Z"),
     state: {
       lastDailySummaryAt: "2026-06-05",
@@ -279,7 +292,10 @@ test("warns when chain progress stops advancing beyond the threshold", () => {
     now: new Date("2026-06-05T01:00:00.000Z"),
     staleThresholdMs: 24 * 60 * 60 * 1000,
   });
-  assert.match(result.messages.join("\n"), /has not advanced/);
+  const message =
+    "Protocol visualizer indexing warning (protocol-visualizer-pr-49): Mainnet has not advanced since 2026-06-04T00:00:00.000Z at block 123.";
+  assert.deepEqual(result.messages, [message]);
+  assert.deepEqual(result.discordMessages, [{ content: message }]);
   assert.equal(
     result.state.chainProgress?.Mainnet?.observedAt,
     "2026-06-04T00:00:00.000Z"
@@ -305,15 +321,32 @@ test("warns when Envio metrics report a chain is not ready", () => {
 });
 
 test("warns when active snapshots are older than the stale threshold", () => {
-  const result = evaluateMonitor({
+  const input = {
     chains: [mainnet],
     deploymentId: "deployment-f",
     manifest: manifest("2026-06-04T00:00:00.000Z"),
     state: { lastDailySummaryAt: "2026-06-05" },
     now: new Date("2026-06-05T01:00:00.000Z"),
     staleThresholdMs: 24 * 60 * 60 * 1000,
+  };
+  const preview = evaluateMonitor({
+    ...input,
+    environmentName: " production ",
   });
-  assert.match(result.messages.join("\n"), /active snapshots are 25h old/);
+  const production = evaluateMonitor({
+    ...input,
+    environmentName: "production",
+  });
+  const detail =
+    "active snapshots are 25h old. Active manifest was generated at 2026-06-04T00:00:00.000Z.";
+  const previewMessage = `Protocol visualizer snapshot warning ( production ): ${detail}`;
+  const productionMessage = `Protocol visualizer snapshot warning: ${detail}`;
+  assert.deepEqual(preview.messages, [previewMessage]);
+  assert.deepEqual(preview.discordMessages, [{ content: previewMessage }]);
+  assert.deepEqual(production.messages, [productionMessage]);
+  assert.deepEqual(production.discordMessages, [
+    { content: productionMessage },
+  ]);
 });
 
 test("does not alert when a new deployment is indexing before handover", () => {
@@ -419,7 +452,10 @@ test("monitor displays unavailable timestamps without epoch dates or Discord epo
 });
 
 test("monitor attempts both groups and saves summary state only after complete delivery", async (t) => {
-  const bodies: Array<{ content: string }> = [];
+  const bodies: Array<{
+    content: string;
+    embeds: Array<{ description?: string }>;
+  }> = [];
   const savedStates: unknown[] = [];
   let failedIndex = -1;
   t.mock.method(console, "log", () => {});
@@ -450,7 +486,7 @@ test("monitor attempts both groups and saves summary state only after complete d
         },
         webhookUrl: "http://discord.local/private-webhook-token",
         stateKey: "monitor-state",
-        environmentName: "protocol-visualizer-pr-49",
+        environmentName: "production",
         deploymentId: "deployment-a",
         now: new Date("2026-06-05T01:00:00.000Z"),
         staleThresholdMs: Number.MAX_SAFE_INTEGER,
@@ -465,6 +501,8 @@ test("monitor attempts both groups and saves summary state only after complete d
       assert.equal(savedStates.length, 0);
     }
     assert.equal(bodies.length, 2);
+    for (const body of bodies)
+      assert.equal(body.embeds[0]?.description, undefined);
     assert.match(bodies[0]?.content ?? "", /Production chains$/);
     assert.match(bodies[1]?.content ?? "", /Testnets$/);
   }
@@ -581,6 +619,7 @@ test("logs a sanitized stage when indexer metrics cannot be fetched", async () =
     ACCESS_KEY_ID: "test-access-key",
     SECRET_ACCESS_KEY: "test-secret-key",
     DISCORD_WEBHOOK_URL: "http://discord.local/webhook",
+    DISCORD_WEBHOOK_URL_PREVIEW: "http://discord.local/webhook",
   });
 
   try {
@@ -630,6 +669,7 @@ test("logs missing storage configuration during configuration loading", async ()
     ACCESS_KEY_ID: "test-access-key",
     SECRET_ACCESS_KEY: "test-secret-key",
     DISCORD_WEBHOOK_URL: "http://discord.local/webhook",
+    DISCORD_WEBHOOK_URL_PREVIEW: "http://discord.local/webhook",
   });
   delete process.env.BUCKET;
 
@@ -655,7 +695,9 @@ test("logs a missing webhook before creating storage or fetching metrics", async
   const originalEnv = { ...process.env };
   const errors: Array<{ message: string; details: Record<string, unknown> }> =
     [];
-  delete process.env.DISCORD_WEBHOOK_URL;
+  process.env.RAILWAY_ENVIRONMENT_NAME = "protocol-visualizer-pr-42";
+  process.env.DISCORD_WEBHOOK_URL = "https://discord.example/production";
+  delete process.env.DISCORD_WEBHOOK_URL_PREVIEW;
   delete process.env.BUCKET;
   const fetchMock = t.mock.method(globalThis, "fetch", async () => {
     throw new Error("unexpected network request");
@@ -667,7 +709,7 @@ test("logs a missing webhook before creating storage or fetching metrics", async
           error: (message, details) => errors.push({ message, details }),
           info: () => undefined,
         }),
-      /DISCORD_WEBHOOK_URL is required/
+      /DISCORD_WEBHOOK_URL_PREVIEW is required/
     );
   } finally {
     process.env = originalEnv;
@@ -675,7 +717,10 @@ test("logs a missing webhook before creating storage or fetching metrics", async
   assert.equal(fetchMock.mock.calls.length, 0);
   assert.equal(errors.length, 1);
   assert.equal(errors[0]?.details.stage, "load_configuration");
-  assert.equal(errors[0]?.details.message, "DISCORD_WEBHOOK_URL is required");
+  assert.equal(
+    errors[0]?.details.message,
+    "DISCORD_WEBHOOK_URL_PREVIEW is required"
+  );
 });
 
 test("rejects over 25 fields per embed before sending, allowing 25 in each embed", async (t) => {

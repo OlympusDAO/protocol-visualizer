@@ -1,4 +1,5 @@
 ---
+
 name: protocol-visualizer-benchmark
 description: Run the Protocol Visualizer indexer's standardized HyperSync benchmark, compare branches, and prepare indexing-performance evidence for an authorized PR update.
 ---
@@ -18,7 +19,7 @@ measurement to a new proxy image.
 
 - Use the repository-pinned Node/pnpm and frozen dependencies. Follow `AGENTS.md`
   validation; a benchmark does not replace it.
-- Build `protocol-visualizer/rpc-cache:local`; make `postgres:17-alpine` available.
+- Build `protocol-visualizer/rpc-cache:local`; make `postgres:18.6-alpine3.24@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b` available.
   Use identical immutable proxy/database images for both revisions.
 - Supply `ENVIO_API_TOKEN`, `ETHERSCAN_API_KEY` and the nine
   `UPSTREAM_RPC_URL_<chain>` variables through an authorized private env file.

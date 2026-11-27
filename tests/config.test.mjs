@@ -1,11 +1,19 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
-import { test } from "node:test";
 import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { test } from "node:test";
 
 import { createRailwayContext } from "railway/iac";
 import defineInfrastructure from "../.railway/railway.ts";
+
+const requireFromFrontend = createRequire(
+  new URL("../apps/frontend/package.json", import.meta.url)
+);
+const { parse } = createRequire(
+  requireFromFrontend.resolve("vite/package.json")
+)("yaml");
 
 const railwayServices = defineInfrastructure(
   createRailwayContext({ environment: "production" })
@@ -14,6 +22,14 @@ const railwayServices = defineInfrastructure(
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 
 const dockerfileContent = (path) => readFileSync(path, "utf8");
+
+test("frontend builds retain dependency ordering and dist output without caching external sources", () => {
+  assert.deepEqual(readJson("turbo.json").tasks["frontend#build"], {
+    dependsOn: ["^build"],
+    outputs: ["dist/**"],
+    cache: false,
+  });
+});
 
 test("chain catalog and indexer agree on indexed networks", () => {
   const chains = readJson("packages/protocol-config/protocol-chains.json");
@@ -53,7 +69,13 @@ test("snapshot pre-deploy commands fail on missing RPC settings and validate wit
   ).filter((chain) => chain.availability !== "historical");
   const environment = Object.fromEntries(
     Object.entries(process.env).filter(
-      ([name]) => !name.startsWith("RPC_URL_") && name !== "DISCORD_WEBHOOK_URL"
+      ([name]) =>
+        !name.startsWith("RPC_URL_") &&
+        ![
+          "DISCORD_WEBHOOK_URL",
+          "DISCORD_WEBHOOK_URL_PREVIEW",
+          "RAILWAY_ENVIRONMENT_NAME",
+        ].includes(name)
     )
   );
   environment.PROTOCOL_CHAINS_CONFIG_PATH = resolve(
@@ -66,9 +88,63 @@ test("snapshot pre-deploy commands fail on missing RPC settings and validate wit
       "https://rpc.example/configured",
     ])
   );
-  for (const [service, entry] of [
-    ["snapshot-publisher", "publish.js"],
-    ["snapshot-monitor", "index.js"],
+  for (const [service, entry, environmentName, webhookName, runtimeId] of [
+    [
+      "snapshot-publisher",
+      "publish.js",
+      "production",
+      "DISCORD_WEBHOOK_URL",
+      "1b61e496-b565-42b4-9e5d-8096e28e13cd",
+    ],
+    [
+      "snapshot-monitor",
+      "index.js",
+      "production",
+      "DISCORD_WEBHOOK_URL",
+      "1b61e496-b565-42b4-9e5d-8096e28e13cd",
+    ],
+    [
+      "snapshot-publisher",
+      "publish.js",
+      "renamed-production",
+      "DISCORD_WEBHOOK_URL_PREVIEW",
+      "1b61e496-b565-42b4-9e5d-8096e28e13cd",
+    ],
+    [
+      "snapshot-monitor",
+      "index.js",
+      "renamed-production",
+      "DISCORD_WEBHOOK_URL_PREVIEW",
+      "1b61e496-b565-42b4-9e5d-8096e28e13cd",
+    ],
+    [
+      "snapshot-publisher",
+      "publish.js",
+      " production ",
+      "DISCORD_WEBHOOK_URL_PREVIEW",
+      "fixture-preview",
+    ],
+    [
+      "snapshot-monitor",
+      "index.js",
+      " production ",
+      "DISCORD_WEBHOOK_URL_PREVIEW",
+      "fixture-preview",
+    ],
+    [
+      "snapshot-publisher",
+      "publish.js",
+      "protocol-visualizer-pr-42",
+      "DISCORD_WEBHOOK_URL_PREVIEW",
+      "fixture-preview",
+    ],
+    [
+      "snapshot-monitor",
+      "index.js",
+      "protocol-visualizer-pr-42",
+      "DISCORD_WEBHOOK_URL_PREVIEW",
+      "fixture-preview",
+    ],
   ]) {
     const command = railwayServices.find((node) => node.name === service).deploy
       .preDeployCommand;
@@ -76,7 +152,14 @@ test("snapshot pre-deploy commands fail on missing RPC settings and validate wit
     const run = (variables) =>
       spawnSync(process.execPath, [`dist/src/${entry}`, "--check-config"], {
         cwd: resolve(`apps/${service}`),
-        env: { ...environment, ...variables },
+        env: {
+          ...environment,
+          RAILWAY_ENVIRONMENT_NAME: environmentName,
+          RAILWAY_ENVIRONMENT_ID: runtimeId,
+          DISCORD_WEBHOOK_URL: "https://discord.example/production",
+          DISCORD_WEBHOOK_URL_PREVIEW: "https://discord.example/preview",
+          ...variables,
+        },
         encoding: "utf8",
         timeout: 5000,
       });
@@ -85,13 +168,34 @@ test("snapshot pre-deploy commands fail on missing RPC settings and validate wit
     });
     assert.equal(missing.status, 1);
     assert.match(missing.stderr, /Missing required RPC variables: RPC_URL_1/);
+    const missingName = run({
+      ...configured,
+      RAILWAY_ENVIRONMENT_NAME: undefined,
+    });
+    assert.equal(missingName.status, 1);
+    assert.match(missingName.stderr, /RAILWAY_ENVIRONMENT_NAME is required/);
     for (const webhook of [undefined, "", "  "]) {
       const missingWebhook = run({
         ...configured,
-        DISCORD_WEBHOOK_URL: webhook,
+        [webhookName]: webhook,
       });
       assert.equal(missingWebhook.status, 1);
-      assert.match(missingWebhook.stderr, /DISCORD_WEBHOOK_URL is required/);
+      assert.match(
+        missingWebhook.stderr,
+        new RegExp(`${webhookName} is required`)
+      );
+    }
+    for (const value of [
+      "file:///fixture-secret",
+      "http://user:fixture-secret@127.0.0.1/",
+    ]) {
+      const invalidWebhook = run({ ...configured, [webhookName]: value });
+      assert.equal(invalidWebhook.status, 1);
+      assert.match(
+        invalidWebhook.stderr,
+        new RegExp(`${webhookName} must be an HTTP or HTTPS URL`)
+      );
+      assert.doesNotMatch(invalidWebhook.stderr, /fixture-secret/);
     }
     const valid = run({
       ...configured,
@@ -117,7 +221,11 @@ test("snapshot jobs log missing webhooks and exit unsuccessfully on startup", ()
     ["snapshot-monitor", "index.js"],
   ]) {
     for (const webhook of [undefined, "", "  "]) {
-      const env = { ...process.env, DISCORD_WEBHOOK_URL: webhook };
+      const env = {
+        ...process.env,
+        RAILWAY_ENVIRONMENT_NAME: "production",
+        DISCORD_WEBHOOK_URL: webhook,
+      };
       delete env.SNAPSHOT_OUTPUT_DIR;
       const result = spawnSync(process.execPath, [`dist/src/${entry}`], {
         cwd: resolve(`apps/${service}`),
@@ -132,57 +240,101 @@ test("snapshot jobs log missing webhooks and exit unsuccessfully on startup", ()
   }
 });
 
-test("CI scans every Dockerfile and local image", () => {
-  const workflow = readFileSync(".github/workflows/security-scan.yml", "utf8");
-  const packageJson = readFileSync("package.json", "utf8");
-  const matrixImages = workflow.match(/image: \[([^\]]+)\]/)[1].split(/,\s*/);
-  for (const name of [
+test("CI exposes complete image coverage using existing build, scan and integration commands", () => {
+  const workflowText = readFileSync(
+    ".github/workflows/security-scan.yml",
+    "utf8"
+  );
+  const workflow = parse(workflowText);
+  const imageJob = workflow.jobs.images;
+  const steps = imageJob.steps;
+  const { scripts } = readJson("package.json");
+  const validator = readFileSync("scripts/validate-images.sh", "utf8");
+  const dockerfiles = readFileSync("scripts/scan-dockerfiles.mjs", "utf8");
+  const imageNames = [
     "indexer",
+    "indexer-monitor",
     "frontend",
     "hasura",
     "snapshot-gateway",
     "snapshot-publisher",
     "snapshot-monitor",
     "rpc-cache",
-  ]) {
-    assert(packageJson.includes(`"container:build:${name}"`));
-    assert(packageJson.includes(`"container:tag:scan:${name}"`));
+  ];
+  for (const name of imageNames) {
     assert(
-      matrixImages.includes(name) ||
-        workflow.includes(`protocol-visualizer/${name}:scan`)
+      scripts["build:docker"]
+        .split(" && ")
+        .includes(`pnpm run build:docker:${name}`)
     );
+    assert(validator.includes(name));
+    assert(imageJob.strategy.matrix.include.some((row) => row.image === name));
   }
-  for (const dockerfile of [
-    "Dockerfile-indexer",
-    "Dockerfile-frontend",
-    "Dockerfile-hasura",
-    "Dockerfile-snapshot-gateway",
-    "Dockerfile-snapshot-publisher",
-    "Dockerfile-snapshot-monitor",
-    "Dockerfile-rpc-cache",
-  ]) {
-    assert(existsSync(dockerfile));
+  for (const name of imageNames) {
+    assert(existsSync(`Dockerfile-${name}`));
   }
-  assert.match(workflow, /TRIVY_FILE_PATTERNS: dockerfile:Dockerfile-\*/);
-  assert.match(workflow, /TRIVY_SKIP_DIRS: node_modules/);
-  assert.match(
-    workflow,
-    /image-ref: protocol-visualizer\/indexer:scan[\s\S]*?ignore-unfixed: true/
+  assert.equal(
+    scripts["build:docker:indexer-monitor"],
+    "node scripts/container.mjs build -f Dockerfile-indexer-monitor -t protocol-visualizer/indexer-monitor:local ."
   );
-  assert.match(
-    workflow,
-    /image-ref: protocol-visualizer\/\$\{\{ matrix.image \}\}:scan/
+  assert.equal(imageJob.strategy["fail-fast"], false);
+  assert.equal(
+    steps.find((step) => step.id === "build").run.trim(),
+    "pnpm run build:docker:${{ matrix.image }}"
   );
-  assert.match(
-    workflow,
-    /ignore-unfixed: \$\{\{ matrix.image == 'hasura' \}\}/
+  const scan = steps.find((step) => step.name === "Scan application image");
+  assert.equal(scan.run.trim(), "pnpm run scan:docker -- ${{ matrix.image }}");
+  assert.equal(
+    scan.if,
+    "${{ !cancelled() && steps.build.outcome == 'success' }}"
   );
-  assert.match(workflow, /fail-fast: false/);
-  assert.match(workflow, /run: pnpm run test:rpc-cache/);
-  assert.match(workflow, /workflow_dispatch:/);
-  assert(!workflow.includes("pnpm audit"));
+  const dockerfileScan = steps.find((step) => step.name === "Check Dockerfile");
+  assert.equal(
+    dockerfileScan.run.trim(),
+    "trivy config --severity MEDIUM,HIGH,CRITICAL --exit-code 1 --file-patterns 'dockerfile:Dockerfile-*' Dockerfile-${{ matrix.image }}"
+  );
+  assert.equal(
+    dockerfileScan.if,
+    "${{ !cancelled() && steps.bootstrap.outcome == 'success' }}"
+  );
+  assert.equal(
+    imageJob.strategy.matrix.include.find((row) => row.image === "rpc-cache")
+      .name,
+    "RPC cache"
+  );
+  assert(
+    steps
+      .find((step) => step.id === "companion")
+      .run.split(/\r?\n/)
+      .some((line) => line.trim() === "pnpm run build:docker:indexer")
+  );
+  const runtimeScan = steps.find(
+    (step) => step.name === "Check runtime image policy"
+  );
+  assert.equal(runtimeScan.run.trim(), "pnpm run scan:docker:runtime");
+  assert.equal(
+    runtimeScan.if,
+    "${{ !cancelled() && matrix.image == 'rpc-cache' && steps.bootstrap.outcome == 'success' }}"
+  );
+  const integration = steps.find(
+    (step) =>
+      step.name === "Required PostgreSQL, cache, reset and docs integration"
+  );
+  assert.equal(integration.run.trim(), "pnpm test:integration");
+  assert.equal(
+    integration.if,
+    "${{ !cancelled() && matrix.image == 'rpc-cache' && steps.build.outcome == 'success' && steps.companion.outcome == 'success' }}"
+  );
+  assert.match(validator, /pnpm run "build:docker:\$image"/);
+  assert.match(validator, /pnpm run scan:docker -- "\$image"/);
+  assert.match(validator, /pnpm run scan:docker:dockerfiles/);
+  assert.match(validator, /pnpm run scan:docker:runtime/);
+  assert(dockerfiles.includes("dockerfile:Dockerfile-*"));
+  assert(dockerfiles.includes('"node_modules"'));
+  assert(Object.hasOwn(workflow.on, "workflow_dispatch"));
+  assert(!workflowText.includes("pnpm audit"));
   const ci = readFileSync(".github/workflows/ci.yml", "utf8");
-  assert(!ci.includes("container:build:"));
+  assert(!ci.includes("build:docker:"));
 });
 
 test("Dependabot treats the snapshot gateway as TypeScript", () => {
@@ -193,32 +345,32 @@ test("Dependabot treats the snapshot gateway as TypeScript", () => {
   );
 });
 
-test("Dependency audit comments are isolated from pull request code", () => {
+test("Dependency audit skips fork PRs and uses the pinned action for same-repository PRs", () => {
   const auditWorkflow = readFileSync(".github/workflows/audit.yml", "utf8");
-  const commentWorkflow = readFileSync(
-    ".github/workflows/audit-comment.yml",
-    "utf8"
+  const audit = parse(auditWorkflow).jobs.audit;
+  assert.equal(
+    audit.if,
+    "github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository"
   );
-
-  assert(!auditWorkflow.includes("pull-requests: write"));
-  assert(!auditWorkflow.includes("github_token:"));
-  assert(auditWorkflow.includes("pnpm audit --audit-level moderate --json"));
-  assert(auditWorkflow.includes("actions/upload-artifact@"));
-  assert(auditWorkflow.includes("workflow_call:"));
+  const prAudit = audit.steps.find(
+    (step) =>
+      step.uses ===
+      "JamesRobertWiseman/pnpm-audit@ef62519bd4eb8b0b063989599c2ebbf5dd5f5f28"
+  );
+  assert.equal(prAudit.if, "github.event_name == 'pull_request'");
+  assert.equal(prAudit.with.level, "moderate");
+  assert.equal(prAudit.with.fails, true);
+  const nativeAudit = audit.steps.find(
+    (step) => step.run === "pnpm audit --audit-level moderate"
+  );
+  assert.equal(nativeAudit.if, "github.event_name != 'pull_request'");
+  assert(!auditWorkflow.includes("workflow_call:"));
   assert(auditWorkflow.includes("pull_request:"));
   const ciWorkflow = readFileSync(".github/workflows/ci.yml", "utf8");
   assert(ciWorkflow.includes("branches: [master]"));
-  assert(ciWorkflow.includes("uses: ./.github/workflows/audit.yml"));
-  assert(auditWorkflow.includes('cron: "17 5 * * 1"'));
-
-  assert(commentWorkflow.includes("workflow_run:"));
-  assert(commentWorkflow.includes("pull-requests: write"));
-  assert(commentWorkflow.includes("actions/download-artifact@"));
-  assert(commentWorkflow.includes("actions/github-script@"));
-  assert(!commentWorkflow.includes("actions/checkout@"));
-  assert(!commentWorkflow.includes("./.github/actions/bootstrap"));
-  assert(!commentWorkflow.includes("pnpm install"));
-  assert(commentWorkflow.includes("conclusion != 'cancelled'"));
+  assert(!ciWorkflow.includes("uses: ./.github/workflows/audit.yml"));
+  assert(auditWorkflow.includes("branches: [master]"));
+  assert(auditWorkflow.includes('cron: "0 0 * * 1"'));
 });
 
 test("Compose includes the Railway-like snapshot services", () => {
@@ -242,6 +394,14 @@ test("Compose includes the Railway-like snapshot services", () => {
   assert(compose.includes("Dockerfile-snapshot-monitor"));
   assert(compose.includes("http://hasura:8080/v1/graphql"));
   assert(compose.includes("http://localhost:8082"));
+  const services = parse(compose).services;
+  const live = services["snapshot-publisher"].environment;
+  const sample = services["snapshot-publisher-sample"].environment;
+  for (const name of [
+    "RAILWAY_ENVIRONMENT_NAME",
+    "DISCORD_WEBHOOK_URL_PREVIEW",
+  ])
+    assert.equal(sample[name], live[name], name);
 });
 
 test("Compose requires Envio API token, Etherscan key, and RPC URLs for local indexer runs", () => {
@@ -331,11 +491,62 @@ test("Env samples and docs keep optional variables commented", () => {
   assert(monitorDocs.includes("indexer.PORT=9898"));
   assert(monitorDocs.includes("# MONITOR_STALE_CHAIN_HOURS=24"));
   assert(railwayDocs.includes("# ENVIO_RPC_MODE="));
-  assert(
-    railwayDocs.includes(
-      "\nDISCORD_WEBHOOK_URL=${{shared.DISCORD_WEBHOOK_URL}}"
-    )
+});
+
+test("every local Compose host binding is explicitly loopback-only", () => {
+  function assertLoopbackPorts(compose) {
+    let bindings = 0;
+    for (const [name, service] of Object.entries(
+      parse(compose, { merge: true }).services
+    ))
+      for (const port of service.ports ?? []) {
+        bindings += 1;
+        assert(
+          typeof port === "string"
+            ? /^(127\.0\.0\.1|\[::1\]):/.test(port)
+            : ["127.0.0.1", "::1"].includes(port?.host_ip),
+          `${name}: ${JSON.stringify(port)} must bind loopback explicitly`
+        );
+      }
+    assert(bindings > 0);
+  }
+  assertLoopbackPorts(readFileSync("docker-compose.yml", "utf8"));
+  assertLoopbackPorts(`services:
+  local:
+    ports: ["127.0.0.1:8080:80", {target: 80, published: 8081, host_ip: "::1"}]
+`);
+  assert.throws(
+    () =>
+      assertLoopbackPorts(`services:
+  local:
+    ports: ["127.0.0.1:8080:80"]
+  unbound:
+    ports: ["8080:80"]
+`),
+    /unbound:.*must bind loopback explicitly/
   );
+  assert.throws(
+    () =>
+      assertLoopbackPorts(`services:
+  unbound:
+    ports: [{target: 80, published: 8080}]
+`),
+    /unbound:.*must bind loopback explicitly/
+  );
+});
+
+test("fresh local PG18 volumes use the official image parent mount and versioned names", () => {
+  const compose = readFileSync("docker-compose.yml", "utf8");
+  const ref =
+    "postgres:18.6-alpine3.24@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b";
+  assert.equal(compose.split(ref).length - 1, 2);
+  assert(compose.includes("postgres18-data:/var/lib/postgresql"));
+  assert(compose.includes("rpc-cache-postgres18-data:/var/lib/postgresql"));
+  assert.equal(
+    compose.match(/PGDATA: \/var\/lib\/postgresql\/18\/docker/g).length,
+    2
+  );
+  assert(!compose.includes("postgres:17"));
 });
 
 test("Compose third-party images are pinned by digest", () => {
@@ -367,7 +578,6 @@ test("Docker context excludes local, generated, and secret-prone artifacts", () 
     "**/coverage",
     "**/.gitignore",
     "**/.dockerignore",
-    "**/.eslintrc.json",
     "**/README.md",
     ".github",
     ".vscode",
@@ -384,6 +594,7 @@ test("Snapshot packages publish only runtime files", () => {
   assert.deepEqual(readJson("apps/snapshot-gateway/package.json").files, [
     "dist/src",
     "openapi.json",
+    "index.html",
   ]);
   for (const packagePath of [
     "apps/snapshot-publisher/package.json",
@@ -430,6 +641,55 @@ test("Dockerfiles remove package managers from runtime images", () => {
   );
 });
 
+test("Indexer monitor image deploys only its production app on the pinned non-root Node base", () => {
+  const content = dockerfileContent("Dockerfile-indexer-monitor");
+  const stages = content.split(/(?=^FROM\b)/m);
+  const [base] = stages;
+  const build = stages.find((stage) => /^FROM base AS build$/m.test(stage));
+  const runtime = stages.find((stage) => /^FROM base AS runtime$/m.test(stage));
+  assert.match(
+    base,
+    /^FROM node:\d+\.\d+\.\d+-alpine@sha256:[0-9a-f]{64} AS base$/m
+  );
+  assert(build);
+  assert(runtime);
+  assert.match(
+    build,
+    /^COPY apps\/indexer-monitor\/src apps\/indexer-monitor\/src$/m
+  );
+  assert.doesNotMatch(build, /^COPY\s+.*(?:apps\/indexer\/|packages\/)/m);
+  assert.match(
+    build,
+    /^RUN pnpm install --frozen-lockfile --filter indexer-monitor$/m
+  );
+  assert.match(build, /^RUN pnpm --filter indexer-monitor build$/m);
+  assert.match(
+    build,
+    /^RUN pnpm --filter indexer-monitor deploy --prod \/deploy$/m
+  );
+  assert.match(base, /^WORKDIR \/app$/m);
+  assert.deepEqual(runtime.match(/^COPY\s+.+$/gm), [
+    "COPY --from=build --chown=node:node /deploy /app",
+  ]);
+  assert.match(runtime, /^USER node$/m);
+  assert.match(runtime, /^CMD \["node", "dist\/monitor-indexer\.js"\]$/m);
+  assert.match(runtime, /\brm -rf \/usr\/local\/lib\/node_modules\b/);
+  assert.doesNotMatch(runtime, /^(?:ADD|ENTRYPOINT|EXPOSE)\b/m);
+  assert.doesNotMatch(
+    runtime,
+    /\b(?:apk\s+add|corepack\s+(?:enable|prepare)|(?:npm|pnpm|yarn)\s+(?:ci|install|add))\b/
+  );
+
+  const app = readJson("apps/indexer-monitor/package.json");
+  assert.deepEqual(Object.keys(app.dependencies), ["@aws-sdk/client-s3"]);
+  assert.deepEqual(app.files, ["dist"]);
+  assert.equal(app.scripts.start, "node dist/monitor-indexer.js");
+  assert.equal(app.scripts["lint:check"], "biome lint . --error-on-warnings");
+  assert.equal(app.scripts.build, "tsc");
+  assert.equal(app.scripts.typecheck, "tsc --noEmit");
+  assert.equal(app.scripts.test, "node --test test/*.test.mjs");
+});
+
 test("Snapshot service Dockerfiles prune source and test artifacts", () => {
   for (const [dockerfile, app] of [
     ["Dockerfile-snapshot-gateway", "snapshot-gateway"],
@@ -458,7 +718,11 @@ test("Snapshot monitor runs tests in CI, not during image builds", () => {
 
   assert.equal(monitorPackage.scripts.build, "tsc");
   assert.equal(monitorPackage.scripts.test, "node --test dist/test/*.test.js");
-  assert(workflow.includes("pnpm --filter snapshot-monitor run test"));
+  const root = readJson("package.json");
+  assert(root.scripts.test.startsWith("turbo run test &&"));
+  assert(workflow.includes("command: pnpm test"));
+  assert.equal(readJson("turbo.json").tasks.test.cache, false);
+  assert(workflow.includes("if: matrix.build == true"));
   assert(
     !monitorDockerfile.includes(
       "COPY packages/protocol-config/protocol-chains.json ./packages/protocol-config/protocol-chains.json"
@@ -470,16 +734,11 @@ test("Snapshot monitor runs tests in CI, not during image builds", () => {
 test("Frontend and indexer Dockerfiles prune scaffold and local-only files", () => {
   const frontend = dockerfileContent("Dockerfile-frontend");
   assert(frontend.includes("libxml2"));
-  for (const asset of [
-    "50x.html",
-    "file.svg",
-    "globe.svg",
-    "next.svg",
-    "vercel.svg",
-    "window.svg",
-  ]) {
-    assert(frontend.includes(`/usr/share/nginx/html/${asset}`));
-  }
+  assert(frontend.includes("/usr/share/nginx/html/50x.html"));
+  assert(existsSync("apps/frontend/public/token.svg"));
+  assert(
+    readFileSync("apps/frontend/index.html", "utf8").includes("/token.svg")
+  );
 
   const indexer = dockerfileContent("Dockerfile-indexer");
   assert(!indexer.includes("/app/apps/indexer/.env"));
@@ -493,4 +752,70 @@ test("Hasura Dockerfile uses targeted package upgrades", () => {
   assert(hasura.includes("--only-upgrade"));
   assert(!hasura.includes("apt-get upgrade"));
   assert(hasura.includes("USER hasura"));
+});
+
+test("source commands separate checks, artifact builds and all ordinary tests", () => {
+  const { scripts } = readJson("package.json");
+  const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
+  assert.equal(scripts.build, "turbo run build");
+  for (const alias of ["format", "format:check", "lint:fix", "lint:check"])
+    assert.equal(scripts[alias], undefined);
+  const commands = [...workflow.matchAll(/command: (pnpm [^\n]+)/g)].map(
+    (match) => match[1]
+  );
+  assert.deepEqual(commands, [
+    "pnpm check:runtime-versions",
+    "pnpm check",
+    "pnpm typecheck",
+    "pnpm build",
+    "pnpm test",
+  ]);
+  assert(workflow.includes("fail-fast: false"));
+  assert(workflow.includes("if: matrix.codegen == true"));
+  assert(workflow.includes("if: matrix.build == true"));
+  for (const name of [
+    "indexer",
+    "indexer-monitor",
+    "snapshot-gateway",
+    "snapshot-publisher",
+    "snapshot-monitor",
+  ])
+    assert(readJson(`apps/${name}/package.json`).scripts.test);
+  for (const name of ["snapshot-artifacts", "contract-abis"])
+    assert(readJson(`packages/${name}/package.json`).scripts.test);
+  for (const task of ["test:config", "check:abis"])
+    assert(scripts.test.includes(task));
+  assert(
+    scripts.test.includes(
+      "env SNAPSHOT_OUTPUT_DIR=/tmp/protocol-visualizer-snapshots SNAPSHOT_SOURCE=sample pnpm --filter snapshot-publisher start"
+    )
+  );
+  assert(!scripts.test.includes("generate:snapshots:local"));
+  const gateway = readJson("apps/snapshot-gateway/package.json").scripts;
+  assert.equal(
+    gateway.build,
+    "tsc && node dist/scripts/generate-openapi.js --check"
+  );
+  assert.equal(
+    gateway["generate:openapi"],
+    "pnpm --filter @protocol-visualizer/snapshot-artifacts build && tsc && node dist/scripts/generate-openapi.js"
+  );
+  for (const file of [
+    "apps/indexer/package.json",
+    "packages/contract-abis/package.json",
+  ])
+    assert.equal(readJson(file).scripts.build, undefined);
+  for (const name of [
+    "snapshot-gateway",
+    "snapshot-publisher",
+    "snapshot-monitor",
+  ])
+    assert(
+      !readJson(`apps/${name}/package.json`).scripts.build.includes("--test")
+    );
+  assert(
+    !readJson(
+      "packages/snapshot-artifacts/package.json"
+    ).scripts.build.includes("--test")
+  );
 });

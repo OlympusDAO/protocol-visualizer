@@ -4,7 +4,7 @@
 in [`.railway/railway.ts`](../.railway/railway.ts) defines the whole project,
 including `rpc-cache` and its separate `rpc-cache-postgres` database and volume.
 Use [the project migration guide](railway-self-hosting.md) for bootstrap and the
-plan-on-PR/apply-on-merge workflow. IaC supplies connection references and preserves
+trusted merged-master fresh-plan/automatic-apply CI flow. IaC supplies connection references and preserves
 provider credentials supplied in Railway.
 No resources or live variables are changed by building this repository.
 Do not reuse the Envio database or role for cache storage.
@@ -67,6 +67,7 @@ that fallback from authorizing storage. This is a release-specific workaround,
 covered by an actual-image test with a high head and an unsupported finalized
 tag. Keep that regression test when upgrading eRPC.
 
+<!-- biome-ignore format: keep table cells unpadded -->
 | Chain | ID | Required finality signal and verification boundary |
 | --- | --- | --- |
 | Ethereum | 1 | Execution RPC `finalized`, from Ethereum consensus |
@@ -88,6 +89,14 @@ finalized-tag semantics for **each selected provider** before cutover, especiall
 Robinhood. Unsupported or unavailable finality leaves numeric requests uncached;
 it does not cause recent blocks to be guessed final. A previously observed
 finalized watermark remains safe if a provider later becomes unavailable.
+
+## Persistent cache capacity and retention
+
+There are two persistent caches with separate databases and lifecycles. Envio's `cache: true` effects in `effects.ts` and `code-cache.ts` persist successful pinned observations in the indexer database. Canonical block hashes are part of pinned inputs, so observations at new blocks can create new entries even for the same contract. Rollbacks retain effect results; a process restart does not make this an in-memory cache. Unavailable/incomplete results explicitly disable effect caching. eRPC separately persists eligible finalized method/parameter responses in `rpc-cache-postgres`; its immutable policies have NULL expiry. Neither repository configuration defines a lifetime TTL or automatic capacity bound for these entries.
+
+Use the existing `pnpm inspect:indexer:metrics` effect/progress metrics and private `pnpm inspect:rpc-cache:metrics` hit/miss/upstream counters to relate new work to cache activity. Counters measure requests, not disk bytes. Track Railway volume usage and PostgreSQL database/relation sizes for **both** databases over the same intervals, together with progress and unique-block workload. Existing production capacities are preserved when above the requested 20,000 MB minimum; that minimum is not a retention guarantee or a measured lifetime estimate. No observed growth rate is established by this change.
+
+Operations must provide persistent storage, backups, free-space alerts and capacity growth for the intended indexing/rebuild horizon. Keep caches through ordinary deploys and resumes. There is no supported automated eviction or deletion procedure in this change; a finite retention policy requires a separately reviewed design and verification of Envio rollback/replay and eRPC refill behavior. Do not truncate cache tables or reset project volumes as routine maintenance. The reset-isolation integration check establishes that an intentional indexer schema reset leaves the separate eRPC cache intact; it does not establish a safe purge policy for Envio effects.
 
 ## Railway variables and private networking
 
@@ -205,12 +214,12 @@ Register an SSH key with Railway first. Follow [SSH key registration](railway-se
 Then run this command from the linked repository:
 
 ```bash
-pnpm run rpc-cache:metrics
+pnpm run inspect:rpc-cache:metrics
 ```
 
 The script uses the currently linked Railway environment.
 It prints the project and environment names and IDs before it opens the tunnel.
-To select another environment, use `pnpm run rpc-cache:metrics --environment protocol-visualizer-pr-82`.
+To select another environment, use `pnpm run inspect:rpc-cache:metrics --environment protocol-visualizer-pr-82`.
 `RAILWAY_ENVIRONMENT` also selects an environment. A command-line selector takes precedence.
 The script opens an SSH tunnel and your browser at `http://127.0.0.1:14001/metrics`.
 Keep the terminal open. Press Ctrl+C to close the tunnel and remove its temporary SSH configuration.
@@ -223,7 +232,7 @@ If your key uses a custom filename, select its private key file:
 
 ```bash
 RAILWAY_SSH_IDENTITY_FILE="$HOME/.ssh/id_ed25519_railway" \
-  pnpm run rpc-cache:metrics
+  pnpm run inspect:rpc-cache:metrics
 ```
 
 The browser shows Prometheus text, not a dashboard.
@@ -278,6 +287,8 @@ This is bounded recovery, not a guarantee of uninterrupted indexing.
 
 Run controlled throttling checks with the repository-pinned runtime:
 
+This standalone command requires the prebuilt eRPC image and the exact local PostgreSQL fixture `postgres:18.6-alpine3.24@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b` already present. The canonical `pnpm test:integration` command prepares that fixture, pinned in [scripts/test-integration.mjs](../scripts/test-integration.mjs), independently of security scans. Standalone fixture containers use `--pull=never`; they do not prepare missing images.
+
 ```sh
 RPC_CACHE_TEST_SKIP_RESET=1 pnpm test:rpc-cache
 ```
@@ -290,8 +301,9 @@ configuration, not the production selection policy. Native Envio memory-store
 tests separately check that exhausted HTTP 429 leaves staged entity state
 uncommitted and the same block can resume after recovery.
 
+<!-- biome-ignore format: keep table cells unpadded -->
 | Controlled case | Observed provider calls |
-|---|---:|
+| --- | ---: |
 | Two HTTP or JSON-RPC 429 failures, then recovery | 3 |
 | One persistently throttled provider | 6; reader throws |
 | Primary throttled, secondary healthy; one proxy request | 1 per provider |
@@ -324,23 +336,24 @@ cache service and its database intact during an indexer rebuild.
 
 Copy `.env.compose.sample` to `.env` and supply the nine `UPSTREAM_RPC_URL_*`
 values, Envio token, and Etherscan key. Compose routes consumers to eRPC without
-requiring per-consumer URL edits. `rpc-cache-postgres-data` is a new named volume;
-existing `postgres-data` and `minio-data` are unchanged. `docker compose down`
+requiring per-consumer URL edits. Ephemeral local PG18.6 uses fresh versioned
+`rpc-cache-postgres18-data` and `postgres18-data` parent-mounted volumes; use fresh volumes for major-version changes. Preserve `minio-data`; see [local storage boundaries](local-stack.md#ports). `docker compose down`
 keeps all volumes; do not use `down --volumes` for this stack.
 
 ```bash
-pnpm run container:build:rpc-cache
-pnpm run container:build:indexer
-pnpm run test:rpc-cache
+pnpm run build:docker:rpc-cache
+pnpm run build:docker:indexer
+pnpm test:integration
 ```
 
 The integration check uses the real pinned images, disposable Postgres
 containers, and a counted HTTP fixture upstream. It checks chain/parameter/block
 isolation, permanent rows, legitimate empties, mixed log ranges, unfinalized and
 unknown-finality bypass, RPC/transport errors, restart persistence, new queries,
-and an actual distroless Envio reset against a separate disposable database
-(with a fixture Hasura metadata endpoint). A canary table proves the reset
-clears Envio's schema while cache rows and hits remain intact.
+and native indexer failure against incompatible storage. The test resets the
+disposable Envio schema from its database host, then restarts the distroless
+indexer against a fixture Hasura endpoint. Canaries check schema isolation,
+and every original eRPC key and value remains available after recovery.
 It removes only containers/networks created by that test and creates no project
 volumes. Fixture evidence does not establish live provider behavior.
 
@@ -369,8 +382,10 @@ must pass without the old exception before cutover.
 ## Infrastructure deployment and PR environments
 
 The whole-project definition and merge workflow are documented in
-[railway-self-hosting.md](railway-self-hosting.md). The workflow plans production
-changes on PR updates and applies the reviewed plan on merge to `master`.
+[railway-self-hosting.md](railway-self-hosting.md). PRs run offline checks without
+production credentials or a live plan. After a relevant reviewed merge to `master`,
+CI gates a fresh private temporary native plan and automatic apply from that exact
+trusted revision.
 Application GitHub autodeploys continue according to watch patterns.
 Preview infrastructure is applied explicitly against the linked target
 environment; it is not auto-applied on each PR commit.

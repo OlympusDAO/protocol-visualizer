@@ -1,9 +1,9 @@
-import { rethrowTransientRpc } from "./rpc";
-import { keccak256, type Abi, type Address, type Hex } from "viem";
+import { type Abi, type Address, type Hex, keccak256 } from "viem";
+import type { FunctionContext } from "../../../../packages/snapshot-artifacts/src/index";
 import metadata from "../generated/contract-metadata.json";
 import type { ProcessedContractData } from "../services/contracts/types";
-import type { FunctionContext } from "../../../../packages/snapshot-artifacts/src/index";
-import { emptyCodeHash, type BytecodePin } from "./code-cache";
+import { type BytecodePin, emptyCodeHash } from "./code-cache";
+import { rethrowTransientRpc } from "./rpc";
 
 export type ControlGetterInput = {
   chainId: number;
